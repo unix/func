@@ -20,6 +20,9 @@ Create a command with more semantics:
     }
   }
   ```
+  
+## Thanks
+Thanks to [Shannon Moeller](https://github.com/shannonmoeller) for donating the pkgname "func" on npm!
 
 ## LICENSE
 [MIT](./LICENSE)
