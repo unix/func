@@ -1,5 +1,4 @@
-import { OptionParams } from '../annotations/option'
-import { CommandClass, OptionClass } from '../interfaces'
+import { CommandClass, OptionClass, OptionParams } from '../interfaces'
 import { metadata } from '../constants/metadata'
 
 export type OptionKeyValue = { [key: string]: string }
