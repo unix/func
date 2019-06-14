@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "esnext",
+    "lib": ["esnext"],
+    "esModuleInterop": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "files": [
+    "src/index.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "examples",
+    "dist"
+  ]
+}
