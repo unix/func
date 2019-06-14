@@ -10,6 +10,9 @@
     "build": "tsc",
     "release": "yarn build && yarn publish"
   },
+  "pre-commit": [
+    "lint"
+  ],
   "files": [
     "dist",
     "README.md"
@@ -29,6 +32,7 @@
     "@types/node": "^11.11.0",
     "ava": "^2.1.0",
     "ava-ts": "^0.25.2",
+    "pre-commit": "^1.2.2",
     "ts-node": "^8.2.0",
     "tslint": "^5.14.0",
     "tslint-config-lambdas": "^1.0.0",
