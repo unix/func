@@ -2,7 +2,7 @@ import arg from 'arg'
 
 export type UserInputs = string[]
 
-export type UserOption = object
+export type UserOption = any
 
 export type UserArg = arg.Result<any>
 
