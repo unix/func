@@ -1,6 +1,6 @@
 {
   "name": "func",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "license": "MIT",
@@ -9,6 +9,21 @@
     "lint": "tslint -c tslint.yml -p tsconfig.json",
     "build": "tsc",
     "release": "yarn build && yarn publish"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "command",
+    "command-framework",
+    "command-line-tool",
+    "command-line",
+    "typescript-framework"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wittbulter/func.git"
   },
   "devDependencies": {
     "@types/node": "^11.11.0",
