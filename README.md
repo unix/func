@@ -238,6 +238,7 @@ More popular and simple way to build command-line tools.
 
   - [mini](https://github.com/WittBulter/func/tree/master/examples/mini)
   - [popular](https://github.com/WittBulter/func/tree/master/examples/popular)
+  - [recommend](https://github.com/WittBulter/func/tree/master/examples/recommend)
 
 <br/>
 
