@@ -22,8 +22,9 @@ More popular and simple way to build command-line tools.
 
   1. Install: `npm i func`.
   
-  2. Note your `tsconfig.json` configuration:
-    ```json
+  2. Your `tsconfig.json` should contain these items:
+  
+    ```
     "compilerOptions": {
       ...
       "experimentalDecorators": true,
@@ -49,7 +50,7 @@ More popular and simple way to build command-line tools.
 ### Guide
 
 #### Container
-  **Entry to all modules, there must be one.**
+  Entry to all modules, there must be one.
   
   ```ts
   // app.ts
@@ -61,7 +62,7 @@ More popular and simple way to build command-line tools.
   ```
   
 #### Command (`<NAME> command`)
-  **Implement a command.**  Class are triggered when a command is called.
+  Implement a command, `class` are triggered when a command is called.
   
   ```ts
   // ./cretae.ts
@@ -77,7 +78,7 @@ More popular and simple way to build command-line tools.
   ```
   
 #### Option (`<NAME> --option`)
-  **Implement a global option.**
+  Implement a global option.
   
   ```ts
   // ./option.ts
@@ -92,7 +93,7 @@ More popular and simple way to build command-line tools.
   ```
   
 #### SubOptions (`<NAME> command --suboption`)
-  **Add options based on a command.**
+  Add options based on a command.
   
   ```ts
   // ./cretae.ts
@@ -108,7 +109,7 @@ More popular and simple way to build command-line tools.
   ```
   
 #### Major (`<NAME>`)
-  **Trigger without Command and Option.**
+  Trigger without Command and Option.
   
   ```ts
   // ./main.ts
@@ -121,7 +122,7 @@ More popular and simple way to build command-line tools.
   ```
 
 #### NotFound (`<NAME> <ANY>`)
-  **Trigger when no commands are found**
+  Trigger when no commands are found
   
   ```ts
   // ./not-found.ts
@@ -134,7 +135,7 @@ More popular and simple way to build command-line tools.
   ```
 
 #### Command Arguments
-  **Provide arguments in commands**
+  Provide arguments in commands
   
   ```ts
   // called by `<NAME> create --force` 
@@ -155,7 +156,7 @@ More popular and simple way to build command-line tools.
 
 
 #### Option Arguments
-  **Provide arguments in options**
+  Provide arguments in options
   
   ```ts
   // called by `<NAME> --project my_project` 
@@ -172,7 +173,7 @@ More popular and simple way to build command-line tools.
   ```
  
 #### Register Arguments
-  **Provide all registers in any class.**
+  Provide all registers in any class.
   
   ```ts
   import { Option, RegisterProvider } from 'func'
@@ -193,19 +194,19 @@ More popular and simple way to build command-line tools.
 
 | Signature | Param structure | Description |
 |----|----|----|
-| @Command(params: CommandParams) | CommandParams = { name: string, description?: string } | create a command |
-| @Option(params: OptionParams) | OptionParams = { name: string, type?: OptionType, description?: string, alias?: string } | create an option |
-| @SubOptions(params: Array<OptionParams>) | ditto | create a suboption, usually used after `Command` |
-| @CommandNotFound() | - | create a method to capture undeclared commands |
-| @CommandMajor() | - | major command |
+| `@Command(params: CommandParams)` | `CommandParams = { name: string, description?: string }` | create a command |
+| `@Option(params: OptionParams)` | `OptionParams = { name: string, type?: OptionType, description?: string, alias?: string }` | create an option |
+| `@SubOptions(params: Array<OptionParams>)` | ditto | create a suboption, usually used after `Command` |
+| `@CommandNotFound()` | - | create a method to capture undeclared commands |
+| `@CommandMajor()` | - | major command |
   
 ### Arguments Type
 
 | Signature | Description |
 |----|----|
-| CommandArgsProvider | provide infos about the current command |
-| OptionArgsProvider | provide infos about the current option |
-| RegisterProvider | provide all registered metadata |
+| `CommandArgsProvider` | provide infos about the current command |
+| `OptionArgsProvider` | provide infos about the current option |
+| `RegisterProvider` | provide all registered metadata |
   
 ## Thanks
 Thanks to [Shannon Moeller](https://github.com/shannonmoeller) for donating the pkgname "func" on npm!
