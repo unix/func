@@ -1,16 +1,13 @@
-import { Option, OptionArgsProvider, RegisterProvider } from '../../../src'
+import { Option, OptionArgsProvider } from 'func'
 
 @Option({
   name: 'help',
   alias: 'h',
-  type: Boolean,
 })
 export class Help {
   constructor(
-    args: OptionArgsProvider,
-    register: RegisterProvider,
+    arg: OptionArgsProvider,
   ) {
-    // inputs
-    console.log(123, register.commands, register.options)
+    console.log(arg.value)
   }
 }
