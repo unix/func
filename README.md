@@ -6,7 +6,7 @@ More popular and simple way to build command-line tools.
 
 ## Feature
 
-  - Small size package.
+  - Small size package. (full command-line project == [7kb](https://github.com/WittBulter/func/blob/master/examples/gzbundle/archived.tar.gz))
   
   - Elegant command support and params support.
   
