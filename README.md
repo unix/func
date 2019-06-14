@@ -14,7 +14,7 @@ More popular and simple way to build command-line tools.
   
   - Excellent module design, not burden of thinking.
   
-  - Full template support, developable at one command. (coming soon)
+  - Full template support, developable at one command.
 
 
 <br/>
@@ -22,7 +22,23 @@ More popular and simple way to build command-line tools.
 ## Usage
 `func` provide some annotations for create command line tools, it makes your code more semantic than ever, and easy to maintain.
 
+### Quick Start With `cfunc` (**Recommended**)
+
+  Jsut run `npx cfunc init` to create `func` project.
+  
+  1. `npx cfunc init`: create project
+  
+  2. `npm i`: install deps.
+  
+  3. `npm start`: setup link and development ready.
+  
+  It's all.
+  
+<br/>
+
 ### Install
+  You can choose to configure the project manually, if you are an experienced developer.
+  
 
   1. Install: `npm i func`.
   
