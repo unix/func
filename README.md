@@ -2,6 +2,7 @@
 
 More popular and simple way to build command-line tools.
 
+<br/>
 
 ## Feature
 
@@ -14,6 +15,9 @@ More popular and simple way to build command-line tools.
   - Excellent module design, not burden of thinking.
   
   - Full template support, developable at one command. (coming soon)
+
+
+<br/>
 
 ## Usage
 `func` provide some annotations for create command line tools, it makes your code more semantic than ever, and easy to maintain.
@@ -32,7 +36,7 @@ More popular and simple way to build command-line tools.
       ...
     }
     ```
-  3. Quick start:
+### Quick start:
   
   ```ts
   import { Container, Command } from 'func'
@@ -46,6 +50,8 @@ More popular and simple way to build command-line tools.
   
   new Container([Init])
   ```
+
+<br/>
 
 ### Guide
 
@@ -188,7 +194,9 @@ More popular and simple way to build command-line tools.
     }
   }
   ```
- 
+
+<br/>
+
 ## Decorators Reference
 ### Commands:
 
@@ -199,7 +207,7 @@ More popular and simple way to build command-line tools.
 | `@SubOptions(params: Array<OptionParams>)` | ditto | create a suboption, usually used after `Command` |
 | `@CommandNotFound()` | - | create a method to capture undeclared commands |
 | `@CommandMajor()` | - | major command |
-  
+
 ### Arguments Type
 
 | Signature | Description |
@@ -207,9 +215,20 @@ More popular and simple way to build command-line tools.
 | `CommandArgsProvider` | provide infos about the current command |
 | `OptionArgsProvider` | provide infos about the current option |
 | `RegisterProvider` | provide all registered metadata |
-  
+
+<br/>
+
+### Examples
+
+  - [mini](https://github.com/WittBulter/func/tree/master/examples/mini)
+  - [popular](https://github.com/WittBulter/func/tree/master/examples/popular)
+
+<br/>
+
 ## Thanks
 Thanks to [Shannon Moeller](https://github.com/shannonmoeller) for donating the pkgname "func" on npm!
+
+<br/>
 
 ## LICENSE
 [MIT](./LICENSE)
