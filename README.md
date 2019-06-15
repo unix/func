@@ -29,7 +29,7 @@ More popular and simple way to build command-line tools.
 
 ### Quick Start (**Recommended**, npm version > 6.1.0)
 
-  Jsut run `npm init func` to create `func` project.
+  Just run `npm init func` to create `func` project.
   
   1. `npm init func`: create project
   
@@ -82,7 +82,7 @@ More popular and simple way to build command-line tools.
   ```ts
   // app.ts
   import { Container, Command } from 'func'
-  import { Create } from './cretae'
+  import { Create } from './create'
   import { Build } from './build'
   
   new Container([Create, Build])
@@ -92,7 +92,7 @@ More popular and simple way to build command-line tools.
   Implement a command, `class` are triggered when a command is called.
   
   ```ts
-  // ./cretae.ts
+  // ./create.ts
   // called by `<NAME> create` 
   import { Command } from 'func'
   
@@ -123,7 +123,7 @@ More popular and simple way to build command-line tools.
   Add options based on a command.
   
   ```ts
-  // ./cretae.ts
+  // ./create.ts
   // called by `<NAME> create` or `<NAME> create --force` 
   import { Command, SubOptions } from 'func'
   
@@ -210,7 +210,7 @@ More popular and simple way to build command-line tools.
     constructor(
       private arg: RegisterProvider,
     ) {
-      console.log(arg.commands)         // all commmands
+      console.log(arg.commands)         // all commands
       console.log(arg.options)         // all options
     }
   }
