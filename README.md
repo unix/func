@@ -1,3 +1,8 @@
+<p width="640" height="320" align="center">
+<img src="./demo.png" width="640" height="320"/>
+</p>
+<br/>
+
 ## FUNC
 
 More popular and simple way to build command-line tools.
