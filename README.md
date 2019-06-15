@@ -27,11 +27,11 @@ More popular and simple way to build command-line tools.
 ## Usage
 `func` provide some annotations for create command line tools, it makes your code more semantic than ever, and easy to maintain.
 
-### Quick Start With `cfunc` (**Recommended**)
+### Quick Start (**Recommended**, npm version > 6.1.0)
 
-  Jsut run `npx cfunc init` to create `func` project.
+  Jsut run `npm init func` to create `func` project.
   
-  1. `npx cfunc init`: create project
+  1. `npm init func`: create project
   
   2. `npm i`: install deps.
   
