@@ -6,6 +6,7 @@
 ## FUNC
 
 [![CircleCI](https://circleci.com/gh/WittBulter/func.svg?style=svg)](https://circleci.com/gh/WittBulter/func) [![Build Status](https://travis-ci.org/WittBulter/func.svg?branch=master)](https://travis-ci.org/WittBulter/func)
+
 More popular and simple way to build command-line tools.
 
 <br/>
