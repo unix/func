@@ -4,16 +4,16 @@
 	"main": "dist/index.js",
 	"license": "MIT",
 	"scripts": {
-		"start": "cfunc dev",
-		"lint": "tslint -c tslint.yml -p tsconfig.json",
-		"build": "cfunc build"
+		"start": "func-service dev",
+		"build": "func-service build",
+		"lint": "tslint -c tslint.yml -p tsconfig.json"
 	},
 	"dependencies": {
 		"func": "^1.0.4"
 	},
 	"devDependencies": {
 		"@types/node": "^12.0.8",
-		"cfunc": "^1.0.0",
+		"func-service": "^0.1.1",
 		"ncc": "^0.3.6",
 		"ts-node": "^8.2.0",
 		"tslint": "^5.17.0",

@@ -65,11 +65,6 @@ builtin-modules@^1.1.1:
   resolved "https://registry.yarnpkg.com/builtin-modules/-/builtin-modules-1.1.1.tgz#270f076c5a72c02f5b65a47df94c5fe3a278892f"
   integrity sha1-Jw8HbFpywC9bZaR9+Uxf46J4iS8=
 
-cfunc@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/cfunc/-/cfunc-1.0.0.tgz#4c2976460a739560853dd79823bb065bd1682287"
-  integrity sha512-sGxH3eIv+PSeEipjXSp3KZoH/aZiePAmRD3PvRRICltajaad97YCFr0XtOryASdKT7db4DdkBbBPJ/6UPtGDqQ==
-
 chalk@^2.0.0, chalk@^2.3.0:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.2.tgz#cd42541677a54333cf541a49108c1432b44c9424"
@@ -140,6 +135,11 @@ fs.realpath@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/fs.realpath/-/fs.realpath-1.0.0.tgz#1504ad2523158caa40db4a2787cb01411994ea4f"
   integrity sha1-FQStJSMVjKpA20onh8sBQRmU6k8=
+
+func-service@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/func-service/-/func-service-0.1.1.tgz#2dc0b155d887afb8b8e14aaf82da793d5f706f91"
+  integrity sha512-VhNlpDdl8D8X3FCdTk37r3l/evZrunJY/T3GLQr1HUyHzbwTc3mOW+BbgDEjgq1UXp+6uw8k1hCTFZ0TePma0Q==
 
 func@^1.0.4:
   version "1.0.4"
