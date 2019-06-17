@@ -90,7 +90,8 @@ export class Mutation {
     
     return commands.find(item => {
       const data: CommandParams = Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, item)
-      return data && data.name === first
+      if (!data) return false
+      return data.name === first || data.alias === first
     })
   }
   
