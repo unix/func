@@ -225,7 +225,7 @@ More popular and simple way to build command-line tools.
 
 | Signature | Param structure | Description |
 |----|----|----|
-| `@Command(params: CommandParams)` | `CommandParams = { name: string, description?: string }` | create a command |
+| `@Command(params: CommandParams)` | `CommandParams = { name: string, description?: string, alias?: string }` | create a command |
 | `@Option(params: OptionParams)` | `OptionParams = { name: string, type?: OptionType, description?: string, alias?: string }` | create an option |
 | `@SubOptions(params: Array<OptionParams>)` | ditto | create a suboption, usually used after `Command` |
 | `@CommandNotFound()` | - | create a method to capture undeclared commands |
