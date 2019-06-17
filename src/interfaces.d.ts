@@ -19,6 +19,7 @@ export type OptionClass = new (
 
 export interface CommandParams {
   name: string
+  alias?: string
   description?: string
 }
 

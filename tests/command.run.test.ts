@@ -14,3 +14,16 @@ test('should invoke', t => {
   process.argv = ['', '', name, arg]
   new Container([ShouldInvoker])
 })
+
+test('should invoke by alias', t => {
+  const alias = utils.random()
+  const arg = utils.random()
+  class ShouldInvoker {
+    constructor() {
+      t.pass()
+    }
+  }
+  Command({ name: utils.random(), alias })(ShouldInvoker)
+  process.argv = ['', '', alias, arg]
+  new Container([ShouldInvoker])
+})
