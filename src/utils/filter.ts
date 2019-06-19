@@ -25,8 +25,3 @@ export const optionsToKeyValue = (params: OptionParams[] = []): OptionKeyValue =
 export const removeHyphen = (key: string): string => {
   return key.replace(/^[-]+/, '')
 }
-
-export const ensureHyphen = (key: string, len = 2): string => {
-  const hyphens = '-'.repeat(len)
-  return hyphens + removeHyphen(key)
-}

@@ -37,11 +37,6 @@ export class Container {
     this.insert()
   }
   
-  getCommands(): CommandClass[] {
-    return this.datas[handlers.COMMAND]
-      .map(fn => Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, fn))
-  }
-  
   private init(): void {
     this.params.forEach(handler => {
       const type = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, handler)
