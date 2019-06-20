@@ -31,7 +31,7 @@ More popular and simple way to build command-line tools.
 
 ### Quick Start (**Recommended**, npm version > 6.1.0)
 
-  Jsut run `npm init func` to create project.
+  Just run `npm init func` to create project.
   
   1. `npm init func`: create project
   
