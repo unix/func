@@ -242,10 +242,16 @@ More popular and simple way to build command-line tools.
 <br/>
 
 ### Examples
+You can follow these examples to create simple applications.
 
   - [mini](https://github.com/WittBulter/func/tree/master/examples/mini)
   - [popular](https://github.com/WittBulter/func/tree/master/examples/popular)
   - [recommend](https://github.com/WittBulter/func/tree/master/examples/recommend)
+  
+### Showcases
+If you create any application with `func`, welcome to show it here.
+
+  - [done](https://github.com/WittBulter/done) Auto release for project on npm.
 
 <br/>
 
