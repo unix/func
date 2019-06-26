@@ -8,13 +8,13 @@ module.exports = {
     '/': {
       lang: 'en-US',
       title: 'func - modern command-line framework',
-      description: 'func - modern command-line framework'
+      description: 'func - modern command-line framework',
     },
     '/zh/': {
       lang: 'zh-CN',
       title: 'func - 现代化命令行框架',
-      description: 'func - 现代化命令行框架'
-    }
+      description: 'func - 现代化命令行框架',
+    },
   },
   theme: 'zeit',
   themeConfig: {
@@ -36,8 +36,8 @@ module.exports = {
             './params',
             './publish',
             './apis',
-          ]
-        }
+          ],
+        },
       },
       '/zh/': {
         selectText: '选择语言',
@@ -54,9 +54,17 @@ module.exports = {
             '/zh/params',
             '/zh/publish',
             '/zh/apis',
-          ]
-        }
-      }
-    }
+          ],
+        },
+      },
+    },
   },
+  plugins: [
+    [
+      '@vuepress/google-analytics',
+      {
+        'ga': 'UA-110371817-9',
+      },
+    ],
+  ],
 }

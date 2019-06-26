@@ -891,6 +891,11 @@
   dependencies:
     lodash.throttle "^4.1.1"
 
+"@vuepress/plugin-google-analytics@^1.0.0-rc.1":
+  version "1.0.0-rc.1"
+  resolved "https://registry.yarnpkg.com/@vuepress/plugin-google-analytics/-/plugin-google-analytics-1.0.0-rc.1.tgz#6963ef49710293267137a114122fb3630dc443e2"
+  integrity sha512-t7wP6OVOdehP37eEEOREajo03AKTWC8ah3lKxt6yBJN+QAP1besxxHcBa/vpxa7z0bU8q1Y0bP4TLfd8ng+8IQ==
+
 "@vuepress/plugin-last-updated@^1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@vuepress/plugin-last-updated/-/plugin-last-updated-1.0.2.tgz#c839c5fb585c469a8c2ff70c16204dd72478545a"
@@ -7300,10 +7305,10 @@ vuepress-plugin-container@^2.0.0, vuepress-plugin-container@^2.0.1:
   dependencies:
     markdown-it-container "^2.0.0"
 
-vuepress-theme-zeit@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/vuepress-theme-zeit/-/vuepress-theme-zeit-0.1.2.tgz#21e0a0b646f37f43dc7825e4be761b4db506e62e"
-  integrity sha512-TQR5pLu64WPlgHU163gyyn/hH/Ddq2H/XmVEL/4ap9CaQAkepgZ9SkB+3dVFWzWhzjmODs5sNpIOdkUvc3DB+A==
+vuepress-theme-zeit@^0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/vuepress-theme-zeit/-/vuepress-theme-zeit-0.1.3.tgz#48a202365fa2ce2a4fd631563745cba2b91c5573"
+  integrity sha512-qxBYaOhrqH/6RrvXw0F1RYZc8InK6d8QqNq0cXMT1e9F05efeV1ic3gKdPR8clXuuTtyCo77+iakddEPzkvkWA==
   dependencies:
     "@zeit-ui/vue" "^1.2.0"
     pug "^2.0.4"
