@@ -5,10 +5,11 @@
   "license": "MIT",
   "scripts": {
     "start": "vuepress dev",
-    "build": "vuepress build"
+    "build": "vuepress build",
+    "now-build": "yarn build && mv .vuepress/dist dist"
   },
   "devDependencies": {
     "vuepress": "^1.0.2",
-    "vuepress-theme-zeit": "^0.0.5"
+    "vuepress-theme-zeit": "^0.1.2"
   }
 }

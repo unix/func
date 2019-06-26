@@ -7300,10 +7300,10 @@ vuepress-plugin-container@^2.0.0, vuepress-plugin-container@^2.0.1:
   dependencies:
     markdown-it-container "^2.0.0"
 
-vuepress-theme-zeit@^0.0.5:
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/vuepress-theme-zeit/-/vuepress-theme-zeit-0.0.5.tgz#d9573a01f189d2eae3891396b3f6a8b30f39c146"
-  integrity sha512-B15iFeC2fEL9tCsDe8ON/EVZMZc8sOXSw7ltLOj76oEHbn0amLBq79Tz1Cqet3uXsLdqSwT8CebRtUEZpUVGaw==
+vuepress-theme-zeit@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/vuepress-theme-zeit/-/vuepress-theme-zeit-0.1.2.tgz#21e0a0b646f37f43dc7825e4be761b4db506e62e"
+  integrity sha512-TQR5pLu64WPlgHU163gyyn/hH/Ddq2H/XmVEL/4ap9CaQAkepgZ9SkB+3dVFWzWhzjmODs5sNpIOdkUvc3DB+A==
   dependencies:
     "@zeit-ui/vue" "^1.2.0"
     pug "^2.0.4"
