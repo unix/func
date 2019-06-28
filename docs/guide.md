@@ -1,6 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/guide.md
----
 
 # Quick-start Guide
 ## Creating an Project

@@ -1,7 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/zh/params.md
----
-
 # 参数获取
 
 ## Command 的参数

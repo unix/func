@@ -1111,10 +1111,15 @@
   resolved "https://registry.yarnpkg.com/@zeit-ui/vue-icons/-/vue-icons-0.1.1.tgz#5ec70e94883661b2c4d11ac0ff7af29ab6afb946"
   integrity sha512-m12lb5U54cBhMCTrX1OOFV8+wXGxCa7bhnYWKFx3zmPO37+c1L6oQodqDQcfpwk2pSEDKyjuHffiM7Wpr1ig0Q==
 
-"@zeit-ui/vue@^1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@zeit-ui/vue/-/vue-1.2.0.tgz#2ad4ee19c6b23820416954e5aa6d94cc9c3b0f32"
-  integrity sha512-+onUyxqJq8LyokDv/qYFyy2W3kBSAb7RSpVSIBhnSIvbV1nh/2uCs4lBMPCOht9vodBS3Pm6EWlJSgEyo38KJw==
+"@zeit-ui/vue-icons@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@zeit-ui/vue-icons/-/vue-icons-1.0.0.tgz#e05f64e644e9446bd6e6099892d3f0bb1d031846"
+  integrity sha512-pB2YfRfGo1oAo+hrriMz0zp7/r5+TABI3NQR2VtXyWmqWXAGATeD8iZktLh+nYR0YY2hA+50TOAhxJ8S9y5iJQ==
+
+"@zeit-ui/vue@^1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@zeit-ui/vue/-/vue-1.3.1.tgz#86d14b840854c1f614d4117eca7c23adcfa6dd3b"
+  integrity sha512-vNrgsH/t9+T4gq5cJCckvWoCYDHe5BZxqihmlY4nQhAoMPwZbvAcqak5gMaqRtu5LPYX4zyG6JRGFlXOJ5qAzA==
   dependencies:
     "@zeit-ui/vue-icons" "^0.1.1"
     prismjs "^1.15.0"
@@ -7305,12 +7310,13 @@ vuepress-plugin-container@^2.0.0, vuepress-plugin-container@^2.0.1:
   dependencies:
     markdown-it-container "^2.0.0"
 
-vuepress-theme-zeit@^0.1.5:
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/vuepress-theme-zeit/-/vuepress-theme-zeit-0.1.5.tgz#238ffd301df58e4ef02bff65b423988f7eaea3b8"
-  integrity sha512-1Q42U7mleiW8k3JVuIqKlar3b/oLqfGEW/2ROZRAPCakPZZSoXciWqr8AeQhCqmEOoYFxqZF8PbfoAGMmIlcQA==
+vuepress-theme-zeit@^0.2.2:
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/vuepress-theme-zeit/-/vuepress-theme-zeit-0.2.2.tgz#aa066e82a12f3b4e02652b97226cb6fe572860a8"
+  integrity sha512-2vXCQ8mbe/v19BaTw44TT1C7rXZPsVKmddC2A8ZoJd6MVSoR+stVvjo5i/Iw035J4nn+06hcKUA45G2G/1E4cQ==
   dependencies:
-    "@zeit-ui/vue" "^1.2.0"
+    "@zeit-ui/vue" "^1.3.1"
+    "@zeit-ui/vue-icons" "^1.0.0"
     pug "^2.0.4"
     pug-plain-loader "^1.0.0"
     stylus "^0.54.5"

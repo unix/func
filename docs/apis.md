@@ -1,7 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/apis.md
----
-
 # API
 
 ## Command

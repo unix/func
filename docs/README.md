@@ -1,6 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/README.md
----
 
 # About func
 ## What is func
@@ -39,10 +36,12 @@ which is enough for me (or a lot of people). **
 For command-line developers, many things can be DIY or developed by using the third-party library in the community. 
 How to consider and judge it depends on the developer itself. It is a very irresponsible conduct to plug all the functions to the developer,
 especially for users who have the requirements of performance and volume. 
+
 For the `func`, using the decorator's metadata to help command define is a very lightweight choice actually, 
-** when most of the codes will not be brought into the running after the build**,
+**when most of the codes will not be brought into the running after the build**,
 it also provides a very good development experience (such as tips, classes, item design, etc.), 
 which greatly improves the current situation of the command lines items that are so chaos that it is difficult to maintain. 
+
 If you have any items that need to be rebuilt or started with a new item from the very beginning,
 then `func` is a very good choice, making the command-line tool built in a happy and simple manner with rich spirituality.
 

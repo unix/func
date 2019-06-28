@@ -1,6 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/publish.md
----
 
 # Publishing Practice
 

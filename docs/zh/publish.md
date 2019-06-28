@@ -1,7 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/zh/publish.md
----
-
 # 发布的实践
 
 这是一些经验和实践之谈，仅仅是推荐。如果你想，完全可以跳过此节，按自己喜欢的方式发布。

@@ -19,13 +19,14 @@ module.exports = {
   theme: 'zeit',
   themeConfig: {
     repo: 'wittbulter/func',
+    docsDir: 'docs',
     editLinks: true,
     lastUpdated: 'Last Updated',
     highlightCode: true,
     locales: {
       '/': {
         nav: [
-          { text: 'Guide', link: '/' },
+          { text: 'Guide', link: '/guide' },
           { text: 'Github', link: 'https://github.com/wittbulter/func' },
         ],
         sidebar: {
@@ -40,10 +41,11 @@ module.exports = {
         },
       },
       '/zh/': {
+        docsDir: 'docs/zh',
         selectText: '选择语言',
         label: '简体中文',
         nav: [
-          { text: '指南', link: '/' },
+          { text: '快速开始', link: '/zh/guide' },
           { text: '项目', link: 'https://github.com/wittbulter/func' },
         ],
         sidebar: {

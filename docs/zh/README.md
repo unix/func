@@ -1,7 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/zh/README.md
----
-
 # 关于 func
 ## 什么是 func
 

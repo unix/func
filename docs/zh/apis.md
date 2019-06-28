@@ -1,7 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/zh/apis.md
----
-
 # API 参考
 
 ## 命令

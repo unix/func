@@ -1,7 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/zh/guide.md
----
-
 # 快速上手
 ## 创建项目
 `func` 提供了安装脚本与默认的项目模板，如果你想创建一个项目，只需要一个命令就可以完成：

@@ -1,7 +1,3 @@
----
-editLink: https://github.com/WittBulter/func/blob/master/docs/zh/command.md
----
-
 # 命令
 
 ## 创建 Command 命令
