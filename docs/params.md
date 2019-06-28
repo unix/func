@@ -1,4 +1,4 @@
-# Obtaining Parameters
+# Parameters
 
 ## Parameters of Command
 

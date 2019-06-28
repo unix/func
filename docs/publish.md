@@ -1,5 +1,5 @@
 
-# Publishing Practice
+# Publish Practice
 
 This is the discussion of experience and practice, just a recommendation. 
 If you want, you can totally skip this section and publish it in the way you like.

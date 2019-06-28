@@ -1,6 +1,6 @@
 
 # Quick-start Guide
-## Creating an Project
+## Create Project
 The `func` provides the installation script and the default template of an item. 
 If you want to create an item, you only need one command to complete it:
 
@@ -8,7 +8,7 @@ If you want to create an item, you only need one command to complete it:
 npm init func
 ```
 ::: tip
-This requires your `npm` of version > 6.1.0 。
+require your `npm` of version > 6.1.0 。
 :::
 
 ## Rapid Development
@@ -37,7 +37,7 @@ In fact, it is the name of your folder. You can notice that there is the item of
 The default is your item name (assigned when the template was initialized). 
 Certainly, you can modify it at any time, only if you don't forget to run `npm start` once for initialization after it's modified.
 
-## Package
+## Bundle
 
 If you use the template to create an item, you only need to execute one command to package the item:
 

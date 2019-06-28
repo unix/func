@@ -24,7 +24,7 @@ Developers at almost any level can easily use `func` to build modern command lin
   
   - Functions are not stacked. We polish every detail, absolutely without randomly stacking functions.
 
-## Why do I create func ?
+## Why func ?
 
 Actually, I wrote a lot of command-line tools, but it's difficult to find a command-line framework that 
 I am completely satisfied with in the open source community. Certainly, this does not mean that `func` is perfect. 
@@ -45,7 +45,7 @@ which greatly improves the current situation of the command lines items that are
 If you have any items that need to be rebuilt or started with a new item from the very beginning,
 then `func` is a very good choice, making the command-line tool built in a happy and simple manner with rich spirituality.
 
-## Future Version
+## About Future
 
 `func` will also have version iterations, but I will carefully consider and judge `Feature` to make sure it doesn't become a burden for everyone. 
 Prior to the updates of all `Feature`, a `Feature Request` are created in the [Issue](https://github.com/WittBulter/func/issues) area of an item. 

@@ -19,7 +19,7 @@
 | `RegisterProvider` | provide all registered metadata |
 
 
-## support
+## Support
 
  - `func-service dev`: Reset development environment, point `bin` to development.
  - `func-service build`: Bundle all files, point `bin` to production.
