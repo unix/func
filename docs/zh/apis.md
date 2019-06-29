@@ -7,7 +7,7 @@
 | `@Command(params: CommandParams)` | `CommandParams = { name: string, description?: string, alias?: string }` | 创建 Command |
 | `@Option(params: OptionParams)` | `OptionParams = { name: string, type?: OptionType, description?: string, alias?: string }` | 创建 option |
 | `@SubOptions(params: Array<OptionParams>)` | ditto | 创建子命令, 只能用于 `Command` 之后 |
-| `@CommandNotFound()` | - | 创建用于兜底的命令 |
+| `@CommandMissing()` | - | 创建用于兜底的命令 |
 | `@CommandMajor()` | - | 主命令 |
 
 ## 参数

@@ -71,14 +71,14 @@ export class Main {
 
 ## 无法找到的命令
 
-少数时候，用户可能会错误的输入参数或命令，你需要友好的提示一些信息并指引用户，`CommandNotFound` 就是用来解决这个问题的。
+少数时候，用户可能会错误的输入参数或命令，你需要友好的提示一些信息并指引用户，`CommandMissing` 就是用来解决这个问题的。
 在没有任何 `Command` 或 `Option` 被找到时就会触发无法找到：
 
 ```ts 
-import { CommandNotFound } from 'func'
+import { CommandMissing } from 'func'
 
-@CommandNotFound()
-export class NotFound {
+@CommandMissing()
+export class Missing {
   constructor() { console.log('not found any commands!') }
 }
 ```
