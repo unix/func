@@ -6,6 +6,7 @@ export {
   Command,
   CommandMajor,
   CommandNotFound,
+  CommandMissing,
 } from './annotations'
 
 export { Container } from './containers/container'

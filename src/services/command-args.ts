@@ -1,7 +1,5 @@
-import { Injectable } from '../annotations'
 import { UserInputs, UserOption, UserArg } from '../interfaces'
 
-@Injectable()
 export class CommandArgsProvider {
   
   constructor(
