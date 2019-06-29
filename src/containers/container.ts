@@ -1,8 +1,8 @@
 import { Mutation } from './mutation'
-import { CommandClass, OptionClass } from '../interfaces'
+import { CommandClass } from '../interfaces'
 import { metadata, handlers } from '../constants/metadata'
 
-export type ContainerParams = Array<CommandClass | OptionClass>
+export type ContainerParams = Array<new (...args: any[]) => any>
 export interface ContainerData {
   [key: string]: CommandClass[]
 }
