@@ -14,6 +14,6 @@ export enum metadata {
 export enum handlers {
   COMMAND = 'command',
   OPTION = 'option',
-  NOT_FOUND = 'not_found',
+  MISSING = 'missing',
   MAJOR = 'major',
 }

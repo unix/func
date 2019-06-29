@@ -7,7 +7,7 @@ import { CommandClass, OptionClass, CommandParams } from '../interfaces'
 export interface DevourData {
   commands: CommandClass[]
   options: OptionClass[]
-  notFounds: CommandClass[]
+  missing: CommandClass[]
   majors: CommandClass[]
 }
 
@@ -15,7 +15,7 @@ export class Mutation {
   private args: arg.Result<any>
   
   devour({
-    commands, options, notFounds, majors,
+    commands, options, missing, majors,
   }: DevourData): void {
     const command = this.findCommand(commands)
     const optionDatas = filter.optionsToDatas(options)
@@ -65,9 +65,9 @@ export class Mutation {
     
     // contains commands but cannot find a processor
     if (this.args._.length > 0) {
-      return notFounds.forEach(notFoundCommand => {
-        const params = factory.getServiceParams(notFoundCommand)
-        new notFoundCommand(...params)
+      return missing.forEach(missCommand => {
+        const params = factory.getServiceParams(missCommand)
+        new missCommand(...params)
       })
     }
     

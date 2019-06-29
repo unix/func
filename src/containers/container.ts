@@ -2,32 +2,14 @@ import { Mutation } from './mutation'
 import { CommandClass, OptionClass } from '../interfaces'
 import { metadata, handlers } from '../constants/metadata'
 
-export interface CommandFunctionMap {
-  [key: string]: CommandClass
-}
-
-export interface OptionFunctionMap {
-  [key: string]: OptionClass
-}
-
 export type ContainerParams = Array<CommandClass | OptionClass>
-
 export interface ContainerData {
-  [handlers.COMMAND]: CommandClass[]
-  [handlers.OPTION]: OptionClass[]
-  [handlers.NOT_FOUND]: CommandClass[]
-  [handlers.MAJOR]: CommandClass[]
+  [key: string]: CommandClass[]
 }
 
 export class Container {
-  
   mutation: Mutation
-  datas: ContainerData = {
-    [handlers.COMMAND]: [],
-    [handlers.OPTION]: [],
-    [handlers.NOT_FOUND]: [],
-    [handlers.MAJOR]: [],
-  }
+  datas: ContainerData = {}
   
   constructor(
     private params: ContainerParams,
@@ -40,17 +22,16 @@ export class Container {
   private init(): void {
     this.params.forEach(handler => {
       const type = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, handler)
-      const dataColumn = this.datas[type]
-      dataColumn && dataColumn.push(handler)
+      this.datas[type] = (this.datas[type] || []).concat([handler])
     })
   }
   
   private insert(): void {
     this.mutation.devour({
-      commands: this.datas[handlers.COMMAND],
-      options: this.datas[handlers.OPTION],
-      notFounds: this.datas[handlers.NOT_FOUND],
-      majors: this.datas[handlers.MAJOR],
+      commands: this.datas[handlers.COMMAND] || [],
+      options: this.datas[handlers.OPTION] || [],
+      missing: this.datas[handlers.MISSING] || [],
+      majors: this.datas[handlers.MAJOR] || [],
     })
   }
 }
