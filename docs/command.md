@@ -75,17 +75,17 @@ export class Main {
 
 If your tool of command lines is still called `tools`, then just running `tools` will trigger the main command.
 
-## Create NotFound Command
+## Get Missing Command
 
 In a few cases, users may enter parameters or commands incorrectly. 
-You need to guide the user with some tips of information kindly given. `CommandNotFound` is used to solve this problem.
+You need to guide the user with some tips of information kindly given. `CommandMissing` is used to solve this problem.
 Without any `Command` or `Option` found, being unable to be found will be triggered:
 
 ```ts 
-import { CommandNotFound } from 'func'
+import { CommandMissing } from 'func'
 
-@CommandNotFound()
-export class NotFound {
+@CommandMissing()
+export class Missing {
   constructor() { console.log('not found any commands!') }
 }
 ```
