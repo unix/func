@@ -14,9 +14,8 @@
 	},
 	"devDependencies": {
 		"@types/node": "^12.0.8",
+		"@zeit/ncc": "^0.20.4",
 		"func-service": "^0.1.1",
-		"ncc": "^0.3.6",
-		"ts-node": "^8.2.0",
 		"tslint": "^5.17.0",
 		"tslint-config-lambdas": "^1.1.0",
 		"typescript": "^3.5.2"
