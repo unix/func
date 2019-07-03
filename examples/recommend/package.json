@@ -1,27 +1,27 @@
 {
-	"name": "recommend",
-	"version": "0.0.1",
-	"main": "dist/index.js",
-	"license": "MIT",
-	"scripts": {
-		"start": "func-service dev",
-		"build": "func-service build",
-		"lint": "tslint -c tslint.yml -p tsconfig.json"
-	},
-	"dependencies": {
-		"func": "^1.0.4"
-	},
-	"devDependencies": {
-		"@types/node": "^12.0.8",
-		"func-service": "^0.1.1",
-		"ncc": "^0.3.6",
-		"ts-node": "^8.2.0",
-		"tslint": "^5.17.0",
-		"tslint-config-lambdas": "^1.1.0",
-		"typescript": "^3.5.2"
-	},
-	"files": [
-		"dist",
-		"README.md"
-	]
+  "name": "recommend",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "func-service dev",
+    "build": "func-service build",
+    "lint": "tslint -c tslint.yml -p tsconfig.json"
+  },
+  "dependencies": {
+    "func": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^12.0.8",
+    "func-service": "^1.0.2",
+    "ncc": "^0.3.6",
+    "ts-node": "^8.2.0",
+    "tslint": "^5.17.0",
+    "tslint-config-lambdas": "^1.1.0",
+    "typescript": "^3.5.2"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }
