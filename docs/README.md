@@ -14,7 +14,7 @@ Developers at almost any level can easily use `func` to build modern command lin
 
 ## Function of Unique Features
 
-  - Volume of very small packaging -- Volume of complete application built with `func`≈ [7kb](https://github.com/WittBulter/func/blob/master/examples/gzbundle/archived.tar.gz)
+  - Volume of very small packaging -- Volume of complete application built with `func`≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
 
   - Elegant grammar and item structure without any thinking burden
   
@@ -48,7 +48,7 @@ then `func` is a very good choice, making the command-line tool built in a happy
 ## About Future
 
 `func` will also have version iterations, but I will carefully consider and judge `Feature` to make sure it doesn't become a burden for everyone. 
-Prior to the updates of all `Feature`, a `Feature Request` are created in the [Issue](https://github.com/WittBulter/func/issues) area of an item. 
+Prior to the updates of all `Feature`, a `Feature Request` are created in the [Issue](https://github.com/unix/func/issues) area of an item. 
 Of course, you can also come up with your own ideas.
 
 Only after the discussion and review in the community, it can be realized in the next version.

@@ -18,7 +18,7 @@ module.exports = {
   },
   theme: 'zeit',
   themeConfig: {
-    repo: 'wittbulter/func',
+    repo: 'unix/func',
     docsDir: 'docs',
     editLinks: true,
     lastUpdated: 'Last Updated',
@@ -27,7 +27,7 @@ module.exports = {
       '/': {
         nav: [
           { text: 'Guide', link: '/guide' },
-          { text: 'Github', link: 'https://github.com/wittbulter/func' },
+          { text: 'Github', link: 'https://github.com/unix/func' },
         ],
         sidebar: {
           '/': [
@@ -46,7 +46,7 @@ module.exports = {
         label: '简体中文',
         nav: [
           { text: '快速开始', link: '/zh/guide' },
-          { text: '项目', link: 'https://github.com/wittbulter/func' },
+          { text: '项目', link: 'https://github.com/unix/func' },
         ],
         sidebar: {
           '/zh/': [

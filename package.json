@@ -28,7 +28,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wittbulter/func.git"
+    "url": "git+https://github.com/unix/func.git"
   },
   "devDependencies": {
     "@types/node": "^11.11.0",

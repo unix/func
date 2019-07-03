@@ -5,7 +5,7 @@
 
 ## FUNC
 
-[![CircleCI](https://circleci.com/gh/WittBulter/func.svg?style=svg)](https://circleci.com/gh/WittBulter/func) [![Build Status](https://travis-ci.org/WittBulter/func.svg?branch=master)](https://travis-ci.org/WittBulter/func)
+[![CircleCI](https://circleci.com/gh/unix/func.svg?style=svg)](https://circleci.com/gh/unix/func) [![Build Status](https://travis-ci.org/WittBulter/func.svg?branch=master)](https://travis-ci.org/WittBulter/func)
 
 More popular and simple way to build command-line tools.
 
@@ -13,7 +13,7 @@ More popular and simple way to build command-line tools.
 
 ## Feature
 
-  - Volume of very small packaging -- Volume of complete application built with `func` ≈ [7kb](https://github.com/WittBulter/func/blob/master/examples/gzbundle/archived.tar.gz)
+  - Volume of very small packaging -- Volume of complete application built with `func` ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
 
   - Elegant grammar and item structure without any thinking burden
 

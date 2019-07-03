@@ -10,7 +10,7 @@
 
 ## 独具特色的功能
 
-  - 极小的打包体积 -- 使用 `func` 构建的完整应用体积 ≈ [7kb](https://github.com/WittBulter/func/blob/master/examples/gzbundle/archived.tar.gz)
+  - 极小的打包体积 -- 使用 `func` 构建的完整应用体积 ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
  
   - 优雅的语法和项目架构，没有任何思维负担
   
@@ -35,7 +35,7 @@
 ## 未来版本
 
 `func` 也会有版本迭代，但我会非常小心的考量 `Feature`，确保它不会成为所有人的负担。所有的 `Feature` 更新之前都会在项目
-的 [Issue](https://github.com/WittBulter/func/issues) 区域创建 `Feature Request`，当然你也可以贡献自己的想法，
+的 [Issue](https://github.com/unix/func/issues) 区域创建 `Feature Request`，当然你也可以贡献自己的想法，
 经过社区的讨论和 review 后，才会在下一版本中实现。
 
 无论何时，`func` 项目的计划都以开发者体验与用户体验为目标，这是项目最重要的守则与目标，所有的改进也是围绕这点展开，我们有一些长远的计划可以供作预览，
