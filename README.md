@@ -13,13 +13,13 @@ More popular and simple way to build command-line tools.
 
 ## Feature
 
-  - Volume of very small packaging -- Volume of complete application built with `func` ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
+  - Very small volume -- volume of complete application built with `func` ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
 
   - Elegant grammar and item structure without any thinking burden
 
-  - Very few dependence, maximum optimized running speed and `npm` download time
+  - Very few dependencies, maximum optimized running speed and `npm` download time
 
-  - With the support of a complete template, one key can develop.
+  - Template support, best practices right away
 
 <br/>
 
