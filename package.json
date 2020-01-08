@@ -10,7 +10,7 @@
     "lint": "tslint -c tslint.yml -p tsconfig.json",
     "build": "tsc && cp src/interfaces.d.ts dist/interfaces.d.ts",
     "docs": "cd docs && now",
-    "release": "yarn build && yarn publish"
+    "release": "yarn build && yarn publish --access public --non-interactive"
   },
   "pre-commit": [
     "lint"
