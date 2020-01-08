@@ -1,6 +1,6 @@
 import test from 'ava'
 import * as utils from './_utils'
-import { Container, CommandNotFound } from '../src'
+import { Container, CommandMissing } from '../src'
 
 test('should invoke not found handler', t => {
   const name = utils.random()
@@ -10,7 +10,7 @@ test('should invoke not found handler', t => {
       t.pass()
     }
   }
-  CommandNotFound()(NotFound)
+  CommandMissing()(NotFound)
   process.argv = ['', '', name, arg]
   new Container([NotFound])
 })
