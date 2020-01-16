@@ -35,13 +35,15 @@ export class Version {
 }
 ```
 
-为你的类 `Version` 添加了一些信息后，它会在 `--version` 和 `-v` 时被触发。这很简单，`-v` 是它的别名。func 允许你为任何命令创建别名，
-如果是 `Option` 命令的别名，只需要一个 `-` 就可以调用，这也很标准。
+为你的类 `Version` 添加了一些信息后，它会在 `--version` 和 `-v` 时被触发。
+
+这很简单，`-v` 是它的别名。
+
+func 允许你为任何命令创建别名，如果是 `Option` 命令的别名，只需要一个 `-` 就可以调用，这也很标准。
 
 ## 子选项
 
-你在完成 `tools test` 命令后可能陷入了思考，如果我需要在这个命令基础上再增加一个子命令该怎么做，就像 `tools test --help` 这样。
-其实在 func 的内部，也为你准备好了一个装饰器 `SubOptions`:
+在 func 的内部，也为你准备好了一个装饰器 `SubOptions` 实现类似于 `tools test --help` 这样的子命令:
 
 ```ts
 @Command({
@@ -53,7 +55,9 @@ export class Test {
 }
 ```
 
-这样就可以使用在命令 `test` 的基础上为其增加 `--help` 的选项。有关于如何获取选项的值，请参见 [参数获取](/zh/params.md) 章节。
+这样就可以使用在命令 `test` 的基础上为其增加 `--help` 的选项。
+
+有关于如何获取选项的值，请参见 [参数获取](/zh/params.md) 章节。
 
 ## 主命令
 
@@ -74,7 +78,7 @@ export class Main {
 少数时候，用户可能会错误的输入参数或命令，你需要友好的提示一些信息并指引用户，`CommandMissing` 就是用来解决这个问题的。
 在没有任何 `Command` 或 `Option` 被找到时就会触发无法找到：
 
-```ts 
+```ts
 import { CommandMissing } from 'func'
 
 @CommandMissing()

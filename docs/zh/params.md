@@ -2,7 +2,7 @@
 
 ## Command 的参数
 
-在你构建命令的类中添加一个参数并为它标记类型，这个参数就会被自动注入为命令的参数:
+在你构建命令的类中添加一个参数并为它标记类型，这个参数就会被自动注入:
 
 ```ts
 import { Command, CommandArgsProvider } from 'func'
@@ -31,7 +31,9 @@ export class Test {
 
 ## Option 参数
 
-与 `Command` 类似，但 `OptionArgsProvider` 的参数只有一个基础值。你可以在 `Option` 中约定参数类型，以获取更多的信息:
+与 `Command` 类似，但 `OptionArgsProvider` 的参数只有一个基础值。
+
+你可以在 `Option` 中约定参数类型，以获取更多的信息:
 
 ```ts
 import { Option, OptionArgsProvider } from 'func'
@@ -48,8 +50,9 @@ export class Name {
 
 ## 所有注册信息
 
-如果你在编写一个帮助命令或是例举用户可能的输入，可能需要用到当前注册的所有信息，`RegisterProvider` 参数可以帮助你，它携带了
-当前命令行项目中所有的注册信息:
+如果你在编写一个帮助命令或是例举用户可能的输入，可能需要用到当前注册的所有信息，`RegisterProvider` 参数可以帮助你。
+
+**它携带了当前命令行项目中所有的注册信息:**
 
 ```ts
 import { Option, RegisterProvider } from 'func'

@@ -13,15 +13,12 @@ export class Test {
 }
 ```
 
-Assuming the name of your command line tool is "tools", you only need to run `tools test` and the terminal will display `ok`. 
+Assuming the name of your command line tool is "tools", you only need to run `tools test` and the terminal will display `ok`.
 Everything is achieved in this way.
-
-The class of this `Test` is no different from that you usually write, which is just to be used automatically when the command is run. 
-Everything is so familiar. You can write any logic you like in the class.
 
 ## Create Option
 
-We know that there are usually some top-level options for command-line tools too. 
+We know that there are usually some top-level options for command-line tools too.
 Taking your "tools" as an example, you may want its functions, such as `tools --version` / `tools --help` and so on available for support.
 
 Here, we can use the `Option` decorator to realize very elegantly:
@@ -38,15 +35,17 @@ export class Version {
 }
 ```
 
-After adding some information to your class `Version`, it will be triggered when `--version` and `-v`. 
-This is very simple, `-v` is its alias. The func allows you to create aliases for any command.
+After adding some information to your class `Version`, it will be triggered when `--version` and `-v`.
+
+
+This is very simple, `-v` is its alias.
+
+The func allows you to create aliases for any command.
 if it is an alias for the `Option` command, only a `-` is required to use it, which is also standard.
 
 ## Create Sub-options
 
-You may be dep into thinking after completing the `tools test` command. 
-If I need to add a subcommand based on this command, how I will do. I will do it like `tools test --help`.
-In fact, inside the func, a decorator `SubOptions` is also ready for you:
+Inside the func, a decorator `SubOptions` is also ready for you to implement this type of command `tools test --help`:
 
 ```ts
 @Command({
@@ -58,8 +57,7 @@ export class Test {
 }
 ```
 
-This allows you to use the option that `--help` is added based on the command `test`. 
-Refer to the chapter of [Obtaining Parameters] (/params.md) for how to obtain the values of options.
+Refer to the chapter of [Parameters](/params.md) for how to get the values of options.
 
 ## Create Main Command
 
@@ -77,11 +75,11 @@ If your tool of command lines is still called `tools`, then just running `tools`
 
 ## Get Missing Command
 
-In a few cases, users may enter parameters or commands incorrectly. 
+In a few cases, users may enter parameters or commands incorrectly.
 You need to guide the user with some tips of information kindly given. `CommandMissing` is used to solve this problem.
 Without any `Command` or `Option` found, being unable to be found will be triggered:
 
-```ts 
+```ts
 import { CommandMissing } from 'func'
 
 @CommandMissing()
