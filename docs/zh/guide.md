@@ -5,6 +5,10 @@
 ```bash
 npm init func
 ```
+
+<br/>
+<img src="/../hello-func-1.png" width="420">
+
 ::: tip 提示
 这需要你的 `npm` 版本 > 6.1.0 。
 :::
@@ -26,6 +30,9 @@ npm init func
 ```bash
 npm i && npm start      # 更新依赖并准备开发环境
 ```
+
+<br/>
+<img src="/../hello-func-2.png" width="460">
 
 至此为止，所有的准备事项都已完毕，你可以浏览 `commands` / `options` 中的示例，尝试修改它们并运行您的命令，看看效果如何。
 

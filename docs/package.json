@@ -6,7 +6,7 @@
   "scripts": {
     "start": "vuepress dev",
     "build": "vuepress build",
-    "now-build": "yarn build && mv .vuepress/dist dist"
+    "now-build": "yarn build && mv .vuepress/dist dist && cp -R ./dist ./public"
   },
   "devDependencies": {
     "@vuepress/plugin-google-analytics": "^1.0.0-rc.1",

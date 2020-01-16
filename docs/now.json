@@ -1,8 +1,4 @@
 {
   "version": 2,
-  "name": "func",
-  "alias": "func.lambdas.dev",
-  "builds": [
-    {"src": "package.json", "use": "@now/static-build"}
-  ]
+  "name": "func"
 }

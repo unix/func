@@ -6,6 +6,10 @@ The `func` provides the default template:
 ```bash
 npm init func
 ```
+
+<br/>
+<img src="hello-func-1.png" width="420">
+
 ::: tip
 require your `npm` of version > 6.1.0 。
 :::
@@ -27,6 +31,9 @@ Enter the command to start:
 ```bash
 npm i && npm start
 ```
+
+<br/>
+<img src="hello-func-2.png" width="420">
 
 So far, all the preparations have been completed.
 
