@@ -13,9 +13,9 @@ More popular and simple way to build command-line tools.
 
 ## Feature
 
-  - Very small volume -- volume of complete application built with `func` ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
+  - Very small volume ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
 
-  - Elegant grammar and item structure without any thinking burden
+  - Elegant grammar
 
   - Very few dependencies, maximum optimized running speed and `npm` download time
 
@@ -39,8 +39,8 @@ More popular and simple way to build command-line tools.
 
 ## Documentation
 
-  - [English](https://func.lambdas.dev/)
-  - [中文文档](https://func.lambdas.dev/zh/)
+  - [English](https://func.lambdas.dev/guide.html)
+  - [中文文档](https://func.lambdas.dev/zh/guide.html)
 
 <br/>
 
