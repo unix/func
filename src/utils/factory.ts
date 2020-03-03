@@ -8,10 +8,10 @@ const serviceFunctions = Object.keys(services)
   .map(key => services[key])
 
 export interface FactoryParams {
-  args: arg.Result<any>,
-  nativeOption: { [key: string]: string },
-  commands: CommandClass[],
-  options: OptionClass[],
+  args: arg.Result<any>
+  nativeOption: { [key: string]: string }
+  commands: CommandClass[]
+  options: OptionClass[]
 }
 
 export class Factory {
