@@ -17,7 +17,7 @@ export class Mutation {
   devour({
     commands, options, missing, majors,
   }: DevourData): void {
-    const command = this.findCommand(commands)
+    const command = majors.length > 0 ? majors[0] : this.findCommand(commands)
     const optionDatas = filter.optionsToDatas(options)
     const globalOptions = filter.optionsToKeyValue(optionDatas)
     const commandOptions = this.findSubOptions(command)
@@ -47,7 +47,7 @@ export class Mutation {
     })
   
     // only trigger comand
-    if (command) {
+    if (command && majors.length === 0) {
       const params = factory.getServiceParams(command)
       return new command(...params)
     }
@@ -64,7 +64,7 @@ export class Mutation {
     }
     
     // contains commands but cannot find a processor
-    if (this.args._.length > 0) {
+    if (this.args._.length > 0 && majors.length === 0) {
       return missing.forEach(missCommand => {
         const params = factory.getServiceParams(missCommand)
         new missCommand(...params)
