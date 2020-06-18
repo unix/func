@@ -1,6 +1,6 @@
 import test from 'ava'
 import * as utils from './_utils'
-import { Command, Container, SubOptions } from '../src'
+import { Command, CommandMajor, Container, SubOptions } from '../src'
 
 test('should be invoke', t => {
   const name = utils.random()
@@ -14,4 +14,18 @@ test('should be invoke', t => {
   SubOptions([{ name: arg }])(Comand1)
   process.argv = ['', '', name, `--${arg}`]
   new Container([Comand1])
+})
+
+test('should be invoke with major', t => {
+  const arg = utils.random()
+  
+  class Major {
+    constructor() {
+      t.pass()
+    }
+  }
+  CommandMajor()(Major)
+  SubOptions([{ name: arg }])(Major)
+  process.argv = ['', '', `--${arg}`]
+  new Container([Major])
 })
