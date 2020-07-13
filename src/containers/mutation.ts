@@ -17,7 +17,9 @@ export class Mutation {
   devour({
     commands, options, missing, majors,
   }: DevourData): void {
-    const command = majors.length > 0 ? majors[0] : this.findCommand(commands)
+    const subCommand = this.findCommand(commands)
+    const command = subCommand || majors[0]
+    console.log(command)
     const optionDatas = filter.optionsToDatas(options)
     const globalOptions = filter.optionsToKeyValue(optionDatas)
     const commandOptions = this.findSubOptions(command)
@@ -46,8 +48,9 @@ export class Mutation {
       options,
     })
   
-    // only trigger comand
-    if (command && majors.length === 0) {
+    // only trigger command
+    const notMajor = Boolean(subCommand)
+    if (command && notMajor) {
       const params = factory.getServiceParams(command)
       return new command(...params)
     }
