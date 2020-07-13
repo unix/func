@@ -17,13 +17,11 @@ export class Mutation {
   devour({
     commands, options, missing, majors,
   }: DevourData): void {
-    const subCommand = this.findCommand(commands)
-    const command = subCommand || majors[0]
-    console.log(command)
+    const command = this.findCommand(commands)
     const optionDatas = filter.optionsToDatas(options)
     const globalOptions = filter.optionsToKeyValue(optionDatas)
     const commandOptions = this.findSubOptions(command)
-    
+  
     // create arg instance
     const nextOptions = command ? commandOptions : globalOptions
     this.args = arg(nextOptions, { permissive: true })
@@ -49,8 +47,7 @@ export class Mutation {
     })
   
     // only trigger command
-    const notMajor = Boolean(subCommand)
-    if (command && notMajor) {
+    if (command) {
       const params = factory.getServiceParams(command)
       return new command(...params)
     }
@@ -67,7 +64,7 @@ export class Mutation {
     }
     
     // contains commands but cannot find a processor
-    if (this.args._.length > 0 && majors.length === 0) {
+    if (this.args._.length) {
       return missing.forEach(missCommand => {
         const params = factory.getServiceParams(missCommand)
         new missCommand(...params)
