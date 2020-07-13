@@ -10,7 +10,7 @@
     "mini": "./bin.js"
   },
   "dependencies": {
-    "func": "^1.0.4"
+    "func": "latest"
   },
   "devDependencies": {
     "ts-node": "^8.2.0"
