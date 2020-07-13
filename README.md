@@ -39,8 +39,8 @@ More popular and simple way to build command-line tools.
 
 ## Documentation
 
-  - [English](https://func.lambdas.dev/guide.html)
-  - [中文文档](https://func.lambdas.dev/zh/guide.html)
+  - [English](https://func.unix.bio/guide.html)
+  - [中文文档](https://func.unix.bio/zh/guide.html)
 
 <br/>
 
