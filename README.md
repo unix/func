@@ -39,7 +39,7 @@ More popular and simple way to build command-line tools.
 
 ## Documentation
 
-  - [func.unix.bio](https://func.unix.bio/guide.html)
+  - [func.unix.bio](https://func.unix.bio)
 
 <br/>
 
