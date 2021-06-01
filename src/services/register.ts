@@ -1,20 +1,19 @@
-import { OptionParams, CommandParams } from '../interfaces'
-
+import { OptionParams, RegisterCommandParams } from '../interfaces'
 export class RegisterProvider {
   static isRegisterProvider: boolean = true
-  
+
   constructor(
-    private _commands: CommandParams[] = [],
+    private _commands: RegisterCommandParams[] = [],
     private _options: OptionParams[] = [],
   ) {
   }
-  
-  get commands(): CommandParams[] {
+
+  get commands(): RegisterCommandParams[] {
     return this._commands
   }
-  
+
   get options(): OptionParams[] {
     return this._options
   }
-  
+
 }

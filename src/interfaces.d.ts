@@ -23,11 +23,15 @@ export interface CommandParams {
   description?: string
 }
 
-export type OptionType = BooleanConstructor | StringConstructor | NumberConstructor | ArrayConstructor
+export type OptionType = BooleanConstructor | StringConstructor | NumberConstructor | ArrayConstructor | [StringConstructor]
 
 export interface OptionParams {
   name: string
   type?: OptionType
   description?: string
   alias?: string
+}
+
+export interface RegisterCommandParams extends CommandParams {
+  subOptions?: OptionParams[]
 }
