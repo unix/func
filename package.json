@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "license": "MIT",
   "scripts": {
-    "test": "ava-ts",
+    "test": "ava",
     "build": "tsc",
     "docs": "cd docs && vercel",
     "release": "yarn build && yarn publish --access public --non-interactive"
