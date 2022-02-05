@@ -4,7 +4,4 @@
 - [ ] All tests passed
 - [ ] `rebase` commits
 
-
 ## Change information
-
-

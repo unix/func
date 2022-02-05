@@ -6,13 +6,12 @@ export class OptionArgsProvider {
     private _option: UserOption,
     private _native: UserArg,
     private _value: any,
-  ) {
-  }
-  
+  ) {}
+
   get value(): any {
     return this._value
   }
-  
+
   get native(): UserArg {
     return this._native
   }

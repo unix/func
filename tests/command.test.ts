@@ -8,7 +8,7 @@ test('metadata should be defined', t => {
   const description = utils.random()
   const target = {}
   Command({ name, description })(target)
-  
+
   const output = Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, target)
   t.is(name, output.name)
   t.is(description, output.description)
@@ -17,7 +17,7 @@ test('metadata should be defined', t => {
 test('handler type should be defined', t => {
   const target = {}
   Command({ name: utils.random() })(target)
-  
+
   const output = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, target)
   t.is(handlers.COMMAND, output)
 })

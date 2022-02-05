@@ -9,7 +9,7 @@ test('metadata should be defined', t => {
   const alias = utils.random()
   const target = {}
   Option({ name, description, alias })(target)
-  
+
   const output = Reflect.getMetadata(metadata.OPTION_IDENTIFIER, target)
   t.is(name, output.name)
   t.is(description, output.description)
@@ -20,7 +20,7 @@ test('default type should be Boolean', t => {
   const name = utils.random()
   const target = {}
   Option({ name })(target)
-  
+
   const output = Reflect.getMetadata(metadata.OPTION_IDENTIFIER, target)
   t.is(Boolean, output.type)
 })
@@ -28,7 +28,7 @@ test('default type should be Boolean', t => {
 test('handler type should be defined', t => {
   const target = {}
   Option({ name: utils.random() })(target)
-  
+
   const output = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, target)
   t.not(output, undefined)
   t.is(output, handlers.OPTION)

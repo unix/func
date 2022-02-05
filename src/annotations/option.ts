@@ -12,5 +12,3 @@ export const Option = (optionParams: OptionParams) => target => {
   Reflect.defineMetadata(metadata.HANDLER_IDENTIFIER, handlers.OPTION, target)
   return target
 }
-
-

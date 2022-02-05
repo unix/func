@@ -1,5 +1,5 @@
 ---
-name: "Bug report 🐞"
+name: 'Bug report 🐞'
 about: "If something isn't working as expected 🤔."
 ---
 
@@ -10,6 +10,3 @@ about: "If something isn't working as expected 🤔."
 ## Expection
 
 ## Actual results (or Errors)
-
-
-

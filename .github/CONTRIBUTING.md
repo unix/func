@@ -1,6 +1,7 @@
 `func` Contributing Guide
 
-### Pull Request Guidelines   
+### Pull Request Guidelines
+
 - Fork this repository to your own account. Do not create branches here.
 - Commit info should be formatted by the [rules](https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/README.md).
 - Rebase before creating a PR to keep commit history clear.
@@ -8,4 +9,5 @@
 - If feature is included, the issue discussion should be initiated first.
 
 ### Code Style
+
 Follow Lint
