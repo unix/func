@@ -4,9 +4,7 @@ import { Command, CommandArgsProvider } from 'func'
   name: 'hello',
 })
 export class Hello {
-  constructor(
-    private args: CommandArgsProvider,
-  ) {
+  constructor(private args: CommandArgsProvider) {
     console.log('hello invoked.')
     console.log(args.inputs, args.option)
   }

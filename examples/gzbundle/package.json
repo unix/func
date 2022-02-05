@@ -1,30 +1,30 @@
 {
-	"name": "gzbundle",
-	"version": "0.0.1",
-	"main": "dist/index.js",
-	"license": "MIT",
-	"scripts": {
-		"start": "func-service dev",
-		"build": "func-service build",
-		"lint": "tslint -c tslint.yml -p tsconfig.json",
-		"bundle": "node bundle.js"
-	},
-	"dependencies": {
-		"func": "latest"
-	},
-	"devDependencies": {
-		"@types/node": "^12.0.8",
-		"@zeit/ncc": "^0.20.4",
-		"func-service": "^0.1.1",
-		"tslint": "^5.17.0",
-		"tslint-config-lambdas": "^1.1.0",
-		"typescript": "^3.5.2"
-	},
-	"files": [
-		"dist",
-		"README.md"
-	],
-	"bin": {
-		"gzbundle": "./dist/bin.js"
-	}
+  "name": "gzbundle",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "func-service dev",
+    "build": "func-service build",
+    "lint": "tslint -c tslint.yml -p tsconfig.json",
+    "bundle": "node bundle.js"
+  },
+  "dependencies": {
+    "func": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^12.0.8",
+    "@zeit/ncc": "^0.20.4",
+    "func-service": "^0.1.1",
+    "tslint": "^5.17.0",
+    "tslint-config-lambdas": "^1.1.0",
+    "typescript": "^3.5.2"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "bin": {
+    "gzbundle": "./dist/bin.js"
+  }
 }

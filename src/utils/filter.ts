@@ -4,9 +4,10 @@ import { metadata } from '../constants/metadata'
 export type OptionKeyValue = { [key: string]: string }
 
 export const commandsToDatas = (commands: CommandClass[] = []) => {
-  return commands.map(fn => Object.assign(
-    Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, fn),
-    { subOptions: Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, fn) || [] })
+  return commands.map(fn =>
+    Object.assign(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, fn), {
+      subOptions: Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, fn) || [],
+    }),
   )
 }
 
@@ -19,9 +20,14 @@ export const optionsToKeyValue = (params: OptionParams[] = []): OptionKeyValue =
   return params.reduce((pre, current) => {
     const name = `--${current.name}`
     const alias = current.alias ? { [`-${current.alias}`]: name } : {}
-    return Object.assign({}, pre, {
-      [name]: current.type,
-    }, alias)
+    return Object.assign(
+      {},
+      pre,
+      {
+        [name]: current.type,
+      },
+      alias,
+    )
   }, {})
 }
 

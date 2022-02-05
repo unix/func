@@ -5,9 +5,7 @@ import { Option, OptionArgsProvider } from 'func'
   alias: 'h',
 })
 export class Help {
-  constructor(
-    arg: OptionArgsProvider,
-  ) {
+  constructor(arg: OptionArgsProvider) {
     console.log(arg.value)
   }
 }

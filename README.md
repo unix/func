@@ -13,40 +13,42 @@ More popular and simple way to build command-line tools.
 
 ## Feature
 
-  - Very small volume ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
+- Very small volume ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
 
-  - Elegant grammar
+- Elegant grammar
 
-  - Very few dependencies, maximum optimized running speed and `npm` download time
+- Very few dependencies, maximum optimized running speed and `npm` download time
 
-  - Template support, best practices right away
+- Template support, best practices right away
 
 <br/>
 
 ## Quick Start
 
-  Just run `npm init func` to create project.
+Just run `npm init func` to create project.
 
-  1. `npm init func`: create project
+1. `npm init func`: create project
 
-  2. `npm i`: install deps.
+2. `npm i`: install deps.
 
-  3. `npm start`: setup link and development ready.
+3. `npm start`: setup link and development ready.
 
-  It's all.
+It's all.
 
 <br/>
 
 ## Documentation
 
-  - [func.unix.bio](https://func.unix.bio)
+- [func.unix.bio](https://func.unix.bio)
 
 <br/>
 
 ## Thanks
+
 Thanks to [Shannon Moeller](https://github.com/shannonmoeller) for donating the pkgname "func" on npm!
 
 <br/>
 
 ## LICENSE
+
 [MIT](./LICENSE)

@@ -12,12 +12,6 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "files": [
-    "src/index.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "examples",
-    "dist"
-  ]
+  "files": ["src/index.ts"],
+  "exclude": ["node_modules", "examples", "dist"]
 }

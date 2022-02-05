@@ -10,7 +10,7 @@ test('metadata should be defined', t => {
   const target = {}
   Command({ name: utils.random() })(target)
   SubOptions([{ name, description, alias }])(target)
-  
+
   const outputs = Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, target)
   const output = outputs[0]
   t.is(name, output.name)
@@ -23,7 +23,7 @@ test('default type should be Boolean', t => {
   const target = {}
   Command({ name: utils.random() })(target)
   SubOptions([{ name }])(target)
-  
+
   const outputs = Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, target)
   const output = outputs[0]
   t.is(Boolean, output.type)
@@ -32,8 +32,9 @@ test('default type should be Boolean', t => {
 test('should get an error when param not array', t => {
   try {
     const target = {}
-    Command({ name: utils.random() })(target)
-    (<any>SubOptions)({ name: utils.random() })(target)
+    Command({ name: utils.random() })(target)(<any>SubOptions)({ name: utils.random() })(
+      target,
+    )
     t.fail('param "SubOptions Params" must be "Array"')
   } catch (e) {
     t.pass()
@@ -43,8 +44,7 @@ test('should get an error when param not array', t => {
 test('should get an error when param miss name', t => {
   try {
     const target = {}
-    Command({ name: utils.random() })(target)
-    (<any>SubOptions)([{}])(target)
+    Command({ name: utils.random() })(target)(<any>SubOptions)([{}])(target)
     t.fail('param "SubOptions name" missing')
   } catch (e) {
     t.pass()

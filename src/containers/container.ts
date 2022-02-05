@@ -10,22 +10,20 @@ export interface ContainerData {
 export class Container {
   mutation: Mutation
   datas: ContainerData = {}
-  
-  constructor(
-    private params: ContainerParams,
-  ) {
+
+  constructor(private params: ContainerParams) {
     this.mutation = new Mutation()
     this.init()
     this.insert()
   }
-  
+
   private init(): void {
     this.params.forEach(handler => {
       const type = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, handler)
       this.datas[type] = (this.datas[type] || []).concat([handler])
     })
   }
-  
+
   private insert(): void {
     this.mutation.devour({
       commands: this.datas[handlers.COMMAND] || [],

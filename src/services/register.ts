@@ -5,8 +5,7 @@ export class RegisterProvider {
   constructor(
     private _commands: RegisterCommandParams[] = [],
     private _options: OptionParams[] = [],
-  ) {
-  }
+  ) {}
 
   get commands(): RegisterCommandParams[] {
     return this._commands
@@ -15,5 +14,4 @@ export class RegisterProvider {
   get options(): OptionParams[] {
     return this._options
   }
-
 }
