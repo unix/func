@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "esnext",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "esModuleInterop": true,
+    "removeComments": true,
+    "declaration": true,
+    "baseUrl": ".",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
