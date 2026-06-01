@@ -5,35 +5,43 @@
 
 ## FUNC
 
-[![CircleCI](https://circleci.com/gh/unix/func.svg?style=svg)](https://circleci.com/gh/unix/func) [![Build Status](https://travis-ci.org/unix/func.svg?branch=master)](https://travis-ci.org/unix/func)
+A tiny decorator-based CLI framework for TypeScript.
 
-More popular and simple way to build command-line tools.
+`func` helps you build command-line tools with class decorators, typed runtime
+providers, a small production footprint, and a template workflow that is ready
+to use from the first command.
 
 <br/>
 
-## Feature
+## Features
 
-- Very small volume ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
+- Tiny production bundles by default, making your CLI easy to install, quick to
+  ship, and lightweight to distribute. See a reference output
+  [here](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz).
 
-- Elegant grammar
+- Class decorators for commands, global options, and command-specific options.
 
-- Very few dependencies, maximum optimized running speed and `npm` download time
+- Typed providers for parsed inputs, option values, and registered metadata.
 
-- Template support, best practices right away
+- Very few runtime dependencies, keeping installation and startup lightweight.
+
+- Project template support with built-in development and build commands.
 
 <br/>
 
 ## Quick Start
 
-Just run `pnpm create func` to create project.
+We recommend starting every new project from the official template:
 
-1. `pnpm create func`: create project
+```sh
+npm init func
+```
 
-2. `pnpm install`: install deps.
+The generated project already includes the standard `func` setup, development
+script, build script, and package configuration.
 
-3. `pnpm start`: setup link and development ready.
-
-It's all.
+If you need to build without the template, browse the
+[examples](./examples) folder for small project structures and usage patterns.
 
 <br/>
 
@@ -45,7 +53,8 @@ It's all.
 
 ## Thanks
 
-Thanks to [Shannon Moeller](https://github.com/shannonmoeller) for donating the pkgname "func" on npm!
+Thanks to [Shannon Moeller](https://github.com/shannonmoeller) for donating the
+pkgname "func" on npm!
 
 <br/>
 

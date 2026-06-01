@@ -29,6 +29,11 @@ const commandApis = [
     structure: '-',
     description: 'Create the main command.',
   },
+  {
+    signature: '@CommandError()',
+    structure: '-',
+    description: 'Create one handler for runtime-print errors.',
+  },
 ]
 
 const argumentApis = [
@@ -43,6 +48,10 @@ const argumentApis = [
   {
     signature: 'RegisterProvider',
     description: 'Provides all registered metadata.',
+  },
+  {
+    signature: 'CommandErrorProvider',
+    description: 'Provides the current error to a CommandError handler.',
   },
 ]
 
@@ -83,7 +92,11 @@ const supportConfigs = [
 
 <DocsLayout page="apis">
   <h1>Command</h1>
-  <p>All decorators used to create commands directly.</p>
+  <p>
+    This page is the compact reference for decorators and provider classes. See
+    <a href="/concepts">Concepts</a>, <a href="/tooling">Tooling</a>, and
+    <a href="/errors">Errors</a> for behavior details.
+  </p>
   <div class="overflow-x-auto">
     <table>
       <thead>
@@ -139,7 +152,8 @@ const supportConfigs = [
   <h2>Support</h2>
   <p>
     <code>funcgo</code> provides the standard development and build commands for
-    <code>func</code> projects.
+    <code>func</code> projects. The full workflow is documented in
+    <a href="/tooling">Tooling</a>.
   </p>
   <div class="overflow-x-auto">
     <table>

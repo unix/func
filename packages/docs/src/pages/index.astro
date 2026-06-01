@@ -5,14 +5,15 @@ import DocsLayout from '@/layouts/docs.astro'
 <DocsLayout page="/">
   <h1>Introduction</h1>
   <p>
-    <code>func</code> is a modern command line framework that is lighter and more elegant
-    than comparable tools, while still offering scaffolding support and an excellent developer
-    experience.
+    <code>func</code> is a decorator-based CLI framework for TypeScript. Define
+    commands and options as classes, register them in one container, and let
+    <code>func</code> resolve the command line input for you.
   </p>
   <p>
-    <code>func</code> is built with <code>TypeScript</code>, making it easier to
-    maintain and extend. Type support gives you rich syntax hints, but the workflow
-    stays simple: one command is enough from development to packaging.
+    The project is designed around small production output, direct syntax, and a
+    quiet development workflow. <code>funcgo</code> handles local execution,
+    project setup checks, and bundling, so your code can stay focused on command
+    behavior.
   </p>
   <p>
     You can create a project in seconds with the <a href="/guide"
@@ -23,28 +24,30 @@ import DocsLayout from '@/layouts/docs.astro'
   <h2>Features</h2>
   <ul>
     <li>
-      Very small bundle size, approximately <a
+      Tiny production bundles by default, making your CLI easy to install, quick
+      to ship, and lightweight to distribute. See a reference output <a
         href="https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz"
-        >7 KB</a
+        >here</a
       >
     </li>
-    <li>Elegant syntax without extra mental overhead</li>
+    <li>Class decorators for commands, global options, and command options</li>
+    <li>Typed providers for parsed inputs, option values, and registered metadata</li>
     <li>
-      Very few dependencies, optimizing runtime speed and <code>npm</code> download time
+      Very few runtime dependencies, keeping installation and startup lightweight
     </li>
-    <li>Project template support</li>
+    <li>Project template support with built-in development and build commands</li>
   </ul>
 
-  <h2>Why</h2>
+  <h2>Where It Fits</h2>
   <p>
-    For <code>func</code>, using decorator metadata to define commands is a
-    lightweight choice. Most of that code is not carried into runtime after the
-    build, while the development experience still benefits from hints, types, and
-    clear structure.
+    <code>func</code> is a good fit when you want a small TypeScript command line
+    tool with clear command boundaries, automatic option parsing, and simple
+    packaging. It is intentionally compact rather than a full terminal UI, prompt,
+    or task-runner framework.
   </p>
   <p>
-    If you need to rebuild a tool or start a new one from the beginning,
-    <code>func</code> is a good choice for building command-line tools in a simple and
-    enjoyable way.
+    Start with <a href="/concepts">Concepts</a> if you want to understand how
+    command resolution works, or jump straight into <a href="/commands">Commands</a>
+    to write handlers.
   </p>
 </DocsLayout>

@@ -39,7 +39,7 @@ It's all.
 
 ## Documentation
 
-- [func.unix.bio](https://func.unix.bio)
+- [func.witt.im](https://func.witt.im)
 
 <br/>
 

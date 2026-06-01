@@ -1,8 +1,11 @@
 ---
 import DocsLayout from '@/layouts/docs.astro'
 
-const createCommandCode = `@Command({
+const createCommandCode = `import { Command } from 'func'
+
+@Command({
   name: 'apple',
+  alias: 'a',
 })
 export class MyFirstCommand {
   constructor() {
@@ -22,7 +25,9 @@ export class Version {
   }
 }`
 
-const createSubOptionsCode = `@Command({
+const createSubOptionsImportCode = `import { Command, CommandArgsProvider, SubOptions } from 'func'
+
+@Command({
   name: 'apple',
 })
 @SubOptions([{ name: 'help', alias: 'h' }])
@@ -59,7 +64,8 @@ export class Missing {
   <p class="caption">Create a command in file <code>apple.ts</code>.</p>
   <p>
     Assuming your command-line tool is named <code>hello-func</code>, run
-    <code>hello-func apple</code> and the terminal will display <code>ok</code>.
+    <code>hello-func apple</code> or <code>hello-func a</code> and the terminal
+    will display <code>ok</code>.
   </p>
 
   <h2>Create Option</h2>
@@ -75,9 +81,9 @@ export class Missing {
     <code>-v</code>.
   </p>
   <p>
-    <code>func</code> lets you create aliases for any command. For an
-    <code>Option</code> command, the alias uses a single <code>-</code>, which
-    follows the standard CLI convention.
+    <code>func</code> lets you create aliases for any command. For a global
+    <code>Option</code>, the alias uses a single <code>-</code>, which follows the
+    standard CLI convention.
   </p>
 
   <h2>Create Sub-options</h2>
@@ -85,7 +91,7 @@ export class Missing {
     <code>func</code> also provides a <code>SubOptions</code> decorator for commands like
     <code>&lt;command&gt; --&lt;option&gt;</code>:
   </p>
-  <pre set:text={createSubOptionsCode} />
+  <pre set:text={createSubOptionsImportCode} />
   <p class="caption">
     Create a command containing a sub-option in file <code>apple.ts</code>.
   </p>
@@ -111,4 +117,8 @@ export class Missing {
     <code>Command</code> or <code>Option</code> can be found:
   </p>
   <pre set:text={missingCommandCode} />
+  <p>
+    <code>CommandNotFound</code> is deprecated. Use <code>CommandMissing</code>
+    for new projects.
+  </p>
 </DocsLayout>

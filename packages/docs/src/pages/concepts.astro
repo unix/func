@@ -1,0 +1,70 @@
+---
+import DocsLayout from '@/layouts/docs.astro'
+---
+
+<DocsLayout page="concepts">
+  <h1>Core Concepts</h1>
+  <p>
+    A <code>func</code> project registers decorated classes in a
+    <code>Container</code>. At runtime, <code>func</code> parses the user input,
+    chooses one matching handler, and injects provider objects into the handler
+    constructor.
+  </p>
+
+  <h2>Handler Types</h2>
+  <ul>
+    <li>
+      <code>@Command</code> handles named commands such as
+      <code>my-cli build</code>.
+    </li>
+    <li>
+      <code>@Option</code> handles top-level options such as
+      <code>my-cli --version</code>.
+    </li>
+    <li>
+      <code>@SubOptions</code> declares options that belong to a specific command,
+      such as <code>my-cli build --watch</code>.
+    </li>
+    <li>
+      <code>@CommandMajor</code> handles the empty invocation,
+      <code>my-cli</code>.
+    </li>
+    <li>
+      <code>@CommandMissing</code> handles unmatched input so you can print help,
+      suggestions, or custom guidance.
+    </li>
+  </ul>
+
+  <h2>Resolution Order</h2>
+  <p>
+    If the first user argument matches a command name or command alias, that
+    command is executed and only its <code>SubOptions</code> are parsed. Registered
+    global options do not run during command execution.
+  </p>
+  <p>
+    If no command is matched, <code>func</code> looks for one triggered global
+    <code>Option</code>. Only one global option can be invoked at a time. If there
+    is unmatched input, <code>CommandMissing</code> runs. If there is no input,
+    <code>CommandMajor</code> runs.
+  </p>
+
+  <h2>Names and Option Types</h2>
+  <p>
+    Command and option names cannot be empty, start with <code>-</code>, or contain
+    whitespace. Option aliases must be a single character, so <code>alias: 'v'</code>
+    maps to <code>-v</code>.
+  </p>
+  <p>
+    Options default to <code>Boolean</code>. Use <code>String</code> or
+    <code>Number</code> for scalar values, and <code>[String]</code> for repeated
+    string values. The <code>Array</code> constructor is rejected so repeated values
+    stay explicit.
+  </p>
+
+  <h2>Boundaries</h2>
+  <p>
+    <code>func</code> is intentionally small. It provides command registration,
+    option parsing, constructor injection, and project tooling. It does not try to
+    be a prompt toolkit, terminal UI framework, or general task runner.
+  </p>
+</DocsLayout>

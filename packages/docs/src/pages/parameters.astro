@@ -1,13 +1,13 @@
 ---
 import DocsLayout from '@/layouts/docs.astro'
 
-const commandParametersCode = `import { Command, CommandArgsProvider } from 'func'
+const commandParametersCode = `import { Command, CommandArgsProvider, SubOptions } from 'func'
 
 @Command({ name: 'test' })
 @SubOptions([{ name: 'help' }])
 export class Test {
   constructor(private arg: CommandArgsProvider) {
-    console.log(arg.inputs) // ['tools', 'test']
+    console.log(arg.inputs) // ['tools']
     console.log(arg.option) // { help: true }
     console.log(arg.native) // original parse info
   }
@@ -18,7 +18,8 @@ const optionParametersCode = `import { Option, OptionArgsProvider } from 'func'
 @Option({ name: 'name', type: String })
 export class Name {
   constructor(private arg: OptionArgsProvider) {
-    console.log(arg.name)
+    console.log(arg.value)
+    console.log(arg.native) // original parse info
   }
 }`
 
@@ -41,7 +42,7 @@ export class MyHelp {
   </p>
   <pre set:text={commandParametersCode} />
   <p>
-    When you run <code>&lt;command&gt; test --help</code>, the parameters match the
+    When you run <code>&lt;command&gt; test tools --help</code>, the parameters match the
     values shown above. You can use any parameter name you like, as long as its class
     is <code>CommandArgsProvider</code>.
   </p>
@@ -57,6 +58,10 @@ export class MyHelp {
     <code>Option</code> command to access more information:
   </p>
   <pre set:text={optionParametersCode} />
+  <p>
+    For <code>--name func</code>, <code>arg.value</code> is <code>func</code>.
+    Repeated <code>[String]</code> options return an array of values.
+  </p>
 
   <h2>All Registered Information</h2>
   <p>

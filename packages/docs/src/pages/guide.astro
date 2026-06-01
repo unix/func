@@ -19,12 +19,17 @@ const projectTree = `.
 |-- tsconfig.json
 +-- README.md`
 
-const npmCreateCode = 'npm init func'
+const npmCreateCode = `npm init func
+# or
+pnpm create func`
 
 const npmInstallCode = `npm i
-npm run dev`
+npm run dev --`
 
-const npmBuildCode = 'npm build'
+const npmRunCode = `npm run dev -- hello
+npm run dev -- --version`
+
+const npmBuildCode = 'npm run build'
 ---
 
 <DocsLayout page="guide">
@@ -32,8 +37,8 @@ const npmBuildCode = 'npm build'
   <p>
     Ensure you have the latest version of <a href="https://nodejs.org/en/download/"
       >NodeJS</a
-    > and a package manager such as <a href="https://www.npmjs.com/">NPM</a>. Running
-    one command creates a basic <code>func</code> project:
+    > and a package manager such as <a href="https://www.npmjs.com/">NPM</a>.
+    Running one command starts the interactive project creator:
   </p>
   <pre set:text={npmCreateCode} />
 
@@ -47,10 +52,9 @@ const npmBuildCode = 'npm build'
   <p>At this point, all preparation is complete.</p>
   <p>
     You can browse the examples in <code>commands</code> and <code>options</code>,
-    modify them, and run your commands to see how they behave. For example, if your
-    project is named <code>my-first-command</code>, you can run
-    <code>my-first-command hello</code> directly.
+    modify them, and run your commands through the local TypeScript entry:
   </p>
+  <pre set:text={npmRunCode} />
 
   <h2>Bundle</h2>
   <p>
@@ -58,7 +62,10 @@ const npmBuildCode = 'npm build'
     it:
   </p>
   <pre set:text={npmBuildCode} />
-  <p>After running the command, your project is packaged.</p>
+  <p>
+    After running the command, your project is packaged into the configured output
+    directory.
+  </p>
   <p>
     When using <code>func</code>, you do not need to think about <code>bin</code>
     files, file updates, or symlink problems. <code>func</code> handles all of that automatically,
@@ -70,6 +77,7 @@ const npmBuildCode = 'npm build'
 
   <h2>Publish</h2>
   <p>
-    Try publishing your package directly on NPM with <code>npm publish</code>.
+    Publish your package after the build output has been generated. The template
+    already points <code>package.json#bin</code> at the generated executable.
   </p>
 </DocsLayout>

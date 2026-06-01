@@ -9,6 +9,8 @@
     "docs:dev": "pnpm --filter docs dev",
     "docs:build": "pnpm --filter docs build",
     "docs:preview": "pnpm --filter docs preview",
+    "docs:deploy": "pnpm --filter docs deploy",
+    "docs:deploy:dry-run": "pnpm --filter docs deploy:dry-run",
     "release": "pnpm --filter func release"
   }
 }

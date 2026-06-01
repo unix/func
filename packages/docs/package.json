@@ -10,6 +10,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "release": "pnpm build && wrangler deploy",
     "astro": "astro",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -39,6 +40,7 @@
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
     "typescript": "^6.0.3",
-    "vite": "^7.3.3"
+    "vite": "^7.3.3",
+    "wrangler": "^4.95.0"
   }
 }

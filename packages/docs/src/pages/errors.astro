@@ -1,0 +1,175 @@
+---
+import DocsLayout from '@/layouts/docs.astro'
+
+const commandErrorCode = `import { CommandError, CommandErrorProvider } from 'func'
+
+@CommandError()
+export class ErrorHandler {
+  constructor(private error: CommandErrorProvider) {
+    console.error(error.message)
+    error.preventDefaultPrint()
+  }
+}`
+
+const preventDefaultPrintCode = `import { CommandError, CommandErrorProvider } from 'func'
+
+@CommandError()
+export class ErrorHandler {
+  constructor(private error: CommandErrorProvider) {
+    if (error.level !== 'runtime-print') return
+
+    console.error(\`Invalid input: \${error.message}\`)
+    error.preventDefaultPrint()
+  }
+}`
+
+const runtimeCodes = [
+  {
+    code: 'F_RUNTIME_HANDLER_ERROR',
+    meaning: 'A command, option, major, missing, or error handler threw an error.',
+  },
+]
+
+const runtimePrintCodes = [
+  {
+    code: 'F_RUNTIME_PRINT_MULTIPLE_OPTIONS',
+    meaning: 'More than one global option was invoked at once.',
+  },
+  {
+    code: 'F_RUNTIME_PRINT_PARSE',
+    meaning: 'The command-line input could not be parsed.',
+  },
+  {
+    code: 'F_RUNTIME_PRINT_UNKNOWN_OPTION',
+    meaning: 'The user passed an option that is not declared for the current mode.',
+  },
+]
+
+const systemCodes = [
+  {
+    code: 'F_SYSTEM_DUPLICATE_HANDLER',
+    meaning: 'Two handlers declare the same command or option token.',
+  },
+  {
+    code: 'F_SYSTEM_MISSING_PROVIDER',
+    meaning: 'A constructor asks for an unknown provider class.',
+  },
+  {
+    code: 'F_SYSTEM_MISSING_PARAM_TYPES',
+    meaning:
+      'Constructor metadata is missing. Enable decorators and emitDecoratorMetadata.',
+  },
+  {
+    code: 'F_SYSTEM_UNSUPPORTED_ARRAY_TYPE',
+    meaning: 'Use [String] for repeated values instead of Array.',
+  },
+]
+---
+
+<DocsLayout page="errors">
+  <h1>Error Handling</h1>
+  <p>
+    <code>func</code> separates registration problems, runtime handler errors, and
+    runtime errors that print a default message. Add <code>@CommandError()</code>
+    when you want one place to format runtime failures.
+  </p>
+  <p>
+    <code>@CommandError()</code> only receives <code>F_RUNTIME</code> and
+    <code>F_RUNTIME_PRINT</code> errors. <code>F_SYSTEM</code> errors are not
+    delivered to user handlers; once a system error happens, the program stops.
+  </p>
+  <pre set:text={commandErrorCode} />
+
+  <h2>Runtime Errors</h2>
+  <p>
+    <code>F_RUNTIME</code> is the main runtime error family. It represents failures
+    that happen while a matched handler is running.
+  </p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Meaning</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          runtimeCodes.map(item => (
+            <tr>
+              <td>
+                <code>{item.code}</code>
+              </td>
+              <td>{item.meaning}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Runtime-print Errors</h2>
+  <p>
+    <code>F_RUNTIME_PRINT</code> is a runtime error family with an extra default
+    behavior: <code>func</code> prints the message to <code>stderr</code>. A
+    <code>CommandErrorProvider</code> can handle the error and call
+    <code>preventDefaultPrint()</code> to block that default print.
+  </p>
+  <pre set:text={preventDefaultPrintCode} />
+  <p>
+    In this example, your handler prints a custom message and then prevents
+    <code>func</code> from printing the original runtime-print message again.
+  </p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Meaning</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          runtimePrintCodes.map(item => (
+            <tr>
+              <td>
+                <code>{item.code}</code>
+              </td>
+              <td>{item.meaning}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>System Errors</h2>
+  <p>
+    System errors indicate invalid command definitions, duplicate registrations,
+    or injection configuration problems. They happen before user error handlers
+    can safely run, so <code>func</code> throws them immediately and interrupts the
+    program. Fix these during development before publishing your CLI.
+  </p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Meaning</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          systemCodes.map(item => (
+            <tr>
+              <td>
+                <code>{item.code}</code>
+              </td>
+              <td>{item.meaning}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</DocsLayout>
