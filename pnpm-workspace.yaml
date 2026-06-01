@@ -3,4 +3,5 @@ packages:
   - packages/docs
   - packages/funcgo
   - packages/init
+  - packages/redirect
   - packages/template

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "https://func.witt.im",
+      "statusCode": 301
+    },
+    {
+      "source": "/:path*",
+      "destination": "https://func.witt.im/:path*",
+      "statusCode": 301
+    }
+  ]
+}
