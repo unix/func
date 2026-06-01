@@ -1,6 +1,6 @@
 {
   "name": "func",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,7 +10,7 @@
     "test:file": "vitest run",
     "build": "tsc",
     "docs": "cd ../../docs && vercel",
-    "release": "pnpm build && pnpm publish --access public"
+    "release": "pnpm build && pnpm publish --access public --no-git-checks"
   },
   "packageManager": "pnpm@7.33.7",
   "files": [
