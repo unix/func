@@ -1,6 +1,5 @@
 import arg from 'arg'
 import { run } from '../utils/command'
-import * as spinner from '../utils/spinner'
 import { cwd, resolveEntry } from '../utils/paths'
 
 interface DevArgs {
@@ -11,14 +10,12 @@ interface DevArgs {
 export const dev = async (argv: string[]): Promise<void> => {
   const args = parseDevArgs(argv)
 
-  spinner.start('validating...')
   const entry = resolveEntry(args.file)
   if (!entry) {
     throw new Error(`About. Not found entry. Run "funcgo setup" for suggestions.`)
   }
 
   const tsNodeRegister = resolveTsNodeRegister()
-  spinner.succeed(true)
 
   await run('node', ['-r', tsNodeRegister, entry, ...args.userArgs], { cwd })
 }

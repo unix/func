@@ -14,15 +14,21 @@ export interface BuildArgs {
 export const build = async (argv: string[]): Promise<void> => {
   const args = parseBuildArgs(argv)
 
-  spinner.start('validating...')
-  const pkg = readPackage()
-  const entry = resolveEntry(args.file)
-  if (!entry) {
-    throw new Error(`About. Not found entry. Run "funcgo setup" for suggestions.`)
-  }
+  let entry: string
+  let output: string
+  try {
+    const pkg = readPackage()
+    const resolvedEntry = resolveEntry(args.file)
+    if (!resolvedEntry) {
+      throw new Error(`About. Not found entry. Run "funcgo setup" for suggestions.`)
+    }
 
-  const output = path.resolve(cwd, args.out || pkg.func?.outDir || 'dist')
-  spinner.succeed()
+    entry = resolvedEntry
+    output = path.resolve(cwd, args.out || pkg.func?.outDir || 'dist')
+  } catch (error) {
+    spinner.succeed(true)
+    throw error
+  }
 
   await buildWithNcc({
     entry,
@@ -65,25 +71,30 @@ interface BuildWithNccOptions {
 
 export const buildWithNcc = async (options: BuildWithNccOptions): Promise<void> => {
   spinner.start('bundling...')
-  const externalArgs = options.external.flatMap(item => ['-e', item])
+  try {
+    const externalArgs = options.external.flatMap(item => ['-e', item])
 
-  await run(
-    options.ncc,
-    [
-      ...(options.nccArgs || []),
-      '-m',
-      'build',
-      options.entry,
-      '-o',
-      options.output,
-      ...externalArgs,
-    ],
-    { cwd },
-  )
-  const bin = path.join(options.output, 'bin.js')
-  const content = "#!/usr/bin/env node\nrequire('./index.js')\n"
-  fs.writeFileSync(bin, content, { mode: 0o755 })
-  spinner.succeed()
+    await run(
+      options.ncc,
+      [
+        ...(options.nccArgs || []),
+        '-m',
+        'build',
+        options.entry,
+        '-o',
+        options.output,
+        ...externalArgs,
+      ],
+      { cwd },
+    )
+    const bin = path.join(options.output, 'bin.js')
+    const content = "#!/usr/bin/env node\nrequire('./index.js')\n"
+    fs.writeFileSync(bin, content, { mode: 0o755 })
+    spinner.succeed()
+  } catch (error) {
+    spinner.succeed(true)
+    throw error
+  }
 }
 
 const resolveNccCli = (): string => {
