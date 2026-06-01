@@ -1,49 +1,11 @@
 {
-  "name": "func",
-  "version": "1.3.5",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "license": "MIT",
-  "scripts": {
-    "test": "ava",
-    "build": "tsc",
-    "docs": "cd docs && vercel",
-    "release": "pnpm build && pnpm publish --access public"
-  },
+  "name": "func-workspace",
+  "private": true,
   "packageManager": "pnpm@7.33.7",
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "keywords": [
-    "command",
-    "cli-framework",
-    "command-line-tool"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/unix/func.git"
-  },
-  "prettier": "@norehq/prettier",
-  "ava": {
-    "extensions": [
-      "ts"
-    ],
-    "require": [
-      "ts-node/register"
-    ]
-  },
-  "devDependencies": {
-    "@norehq/prettier": "^0.1.0",
-    "@types/node": "^20.10.0",
-    "ava": "^4.0.1",
-    "prettier": "^3.8.3",
-    "ts-node": "^10.4.0",
-    "typescript": "^4.5.5"
-  },
-  "dependencies": {
-    "arg": "^5.0.1",
-    "reflect-metadata": "^0.1.13"
+  "scripts": {
+    "test": "pnpm --filter func test",
+    "build": "pnpm --filter func build",
+    "docs": "pnpm --filter func docs",
+    "release": "pnpm --filter func release"
   }
 }
