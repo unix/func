@@ -4,18 +4,20 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "func-service dev",
-    "build": "func-service build",
-    "lint": "tslint -c tslint.yml -p tsconfig.json",
-    "bundle": "node bundle.js"
+    "start": "funcgo dev --",
+    "build": "funcgo build"
   },
   "dependencies": {
     "func": "latest"
   },
   "devDependencies": {
-    "@types/node": "^12.0.8",
-    "func-service": "^0.1.1",
-    "typescript": "^3.5.2"
+    "@types/node": "^25.9.1",
+    "funcgo": "^0.1.1",
+    "typescript": "^6.0.3"
+  },
+  "func": {
+    "entry": "src/index.ts",
+    "outDir": "dist"
   },
   "files": [
     "dist",
