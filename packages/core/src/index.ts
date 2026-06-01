@@ -12,6 +12,5 @@ export {
 
 export { Container } from './containers/container'
 
+export * from './errors'
 export * from './services'
-export * from './utils/errors'
-export * from './constants/errors'

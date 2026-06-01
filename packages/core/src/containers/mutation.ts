@@ -1,10 +1,13 @@
 import arg from 'arg'
 import * as filter from '../utils/filter'
 import { Factory } from '../utils/factory'
-import { metadata } from '../constants/metadata'
+import { metadata } from '../utils/metadata'
 import { CommandClass, OptionClass, CommandParams } from '../interfaces'
-import { FuncError } from '../utils/errors'
-import { errorCodes } from '../constants/errors'
+import {
+  F_RUNTIME_PRINT,
+  createRuntimePrintError,
+  errorTypes,
+} from '../errors'
 
 export interface DevourData {
   commands: CommandClass[]
@@ -27,7 +30,13 @@ export class Mutation {
     try {
       this.args = arg(nextOptions, { permissive: true })
     } catch (error) {
-      throw new FuncError(errorCodes.PARSE, error.message, { error })
+      throw createRuntimePrintError(
+        F_RUNTIME_PRINT.PARSE,
+        errorTypes.INPUT,
+        error.message,
+        { error },
+        error,
+      )
     }
 
     // collect native option
@@ -46,8 +55,9 @@ export class Mutation {
     }, {})
 
     if (!command && triggerOptionKeys.length > 1) {
-      throw new FuncError(
-        errorCodes.MULTIPLE_OPTIONS,
+      throw createRuntimePrintError(
+        F_RUNTIME_PRINT.MULTIPLE_OPTIONS,
+        errorTypes.INPUT,
         `Only one global option can be invoked at a time: ${triggerOptionKeys
           .map(key => `--${key}`)
           .join(', ')}.`,

@@ -1,5 +1,5 @@
 import { CommandClass, OptionClass, OptionParams } from '../interfaces'
-import { metadata } from '../constants/metadata'
+import { metadata } from './metadata'
 
 export type OptionKeyValue = { [key: string]: string }
 

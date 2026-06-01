@@ -1,12 +1,18 @@
 import arg from 'arg'
 import * as services from '../services'
 import * as filter from './filter'
-import { metadata } from '../constants/metadata'
+import { metadata } from './metadata'
 import { CommandClass, OptionClass } from '../interfaces'
-import { FuncError } from './errors'
-import { errorCodes } from '../constants/errors'
+import {
+  CommandErrorProvider,
+  F_SYSTEM,
+  createSystemError,
+  errorTypes,
+} from '../errors'
 
-const serviceFunctions = Object.keys(services).map(key => services[key])
+const serviceFunctions = Object.keys(services)
+  .map(key => services[key])
+  .concat([CommandErrorProvider])
 
 export interface FactoryParams {
   args: arg.Result<any>
@@ -19,11 +25,12 @@ export interface FactoryParams {
 export class Factory {
   constructor(private params: FactoryParams) {}
 
-  getServiceParams(fn: Function, value?: any, error?: Error): any[] {
+  getServiceParams(fn: Function, value?: any, error?: Error | CommandErrorProvider): any[] {
     const hasParamTypes = Reflect.hasMetadata(metadata.DESIGN_PARAM_TYPES, fn)
     if (!hasParamTypes && fn.length) {
-      throw new FuncError(
-        errorCodes.MISSING_PARAM_TYPES,
+      throw createSystemError(
+        F_SYSTEM.MISSING_PARAM_TYPES,
+        errorTypes.INJECTION,
         `Cannot inject constructor params for "${fn.name}". Please use decorator syntax and enable "emitDecoratorMetadata".`,
         { target: fn.name },
       )
@@ -37,7 +44,10 @@ export class Factory {
     return paramTypes.map(type => {
       const fn = serviceFunctions.find(item => item === type)
       if (!fn) return undefined
-      if (fn.isCommandErrorProvider) return new fn(error)
+      if (fn.isCommandErrorProvider) {
+        if (error instanceof fn) return error
+        return new fn(error)
+      }
       if (!fn.isRegisterProvider) return new fn(inputs, option, args, value)
 
       const cDatas = filter.commandsToDatas(this.params.commands)

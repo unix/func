@@ -1,9 +1,19 @@
 import { Mutation } from './mutation'
 import { Factory } from '../utils/factory'
-import { FuncError } from '../utils/errors'
 import { OptionParams } from '../interfaces'
-import { errorCodes, errorScopes, errorTokenTypes } from '../constants/errors'
-import { metadata, handlers } from '../constants/metadata'
+import { metadata, handlers } from '../utils/metadata'
+import {
+  CommandErrorProvider,
+  F_SYSTEM,
+  createSystemError,
+  errorLevels,
+  errorScopes,
+  errorTokenTypes,
+  errorTypes,
+  handleRuntimePrintError,
+  handleSystemError,
+  normalizeRuntimeError,
+} from '../errors'
 
 export type ContainerParams = Array<new (...args: any[]) => any>
 export interface ContainerData {
@@ -50,8 +60,9 @@ export class Container {
   private validate() {
     if (this.invalidHandlers.length) {
       const names = this.invalidHandlers.map(handler => handler.name || '<anonymous>')
-      throw new FuncError(
-        errorCodes.UNKNOWN_HANDLER,
+      throw createSystemError(
+        F_SYSTEM.UNKNOWN_HANDLER,
+        errorTypes.REGISTRATION,
         `All handlers passed to Container must use a func decorator: ${names.join(', ')}.`,
         { handlers: names },
       )
@@ -107,8 +118,9 @@ export class Container {
       getTokens(data).forEach(item => {
         if (!item.token) return
         if (tokens[item.token]) {
-          throw new FuncError(
-            errorCodes.DUPLICATE_HANDLER,
+          throw createSystemError(
+            F_SYSTEM.DUPLICATE_HANDLER,
+            errorTypes.REGISTRATION,
             `Duplicate ${scope} token "${item.token}" found in "${tokens[item.token]}" and "${handler.name}".`,
             {
               scope,
@@ -126,17 +138,28 @@ export class Container {
   private validateOptionType(data: OptionParams, handlerName: string) {
     if (data.type !== Array) return
 
-    throw new FuncError(
-      errorCodes.UNSUPPORTED_ARRAY_TYPE,
+    throw createSystemError(
+      F_SYSTEM.UNSUPPORTED_ARRAY_TYPE,
+      errorTypes.REGISTRATION,
       `Option "${data.name}" in "${handlerName}" uses Array. Please use [String] instead.`,
       { option: data.name, handler: handlerName },
     )
   }
 
   private dispatchError(error: Error) {
+    const funcError = normalizeRuntimeError(error)
+    if (funcError.level === errorLevels.SYSTEM) {
+      handleSystemError(funcError)
+    }
+
     const errors = this.datas[handlers.ERROR] || []
     if (!errors.length) {
-      throw error
+      if (funcError.level === errorLevels.RUNTIME_PRINT) {
+        handleRuntimePrintError(funcError, false)
+        return
+      }
+
+      throw funcError
     }
 
     const factory = new Factory({
@@ -146,9 +169,14 @@ export class Container {
       options: this.datas[handlers.OPTION] || [],
     })
 
+    const provider = new CommandErrorProvider(funcError)
     errors.forEach(errorHandler => {
-      const params = factory.getServiceParams(errorHandler, undefined, error)
+      const params = factory.getServiceParams(errorHandler, undefined, provider)
       new errorHandler(...params)
     })
+
+    if (funcError.level === errorLevels.RUNTIME_PRINT) {
+      handleRuntimePrintError(funcError, provider.printPrevented)
+    }
   }
 }
