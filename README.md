@@ -17,7 +17,7 @@ to use from the first command.
 
 - Tiny production bundles by default, making your CLI easy to install, quick to
   ship, and lightweight to distribute. See a reference output
-  [here](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz).
+  [here](https://github.com/unix/func/blob/main/examples/gzbundle/archived.tar.gz).
 
 - Class decorators for commands, global options, and command-specific options.
 
@@ -47,8 +47,7 @@ If you need to build without the template, browse the
 
 ## Documentation
 
-- [func.unix.bio](https://func.unix.bio)
-
+- [func.witt.im](https://func.witt.im)
 <br/>
 
 ## Thanks
