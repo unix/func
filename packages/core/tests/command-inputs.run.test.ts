@@ -1,17 +1,16 @@
-import test from 'ava'
-import * as utils from './_utils'
-import { Command, CommandArgsProvider, Container } from '../src'
+import { expect, random, test } from './_test'
+import { Command, CommandArgsProvider } from '../src'
 
-test.serial('should strip command token from command inputs', t => {
-  const name = utils.random()
+test.sequential('should strip command token from command inputs', ({ runContainer }) => {
+  expect.assertions(2)
+  const name = random()
   @Command({ name })
   class GetCommand {
     constructor(arg: CommandArgsProvider) {
-      t.deepEqual(arg.inputs, ['one', 'two'])
-      t.deepEqual(arg.native._, [name, 'one', 'two'])
+      expect(arg.inputs).toEqual(['one', 'two'])
+      expect(arg.native._).toEqual([name, 'one', 'two'])
     }
   }
 
-  process.argv = ['', '', name, 'one', 'two']
-  new Container([GetCommand])
+  runContainer(['', '', name, 'one', 'two'], [GetCommand])
 })

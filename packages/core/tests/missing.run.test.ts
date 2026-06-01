@@ -1,16 +1,18 @@
-import test from 'ava'
-import * as utils from './_utils'
-import { Container, CommandMissing } from '../src'
+import { expect, random, test } from './_test'
+import { CommandMissing } from '../src'
 
-test('should invoke not found handler', t => {
-  const name = utils.random()
-  const arg = utils.random()
+test.sequential('should invoke not found handler', ({ runContainer }) => {
+  let invoked = false
+  const name = random()
+  const arg = random()
   class NotFound {
     constructor() {
-      t.pass()
+      invoked = true
     }
   }
   CommandMissing()(NotFound)
-  process.argv = ['', '', name, arg]
-  new Container([NotFound])
+
+  runContainer(['', '', name, arg], [NotFound])
+
+  expect(invoked).toBe(true)
 })

@@ -1,13 +1,16 @@
-import test from 'ava'
-import { Container, CommandMajor } from '../src'
+import { expect, test } from './_test'
+import { CommandMajor } from '../src'
 
-test('should invoke major handler', t => {
+test.sequential('should invoke major handler', ({ runContainer }) => {
+  let invoked = false
   class Major {
     constructor() {
-      t.pass()
+      invoked = true
     }
   }
   CommandMajor()(Major)
-  process.argv = ['', '']
-  new Container([Major])
+
+  runContainer(['', ''], [Major])
+
+  expect(invoked).toBe(true)
 })

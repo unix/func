@@ -1,11 +1,11 @@
-import test from 'ava'
+import { expect, test } from './_test'
 import { CommandMissing } from '../src/annotations'
 import { metadata, handlers } from '../src/constants/metadata'
 
-test('missing should be defined', t => {
+test('missing should be defined', () => {
   const target = {}
   CommandMissing()(target)
 
   const output = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, target)
-  t.is(handlers.MISSING, output)
+  expect(output).toBe(handlers.MISSING)
 })

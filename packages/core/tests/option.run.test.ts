@@ -1,34 +1,39 @@
-import test from 'ava'
-import * as utils from './_utils'
-import { Container, Option, Command } from '../src'
+import { expect, random, test } from './_test'
+import { Option, Command } from '../src'
 
-test('should be invoke', t => {
-  const arg = utils.random()
+test.sequential('should be invoke', ({ runContainer }) => {
+  let invoked = false
+  const arg = random()
   class GetOption {
     constructor() {
-      t.pass()
+      invoked = true
     }
   }
   Option({ name: arg })(GetOption)
-  process.argv = ['', '', utils.random(), `--${arg}`]
-  new Container([GetOption])
+
+  runContainer(['', '', random(), `--${arg}`], [GetOption])
+
+  expect(invoked).toBe(true)
 })
 
-test('command should be invoke only', t => {
-  const name = utils.random()
-  const arg = utils.random()
+test.sequential('command should be invoke only', ({ runContainer }) => {
+  let invoked = false
+  const name = random()
+  const arg = random()
   class Comand1 {
     constructor() {
-      t.pass()
+      invoked = true
     }
   }
   class Option1 {
     constructor() {
-      t.fail()
+      throw new Error('option should not be invoked')
     }
   }
   Command({ name })(Comand1)
   Option({ name: arg })(Option1)
-  process.argv = ['', '', name, `--${arg}`]
-  new Container([Comand1, Option1])
+
+  runContainer(['', '', name, `--${arg}`], [Comand1, Option1])
+
+  expect(invoked).toBe(true)
 })

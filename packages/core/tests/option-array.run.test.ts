@@ -1,66 +1,65 @@
-import test from 'ava'
-import * as utils from './_utils'
+import { expect, random, test } from './_test'
 import {
   Command,
   CommandArgsProvider,
   CommandError,
   CommandErrorProvider,
-  Container,
   Option,
   OptionArgsProvider,
   SubOptions,
 } from '../src'
 
-test.serial('should collect repeated string option values', t => {
-  const name = utils.random()
+test.sequential('should collect repeated string option values', ({ runContainer }) => {
+  expect.assertions(2)
+  const name = random()
   @Option({ name, type: [String] })
   class GetOption {
     constructor(arg: OptionArgsProvider) {
-      t.deepEqual(arg.value, ['one', 'two'])
-      t.deepEqual(arg.native[`--${name}`], ['one', 'two'])
+      expect(arg.value).toEqual(['one', 'two'])
+      expect(arg.native[`--${name}`]).toEqual(['one', 'two'])
     }
   }
-  process.argv = ['', '', `--${name}`, 'one', `--${name}`, 'two']
-  new Container([GetOption])
+
+  runContainer(['', '', `--${name}`, 'one', `--${name}`, 'two'], [GetOption])
 })
 
-test.serial('should collect repeated string sub-option values', t => {
-  const name = utils.random()
-  const option = utils.random()
+test.sequential('should collect repeated string sub-option values', ({ runContainer }) => {
+  expect.assertions(2)
+  const name = random()
+  const option = random()
   @Command({ name })
   @SubOptions([{ name: option, type: [String] }])
   class GetCommand {
     constructor(arg: CommandArgsProvider) {
-      t.deepEqual(arg.option[option], ['one', 'two'])
-      t.deepEqual(arg.native[`--${option}`], ['one', 'two'])
+      expect(arg.option[option]).toEqual(['one', 'two'])
+      expect(arg.native[`--${option}`]).toEqual(['one', 'two'])
     }
   }
-  process.argv = ['', '', name, `--${option}`, 'one', `--${option}`, 'two']
-  new Container([GetCommand])
+
+  runContainer(['', '', name, `--${option}`, 'one', `--${option}`, 'two'], [GetCommand])
 })
 
-test.serial('should dispatch an error when option uses Array constructor', t => {
-  t.plan(2)
-  const name = utils.random()
+test.sequential('should dispatch an error when option uses Array constructor', ({ runContainer }) => {
+  expect.assertions(2)
+  const name = random()
   @Option({ name, type: Array })
   class GetOption {}
 
   @CommandError()
   class ErrorHandler {
     constructor(arg: CommandErrorProvider) {
-      t.is(arg.code, 'FUNC_UNSUPPORTED_ARRAY_TYPE')
-      t.true(arg.message.includes('[String]'))
+      expect(arg.code).toBe('FUNC_UNSUPPORTED_ARRAY_TYPE')
+      expect(arg.message).toContain('[String]')
     }
   }
 
-  process.argv = ['', '']
-  new Container([GetOption, ErrorHandler])
+  runContainer(['', ''], [GetOption, ErrorHandler])
 })
 
-test.serial('should dispatch an error when sub-option uses Array constructor', t => {
-  t.plan(2)
-  const name = utils.random()
-  const option = utils.random()
+test.sequential('should dispatch an error when sub-option uses Array constructor', ({ runContainer }) => {
+  expect.assertions(2)
+  const name = random()
+  const option = random()
   @Command({ name })
   @SubOptions([{ name: option, type: Array }])
   class GetCommand {}
@@ -68,11 +67,10 @@ test.serial('should dispatch an error when sub-option uses Array constructor', t
   @CommandError()
   class ErrorHandler {
     constructor(arg: CommandErrorProvider) {
-      t.is(arg.code, 'FUNC_UNSUPPORTED_ARRAY_TYPE')
-      t.is(arg.details.option, option)
+      expect(arg.code).toBe('FUNC_UNSUPPORTED_ARRAY_TYPE')
+      expect(arg.details.option).toBe(option)
     }
   }
 
-  process.argv = ['', '']
-  new Container([GetCommand, ErrorHandler])
+  runContainer(['', ''], [GetCommand, ErrorHandler])
 })

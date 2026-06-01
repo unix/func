@@ -1,29 +1,34 @@
-import test from 'ava'
-import * as utils from './_utils'
-import { Command, Container } from '../src'
+import { expect, random, test } from './_test'
+import { Command } from '../src'
 
-test('should invoke', t => {
-  const name = utils.random()
-  const arg = utils.random()
+test.sequential('should invoke', ({ runContainer }) => {
+  let invoked = false
+  const name = random()
+  const arg = random()
   class ShouldInvoker {
     constructor() {
-      t.pass()
+      invoked = true
     }
   }
   Command({ name })(ShouldInvoker)
-  process.argv = ['', '', name, arg]
-  new Container([ShouldInvoker])
+
+  runContainer(['', '', name, arg], [ShouldInvoker])
+
+  expect(invoked).toBe(true)
 })
 
-test('should invoke by alias', t => {
-  const alias = utils.random()
-  const arg = utils.random()
+test.sequential('should invoke by alias', ({ runContainer }) => {
+  let invoked = false
+  const alias = random()
+  const arg = random()
   class ShouldInvoker {
     constructor() {
-      t.pass()
+      invoked = true
     }
   }
-  Command({ name: utils.random(), alias })(ShouldInvoker)
-  process.argv = ['', '', alias, arg]
-  new Container([ShouldInvoker])
+  Command({ name: random(), alias })(ShouldInvoker)
+
+  runContainer(['', '', alias, arg], [ShouldInvoker])
+
+  expect(invoked).toBe(true)
 })

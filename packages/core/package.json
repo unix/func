@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "license": "MIT",
   "scripts": {
-    "test": "ava",
+    "test": "vitest run",
+    "test:file": "vitest run",
     "build": "tsc",
     "docs": "cd ../../docs && vercel",
     "release": "pnpm build && pnpm publish --access public"
@@ -26,21 +27,15 @@
     "url": "git+https://github.com/unix/func.git"
   },
   "prettier": "@norehq/prettier",
-  "ava": {
-    "extensions": [
-      "ts"
-    ],
-    "require": [
-      "ts-node/register"
-    ]
-  },
   "devDependencies": {
     "@norehq/prettier": "^0.1.0",
+    "@swc/core": "^1.15.40",
     "@types/node": "^20.10.0",
-    "ava": "^4.0.1",
     "prettier": "^3.8.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^4.5.5"
+    "typescript": "^4.5.5",
+    "unplugin-swc": "^1.5.9",
+    "vite": "^6.4.2",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "arg": "^5.0.1",

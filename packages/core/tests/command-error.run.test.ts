@@ -1,18 +1,16 @@
-import test from 'ava'
-import * as utils from './_utils'
+import { expect, random, test } from './_test'
 import {
   Command,
   CommandError,
   CommandErrorProvider,
-  Container,
   Option,
   OptionArgsProvider,
 } from '../src'
 
-test.serial('should dispatch multiple global option errors', t => {
-  t.plan(2)
-  const help = utils.random()
-  const version = utils.random()
+test.sequential('should dispatch multiple global option errors', ({ runContainer }) => {
+  expect.assertions(2)
+  const help = random()
+  const version = random()
   @Option({ name: help })
   class Help {}
   @Option({ name: version })
@@ -21,18 +19,17 @@ test.serial('should dispatch multiple global option errors', t => {
   @CommandError()
   class ErrorHandler {
     constructor(arg: CommandErrorProvider) {
-      t.is(arg.code, 'FUNC_MULTIPLE_OPTIONS')
-      t.deepEqual(arg.details.options, [help, version])
+      expect(arg.code).toBe('FUNC_MULTIPLE_OPTIONS')
+      expect(arg.details.options).toEqual([help, version])
     }
   }
 
-  process.argv = ['', '', `--${help}`, `--${version}`]
-  new Container([Help, Version, ErrorHandler])
+  runContainer(['', '', `--${help}`, `--${version}`], [Help, Version, ErrorHandler])
 })
 
-test.serial('should dispatch duplicate command errors', t => {
-  t.plan(2)
-  const name = utils.random()
+test.sequential('should dispatch duplicate command errors', ({ runContainer }) => {
+  expect.assertions(2)
+  const name = random()
   @Command({ name })
   class FirstCommand {}
   @Command({ name })
@@ -41,74 +38,70 @@ test.serial('should dispatch duplicate command errors', t => {
   @CommandError()
   class ErrorHandler {
     constructor(arg: CommandErrorProvider) {
-      t.is(arg.code, 'FUNC_DUPLICATE_HANDLER')
-      t.is(arg.details.token, name)
+      expect(arg.code).toBe('FUNC_DUPLICATE_HANDLER')
+      expect(arg.details.token).toBe(name)
     }
   }
 
-  process.argv = ['', '']
-  new Container([FirstCommand, SecondCommand, ErrorHandler])
+  runContainer(['', ''], [FirstCommand, SecondCommand, ErrorHandler])
 })
 
-test.serial('should dispatch duplicate option alias errors', t => {
-  t.plan(2)
-  @Option({ name: utils.random(), alias: 'd' })
+test.sequential('should dispatch duplicate option alias errors', ({ runContainer }) => {
+  expect.assertions(2)
+  @Option({ name: random(), alias: 'd' })
   class FirstOption {}
-  @Option({ name: utils.random(), alias: 'd' })
+  @Option({ name: random(), alias: 'd' })
   class SecondOption {}
 
   @CommandError()
   class ErrorHandler {
     constructor(arg: CommandErrorProvider) {
-      t.is(arg.code, 'FUNC_DUPLICATE_HANDLER')
-      t.is(arg.details.token, '-d')
+      expect(arg.code).toBe('FUNC_DUPLICATE_HANDLER')
+      expect(arg.details.token).toBe('-d')
     }
   }
 
-  process.argv = ['', '']
-  new Container([FirstOption, SecondOption, ErrorHandler])
+  runContainer(['', ''], [FirstOption, SecondOption, ErrorHandler])
 })
 
-test.serial('should dispatch unknown handler errors', t => {
-  t.plan(2)
+test.sequential('should dispatch unknown handler errors', ({ runContainer }) => {
+  expect.assertions(2)
   class UnknownHandler {}
 
   @CommandError()
   class ErrorHandler {
     constructor(arg: CommandErrorProvider) {
-      t.is(arg.code, 'FUNC_UNKNOWN_HANDLER')
-      t.deepEqual(arg.details.handlers, ['UnknownHandler'])
+      expect(arg.code).toBe('FUNC_UNKNOWN_HANDLER')
+      expect(arg.details.handlers).toEqual(['UnknownHandler'])
     }
   }
 
-  process.argv = ['', '']
-  new Container([UnknownHandler, ErrorHandler])
+  runContainer(['', ''], [UnknownHandler, ErrorHandler])
 })
 
-test.serial('should dispatch parse errors', t => {
-  t.plan(2)
-  const name = utils.random()
+test.sequential('should dispatch parse errors', ({ runContainer }) => {
+  expect.assertions(2)
+  const name = random()
   @Option({ name, type: String })
   class NameOption {}
 
   @CommandError()
   class ErrorHandler {
     constructor(arg: CommandErrorProvider) {
-      t.is(arg.code, 'FUNC_PARSE_ERROR')
-      t.true(arg.message.includes(`--${name}`))
+      expect(arg.code).toBe('FUNC_PARSE_ERROR')
+      expect(arg.message).toContain(`--${name}`)
     }
   }
 
-  process.argv = ['', '', `--${name}`]
-  new Container([NameOption, ErrorHandler])
+  runContainer(['', '', `--${name}`], [NameOption, ErrorHandler])
 })
 
-test.serial('should dispatch missing param metadata errors', t => {
-  t.plan(2)
-  const name = utils.random()
+test.sequential('should dispatch missing param metadata errors', ({ runContainer }) => {
+  expect.assertions(2)
+  const name = random()
   class NameOption {
     constructor(arg: OptionArgsProvider) {
-      t.fail(String(arg))
+      throw new Error(String(arg))
     }
   }
   Option({ name })(NameOption)
@@ -116,11 +109,10 @@ test.serial('should dispatch missing param metadata errors', t => {
   @CommandError()
   class ErrorHandler {
     constructor(arg: CommandErrorProvider) {
-      t.is(arg.code, 'FUNC_MISSING_PARAM_TYPES')
-      t.is(arg.details.target, 'NameOption')
+      expect(arg.code).toBe('FUNC_MISSING_PARAM_TYPES')
+      expect(arg.details.target).toBe('NameOption')
     }
   }
 
-  process.argv = ['', '', `--${name}`]
-  new Container([NameOption, ErrorHandler])
+  runContainer(['', '', `--${name}`], [NameOption, ErrorHandler])
 })

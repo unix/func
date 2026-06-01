@@ -1,44 +1,38 @@
-import test from 'ava'
-import * as utils from './_utils'
+import { expect, random, test } from './_test'
 import { Option } from '../src/annotations'
 import { metadata, handlers } from '../src/constants/metadata'
 
-test('metadata should be defined', t => {
-  const name = utils.random()
-  const description = utils.random()
-  const alias = utils.random()
+test('metadata should be defined', () => {
+  const name = random()
+  const description = random()
+  const alias = random()
   const target = {}
   Option({ name, description, alias })(target)
 
   const output = Reflect.getMetadata(metadata.OPTION_IDENTIFIER, target)
-  t.is(name, output.name)
-  t.is(description, output.description)
-  t.is(alias, output.alias)
+  expect(output.name).toBe(name)
+  expect(output.description).toBe(description)
+  expect(output.alias).toBe(alias)
 })
 
-test('default type should be Boolean', t => {
-  const name = utils.random()
+test('default type should be Boolean', () => {
+  const name = random()
   const target = {}
   Option({ name })(target)
 
   const output = Reflect.getMetadata(metadata.OPTION_IDENTIFIER, target)
-  t.is(Boolean, output.type)
+  expect(output.type).toBe(Boolean)
 })
 
-test('handler type should be defined', t => {
+test('handler type should be defined', () => {
   const target = {}
-  Option({ name: utils.random() })(target)
+  Option({ name: random() })(target)
 
   const output = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, target)
-  t.not(output, undefined)
-  t.is(output, handlers.OPTION)
+  expect(output).toBeDefined()
+  expect(output).toBe(handlers.OPTION)
 })
 
-test('should get an error when name is undefined', t => {
-  try {
-    Option({ name: undefined })({})
-    t.fail('param "name" cannot be "undefined"')
-  } catch (e) {
-    t.pass()
-  }
+test('should get an error when name is undefined', () => {
+  expect(() => Option({ name: undefined })({})).toThrow()
 })
