@@ -1,7 +1,7 @@
 import { expect, random, test } from './_test'
 import * as filter from '../src/utils/filter'
 import { Command, Option, SubOptions } from '../src/annotations'
-import { metadata } from '../src/constants/metadata'
+import { metadata } from '../src/utils/metadata'
 
 test('option decorator should copy params and keep caller object unchanged', () => {
   const name = random()

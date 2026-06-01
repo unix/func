@@ -1,6 +1,6 @@
 import { expect, random, test } from './_test'
 import { Option, OptionArgsProvider } from '../src'
-import { metadata } from '../src/constants/metadata'
+import { metadata } from '../src/utils/metadata'
 
 test('should emit constructor param metadata for decorated handlers', () => {
   @Option({ name: random() })

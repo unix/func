@@ -1,6 +1,6 @@
 import { expect, random, test } from './_test'
 import { Option } from '../src/annotations'
-import { metadata, handlers } from '../src/constants/metadata'
+import { metadata, handlers } from '../src/utils/metadata'
 
 test('metadata should be defined', () => {
   const name = random()

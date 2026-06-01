@@ -1,6 +1,6 @@
 import { expect, test } from './_test'
 import { CommandMajor } from '../src/annotations'
-import { metadata, handlers } from '../src/constants/metadata'
+import { metadata, handlers } from '../src/utils/metadata'
 
 test('handler type should be defined', () => {
   const target = {}

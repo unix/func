@@ -1,6 +1,6 @@
 import { expect, test } from './_test'
 import { CommandMissing } from '../src/annotations'
-import { metadata, handlers } from '../src/constants/metadata'
+import { metadata, handlers } from '../src/utils/metadata'
 
 test('missing should be defined', () => {
   const target = {}

@@ -2,8 +2,7 @@ import { expect, random, test } from './_test'
 import {
   Command,
   CommandArgsProvider,
-  CommandError,
-  CommandErrorProvider,
+  F_SYSTEM,
   Option,
   OptionArgsProvider,
   SubOptions,
@@ -39,38 +38,48 @@ test.sequential('should collect repeated string sub-option values', ({ runContai
   runContainer(['', '', name, `--${option}`, 'one', `--${option}`, 'two'], [GetCommand])
 })
 
-test.sequential('should dispatch an error when option uses Array constructor', ({ runContainer }) => {
-  expect.assertions(2)
+test.sequential('should throw a system error when option uses Array constructor', ({
+  runContainer,
+}) => {
   const name = random()
   @Option({ name, type: Array })
   class GetOption {}
 
-  @CommandError()
-  class ErrorHandler {
-    constructor(arg: CommandErrorProvider) {
-      expect(arg.code).toBe('FUNC_UNSUPPORTED_ARRAY_TYPE')
-      expect(arg.message).toContain('[String]')
-    }
+  let thrown
+  try {
+    runContainer(['', ''], [GetOption])
+  } catch (error) {
+    thrown = error
   }
 
-  runContainer(['', ''], [GetOption, ErrorHandler])
+  expect(thrown).toEqual(
+    expect.objectContaining({
+      code: F_SYSTEM.UNSUPPORTED_ARRAY_TYPE,
+      message: expect.stringContaining('[String]'),
+    }),
+  )
 })
 
-test.sequential('should dispatch an error when sub-option uses Array constructor', ({ runContainer }) => {
-  expect.assertions(2)
+test.sequential('should throw a system error when sub-option uses Array constructor', ({
+  runContainer,
+}) => {
   const name = random()
   const option = random()
   @Command({ name })
   @SubOptions([{ name: option, type: Array }])
   class GetCommand {}
 
-  @CommandError()
-  class ErrorHandler {
-    constructor(arg: CommandErrorProvider) {
-      expect(arg.code).toBe('FUNC_UNSUPPORTED_ARRAY_TYPE')
-      expect(arg.details.option).toBe(option)
-    }
+  let thrown
+  try {
+    runContainer(['', ''], [GetCommand])
+  } catch (error) {
+    thrown = error
   }
 
-  runContainer(['', ''], [GetCommand, ErrorHandler])
+  expect(thrown).toEqual(
+    expect.objectContaining({
+      code: F_SYSTEM.UNSUPPORTED_ARRAY_TYPE,
+      details: expect.objectContaining({ option }),
+    }),
+  )
 })
