@@ -6,6 +6,9 @@
     "test": "pnpm --filter func test",
     "build": "pnpm --filter func build",
     "docs": "pnpm --filter func docs",
+    "docs:dev": "pnpm --filter docs dev",
+    "docs:build": "pnpm --filter docs build",
+    "docs:preview": "pnpm --filter docs preview",
     "release": "pnpm --filter func release"
   }
 }
