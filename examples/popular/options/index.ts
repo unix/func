@@ -1,1 +1,3 @@
-export * from './help'
+import { Help } from './help'
+
+export const options = [Help]
