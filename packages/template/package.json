@@ -1,0 +1,38 @@
+{
+  "name": "func-template",
+  "version": "1.0.1",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "funcgo dev --",
+    "build": "funcgo build",
+    "test": "pnpm build && vitest run",
+    "format": "prettier --write ."
+  },
+  "prettier": "@norehq/prettier",
+  "files": [
+    "src",
+    "tests",
+    "README.md",
+    "tsconfig.json",
+    ".gitignore"
+  ],
+  "func": {
+    "entry": "src/index.ts",
+    "outDir": "dist"
+  },
+  "bin": {
+    "template": "./dist/bin.js"
+  },
+  "dependencies": {
+    "func": "latest"
+  },
+  "devDependencies": {
+    "@norehq/prettier": "^0.1.0",
+    "@types/node": "^20.10.0",
+    "funcgo": "latest",
+    "prettier": "^3.8.3",
+    "typescript": "^4.5.5",
+    "vitest": "^4.1.7"
+  }
+}
