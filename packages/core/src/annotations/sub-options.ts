@@ -5,11 +5,12 @@ import { metadata } from '../utils/metadata'
 
 export const SubOptions =
   (commandOptions: OptionParams[] = []) =>
-  target => {
+  (target: Function) => {
     validator.mustBeArray(commandOptions, 'SubOptions Params')
 
     const nextOptions = commandOptions.map(item => {
-      validator.requireKey(item.name, 'SubOptions name')
+      validator.optionName(item.name, 'SubOptions name')
+      validator.optionAlias(item.alias, 'SubOptions alias')
       return Object.assign({}, { type: Boolean }, item)
     })
     Reflect.defineMetadata(metadata.SUB_OPTION_IDENTIFIER, nextOptions, target)

@@ -2,7 +2,7 @@ import arg from 'arg'
 import * as filter from '../utils/filter'
 import { Factory } from '../utils/factory'
 import { metadata } from '../utils/metadata'
-import { CommandClass, OptionClass, CommandParams } from '../interfaces'
+import { CommandClass, OptionClass, CommandParams, UserOption } from '../interfaces'
 import {
   F_RUNTIME_PRINT,
   createRuntimePrintError,
@@ -17,7 +17,9 @@ export interface DevourData {
 }
 
 export class Mutation {
-  private args: arg.Result<any>
+  private args!: arg.Result<any>
+
+  constructor(private argv: string[] = process.argv.slice(2)) {}
 
   devour({ commands, options, missing, majors }: DevourData) {
     const command = this.findCommand(commands)
@@ -28,21 +30,22 @@ export class Mutation {
     // create arg instance
     const nextOptions = command ? commandOptions : globalOptions
     try {
-      this.args = arg(nextOptions, { permissive: true })
+      this.args = arg(nextOptions, { argv: this.argv, permissive: true })
     } catch (error) {
       throw createRuntimePrintError(
         F_RUNTIME_PRINT.PARSE,
         errorTypes.INPUT,
-        error.message,
+        error instanceof Error ? error.message : String(error),
         { error },
-        error,
+        error instanceof Error ? error : undefined,
       )
     }
+    this.throwUnknownOptions(command)
 
     // collect native option
     const triggerOptionKeys: string[] = []
     let currentTriggerOptionKey = ''
-    const nativeOption = Object.keys(nextOptions).reduce((pre, key) => {
+    const nativeOption = Object.keys(nextOptions).reduce<UserOption>((pre, key) => {
       if (!key.startsWith('--')) return pre
       const nativeKey = filter.removeHyphen(key)
       const hasNativeValue = Object.prototype.hasOwnProperty.call(this.args, key)
@@ -104,15 +107,14 @@ export class Mutation {
     })
   }
 
-  private findSubOptions(command: CommandClass): { [key: string]: string } {
+  private findSubOptions(command: CommandClass | undefined): arg.Spec {
     if (!command) return {}
     const subs = Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, command)
     return filter.optionsToKeyValue(subs)
   }
 
   private findCommand(commands: CommandClass[]): CommandClass | undefined {
-    const inputs = process.argv.slice(2) || []
-    const first = inputs[0]
+    const first = this.argv[0]
     if (!first || first.startsWith('-')) return undefined
 
     return commands.find(item => {
@@ -120,5 +122,21 @@ export class Mutation {
       if (!data) return false
       return data.name === first || data.alias === first
     })
+  }
+
+  private throwUnknownOptions(command: CommandClass | undefined) {
+    const options = this.args._.filter((input, index) => {
+      if (command && index === 0) return false
+
+      return input.startsWith('-') && input !== '-'
+    })
+    if (!options.length) return
+
+    throw createRuntimePrintError(
+      F_RUNTIME_PRINT.UNKNOWN_OPTION,
+      errorTypes.INPUT,
+      `Unknown option${options.length > 1 ? 's' : ''}: ${options.join(', ')}.`,
+      { options },
+    )
   }
 }

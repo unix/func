@@ -5,7 +5,7 @@ import { metadata } from '../src/utils/metadata'
 test('metadata should be defined', () => {
   const name = random()
   const description = random()
-  const alias = random()
+  const alias = 'a'
   const target = {}
   Command({ name: random() })(target)
   SubOptions([{ name, description, alias }])(target)

@@ -10,7 +10,8 @@
     "declaration": true,
     "resolveJsonModule": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "strict": true
   },
   "files": ["src/index.ts"],
   "exclude": ["node_modules", "dist"]

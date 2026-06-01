@@ -2,7 +2,7 @@ import 'reflect-metadata'
 import { metadata, handlers } from '../utils/metadata'
 import { F_EFFECT, errorTypes, handleEffect } from '../errors'
 
-export const CommandNotFound = () => target => {
+export const CommandNotFound = () => (target: Function) => {
   handleEffect(
     F_EFFECT.DEPRECATED_API,
     errorTypes.DEPRECATION,

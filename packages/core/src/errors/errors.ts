@@ -36,7 +36,7 @@ export class FuncError extends Error {
   }
 }
 
-export const isFuncError = (error: Error): error is FuncError => error instanceof FuncError
+export const isFuncError = (error: unknown): error is FuncError => error instanceof FuncError
 
 export const createSystemError = (
   code: FuncErrorCode,
@@ -86,15 +86,16 @@ export const createRuntimePrintError = (
     cause,
   })
 
-export const normalizeRuntimeError = (error: Error): FuncError => {
+export const normalizeRuntimeError = (error: unknown): FuncError => {
   if (isFuncError(error)) return error
+  const nativeError = error instanceof Error ? error : new Error(String(error))
 
   return createRuntimeError(
     F_RUNTIME.HANDLER_ERROR,
     errorTypes.HANDLER,
-    error.message,
-    { error },
-    error,
+    nativeError.message,
+    { error: nativeError },
+    nativeError,
   )
 }
 

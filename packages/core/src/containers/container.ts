@@ -20,13 +20,20 @@ export interface ContainerData {
   [key: string]: ContainerParams
 }
 
+export interface ContainerOptions {
+  argv?: string[]
+}
+
 export class Container {
   datas: ContainerData = {}
   mutation: Mutation
   private invalidHandlers: ContainerParams = []
 
-  constructor(private params: ContainerParams) {
-    this.mutation = new Mutation()
+  constructor(
+    private params: ContainerParams,
+    options: ContainerOptions = {},
+  ) {
+    this.mutation = new Mutation(options.argv)
     this.init()
     this.insert()
   }
@@ -102,6 +109,7 @@ export class Container {
       const subOptions: OptionParams[] =
         Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, handler) || []
       subOptions.forEach(data => this.validateOptionType(data, handler.name))
+      this.validateDuplicateOptionParams(subOptions, handler.name)
     })
   }
 
@@ -111,7 +119,7 @@ export class Container {
     getTokens: (data: any) => Array<{ token?: string; type: errorTokenTypes }>,
     scope: errorScopes,
   ) {
-    const tokens = {}
+    const tokens: Record<string, string> = {}
 
     handlers.forEach(handler => {
       const data = Reflect.getMetadata(ident, handler)
@@ -146,7 +154,39 @@ export class Container {
     )
   }
 
-  private dispatchError(error: Error) {
+  private validateDuplicateOptionParams(params: OptionParams[], handlerName: string) {
+    const tokens: Record<string, boolean> = {}
+
+    params.forEach(data => {
+      const items = [
+        { token: `--${data.name}`, type: errorTokenTypes.OPTION_NAME },
+        {
+          token: data.alias ? `-${data.alias}` : undefined,
+          type: errorTokenTypes.OPTION_ALIAS,
+        },
+      ]
+
+      items.forEach(item => {
+        if (!item.token) return
+        if (tokens[item.token]) {
+          throw createSystemError(
+            F_SYSTEM.DUPLICATE_HANDLER,
+            errorTypes.REGISTRATION,
+            `Duplicate sub-option token "${item.token}" found in "${handlerName}".`,
+            {
+              handler: handlerName,
+              scope: errorScopes.COMMAND,
+              token: item.token,
+              type: item.type,
+            },
+          )
+        }
+        tokens[item.token] = true
+      })
+    })
+  }
+
+  private dispatchError(error: unknown) {
     const funcError = normalizeRuntimeError(error)
     if (funcError.level === errorLevels.SYSTEM) {
       handleSystemError(funcError)

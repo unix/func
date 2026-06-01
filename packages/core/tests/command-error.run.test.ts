@@ -110,6 +110,27 @@ test.sequential('should dispatch parse errors', ({ runContainer }) => {
   log.mockRestore()
 })
 
+test.sequential('should dispatch unknown option errors', ({ runContainer }) => {
+  expect.assertions(3)
+  const name = random()
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+  @Command({ name })
+  class BuildCommand {}
+
+  @CommandError()
+  class ErrorHandler {
+    constructor(arg: CommandErrorProvider) {
+      expect(arg.code).toBe(F_RUNTIME_PRINT.UNKNOWN_OPTION)
+      expect(arg.details.options).toEqual(['--wat'])
+      arg.preventDefaultPrint()
+    }
+  }
+
+  runContainer(['', '', name, '--wat'], [BuildCommand, ErrorHandler])
+  expect(log).not.toHaveBeenCalled()
+  log.mockRestore()
+})
+
 test.sequential('should print runtime-print errors by default', ({ runContainer }) => {
   const name = random()
   const log = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -120,6 +141,21 @@ test.sequential('should print runtime-print errors by default', ({ runContainer 
 
   expect(log).toHaveBeenCalledWith(expect.stringContaining(`--${name}`))
   log.mockRestore()
+})
+
+test.sequential('should throw missing provider system errors', ({ runContainer }) => {
+  const name = random()
+  class ConfigProvider {}
+  @Command({ name })
+  class BuildCommand {
+    constructor(_arg: ConfigProvider) {}
+  }
+
+  expectFuncError(
+    () => runContainer(['', '', name], [BuildCommand]),
+    F_SYSTEM.MISSING_PROVIDER,
+    { provider: 'ConfigProvider', target: 'BuildCommand' },
+  )
 })
 
 test.sequential('should throw missing param metadata system errors', ({ runContainer }) => {

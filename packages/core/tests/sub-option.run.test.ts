@@ -1,5 +1,5 @@
 import { expect, random, test } from './_test'
-import { Command, SubOptions } from '../src'
+import { Command, F_SYSTEM, SubOptions } from '../src'
 
 test.sequential('should be invoke', ({ runContainer }) => {
   let invoked = false
@@ -16,4 +16,26 @@ test.sequential('should be invoke', ({ runContainer }) => {
   runContainer(['', '', name, `--${arg}`], [Comand1])
 
   expect(invoked).toBe(true)
+})
+
+test.sequential('should throw duplicate sub-option system errors', ({ runContainer }) => {
+  const name = random()
+  const option = random()
+  @Command({ name })
+  @SubOptions([{ name: option }, { name: option }])
+  class Comand1 {}
+
+  let thrown
+  try {
+    runContainer(['', ''], [Comand1])
+  } catch (error) {
+    thrown = error
+  }
+
+  expect(thrown).toEqual(
+    expect.objectContaining({
+      code: F_SYSTEM.DUPLICATE_HANDLER,
+      details: expect.objectContaining({ token: `--${option}` }),
+    }),
+  )
 })

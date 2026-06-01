@@ -1,13 +1,14 @@
+import type arg from 'arg'
 import { CommandClass, OptionClass, OptionParams } from '../interfaces'
 import { metadata } from './metadata'
 
-export type OptionKeyValue = { [key: string]: string }
+export type OptionKeyValue = arg.Spec
 
 export const commandsToDatas = (commands: CommandClass[] = []) => {
   return commands.map(fn =>
     Object.assign({}, Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, fn), {
       subOptions: (Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, fn) || []).map(
-        item => Object.assign({}, item),
+        (item: OptionParams) => Object.assign({}, item),
       ),
     }),
   )

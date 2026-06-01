@@ -24,3 +24,7 @@ test('handler type should be defined', () => {
 test('should get an error when name is undefined', () => {
   expect(() => Command({ name: undefined })({})).toThrow()
 })
+
+test('should get an error when name starts with hyphen', () => {
+  expect(() => Command({ name: '-bad' })({})).toThrow()
+})

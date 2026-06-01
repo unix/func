@@ -1,30 +1,22 @@
-// import type { Handler, Spec } from 'arg'
+import type arg from 'arg'
 
-type Handler<T = any> = (value: string, name: string, previousValue?: T) => T
-interface Spec {
-  [key: string]: string | Handler | [Handler]
-}
-type ArgResult<T extends Spec> = { _: string[] } & {
-  [K in keyof T]?: T[K] extends Handler
-    ? ReturnType<T[K]>
-    : T[K] extends [Handler]
-    ? Array<ReturnType<T[K][0]>>
-    : never
-}
+export type UserArg = arg.Result<any>
 
 export type UserInputs = string[]
 
-export type UserOption = any
+export type UserOptionValue = boolean | string | number | string[] | undefined
 
-export type UserArg = ArgResult<any>
+export interface UserOption {
+  [key: string]: UserOptionValue
+}
 
 export type CommandClass = new (
   inputs?: string[],
   option?: object,
-  args?: ArgResult<any>,
+  args?: UserArg,
 ) => any
 
-export type OptionClass = new (value?: any, args?: ArgResult<any>) => any
+export type OptionClass = new (value?: UserOptionValue, args?: UserArg) => any
 
 export interface CommandParams {
   name: string
@@ -36,8 +28,8 @@ export type OptionType =
   | BooleanConstructor
   | StringConstructor
   | NumberConstructor
-  | ArrayConstructor
   | [StringConstructor]
+  | ArrayConstructor
 
 export interface OptionParams {
   name: string

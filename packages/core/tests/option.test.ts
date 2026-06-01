@@ -5,7 +5,7 @@ import { metadata, handlers } from '../src/utils/metadata'
 test('metadata should be defined', () => {
   const name = random()
   const description = random()
-  const alias = random()
+  const alias = 'a'
   const target = {}
   Option({ name, description, alias })(target)
 
@@ -35,4 +35,12 @@ test('handler type should be defined', () => {
 
 test('should get an error when name is undefined', () => {
   expect(() => Option({ name: undefined })({})).toThrow()
+})
+
+test('should get an error when name contains whitespace', () => {
+  expect(() => Option({ name: 'bad name' })({})).toThrow()
+})
+
+test('should get an error when alias has multiple characters', () => {
+  expect(() => Option({ name: random(), alias: 'bad' })({})).toThrow()
 })

@@ -16,7 +16,9 @@ test.sequential('should be invoke', ({ runContainer }) => {
   expect(invoked).toBe(true)
 })
 
-test.sequential('command should be invoke only', ({ runContainer }) => {
+test.sequential('registered global option should not affect command invocation', ({
+  runContainer,
+}) => {
   let invoked = false
   const name = random()
   const arg = random()
@@ -33,7 +35,7 @@ test.sequential('command should be invoke only', ({ runContainer }) => {
   Command({ name })(Comand1)
   Option({ name: arg })(Option1)
 
-  runContainer(['', '', name, `--${arg}`], [Comand1, Option1])
+  runContainer(['', '', name], [Comand1, Option1])
 
   expect(invoked).toBe(true)
 })
