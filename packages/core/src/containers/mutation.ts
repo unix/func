@@ -3,6 +3,8 @@ import * as filter from '../utils/filter'
 import { Factory } from '../utils/factory'
 import { metadata } from '../constants/metadata'
 import { CommandClass, OptionClass, CommandParams } from '../interfaces'
+import { FuncError } from '../utils/errors'
+import { errorCodes } from '../constants/errors'
 
 export interface DevourData {
   commands: CommandClass[]
@@ -14,7 +16,7 @@ export interface DevourData {
 export class Mutation {
   private args: arg.Result<any>
 
-  devour({ commands, options, missing, majors }: DevourData): void {
+  devour({ commands, options, missing, majors }: DevourData) {
     const command = this.findCommand(commands)
     const optionDatas = filter.optionsToDatas(options)
     const globalOptions = filter.optionsToKeyValue(optionDatas)
@@ -22,25 +24,43 @@ export class Mutation {
 
     // create arg instance
     const nextOptions = command ? commandOptions : globalOptions
-    this.args = arg(nextOptions, { permissive: true })
+    try {
+      this.args = arg(nextOptions, { permissive: true })
+    } catch (error) {
+      throw new FuncError(errorCodes.PARSE, error.message, { error })
+    }
 
     // collect native option
-    let currnetTriggerOptionKey = ''
+    const triggerOptionKeys: string[] = []
+    let currentTriggerOptionKey = ''
     const nativeOption = Object.keys(nextOptions).reduce((pre, key) => {
       if (!key.startsWith('--')) return pre
       const nativeKey = filter.removeHyphen(key)
-      const nativeVal = this.args[key] || undefined
-      if (nativeVal) {
-        currnetTriggerOptionKey = nativeKey
+      const hasNativeValue = Object.prototype.hasOwnProperty.call(this.args, key)
+      const nativeVal = hasNativeValue ? this.args[key] : undefined
+      if (hasNativeValue) {
+        triggerOptionKeys.push(nativeKey)
+        currentTriggerOptionKey = nativeKey
       }
       return Object.assign({}, pre, { [nativeKey]: nativeVal })
     }, {})
+
+    if (!command && triggerOptionKeys.length > 1) {
+      throw new FuncError(
+        errorCodes.MULTIPLE_OPTIONS,
+        `Only one global option can be invoked at a time: ${triggerOptionKeys
+          .map(key => `--${key}`)
+          .join(', ')}.`,
+        { options: triggerOptionKeys },
+      )
+    }
 
     const factory = new Factory({
       nativeOption,
       args: this.args,
       commands,
       options,
+      inputs: command ? this.args._.slice(1) : this.args._,
     })
 
     // only trigger command
@@ -52,10 +72,10 @@ export class Mutation {
     // only trigger option function
     const currentTriggerOptionFn = options.find(fn => {
       const data = Reflect.getMetadata(metadata.OPTION_IDENTIFIER, fn)
-      return data && data.name === currnetTriggerOptionKey
+      return data && data.name === currentTriggerOptionKey
     })
     if (currentTriggerOptionFn) {
-      const value = nativeOption[currnetTriggerOptionKey]
+      const value = nativeOption[currentTriggerOptionKey]
       const params = factory.getServiceParams(currentTriggerOptionFn, value)
       return new currentTriggerOptionFn(...params)
     }

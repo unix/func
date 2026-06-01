@@ -22,9 +22,9 @@ export type CommandClass = new (
   inputs?: string[],
   option?: object,
   args?: ArgResult<any>,
-) => void
+) => any
 
-export type OptionClass = new (value?: any, args?: ArgResult<any>) => void
+export type OptionClass = new (value?: any, args?: ArgResult<any>) => any
 
 export interface CommandParams {
   name: string

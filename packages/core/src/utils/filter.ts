@@ -5,14 +5,18 @@ export type OptionKeyValue = { [key: string]: string }
 
 export const commandsToDatas = (commands: CommandClass[] = []) => {
   return commands.map(fn =>
-    Object.assign(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, fn), {
-      subOptions: Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, fn) || [],
+    Object.assign({}, Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, fn), {
+      subOptions: (Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, fn) || []).map(
+        item => Object.assign({}, item),
+      ),
     }),
   )
 }
 
 export const optionsToDatas = (options: OptionClass[]) => {
-  return options.map(fn => Reflect.getMetadata(metadata.OPTION_IDENTIFIER, fn))
+  return options.map(fn =>
+    Object.assign({}, Reflect.getMetadata(metadata.OPTION_IDENTIFIER, fn)),
+  )
 }
 
 export const optionsToKeyValue = (params: OptionParams[] = []): OptionKeyValue => {

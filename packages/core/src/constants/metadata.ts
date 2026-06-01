@@ -16,4 +16,5 @@ export enum handlers {
   OPTION = 'option',
   MISSING = 'missing',
   MAJOR = 'major',
+  ERROR = 'error',
 }
