@@ -1,0 +1,554 @@
+---
+import Layout from '@/layouts/main.astro'
+
+type DocPage = 'about' | 'guide' | 'commands' | 'parameters' | 'apis'
+
+interface Props {
+  page: DocPage
+}
+
+const { page } = Astro.props
+
+const siteName = 'FUNC'
+const siteSlogan = 'Small typed CLI framework'
+const siteTitle = `${siteName} - ${siteSlogan}`
+
+const navItems: Array<{ href: string; id: DocPage; label: string }> = [
+  { id: 'about', label: 'About', href: '/' },
+  { id: 'guide', label: 'Guide', href: '/guide' },
+  { id: 'commands', label: 'Commands', href: '/commands' },
+  { id: 'parameters', label: 'Parameters', href: '/parameters' },
+  { id: 'apis', label: 'APIs', href: '/apis' },
+]
+
+const projectTree = `.
+|-- src
+|   |-- commands            main command files
+|   |   |-- hello.ts        "<Command> hello"
+|   |   |-- major.ts        "<Command>"
+|   |   +-- index.ts        entry file
+|   |-- options             options files
+|   |   |-- help.ts         "<Command> --help"
+|   |   |-- version.ts      "<Command> --version"
+|   |   +-- index.ts        entry file
+|   +-- index.ts            entry file
+|-- tests                   testcases
+|   |-- commands            test for commands
+|   +-- utils               test utils
+|-- package.json
+|-- tsconfig.json
++-- README.md`
+
+const npmCreateCode = 'npm init func'
+
+const yarnCreateCode = 'yarn create func'
+
+const npmInstallCode = `npm i
+npm run start`
+
+const yarnInstallCode = `yarn
+yarn start`
+
+const npmBuildCode = 'npm build'
+
+const yarnBuildCode = 'yarn build'
+
+const createCommandCode = `@Command({
+  name: 'apple',
+})
+export class MyFirstCommand {
+  constructor() {
+    console.log('ok')
+  }
+}`
+
+const createOptionCode = `import { Option } from 'func'
+
+@Option({
+  name: 'version',
+  alias: 'v',
+})
+export class Version {
+  constructor() {
+    console.log('1.0.0')
+  }
+}`
+
+const createSubOptionsCode = `@Command({
+  name: 'apple',
+})
+@SubOptions([{ name: 'help', alias: 'h' }])
+export class MyFirstSubOption {
+  constructor(private arg: CommandArgsProvider) {
+    if (arg.option.help) {
+      console.log('HELP MESSAGE: The apple is red')
+    }
+  }
+}`
+
+const createMainCommandCode = `import { CommandMajor } from 'func'
+
+@CommandMajor()
+export class Main {}`
+
+const missingCommandCode = `import { CommandMissing } from 'func'
+
+@CommandMissing()
+export class Missing {
+  constructor() {
+    console.log('not found any commands!')
+  }
+}`
+
+const commandParametersCode = `import { Command, CommandArgsProvider } from 'func'
+
+@Command({ name: 'test' })
+@SubOptions([{ name: 'help' }])
+export class Test {
+  constructor(private arg: CommandArgsProvider) {
+    console.log(arg.inputs) // ['tools', 'test']
+    console.log(arg.option) // { help: true }
+    console.log(arg.native) // original parse info
+  }
+}`
+
+const optionParametersCode = `import { Option, OptionArgsProvider } from 'func'
+
+@Option({ name: 'name', type: String })
+export class Name {
+  constructor(private arg: OptionArgsProvider) {
+    console.log(arg.name)
+  }
+}`
+
+const registeredInformationCode = `import { Option, RegisterProvider } from 'func'
+
+@Option({ name: 'help' })
+export class MyHelp {
+  constructor(private arg: RegisterProvider) {
+    console.log(arg.commands) // all commands
+    console.log(arg.options) // all options
+  }
+}`
+
+const commandApis = [
+  {
+    signature: '@Command(params: CommandParams)',
+    structure:
+      'CommandParams = { name: string, description?: string, alias?: string }',
+    description: 'Create a command.',
+  },
+  {
+    signature: '@Option(params: OptionParams)',
+    structure:
+      'OptionParams = { name: string, type?: OptionType, description?: string, alias?: string }',
+    description: 'Create an option.',
+  },
+  {
+    signature: '@SubOptions(params: Array<OptionParams>)',
+    structure: 'Same as OptionParams.',
+    description: 'Create sub-options, usually used with Command.',
+  },
+  {
+    signature: '@CommandMissing()',
+    structure: '-',
+    description: 'Create a handler for undeclared commands.',
+  },
+  {
+    signature: '@CommandMajor()',
+    structure: '-',
+    description: 'Create the main command.',
+  },
+]
+
+const argumentApis = [
+  {
+    signature: 'CommandArgsProvider',
+    description: 'Provides information about the current command.',
+  },
+  {
+    signature: 'OptionArgsProvider',
+    description: 'Provides information about the current option.',
+  },
+  {
+    signature: 'RegisterProvider',
+    description: 'Provides all registered metadata.',
+  },
+]
+---
+
+<Layout
+  title={siteTitle}
+  description="Documentation for the func command line framework.">
+  <main class="mx-auto min-h-screen w-full max-w-6xl px-6 py-8 md:px-8 md:py-10">
+    <header
+      class="flex w-full items-center justify-between gap-4 border-b border-border pb-6">
+      <a
+        class="min-w-0 break-words text-sm font-semibold tracking-wide text-foreground"
+        href="/">
+        {siteTitle}
+      </a>
+      <a
+        aria-label="Open FUNC on GitHub"
+        class="inline-flex size-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        href="https://github.com/unix/func"
+        rel="noreferrer"
+        target="_blank">
+        <svg
+          aria-hidden="true"
+          class="size-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M9.94118 17.8796C9.94118 17.5162 10.0494 17.2003 10.2238 16.915C10.3434 16.7192 10.2615 16.4414 10.0453 16.3801C8.25526 15.8719 7 15.0547 7 12.3443C7 11.6397 7.22356 10.9772 7.61654 10.4006C7.71414 10.2573 7.76181 10.1922 7.77491 10.1208C7.78806 10.049 7.76638 9.97088 7.72543 9.80094C7.58167 9.20442 7.57017 8.57599 7.73081 7.98978C7.78361 7.79709 7.8968 7.6847 8.10166 7.7064C8.3674 7.73454 8.82753 7.86036 9.50999 8.30066C9.77813 8.47365 9.9122 8.56015 10.0303 8.5795C10.1484 8.59885 10.3062 8.55832 10.622 8.47727C11.0537 8.36642 11.4986 8.30692 12 8.30692C12.5014 8.30692 12.9463 8.36642 13.378 8.47726C13.6938 8.55832 13.8516 8.59885 13.9697 8.5795C14.0878 8.56015 14.2219 8.47366 14.49 8.30066C15.1725 7.86037 15.6326 7.73454 15.8983 7.7064C16.1032 7.6847 16.2164 7.79709 16.2692 7.98978C16.4298 8.57599 16.4183 9.20441 16.2746 9.80093C16.2336 9.97087 16.2119 10.049 16.2251 10.1208C16.2382 10.1922 16.2859 10.2573 16.3834 10.4005C16.7764 10.9771 17 11.6397 17 12.3443C17 15.0547 15.7447 15.8719 13.9547 16.3801C13.7385 16.4414 13.6566 16.7192 13.7762 16.915C13.9506 17.2003 14.0588 17.5162 14.0588 17.8796V22.6507C19.011 21.6902 22.75 17.3306 22.75 12.0977C22.75 6.1606 17.9371 1.34766 12 1.34766C6.06294 1.34766 1.25 6.1606 1.25 12.0977C1.25 17.3306 4.98901 21.6902 9.94118 22.6507V19.851C9.88484 19.8444 9.81816 19.8347 9.74225 19.8202C9.52615 19.7792 9.23571 19.7005 8.89714 19.5503C8.21489 19.2478 7.36263 18.6661 6.53685 17.5655C6.28826 17.2342 6.35533 16.7641 6.68665 16.5155C7.01798 16.2669 7.48809 16.334 7.73668 16.6653C8.4109 17.5639 9.06058 17.9819 9.50527 18.1791C9.6822 18.2576 9.83089 18.303 9.94118 18.3292V17.8796Z"
+            fill="currentColor"></path>
+        </svg>
+      </a>
+    </header>
+
+    <div class="grid min-w-0 gap-10 py-10 lg:grid-cols-[13rem_minmax(0,1fr)]">
+      <aside class="min-w-0 lg:sticky lg:top-8 lg:self-start">
+        <nav
+          aria-label="Documentation sections"
+          class="flex gap-2 overflow-x-auto lg:flex-col lg:items-start">
+          {
+            navItems.map(item => (
+              <a
+                class:list={[
+                  'inline-flex shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                  item.id === page
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                ]}
+                href={item.href}>
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+      </aside>
+
+      <article class="prose-static min-w-0 max-w-full lg:max-w-3xl">
+        {
+          page === 'about' && (
+            <>
+              <h1>Introduction</h1>
+              <p>
+                <code>func</code> is a modern command line framework that is lighter
+                and more elegant than comparable tools, while still offering
+                scaffolding support and an excellent developer experience.
+              </p>
+              <p>
+                <code>func</code> is built with <code>TypeScript</code>, making it
+                easier to maintain and extend. Type support gives you rich syntax
+                hints, but the workflow stays simple: one command is enough from
+                development to packaging.
+              </p>
+              <p>
+                You can create a project in seconds with the{' '}
+                <a href="/guide">Quick-start Guide</a>.
+              </p>
+
+              <h2>Features</h2>
+              <ul>
+                <li>
+                  Very small bundle size, approximately{' '}
+                  <a href="https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz">
+                    7 KB
+                  </a>
+                </li>
+                <li>Elegant syntax without extra mental overhead</li>
+                <li>
+                  Very few dependencies, optimizing runtime speed and{' '}
+                  <code>npm</code> download time
+                </li>
+                <li>Project template support</li>
+              </ul>
+
+              <h2>Why</h2>
+              <p>
+                For <code>func</code>, using decorator metadata to define commands is
+                a lightweight choice. Most of that code is not carried into runtime
+                after the build, while the development experience still benefits from
+                hints, types, and clear structure.
+              </p>
+              <p>
+                If you need to rebuild a tool or start a new one from the beginning,
+                <code>func</code> is a good choice for building command-line tools in
+                a simple and enjoyable way.
+              </p>
+
+              <h2>Links</h2>
+              <ul>
+                <li>
+                  <a href="https://github.com/unix/func">GitHub</a>
+                </li>
+                <li>
+                  <a href="https://github.com/unix/func-service">
+                    Scaffolding service
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/awesome-templates/func-template">
+                    Template for func
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/zeit-ui/react">
+                    UI of the original document site
+                  </a>
+                </li>
+              </ul>
+            </>
+          )
+        }
+
+        {
+          page === 'guide' && (
+            <>
+              <h1>Quick Start</h1>
+              <p>
+                Ensure you have the latest version of{' '}
+                <a href="https://nodejs.org/en/download/">NodeJS</a> and a package
+                manager such as <a href="https://www.npmjs.com/">NPM</a> or{' '}
+                <a href="https://yarnpkg.com/">Yarn</a>. Running one command creates
+                a basic <code>func</code> project:
+              </p>
+              <pre set:text={npmCreateCode} />
+              <pre set:text={yarnCreateCode} />
+
+              <h2>Development</h2>
+              <p>After you create an initial project, you will see these files:</p>
+              <pre set:text={projectTree} />
+              <p>
+                Before editing, install the dependencies and set up the development
+                environment:
+              </p>
+              <pre set:text={npmInstallCode} />
+              <pre set:text={yarnInstallCode} />
+              <p>At this point, all preparation is complete.</p>
+              <p>
+                You can browse the examples in <code>commands</code> and{' '}
+                <code>options</code>, modify them, and run your commands to see how
+                they behave. For example, if your project is named{' '}
+                <code>my-first-command</code>, you can run{' '}
+                <code>my-first-command hello</code> directly.
+              </p>
+
+              <h2>Bundle</h2>
+              <p>
+                If you use the template to create a project, you only need one
+                command to package it:
+              </p>
+              <pre set:text={npmBuildCode} />
+              <pre set:text={yarnBuildCode} />
+              <p>After running the command, your project is packaged.</p>
+              <p>
+                When using <code>func</code>, you do not need to think about{' '}
+                <code>bin</code> files, file updates, or symlink problems.{' '}
+                <code>func</code> handles all of that automatically, so you can
+                publish immediately.
+              </p>
+              <blockquote>
+                If you need to return to development mode, run{' '}
+                <code>npm run start</code> again.
+              </blockquote>
+
+              <h2>Publish</h2>
+              <p>
+                Try publishing your package directly on NPM with{' '}
+                <code>npm publish</code>.
+              </p>
+            </>
+          )
+        }
+
+        {
+          page === 'commands' && (
+            <>
+              <h1>Create Command</h1>
+              <p>
+                In <code>func</code>, creating a command is simple. Add the{' '}
+                <code>Command</code> decorator to any class:
+              </p>
+              <pre set:text={createCommandCode} />
+              <p class="caption">
+                Create a command in file <code>apple.ts</code>.
+              </p>
+              <p>
+                Assuming your command-line tool is named <code>hello-func</code>, run{' '}
+                <code>hello-func apple</code> and the terminal will display{' '}
+                <code>ok</code>.
+              </p>
+
+              <h2>Create Option</h2>
+              <p>
+                Command-line tools often need top-level options, such as{' '}
+                <code>&lt;command&gt; --version</code>. The <code>Option</code>{' '}
+                decorator handles this elegantly:
+              </p>
+              <pre set:text={createOptionCode} />
+              <p class="caption">
+                Create an option command in file <code>version.ts</code>.
+              </p>
+              <p>
+                After adding this class, it is triggered by <code>--version</code> or
+                its alias, <code>-v</code>.
+              </p>
+              <p>
+                <code>func</code> lets you create aliases for any command. For an{' '}
+                <code>Option</code> command, the alias uses a single <code>-</code>,
+                which follows the standard CLI convention.
+              </p>
+
+              <h2>Create Sub-options</h2>
+              <p>
+                <code>func</code> also provides a <code>SubOptions</code> decorator
+                for commands like <code>&lt;command&gt; --&lt;option&gt;</code>:
+              </p>
+              <pre set:text={createSubOptionsCode} />
+              <p class="caption">
+                Create a command containing a sub-option in file{' '}
+                <code>apple.ts</code>.
+              </p>
+              <p>
+                See <a href="/parameters">Parameters</a> for how to read option
+                values.
+              </p>
+
+              <h2>Create Main Command</h2>
+              <p>
+                The main command is triggered when users run only the command-line
+                tool name without parameters:
+              </p>
+              <pre set:text={createMainCommandCode} />
+              <p>
+                If your command-line tool is named <code>hello-func</code>, running{' '}
+                <code>hello-func</code> will trigger the main command.
+              </p>
+
+              <h2>Get Missing Command</h2>
+              <p>
+                In some cases, users enter parameters or commands incorrectly. Use{' '}
+                <code>CommandMissing</code> to guide them with a helpful message when
+                no <code>Command</code> or <code>Option</code> can be found:
+              </p>
+              <pre set:text={missingCommandCode} />
+            </>
+          )
+        }
+
+        {
+          page === 'parameters' && (
+            <>
+              <h1>Parameters of Command</h1>
+              <p>
+                Add a parameter to the class where you build the command, and mark
+                that parameter with its provider class. <code>func</code> injects it
+                automatically:
+              </p>
+              <pre set:text={commandParametersCode} />
+              <p>
+                When you run <code>&lt;command&gt; test --help</code>, the parameters
+                match the values shown above. You can use any parameter name you
+                like, as long as its class is <code>CommandArgsProvider</code>.
+              </p>
+              <p>
+                <code>arg.native</code> contains the raw command-line parsing data,
+                which is useful when you are handling non-standard command-line
+                parameters.
+              </p>
+
+              <h2>Parameters of Option</h2>
+              <p>
+                This is similar to <code>Command</code>, but{' '}
+                <code>OptionArgsProvider</code> exposes one base value for the
+                option. Specify the provider class in an <code>Option</code> command
+                to access more information:
+              </p>
+              <pre set:text={optionParametersCode} />
+
+              <h2>All Registered Information</h2>
+              <p>
+                If you are writing a help command or matching possible user input,
+                you may need all currently registered information.{' '}
+                <code>RegisterProvider</code> carries all registered metadata for the
+                current command-line project:
+              </p>
+              <pre set:text={registeredInformationCode} />
+            </>
+          )
+        }
+
+        {
+          page === 'apis' && (
+            <>
+              <h1>Command</h1>
+              <p>All decorators used to create commands directly.</p>
+              <div class="overflow-x-auto">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Signature</th>
+                      <th>Structure</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {commandApis.map(item => (
+                      <tr>
+                        <td>
+                          <code>{item.signature}</code>
+                        </td>
+                        <td>
+                          <code>{item.structure}</code>
+                        </td>
+                        <td>{item.description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <h2>Arguments</h2>
+              <p>All providers used to get parameters.</p>
+              <div class="overflow-x-auto">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Signature</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {argumentApis.map(item => (
+                      <tr>
+                        <td>
+                          <code>{item.signature}</code>
+                        </td>
+                        <td>{item.description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <h2>Support</h2>
+              <ul>
+                <li>
+                  <code>func-service dev</code>: Reset the development environment
+                  and point <code>bin</code> to development.
+                </li>
+                <li>
+                  <code>func-service build</code>: Bundle all files and point{' '}
+                  <code>bin</code> to production.
+                </li>
+              </ul>
+            </>
+          )
+        }
+      </article>
+    </div>
+  </main>
+</Layout>

@@ -128,3 +128,71 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .prose-static {
+    @apply max-w-full text-base leading-7 text-foreground;
+  }
+
+  .prose-static h1 {
+    @apply mb-5 text-3xl font-semibold tracking-normal text-balance text-foreground;
+  }
+
+  .prose-static h2 {
+    @apply mt-12 mb-4 border-t border-border pt-8 text-xl font-semibold tracking-normal text-foreground;
+  }
+
+  .prose-static p {
+    @apply my-4 text-foreground/80;
+  }
+
+  .prose-static a {
+    @apply font-medium text-foreground underline underline-offset-4;
+  }
+
+  .prose-static ul {
+    @apply my-4 ml-5 list-disc space-y-2 text-foreground/80;
+  }
+
+  .prose-static li {
+    @apply pl-1;
+  }
+
+  .prose-static code {
+    @apply break-words rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-foreground;
+  }
+
+  .prose-static pre {
+    @apply my-5 max-w-full overflow-x-auto rounded-lg border border-border bg-muted p-4 text-sm leading-6;
+  }
+
+  .prose-static pre code {
+    @apply bg-transparent p-0 text-sm text-foreground;
+    overflow-wrap: normal;
+    white-space: pre;
+  }
+
+  .prose-static blockquote {
+    @apply my-5 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground/80;
+  }
+
+  .prose-static table {
+    @apply my-5 w-full border-collapse text-sm;
+  }
+
+  .prose-static th {
+    @apply border-b border-border px-3 py-2 text-left font-medium text-foreground;
+  }
+
+  .prose-static td {
+    @apply border-b border-border px-3 py-3 align-top text-foreground/80;
+  }
+
+  .prose-static .caption {
+    @apply -mt-3 text-sm text-foreground/70;
+  }
+
+  .prose-static :where(h1, h2, p, li, td, th, a, blockquote) {
+    overflow-wrap: anywhere;
+  }
+}

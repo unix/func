@@ -5,7 +5,7 @@ importers:
   .:
     specifiers: {}
 
-  docs:
+  packages/docs:
     specifiers:
       '@astrojs/mdx': ^6.0.1
       '@astrojs/react': ^5.0.6
