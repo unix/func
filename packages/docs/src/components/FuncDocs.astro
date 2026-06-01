@@ -1,7 +1,7 @@
 ---
 import Layout from '@/layouts/main.astro'
 
-type DocPage = 'about' | 'guide' | 'commands' | 'parameters' | 'apis'
+type DocPage = '/' | 'guide' | 'commands' | 'parameters' | 'apis'
 
 interface Props {
   page: DocPage
@@ -14,7 +14,7 @@ const siteSlogan = 'Small typed CLI framework'
 const siteTitle = `${siteName} - ${siteSlogan}`
 
 const navItems: Array<{ href: string; id: DocPage; label: string }> = [
-  { id: 'about', label: 'About', href: '/' },
+  { id: '/', label: '/', href: '/' },
   { id: 'guide', label: 'Guide', href: '/guide' },
   { id: 'commands', label: 'Commands', href: '/commands' },
   { id: 'parameters', label: 'Parameters', href: '/parameters' },
@@ -41,17 +41,10 @@ const projectTree = `.
 
 const npmCreateCode = 'npm init func'
 
-const yarnCreateCode = 'yarn create func'
-
 const npmInstallCode = `npm i
 npm run start`
 
-const yarnInstallCode = `yarn
-yarn start`
-
 const npmBuildCode = 'npm build'
-
-const yarnBuildCode = 'yarn build'
 
 const createCommandCode = `@Command({
   name: 'apple',
@@ -179,7 +172,7 @@ const argumentApis = [
 
 <Layout
   title={siteTitle}
-  description="Documentation for the func command line framework.">
+  description="Modern Command Line Framework.">
   <main class="mx-auto min-h-screen w-full max-w-6xl px-6 py-8 md:px-8 md:py-10">
     <header
       class="flex w-full items-center justify-between gap-4 border-b border-border pb-6">
@@ -231,7 +224,7 @@ const argumentApis = [
 
       <article class="prose-static min-w-0 max-w-full lg:max-w-3xl">
         {
-          page === 'about' && (
+          page === '/' && (
             <>
               <h1>Introduction</h1>
               <p>
@@ -278,28 +271,6 @@ const argumentApis = [
                 <code>func</code> is a good choice for building command-line tools in
                 a simple and enjoyable way.
               </p>
-
-              <h2>Links</h2>
-              <ul>
-                <li>
-                  <a href="https://github.com/unix/func">GitHub</a>
-                </li>
-                <li>
-                  <a href="https://github.com/unix/func-service">
-                    Scaffolding service
-                  </a>
-                </li>
-                <li>
-                  <a href="https://github.com/awesome-templates/func-template">
-                    Template for func
-                  </a>
-                </li>
-                <li>
-                  <a href="https://github.com/zeit-ui/react">
-                    UI of the original document site
-                  </a>
-                </li>
-              </ul>
             </>
           )
         }
@@ -311,12 +282,10 @@ const argumentApis = [
               <p>
                 Ensure you have the latest version of{' '}
                 <a href="https://nodejs.org/en/download/">NodeJS</a> and a package
-                manager such as <a href="https://www.npmjs.com/">NPM</a> or{' '}
-                <a href="https://yarnpkg.com/">Yarn</a>. Running one command creates
-                a basic <code>func</code> project:
+                manager such as <a href="https://www.npmjs.com/">NPM</a>. Running
+                one command creates a basic <code>func</code> project:
               </p>
               <pre set:text={npmCreateCode} />
-              <pre set:text={yarnCreateCode} />
 
               <h2>Development</h2>
               <p>After you create an initial project, you will see these files:</p>
@@ -326,7 +295,6 @@ const argumentApis = [
                 environment:
               </p>
               <pre set:text={npmInstallCode} />
-              <pre set:text={yarnInstallCode} />
               <p>At this point, all preparation is complete.</p>
               <p>
                 You can browse the examples in <code>commands</code> and{' '}
@@ -342,7 +310,6 @@ const argumentApis = [
                 command to package it:
               </p>
               <pre set:text={npmBuildCode} />
-              <pre set:text={yarnBuildCode} />
               <p>After running the command, your project is packaged.</p>
               <p>
                 When using <code>func</code>, you do not need to think about{' '}

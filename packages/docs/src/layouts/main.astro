@@ -17,15 +17,26 @@ interface Props {
 const frontmatter = Astro.props.frontmatter ?? Astro.props.content ?? {}
 const title = Astro.props.title ?? frontmatter.title ?? 'Func Docs'
 const description =
-  Astro.props.description ?? frontmatter.description ?? 'Documentation for func.'
+  Astro.props.description ?? frontmatter.description ?? 'Modern Command Line Framework.'
+const siteUrl = 'https://func.witt.im'
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString()
+const ogImageUrl = new URL('/func.png', siteUrl).toString()
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
+    <meta name="twitter:creator" content="@echo_witt" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <meta property="og:title" content="func" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:description" content={description} />
+    <meta itemprop="image" property="og:image" content={ogImageUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="twitter:image" content={ogImageUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
     <title>{title}</title>
