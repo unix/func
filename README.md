@@ -25,13 +25,13 @@ More popular and simple way to build command-line tools.
 
 ## Quick Start
 
-Just run `npm init func` to create project.
+Just run `pnpm create func` to create project.
 
-1. `npm init func`: create project
+1. `pnpm create func`: create project
 
-2. `npm i`: install deps.
+2. `pnpm install`: install deps.
 
-3. `npm start`: setup link and development ready.
+3. `pnpm start`: setup link and development ready.
 
 It's all.
 

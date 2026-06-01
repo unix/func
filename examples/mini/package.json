@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "(yarn unlink > /dev/null);yarn link && chmod +x ./bin.js"
+    "start": "(pnpm unlink --global > /dev/null); pnpm link --global && chmod +x ./bin.js"
   },
   "bin": {
     "mini": "./bin.js"

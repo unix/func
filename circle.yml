@@ -7,13 +7,16 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v2-dependencies-{{ checksum "yarn.lock" }}
-      - run: yarn
+          key: v2-dependencies-{{ checksum "pnpm-lock.yaml" }}
+      - run: npm install -g pnpm@7.33.7
+      - run: pnpm config set store-dir ~/.pnpm-store
+      - run: pnpm install --frozen-lockfile
       - save_cache:
-          key: v2-dependencies-{{ checksum "yarn.lock" }}
+          key: v2-dependencies-{{ checksum "pnpm-lock.yaml" }}
           paths:
+            - ~/.pnpm-store
             - ./node_modules
-      - run: yarn test
+      - run: pnpm test
   build:
     working_directory: ~/repo
     docker:
@@ -21,13 +24,16 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v2-dependencies-{{ checksum "yarn.lock" }}
-      - run: yarn
+          key: v2-dependencies-{{ checksum "pnpm-lock.yaml" }}
+      - run: npm install -g pnpm@7.33.7
+      - run: pnpm config set store-dir ~/.pnpm-store
+      - run: pnpm install --frozen-lockfile
       - save_cache:
-          key: v2-dependencies-{{ checksum "yarn.lock" }}
+          key: v2-dependencies-{{ checksum "pnpm-lock.yaml" }}
           paths:
+            - ~/.pnpm-store
             - ./node_modules
-      - run: yarn build
+      - run: pnpm build
 
 workflows:
   version: 2

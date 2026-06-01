@@ -2,8 +2,8 @@
 
 ## Guide
 
-1. install deps: `npm i`.
+1. install deps: `pnpm install`.
 
-2. link: `npm start`.
+2. link: `pnpm start`.
 
 3. run command: `popular hello`

@@ -5,6 +5,7 @@ node_js:
 
 cache:
   directories:
+    - '~/.pnpm-store'
     - 'node_modules'
 
 notifications:
@@ -16,7 +17,9 @@ branches:
     - master
 
 install:
-  - yarn
+  - npm install -g pnpm@7.33.7
+  - pnpm config set store-dir ~/.pnpm-store
+  - pnpm install --frozen-lockfile
 
 script:
-  - yarn build
+  - pnpm build
