@@ -2,7 +2,7 @@ import 'reflect-metadata'
 import { metadata, handlers } from '../utils/metadata'
 import { F_EFFECT, errorTypes, handleEffect } from '../errors'
 
-export const CommandNotFound = () => (target: Function) => {
+export const CommandNotFound = (): ClassDecorator => target => {
   handleEffect(
     F_EFFECT.DEPRECATED_API,
     errorTypes.DEPRECATION,
@@ -10,5 +10,4 @@ export const CommandNotFound = () => (target: Function) => {
     { api: 'CommandNotFound', replacement: 'CommandMissing' },
   )
   Reflect.defineMetadata(metadata.HANDLER_IDENTIFIER, handlers.MISSING, target)
-  return target
 }

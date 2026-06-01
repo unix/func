@@ -4,8 +4,8 @@ import { OptionParams } from '../interfaces'
 import { metadata } from '../utils/metadata'
 
 export const SubOptions =
-  (commandOptions: OptionParams[] = []) =>
-  (target: Function) => {
+  (commandOptions: OptionParams[] = []): ClassDecorator =>
+  target => {
     validator.mustBeArray(commandOptions, 'SubOptions Params')
 
     const nextOptions = commandOptions.map(item => {
@@ -14,5 +14,4 @@ export const SubOptions =
       return Object.assign({}, { type: Boolean }, item)
     })
     Reflect.defineMetadata(metadata.SUB_OPTION_IDENTIFIER, nextOptions, target)
-    return target
   }
