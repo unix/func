@@ -25,7 +25,7 @@ export class Help {
     console.log('')
   }
 
-  private showDesc(desc: string): string {
+  private showDesc(desc?: string): string {
     return desc ? ` --  ${desc}` : ''
   }
 }

@@ -1,13 +1,13 @@
-## func-template
+## func-recommend
 
 ### Usage
 
-1. run `pnpm install` to install deps.
+1. run `npm install` to install deps.
 
-2. run `pnpm start` set up link.
+2. run `npm run dev` set up link.
 
 3. just run your command follow tips.
 
 ### Build
 
-1. run `pnpm build` to build.
+1. run `npm run build` to build.
