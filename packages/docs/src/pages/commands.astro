@@ -1,5 +1,114 @@
 ---
-import FuncDocs from '@/components/FuncDocs.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const createCommandCode = `@Command({
+  name: 'apple',
+})
+export class MyFirstCommand {
+  constructor() {
+    console.log('ok')
+  }
+}`
+
+const createOptionCode = `import { Option } from 'func'
+
+@Option({
+  name: 'version',
+  alias: 'v',
+})
+export class Version {
+  constructor() {
+    console.log('1.0.0')
+  }
+}`
+
+const createSubOptionsCode = `@Command({
+  name: 'apple',
+})
+@SubOptions([{ name: 'help', alias: 'h' }])
+export class MyFirstSubOption {
+  constructor(private arg: CommandArgsProvider) {
+    if (arg.option.help) {
+      console.log('HELP MESSAGE: The apple is red')
+    }
+  }
+}`
+
+const createMainCommandCode = `import { CommandMajor } from 'func'
+
+@CommandMajor()
+export class Main {}`
+
+const missingCommandCode = `import { CommandMissing } from 'func'
+
+@CommandMissing()
+export class Missing {
+  constructor() {
+    console.log('not found any commands!')
+  }
+}`
 ---
 
-<FuncDocs page="commands" />
+<DocsLayout page="commands">
+  <h1>Create Command</h1>
+  <p>
+    In <code>func</code>, creating a command is simple. Add the
+    <code>Command</code> decorator to any class:
+  </p>
+  <pre set:text={createCommandCode} />
+  <p class="caption">Create a command in file <code>apple.ts</code>.</p>
+  <p>
+    Assuming your command-line tool is named <code>hello-func</code>, run
+    <code>hello-func apple</code> and the terminal will display <code>ok</code>.
+  </p>
+
+  <h2>Create Option</h2>
+  <p>
+    Command-line tools often need top-level options, such as
+    <code>&lt;command&gt; --version</code>. The <code>Option</code> decorator handles this
+    elegantly:
+  </p>
+  <pre set:text={createOptionCode} />
+  <p class="caption">Create an option command in file <code>version.ts</code>.</p>
+  <p>
+    After adding this class, it is triggered by <code>--version</code> or its alias,
+    <code>-v</code>.
+  </p>
+  <p>
+    <code>func</code> lets you create aliases for any command. For an
+    <code>Option</code> command, the alias uses a single <code>-</code>, which
+    follows the standard CLI convention.
+  </p>
+
+  <h2>Create Sub-options</h2>
+  <p>
+    <code>func</code> also provides a <code>SubOptions</code> decorator for commands like
+    <code>&lt;command&gt; --&lt;option&gt;</code>:
+  </p>
+  <pre set:text={createSubOptionsCode} />
+  <p class="caption">
+    Create a command containing a sub-option in file <code>apple.ts</code>.
+  </p>
+  <p>
+    See <a href="/parameters">Parameters</a> for how to read option values.
+  </p>
+
+  <h2>Create Main Command</h2>
+  <p>
+    The main command is triggered when users run only the command-line tool name
+    without parameters:
+  </p>
+  <pre set:text={createMainCommandCode} />
+  <p>
+    If your command-line tool is named <code>hello-func</code>, running
+    <code>hello-func</code> will trigger the main command.
+  </p>
+
+  <h2>Get Missing Command</h2>
+  <p>
+    In some cases, users enter parameters or commands incorrectly. Use
+    <code>CommandMissing</code> to guide them with a helpful message when no
+    <code>Command</code> or <code>Option</code> can be found:
+  </p>
+  <pre set:text={missingCommandCode} />
+</DocsLayout>

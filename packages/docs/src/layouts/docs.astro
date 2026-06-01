@@ -1,0 +1,32 @@
+---
+import DocsHeader from '@/components/DocsHeader.astro'
+import DocsSidebar from '@/components/DocsSidebar.astro'
+import { siteTitle, type DocPage } from '@/lib/docs'
+import Layout from '@/layouts/main.astro'
+
+interface Props {
+  description?: string
+  page: DocPage
+  title?: string
+}
+
+const {
+  description = 'Modern Command Line Framework.',
+  page,
+  title = siteTitle,
+} = Astro.props
+---
+
+<Layout title={title} description={description}>
+  <main class="mx-auto min-h-screen w-full max-w-6xl px-6 py-8 md:px-8 md:py-10">
+    <DocsHeader />
+
+    <div class="grid min-w-0 gap-10 py-10 lg:grid-cols-[13rem_minmax(0,1fr)]">
+      <DocsSidebar page={page} />
+
+      <article class="prose-static min-w-0 max-w-full lg:max-w-3xl">
+        <slot />
+      </article>
+    </div>
+  </main>
+</Layout>

@@ -1,5 +1,68 @@
 ---
-import FuncDocs from '@/components/FuncDocs.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const commandParametersCode = `import { Command, CommandArgsProvider } from 'func'
+
+@Command({ name: 'test' })
+@SubOptions([{ name: 'help' }])
+export class Test {
+  constructor(private arg: CommandArgsProvider) {
+    console.log(arg.inputs) // ['tools', 'test']
+    console.log(arg.option) // { help: true }
+    console.log(arg.native) // original parse info
+  }
+}`
+
+const optionParametersCode = `import { Option, OptionArgsProvider } from 'func'
+
+@Option({ name: 'name', type: String })
+export class Name {
+  constructor(private arg: OptionArgsProvider) {
+    console.log(arg.name)
+  }
+}`
+
+const registeredInformationCode = `import { Option, RegisterProvider } from 'func'
+
+@Option({ name: 'help' })
+export class MyHelp {
+  constructor(private arg: RegisterProvider) {
+    console.log(arg.commands) // all commands
+    console.log(arg.options) // all options
+  }
+}`
 ---
 
-<FuncDocs page="parameters" />
+<DocsLayout page="parameters">
+  <h1>Parameters of Command</h1>
+  <p>
+    Add a parameter to the class where you build the command, and mark that parameter
+    with its provider class. <code>func</code> injects it automatically:
+  </p>
+  <pre set:text={commandParametersCode} />
+  <p>
+    When you run <code>&lt;command&gt; test --help</code>, the parameters match the
+    values shown above. You can use any parameter name you like, as long as its class
+    is <code>CommandArgsProvider</code>.
+  </p>
+  <p>
+    <code>arg.native</code> contains the raw command-line parsing data, which is useful
+    when you are handling non-standard command-line parameters.
+  </p>
+
+  <h2>Parameters of Option</h2>
+  <p>
+    This is similar to <code>Command</code>, but <code>OptionArgsProvider</code>
+    exposes one base value for the option. Specify the provider class in an
+    <code>Option</code> command to access more information:
+  </p>
+  <pre set:text={optionParametersCode} />
+
+  <h2>All Registered Information</h2>
+  <p>
+    If you are writing a help command or matching possible user input, you may need
+    all currently registered information. <code>RegisterProvider</code> carries all registered
+    metadata for the current command-line project:
+  </p>
+  <pre set:text={registeredInformationCode} />
+</DocsLayout>

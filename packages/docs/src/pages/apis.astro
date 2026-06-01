@@ -1,5 +1,197 @@
 ---
-import FuncDocs from '@/components/FuncDocs.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const commandApis = [
+  {
+    signature: '@Command(params: CommandParams)',
+    structure:
+      'CommandParams = { name: string, description?: string, alias?: string }',
+    description: 'Create a command.',
+  },
+  {
+    signature: '@Option(params: OptionParams)',
+    structure:
+      'OptionParams = { name: string, type?: OptionType, description?: string, alias?: string }',
+    description: 'Create an option.',
+  },
+  {
+    signature: '@SubOptions(params: Array<OptionParams>)',
+    structure: 'Same as OptionParams.',
+    description: 'Create sub-options, usually used with Command.',
+  },
+  {
+    signature: '@CommandMissing()',
+    structure: '-',
+    description: 'Create a handler for undeclared commands.',
+  },
+  {
+    signature: '@CommandMajor()',
+    structure: '-',
+    description: 'Create the main command.',
+  },
+]
+
+const argumentApis = [
+  {
+    signature: 'CommandArgsProvider',
+    description: 'Provides information about the current command.',
+  },
+  {
+    signature: 'OptionArgsProvider',
+    description: 'Provides information about the current option.',
+  },
+  {
+    signature: 'RegisterProvider',
+    description: 'Provides all registered metadata.',
+  },
+]
+
+const supportApis = [
+  {
+    signature: 'funcgo setup',
+    structure: '--fix?',
+    description:
+      'Inspect package.json and suggest missing func.entry, func.outDir, bin, dev script, and build script configuration.',
+  },
+  {
+    signature: 'funcgo dev',
+    structure: '-f, --file <entry>; -- <args>',
+    description:
+      'Run the project entry with a local TypeScript runtime and pass arguments through to the command.',
+  },
+  {
+    signature: 'funcgo build',
+    structure: '-f, --file <entry>; -o, --out <dir>; -e, --external <package>',
+    description:
+      'Bundle the project entry for production, write output to func.outDir or dist, and create the executable bin.js.',
+  },
+]
+
+const supportConfigs = [
+  {
+    signature: 'package.json#func.entry',
+    description:
+      'Default TypeScript entry file used by funcgo dev and funcgo build when --file is not provided.',
+  },
+  {
+    signature: 'package.json#func.outDir',
+    description:
+      'Default build output directory used by funcgo build when --out is not provided.',
+  },
+]
 ---
 
-<FuncDocs page="apis" />
+<DocsLayout page="apis">
+  <h1>Command</h1>
+  <p>All decorators used to create commands directly.</p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Signature</th>
+          <th>Structure</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          commandApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Arguments</h2>
+  <p>All providers used to get parameters.</p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Signature</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          argumentApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Support</h2>
+  <p>
+    <code>funcgo</code> provides the standard development and build commands for
+    <code>func</code> projects.
+  </p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Signature</th>
+          <th>Structure</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          supportApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Configuration</h2>
+  <p>
+    <code>funcgo setup --fix</code> can write the recommended project configuration automatically.
+  </p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Signature</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          supportConfigs.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</DocsLayout>

@@ -1,0 +1,30 @@
+---
+import { navItems, type DocPage } from '@/lib/docs'
+
+interface Props {
+  page: DocPage
+}
+
+const { page } = Astro.props
+---
+
+<aside class="min-w-0 lg:sticky lg:top-8 lg:self-start">
+  <nav
+    aria-label="Documentation sections"
+    class="flex gap-2 overflow-x-auto lg:flex-col lg:items-start">
+    {
+      navItems.map(item => (
+        <a
+          class:list={[
+            'inline-flex shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+            item.id === page
+              ? 'bg-secondary text-secondary-foreground'
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+          ]}
+          href={item.href}>
+          {item.label}
+        </a>
+      ))
+    }
+  </nav>
+</aside>

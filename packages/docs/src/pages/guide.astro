@@ -1,5 +1,75 @@
 ---
-import FuncDocs from '@/components/FuncDocs.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const projectTree = `.
+|-- src
+|   |-- commands            main command files
+|   |   |-- hello.ts        "<Command> hello"
+|   |   |-- major.ts        "<Command>"
+|   |   +-- index.ts        entry file
+|   |-- options             options files
+|   |   |-- help.ts         "<Command> --help"
+|   |   |-- version.ts      "<Command> --version"
+|   |   +-- index.ts        entry file
+|   +-- index.ts            entry file
+|-- tests                   testcases
+|   |-- commands            test for commands
+|   +-- utils               test utils
+|-- package.json
+|-- tsconfig.json
++-- README.md`
+
+const npmCreateCode = 'npm init func'
+
+const npmInstallCode = `npm i
+npm run dev`
+
+const npmBuildCode = 'npm build'
 ---
 
-<FuncDocs page="guide" />
+<DocsLayout page="guide">
+  <h1>Quick Start</h1>
+  <p>
+    Ensure you have the latest version of <a href="https://nodejs.org/en/download/"
+      >NodeJS</a
+    > and a package manager such as <a href="https://www.npmjs.com/">NPM</a>. Running
+    one command creates a basic <code>func</code> project:
+  </p>
+  <pre set:text={npmCreateCode} />
+
+  <h2>Development</h2>
+  <p>After you create an initial project, you will see these files:</p>
+  <pre set:text={projectTree} />
+  <p>
+    Before editing, install the dependencies and set up the development environment:
+  </p>
+  <pre set:text={npmInstallCode} />
+  <p>At this point, all preparation is complete.</p>
+  <p>
+    You can browse the examples in <code>commands</code> and <code>options</code>,
+    modify them, and run your commands to see how they behave. For example, if your
+    project is named <code>my-first-command</code>, you can run
+    <code>my-first-command hello</code> directly.
+  </p>
+
+  <h2>Bundle</h2>
+  <p>
+    If you use the template to create a project, you only need one command to package
+    it:
+  </p>
+  <pre set:text={npmBuildCode} />
+  <p>After running the command, your project is packaged.</p>
+  <p>
+    When using <code>func</code>, you do not need to think about <code>bin</code>
+    files, file updates, or symlink problems. <code>func</code> handles all of that automatically,
+    so you can publish immediately.
+  </p>
+  <blockquote>
+    If you need to return to development mode, run <code>npm run dev</code> again.
+  </blockquote>
+
+  <h2>Publish</h2>
+  <p>
+    Try publishing your package directly on NPM with <code>npm publish</code>.
+  </p>
+</DocsLayout>

@@ -1,5 +1,50 @@
 ---
-import FuncDocs from '@/components/FuncDocs.astro'
+import DocsLayout from '@/layouts/docs.astro'
 ---
 
-<FuncDocs page="/" />
+<DocsLayout page="/">
+  <h1>Introduction</h1>
+  <p>
+    <code>func</code> is a modern command line framework that is lighter and more elegant
+    than comparable tools, while still offering scaffolding support and an excellent developer
+    experience.
+  </p>
+  <p>
+    <code>func</code> is built with <code>TypeScript</code>, making it easier to
+    maintain and extend. Type support gives you rich syntax hints, but the workflow
+    stays simple: one command is enough from development to packaging.
+  </p>
+  <p>
+    You can create a project in seconds with the <a href="/guide"
+      >Quick-start Guide</a
+    >.
+  </p>
+
+  <h2>Features</h2>
+  <ul>
+    <li>
+      Very small bundle size, approximately <a
+        href="https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz"
+        >7 KB</a
+      >
+    </li>
+    <li>Elegant syntax without extra mental overhead</li>
+    <li>
+      Very few dependencies, optimizing runtime speed and <code>npm</code> download time
+    </li>
+    <li>Project template support</li>
+  </ul>
+
+  <h2>Why</h2>
+  <p>
+    For <code>func</code>, using decorator metadata to define commands is a
+    lightweight choice. Most of that code is not carried into runtime after the
+    build, while the development experience still benefits from hints, types, and
+    clear structure.
+  </p>
+  <p>
+    If you need to rebuild a tool or start a new one from the beginning,
+    <code>func</code> is a good choice for building command-line tools in a simple and
+    enjoyable way.
+  </p>
+</DocsLayout>
