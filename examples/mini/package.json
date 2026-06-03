@@ -1,10 +1,12 @@
 {
   "name": "mini",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
+  "main": "index.ts",
   "license": "MIT",
   "scripts": {
-    "start": "(pnpm unlink --global > /dev/null); pnpm link --global && chmod +x ./bin.js"
+    "dev": "ts-node index.ts --",
+    "link": "npm link"
   },
   "bin": {
     "mini": "./bin.js"
@@ -13,6 +15,7 @@
     "func": "latest"
   },
   "devDependencies": {
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
   }
 }

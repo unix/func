@@ -15,17 +15,23 @@ to use from the first command.
 
 ## Features
 
-- Tiny production bundles by default, making your CLI easy to install, quick to
-  ship, and lightweight to distribute. See a reference output
-  [here](https://github.com/unix/func/blob/main/examples/gzbundle/archived.tar.gz).
+- Tiny production bundles by default. See a reference output
+  [here](https://github.com/unix/func/blob/main/examples/popular/archived.tar.gz).
 
-- Class decorators for commands, command options, and application modules.
+- Write CLIs like real TypeScript applications, with decorators, classes, and
+  dependency-friendly modules instead of scattered command wiring.
 
-- Typed context injection for parsed inputs, option values, and registered metadata.
+- Move faster from idea to shipped command: `funcgo` handles project setup,
+  local TypeScript execution, and production bundling.
 
-- Very few runtime dependencies, keeping installation and startup lightweight.
+- Keep command code focused on the work itself while `func` takes care of names,
+  paths, flags, values, validation, and missing-command behavior.
 
-- Project template support with built-in development and build commands.
+- Grow from a small helper into a multi-command tool without rewriting your
+  structure, thanks to modules, reusable services, and typed context injection.
+
+- Give users clearer failures by keeping validation and error handling close to
+  the command logic that owns them.
 
 <br/>
 

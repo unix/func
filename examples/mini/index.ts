@@ -1,16 +1,15 @@
-import { Command, FuncModule, Handler, run } from 'func'
+import {
+  Command,
+  Handler,
+  run,
+} from 'func'
 
-@Command({ name: 'create' })
-export class Create {
+@Command({ name: 'ping' })
+class Ping {
   @Handler()
   run() {
-    console.log('ok')
+    console.log('pong')
   }
 }
 
-@FuncModule({
-  commands: [Create],
-})
-class AppModule {}
-
-run(AppModule)
+run(Ping)

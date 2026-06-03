@@ -1,18 +1,30 @@
 {
   "name": "popular",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "(pnpm unlink --global > /dev/null); pnpm link --global && chmod +x ./bin.js"
+    "dev": "funcgo dev --",
+    "build": "funcgo build"
   },
-  "bin": {
-    "popular": "./bin.js"
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "func": {
+    "entry": "src/index.ts",
+    "outDir": "dist"
   },
   "dependencies": {
     "func": "latest"
   },
   "devDependencies": {
-    "ts-node": "^10.9.2"
+    "@types/node": "^25.9.1",
+    "funcgo": "latest",
+    "typescript": "^6.0.3"
+  },
+  "bin": {
+    "popular": "./dist/bin.js"
   }
 }

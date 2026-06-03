@@ -1,29 +1,30 @@
 {
-  "name": "gzbundle",
+  "name": "large-arch",
   "version": "0.0.1",
+  "private": true,
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "funcgo dev --",
+    "dev": "funcgo dev --",
     "build": "funcgo build"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "func": {
+    "entry": "src/index.ts",
+    "outDir": "dist"
   },
   "dependencies": {
     "func": "latest"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
-    "funcgo": "^0.1.1",
+    "funcgo": "latest",
     "typescript": "^6.0.3"
   },
-  "func": {
-    "entry": "src/index.ts",
-    "outDir": "dist"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "bin": {
-    "gzbundle": "./dist/bin.js"
+    "large-arch": "./dist/bin.js"
   }
 }

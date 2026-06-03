@@ -1,9 +1,13 @@
-## mini example
+# mini example
 
-## Guide
+This is the smallest runnable func example. It runs a single TypeScript command
+directly through npm-installed tooling and does not use the workspace package
+manager.
 
-1. install deps: `pnpm install`.
+## Usage
 
-2. link: `pnpm start`.
+1. Install dependencies with `npm install`.
 
-3. run command: `mini create`
+2. Run locally with `npm run dev -- ping`.
+
+3. Optionally link it with `npm run link`, then run `mini ping`.
