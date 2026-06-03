@@ -1,4 +1,5 @@
 ---
+import CodeBlock from '@/components/CodeBlock.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
 const setupCode = `funcgo setup
@@ -23,24 +24,23 @@ const packageConfigCode = `"func": {
 <DocsLayout page="tooling">
   <h1>Tooling</h1>
   <p>
-    <code>funcgo</code> is the companion CLI for local development, project setup,
-    and production bundling. The template wires these commands into
+    <code>funcgo</code> is the companion CLI for local development, project setup, and
+    production bundling. The template wires these commands into
     <code>package.json</code> for you.
   </p>
   <p>
     If you created your project with the default <code>func</code> template,
-    <code>funcgo</code> is already integrated. You can run the template scripts
-    directly and do not need to run <code>funcgo setup</code> again.
+    <code>funcgo</code> is already integrated. You can run the template scripts directly
+    and do not need to run <code>funcgo setup</code> again.
   </p>
 
   <h2>Setup</h2>
   <p>
-    <code>funcgo setup</code> inspects your project and prints suggested
-    configuration changes. Use it when you add <code>funcgo</code> to an existing
-    project or repair a custom setup. Add <code>--fix</code> to write the
-    recommended fields.
+    <code>funcgo setup</code> inspects your project and prints suggested configuration
+    changes. Use it when you add <code>funcgo</code> to an existing project or repair a
+    custom setup. Add <code>--fix</code> to write the recommended fields.
   </p>
-  <pre set:text={setupCode} />
+  <CodeBlock code={setupCode} lang="shell" />
   <p>
     Setup can infer or write <code>func.entry</code>, <code>func.outDir</code>,
     <code>bin</code>, <code>scripts.dev</code>, and <code>scripts.build</code>.
@@ -51,17 +51,17 @@ const packageConfigCode = `"func": {
     <code>funcgo dev</code> runs the TypeScript entry through a local runtime. Use
     <code>--</code> to pass arguments to your CLI.
   </p>
-  <pre set:text={devCode} />
+  <CodeBlock code={devCode} lang="shell" />
 
   <h2>Build</h2>
   <p>
-    <code>funcgo build</code> bundles the configured entry, writes the output
-    directory, and creates an executable <code>bin.js</code>.
+    <code>funcgo build</code> bundles the configured entry, writes the output directory,
+    and creates an executable <code>bin.js</code>.
   </p>
-  <pre set:text={buildCode} />
+  <CodeBlock code={buildCode} lang="shell" />
   <p>
-    Use <code>-e</code> or <code>--external</code> for packages that should stay
-    external to the bundle.
+    Use <code>-e</code> or <code>--external</code> for packages that should stay external
+    to the bundle.
   </p>
 
   <h2>Configuration</h2>
@@ -69,5 +69,5 @@ const packageConfigCode = `"func": {
     These fields are the main contract between your package and
     <code>funcgo</code>:
   </p>
-  <pre set:text={packageConfigCode} />
+  <CodeBlock code={packageConfigCode} lang="json" />
 </DocsLayout>

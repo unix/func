@@ -1,67 +1,74 @@
 ---
+import CodeBlock from '@/components/CodeBlock.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-const commandErrorCode = `import { CommandError, CommandErrorProvider } from 'func'
+const localCatchCode = `import { Catch, Command, Exception, FuncException, Handler } from 'func'
 
-@CommandError()
-export class ErrorHandler {
-  constructor(private error: CommandErrorProvider) {
-    console.error(error.message)
-    error.preventDefaultPrint()
+@Command({ name: 'publish' })
+export class PublishCommand {
+  @Catch()
+  onError(@Exception() exception: FuncException) {
+    console.error(\`publish failed: \${exception.message}\`)
+    exception.preventDefaultPrint()
+  }
+
+  @Handler()
+  run() {
+    throw new Error('missing package')
   }
 }`
 
-const preventDefaultPrintCode = `import { CommandError, CommandErrorProvider } from 'func'
+const globalCatchCode = `import { CatchAll, Exception, FuncException } from 'func'
 
-@CommandError()
+@CatchAll()
 export class ErrorHandler {
-  constructor(private error: CommandErrorProvider) {
-    if (error.level !== 'runtime-print') return
+  constructor(@Exception() exception: FuncException) {
+    if (exception.level === 'runtime-print') {
+      console.error(\`Invalid input: \${exception.message}\`)
+      exception.preventDefaultPrint()
+      return
+    }
 
-    console.error(\`Invalid input: \${error.message}\`)
-    error.preventDefaultPrint()
+    console.error(exception.message)
   }
 }`
 
-const runtimeCodes = [
-  {
-    code: 'F_RUNTIME_HANDLER_ERROR',
-    meaning: 'A command, option, major, missing, or error handler threw an error.',
-  },
-]
+const moduleCode = `import { FuncModule } from 'func'
+import { PublishCommand } from './commands/publish'
+import { ErrorHandler } from './error-handler'
 
-const runtimePrintCodes = [
-  {
-    code: 'F_RUNTIME_PRINT_MULTIPLE_OPTIONS',
-    meaning: 'More than one global option was invoked at once.',
-  },
-  {
-    code: 'F_RUNTIME_PRINT_PARSE',
-    meaning: 'The command-line input could not be parsed.',
-  },
-  {
-    code: 'F_RUNTIME_PRINT_UNKNOWN_OPTION',
-    meaning: 'The user passed an option that is not declared for the current mode.',
-  },
-]
+@FuncModule({
+  commands: [PublishCommand, ErrorHandler],
+})
+export class AppModule {}`
 
-const systemCodes = [
+const throwFuncErrorCode = `import { F_RUNTIME_PRINT, createRuntimePrintError, errorTypes } from 'func'
+
+throw createRuntimePrintError(
+  F_RUNTIME_PRINT.VALIDATION,
+  errorTypes.INPUT,
+  'Token is required.',
+  { option: 'token' },
+)`
+
+const errorFamilies = [
   {
-    code: 'F_SYSTEM_DUPLICATE_HANDLER',
-    meaning: 'Two handlers declare the same command or option token.',
+    family: 'F_SYSTEM',
+    when: 'Invalid command definitions, duplicate registrations, missing handlers, or invalid injection setup.',
+    behavior:
+      'Thrown immediately. System errors are not delivered to user error handlers.',
   },
   {
-    code: 'F_SYSTEM_MISSING_PROVIDER',
-    meaning: 'A constructor asks for an unknown provider class.',
+    family: 'F_RUNTIME',
+    when: 'A selected command handler, catch method, or global error handler throws.',
+    behavior:
+      'Delivered to local catch first, then global error handlers. Without a handler, it is thrown.',
   },
   {
-    code: 'F_SYSTEM_MISSING_PARAM_TYPES',
-    meaning:
-      'Constructor metadata is missing. Enable decorators and emitDecoratorMetadata.',
-  },
-  {
-    code: 'F_SYSTEM_UNSUPPORTED_ARRAY_TYPE',
-    meaning: 'Use [String] for repeated values instead of Array.',
+    family: 'F_RUNTIME_PRINT',
+    when: 'Input errors such as parse failures, unknown options, multiple selected handler flags, or validation failures.',
+    behavior:
+      'Delivered to handlers and printed to stderr unless preventDefaultPrint() is called.',
   },
 ]
 ---
@@ -69,73 +76,29 @@ const systemCodes = [
 <DocsLayout page="errors">
   <h1>Error Handling</h1>
   <p>
-    <code>func</code> separates registration problems, runtime handler errors, and
-    runtime errors that print a default message. Add <code>@CommandError()</code>
-    when you want one place to format runtime failures.
+    <code>func</code> separates system errors, runtime errors, and runtime-print errors.
+    Local command catches run before global handlers.
   </p>
-  <p>
-    <code>@CommandError()</code> only receives <code>F_RUNTIME</code> and
-    <code>F_RUNTIME_PRINT</code> errors. <code>F_SYSTEM</code> errors are not
-    delivered to user handlers; once a system error happens, the program stops.
-  </p>
-  <pre set:text={commandErrorCode} />
 
-  <h2>Runtime Errors</h2>
-  <p>
-    <code>F_RUNTIME</code> is the main runtime error family. It represents failures
-    that happen while a matched handler is running.
-  </p>
+  <h2>Error Families</h2>
   <div class="overflow-x-auto">
     <table>
       <thead>
         <tr>
-          <th>Code</th>
-          <th>Meaning</th>
+          <th>Family</th>
+          <th>When</th>
+          <th>Behavior</th>
         </tr>
       </thead>
       <tbody>
         {
-          runtimeCodes.map(item => (
+          errorFamilies.map(item => (
             <tr>
               <td>
-                <code>{item.code}</code>
+                <code>{item.family}</code>
               </td>
-              <td>{item.meaning}</td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
-  </div>
-
-  <h2>Runtime-print Errors</h2>
-  <p>
-    <code>F_RUNTIME_PRINT</code> is a runtime error family with an extra default
-    behavior: <code>func</code> prints the message to <code>stderr</code>. A
-    <code>CommandErrorProvider</code> can handle the error and call
-    <code>preventDefaultPrint()</code> to block that default print.
-  </p>
-  <pre set:text={preventDefaultPrintCode} />
-  <p>
-    In this example, your handler prints a custom message and then prevents
-    <code>func</code> from printing the original runtime-print message again.
-  </p>
-  <div class="overflow-x-auto">
-    <table>
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Meaning</th>
-        </tr>
-      </thead>
-      <tbody>
-        {
-          runtimePrintCodes.map(item => (
-            <tr>
-              <td>
-                <code>{item.code}</code>
-              </td>
-              <td>{item.meaning}</td>
+              <td>{item.when}</td>
+              <td>{item.behavior}</td>
             </tr>
           ))
         }
@@ -145,31 +108,32 @@ const systemCodes = [
 
   <h2>System Errors</h2>
   <p>
-    System errors indicate invalid command definitions, duplicate registrations,
-    or injection configuration problems. They happen before user error handlers
-    can safely run, so <code>func</code> throws them immediately and interrupts the
-    program. Fix these during development before publishing your CLI.
+    System errors describe invalid framework setup: duplicate command names,
+    duplicate option tokens, missing handlers, unsupported array types, invalid
+    decorator targets, or missing providers. They should be fixed during development
+    and are not passed to <code>@Catch</code> or <code>@CatchAll</code>.
   </p>
-  <div class="overflow-x-auto">
-    <table>
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Meaning</th>
-        </tr>
-      </thead>
-      <tbody>
-        {
-          systemCodes.map(item => (
-            <tr>
-              <td>
-                <code>{item.code}</code>
-              </td>
-              <td>{item.meaning}</td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
-  </div>
+
+  <h2>Single-command Catch</h2>
+  <p>
+    <code>@Catch()</code> registers a method on a command class. It catches non-system
+    errors from that command before any global handler runs.
+  </p>
+  <CodeBlock code={localCatchCode} lang="ts" />
+
+  <h2>Global Error Handler</h2>
+  <p>
+    <code>@CatchAll()</code> registers a global error handler class.
+    <code>@CommandError()</code> is an alias for <code>@CatchAll()</code>. Register
+    global handlers in the same command list as the rest of the application.
+  </p>
+  <CodeBlock code={globalCatchCode} lang="ts" />
+  <CodeBlock code={moduleCode} lang="ts" />
+
+  <h2>Runtime-print Errors</h2>
+  <p>
+    Runtime-print errors have a default stderr print. Call
+    <code>preventDefaultPrint()</code> when your handler already printed the message.
+  </p>
+  <CodeBlock code={throwFuncErrorCode} lang="ts" />
 </DocsLayout>

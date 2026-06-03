@@ -6,52 +6,156 @@ const commandApis = [
     signature: '@Command(params: CommandParams)',
     structure:
       'CommandParams = { name: string, description?: string, alias?: string }',
-    description: 'Create a command.',
+    description:
+      'Register a named command. The name or alias is matched against the first input token.',
   },
   {
-    signature: '@Option(params: OptionParams)',
+    signature: '@Handler(params?: HandlerParams)',
     structure:
-      'OptionParams = { name: string, type?: OptionType, description?: string, alias?: string }',
-    description: 'Create an option.',
+      'HandlerParams = { flag?: string, alias?: string, description?: string, path?: string[] }',
+    description:
+      'Register a default handler, flag handler, or path handler. path cannot be combined with flag or alias.',
   },
   {
     signature: '@SubOptions(params: Array<OptionParams>)',
-    structure: 'Same as OptionParams.',
-    description: 'Create sub-options, usually used with Command.',
+    structure:
+      'OptionParams = { name: string, type?: Boolean | String | Number | [String], description?: string, alias?: string }',
+    description:
+      'Add parse-only options for the current command scope. Field options are preferred for values read from the command instance.',
   },
   {
     signature: '@CommandMissing()',
     structure: '-',
-    description: 'Create a handler for undeclared commands.',
+    description:
+      'Register a class that is instantiated when the first input token is not a known command.',
   },
   {
     signature: '@CommandMajor()',
     structure: '-',
-    description: 'Create the main command.',
+    description:
+      'Register the major command for empty invocation and top-level options.',
   },
   {
-    signature: '@CommandError()',
+    signature: '@Catch()',
     structure: '-',
-    description: 'Create one handler for runtime-print errors.',
+    description:
+      'Register a local command error method. It runs before global error handlers.',
+  },
+  {
+    signature: '@CatchAll() / @CommandError()',
+    structure: '-',
+    description:
+      'Register a global error handler class. CommandError is an alias for CatchAll.',
   },
 ]
 
-const argumentApis = [
+const fieldApis = [
   {
-    signature: 'CommandArgsProvider',
-    description: 'Provides information about the current command.',
+    signature: '@Flag(params?)',
+    structure: 'params = { name?: string, alias?: string, description?: string }',
+    description: 'Declare a boolean option assigned to the decorated property.',
   },
   {
-    signature: 'OptionArgsProvider',
-    description: 'Provides information about the current option.',
+    signature: '@Value(params?)',
+    structure:
+      'params = { name?: string, alias?: string, description?: string, type?: Boolean | String | Number | [String], required?: boolean }',
+    description:
+      'Declare a scalar value option. The type is inferred from design metadata when possible.',
   },
   {
-    signature: 'RegisterProvider',
-    description: 'Provides all registered metadata.',
+    signature: '@ArrayValue(params?)',
+    structure: 'params = { name?: string, alias?: string, description?: string }',
+    description: 'Declare a repeated string option assigned as a string array.',
   },
   {
-    signature: 'CommandErrorProvider',
-    description: 'Provides the current error to a CommandError handler.',
+    signature: '@Required()',
+    structure: '-',
+    description:
+      'Require the option to be provided explicitly or have a defined value.',
+  },
+  {
+    signature: '@Enum(values)',
+    structure: 'values = Array<boolean | string | number>',
+    description:
+      'Validate that a scalar value, or every array item, is one of the allowed values.',
+  },
+  {
+    signature: '@DependsOn(options)',
+    structure: 'options = string[]',
+    description: 'Require other options when this option is explicitly provided.',
+  },
+  {
+    signature: '@Exclusive(options)',
+    structure: 'options = string[]',
+    description:
+      'Reject combinations where this option and one of the listed options are both explicit.',
+  },
+  {
+    signature: '@ValueValidate(fn)',
+    structure: 'fn(value, options) => boolean | string | void',
+    description:
+      'Run a custom validator. Return false or a string to create a validation error.',
+  },
+]
+
+const contextApis = [
+  {
+    signature: '@Args()',
+    description:
+      'Inject FuncArgs: command metadata, selected handler, inputs, path, normalized option, and native parse data.',
+  },
+  {
+    signature: '@Regs()',
+    description: 'Inject CommandRegistry for registered command metadata.',
+  },
+  {
+    signature: '@Exception()',
+    description:
+      'Inject FuncException into local catch methods and global error handlers.',
+  },
+]
+
+const appApis = [
+  {
+    signature: '@FuncModule(params)',
+    structure:
+      'params = { commands?: Class[], imports?: FuncModuleInput[], services?: Class[] }',
+    description: 'Create an application or feature module.',
+  },
+  {
+    signature: '@Service()',
+    structure: '-',
+    description:
+      'Mark a service class that can be injected into commands or other registered services.',
+  },
+  {
+    signature: 'run(input, options?)',
+    structure: 'options = { argv?: string[], services?: Class[] }',
+    description: 'Create an app and execute it.',
+  },
+  {
+    signature: 'createApp(input, options?)',
+    structure: 'options = { argv?: string[], services?: Class[] }',
+    description: 'Create the low-level Container without running it.',
+  },
+]
+
+const typesApis = [
+  {
+    signature: 'FuncArgs',
+    structure:
+      '{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }',
+    description: 'Normalized runtime context injected by Args.',
+  },
+  {
+    signature: 'FuncException',
+    structure: 'code, details, error, level, message, type, preventDefaultPrint()',
+    description: 'Wrapper around FuncError used by catch and error handlers.',
+  },
+  {
+    signature: 'CommandRegistry',
+    structure: '{ commands: RegisterCommandParams[] }',
+    description: 'Read-only registry context injected by Regs.',
   },
 ]
 
@@ -91,12 +195,15 @@ const supportConfigs = [
 ---
 
 <DocsLayout page="apis">
-  <h1>Command</h1>
+  <h1>API Reference</h1>
   <p>
-    This page is the compact reference for decorators and provider classes. See
-    <a href="/concepts">Concepts</a>, <a href="/tooling">Tooling</a>, and
-    <a href="/errors">Errors</a> for behavior details.
+    This page is the compact reference for current <code>func</code> core APIs and
+    <code>funcgo</code> support commands. See <a href="/concepts">Core Concepts</a>,
+    <a href="/options">Field Options</a>, <a href="/parameters">Parameters</a>, and <a
+      href="/errors">Errors</a
+    > for behavior details.
   </p>
+  <h2>Commands</h2>
   <div class="overflow-x-auto">
     <table>
       <thead>
@@ -124,8 +231,35 @@ const supportConfigs = [
     </table>
   </div>
 
-  <h2>Arguments</h2>
-  <p>All providers used to get parameters.</p>
+  <h2>Field Options and Validators</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Signature</th>
+          <th>Structure</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          fieldApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Context Injection</h2>
   <div class="overflow-x-auto">
     <table>
       <thead>
@@ -136,10 +270,66 @@ const supportConfigs = [
       </thead>
       <tbody>
         {
-          argumentApis.map(item => (
+          contextApis.map(item => (
             <tr>
               <td>
                 <code>{item.signature}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Application</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Signature</th>
+          <th>Structure</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          appApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Runtime Types</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Signature</th>
+          <th>Structure</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          typesApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
               </td>
               <td>{item.description}</td>
             </tr>

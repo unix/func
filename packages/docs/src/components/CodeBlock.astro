@@ -1,0 +1,22 @@
+---
+import { codeToHtml, type BundledLanguage } from 'shiki'
+
+type CodeLanguage = BundledLanguage | 'text'
+
+interface Props {
+  code: string
+  lang?: CodeLanguage
+}
+
+const { code, lang = 'text' } = Astro.props
+const html = await codeToHtml(code.trimEnd(), {
+  lang,
+  themes: {
+    dark: 'github-dark',
+    light: 'github-light',
+  },
+  defaultColor: false,
+})
+---
+
+<div class="code-block" set:html={html} />

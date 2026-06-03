@@ -1,0 +1,156 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const flagCode = `import { CommandMajor, Flag, Handler } from 'func'
+
+@CommandMajor()
+export class Major {
+  @Flag({ alias: 'v', description: 'Print more logs' })
+  verbose = false
+
+  @Handler()
+  run() {
+    console.log(this.verbose)
+  }
+}`
+
+const valueCode = `import { Command, Handler, Value } from 'func'
+
+@Command({ name: 'serve' })
+export class ServeCommand {
+  @Value()
+  host: string = 'localhost'
+
+  @Value()
+  port: number = 3000
+
+  @Value({ name: 'dry-run', type: Boolean })
+  dryRun = false
+
+  @Handler()
+  run() {
+    console.log(this.host, this.port, this.dryRun)
+  }
+}`
+
+const arrayCode = `import { ArrayValue, Command, Handler } from 'func'
+
+@Command({ name: 'build' })
+export class BuildCommand {
+  @ArrayValue({ name: 'include', alias: 'i' })
+  includes: string[] = []
+
+  @Handler()
+  run() {
+    console.log(this.includes)
+  }
+}`
+
+const validationCode = `import {
+  Command,
+  DependsOn,
+  Enum,
+  Exclusive,
+  Flag,
+  Handler,
+  Required,
+  Value,
+  ValueValidate,
+} from 'func'
+
+@Command({ name: 'publish' })
+export class PublishCommand {
+  @Required()
+  @Enum(['dev', 'prod'])
+  @Value()
+  target?: string
+
+  @DependsOn(['token'])
+  @Value()
+  registry?: string
+
+  @Value()
+  token?: string
+
+  @Exclusive(['json'])
+  @Flag()
+  table = false
+
+  @Flag()
+  json = false
+
+  @Value()
+  @ValueValidate(value => Number(value) > 0 || 'retry must be positive')
+  retry: number = 1
+
+  @Handler()
+  run() {}
+}`
+---
+
+<DocsLayout page="options">
+  <h1>Field Options</h1>
+  <p>
+    Field options turn command properties into CLI options. <code>func</code> parses the
+    current command scope, assigns option values to the command instance, then runs the
+    selected handler.
+  </p>
+
+  <h2>Flags</h2>
+  <p>
+    <code>@Flag</code> creates a boolean option. The property default is used when the
+    user does not pass the flag.
+  </p>
+  <CodeBlock code={flagCode} lang="ts" />
+  <p>
+    <code>my-cli --verbose</code> and <code>my-cli -v</code> both set
+    <code>this.verbose</code> to <code>true</code>.
+  </p>
+
+  <h2>Values</h2>
+  <p>
+    <code>@Value</code> creates a scalar value option. It can infer
+    <code>String</code>, <code>Number</code>, and <code>Boolean</code> from TypeScript
+    metadata. Use <code>type</code> when inference is not enough.
+  </p>
+  <CodeBlock code={valueCode} lang="ts" />
+  <p>
+    For <code>my-cli serve --host 0.0.0.0 --port 4000</code>, the instance receives
+    <code>host = '0.0.0.0'</code> and <code>port = 4000</code>.
+  </p>
+
+  <h2>Repeated Values</h2>
+  <p>
+    <code>@ArrayValue</code> creates a repeated string option. Use it when the user can
+    pass the same option multiple times.
+  </p>
+  <CodeBlock code={arrayCode} lang="ts" />
+  <p>
+    <code>my-cli build -i src -i tests</code> assigns
+    <code>['src', 'tests']</code> to <code>this.includes</code>.
+  </p>
+
+  <h2>Validation</h2>
+  <p>
+    Field validators run after option values are assigned. Validation errors are
+    runtime-print errors, so they can be formatted by local or global error handlers.
+  </p>
+  <CodeBlock code={validationCode} lang="ts" />
+  <ul>
+    <li><code>@Required</code> requires a defined value.</li>
+    <li><code>@Enum</code> restricts values to an allowed list.</li>
+    <li>
+      <code>@DependsOn</code> requires related options when this option is explicit.
+    </li>
+    <li><code>@Exclusive</code> rejects conflicting explicit options.</li>
+    <li><code>@ValueValidate</code> runs custom validation logic.</li>
+  </ul>
+
+  <h2>Sub-options</h2>
+  <p>
+    <code>@SubOptions</code> declares parse-only options for the command scope. For most
+    typed command values, prefer field options. Use sub-options only when you intentionally
+    want to read normalized option data from <code>@Args()</code>.
+  </p>
+</DocsLayout>

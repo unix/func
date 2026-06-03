@@ -5,15 +5,14 @@ import DocsLayout from '@/layouts/docs.astro'
 <DocsLayout page="/">
   <h1>Introduction</h1>
   <p>
-    <code>func</code> is a decorator-based CLI framework for TypeScript. Define
-    commands and options as classes, register them in one container, and let
-    <code>func</code> resolve the command line input for you.
+    <code>func</code> is a small decorator-based CLI framework for TypeScript. Define commands
+    as classes, register them in a <code>FuncModule</code>, and let <code>func</code> resolve
+    command names, paths, flags, values, validation, and error handling.
   </p>
   <p>
-    The project is designed around small production output, direct syntax, and a
-    quiet development workflow. <code>funcgo</code> handles local execution,
-    project setup checks, and bundling, so your code can stay focused on command
-    behavior.
+    The current core is organized around explicit modules, method handlers, field
+    options, typed context injection, and optional services. <code>funcgo</code>
+    stays focused on project setup, local TypeScript execution, and production bundling.
   </p>
   <p>
     You can create a project in seconds with the <a href="/guide"
@@ -24,30 +23,39 @@ import DocsLayout from '@/layouts/docs.astro'
   <h2>Features</h2>
   <ul>
     <li>
-      Tiny production bundles by default, making your CLI easy to install, quick
-      to ship, and lightweight to distribute. See a reference output <a
+      Tiny production bundles by default. See a reference output <a
         href="https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz"
         >here</a
       >
     </li>
-    <li>Class decorators for commands, global options, and command options</li>
-    <li>Typed providers for parsed inputs, option values, and registered metadata</li>
     <li>
-      Very few runtime dependencies, keeping installation and startup lightweight
+      Application modules with imported feature modules and registered services
     </li>
-    <li>Project template support with built-in development and build commands</li>
+    <li>
+      Named commands, major commands, missing-command handlers, and path handlers
+    </li>
+    <li>Field options for flags, scalar values, and repeated string values</li>
+    <li>
+      Validation decorators for required values, enums, dependencies, exclusions, and
+      custom checks
+    </li>
+    <li>Typed context injection for parsed input, registry data, and exceptions</li>
+    <li>
+      Local and global error handling through <code>@Catch</code> and
+      <code>@CatchAll</code>
+    </li>
   </ul>
 
   <h2>Where It Fits</h2>
   <p>
-    <code>func</code> is a good fit when you want a small TypeScript command line
-    tool with clear command boundaries, automatic option parsing, and simple
-    packaging. It is intentionally compact rather than a full terminal UI, prompt,
-    or task-runner framework.
+    <code>func</code> is a good fit when you want a small TypeScript command line tool
+    with clear command boundaries, automatic option parsing, reusable services, and simple
+    packaging. It is intentionally compact rather than a full terminal UI, prompt toolkit,
+    or general task runner.
   </p>
   <p>
-    Start with <a href="/concepts">Concepts</a> if you want to understand how
-    command resolution works, or jump straight into <a href="/commands">Commands</a>
-    to write handlers.
+    Start with <a href="/guide">Guide</a> to create a project, then read
+    <a href="/concepts">Core Concepts</a> for command structure. Field values, parameter
+    injection, and error handling each have their own focused page.
   </p>
 </DocsLayout>

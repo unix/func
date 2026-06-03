@@ -8,7 +8,7 @@
 A tiny decorator-based CLI framework for TypeScript.
 
 `func` helps you build command-line tools with class decorators, typed runtime
-providers, a small production footprint, and a template workflow that is ready
+context injection, a small production footprint, and a template workflow that is ready
 to use from the first command.
 
 <br/>
@@ -19,9 +19,9 @@ to use from the first command.
   ship, and lightweight to distribute. See a reference output
   [here](https://github.com/unix/func/blob/main/examples/gzbundle/archived.tar.gz).
 
-- Class decorators for commands, global options, and command-specific options.
+- Class decorators for commands, command options, and application modules.
 
-- Typed providers for parsed inputs, option values, and registered metadata.
+- Typed context injection for parsed inputs, option values, and registered metadata.
 
 - Very few runtime dependencies, keeping installation and startup lightweight.
 

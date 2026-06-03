@@ -1,73 +1,122 @@
 ---
+import CodeBlock from '@/components/CodeBlock.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-const commandParametersCode = `import { Command, CommandArgsProvider, SubOptions } from 'func'
+const argsCode = `import { Args, Command, FuncArgs, Handler } from 'func'
 
-@Command({ name: 'test' })
-@SubOptions([{ name: 'help' }])
-export class Test {
-  constructor(private arg: CommandArgsProvider) {
-    console.log(arg.inputs) // ['tools']
-    console.log(arg.option) // { help: true }
-    console.log(arg.native) // original parse info
+@Command({ name: 'config' })
+export class ConfigCommand {
+  @Handler({ path: ['get'] })
+  get(@Args() args: FuncArgs) {
+    console.log(args.path)   // ['get']
+    console.log(args.inputs) // remaining input after the path
+    console.log(args.option) // normalized options
+    console.log(args.native) // native arg parser output
   }
 }`
 
-const optionParametersCode = `import { Option, OptionArgsProvider } from 'func'
+const argsOptionCode = `import { Args, Command, FuncArgs, Handler, Value } from 'func'
 
-@Option({ name: 'name', type: String })
-export class Name {
-  constructor(private arg: OptionArgsProvider) {
-    console.log(arg.value)
-    console.log(arg.native) // original parse info
+@Command({ name: 'serve' })
+export class ServeCommand {
+  @Value()
+  port: number = 3000
+
+  @Handler()
+  run(@Args() args: FuncArgs) {
+    console.log(this.port)
+    console.log(args.option.port)
+    console.log(args.command?.name)
+    console.log(args.handler?.methodName)
   }
 }`
 
-const registeredInformationCode = `import { Option, RegisterProvider } from 'func'
+const regsCode = `import { CommandMajor, CommandRegistry, Handler, Regs } from 'func'
 
-@Option({ name: 'help' })
-export class MyHelp {
-  constructor(private arg: RegisterProvider) {
-    console.log(arg.commands) // all commands
-    console.log(arg.options) // all options
+@CommandMajor()
+export class Major {
+  @Handler({ flag: 'help', alias: 'h' })
+  help(@Regs() regs: CommandRegistry) {
+    regs.commands.forEach(command => {
+      console.log(command.name, command.description)
+    })
+  }
+}`
+
+const exceptionCode = `import { Catch, CommandMajor, Exception, FuncException, Handler } from 'func'
+
+@CommandMajor()
+export class Major {
+  @Catch()
+  onError(@Exception() exception: FuncException) {
+    console.error(exception.code)
+    console.error(exception.message)
+    exception.preventDefaultPrint()
+  }
+
+  @Handler()
+  run() {
+    throw new Error('boom')
+  }
+}`
+
+const constructorCode = `import { Args, Command, FuncArgs, Handler, Regs, CommandRegistry } from 'func'
+
+@Command({ name: 'inspect' })
+export class InspectCommand {
+  constructor(
+    @Args() private args: FuncArgs,
+    @Regs() private regs: CommandRegistry,
+  ) {}
+
+  @Handler()
+  run() {
+    console.log(this.args.inputs)
+    console.log(this.regs.commands.length)
   }
 }`
 ---
 
 <DocsLayout page="parameters">
-  <h1>Parameters of Command</h1>
+  <h1>Parameters</h1>
   <p>
-    Add a parameter to the class where you build the command, and mark that parameter
-    with its provider class. <code>func</code> injects it automatically:
-  </p>
-  <pre set:text={commandParametersCode} />
-  <p>
-    When you run <code>&lt;command&gt; test tools --help</code>, the parameters match the
-    values shown above. You can use any parameter name you like, as long as its class
-    is <code>CommandArgsProvider</code>.
-  </p>
-  <p>
-    <code>arg.native</code> contains the raw command-line parsing data, which is useful
-    when you are handling non-standard command-line parameters.
+    Parameter decorators inject runtime context into constructors and handler
+    methods. Undecorated parameters are not filled by <code>func</code>.
   </p>
 
-  <h2>Parameters of Option</h2>
+  <h2>Args</h2>
   <p>
-    This is similar to <code>Command</code>, but <code>OptionArgsProvider</code>
-    exposes one base value for the option. Specify the provider class in an
-    <code>Option</code> command to access more information:
+    <code>@Args()</code> injects <code>FuncArgs</code>, the normalized context for
+    the current command execution.
   </p>
-  <pre set:text={optionParametersCode} />
+  <CodeBlock code={argsCode} lang="ts" />
   <p>
-    For <code>--name func</code>, <code>arg.value</code> is <code>func</code>.
-    Repeated <code>[String]</code> options return an array of values.
+    <code>inputs</code> contains remaining positional input. <code>path</code>
+    contains the selected handler path. <code>option</code> contains normalized option
+    values, including field options and sub-options.
   </p>
+  <CodeBlock code={argsOptionCode} lang="ts" />
 
-  <h2>All Registered Information</h2>
+  <h2>Regs</h2>
   <p>
-    If you are writing a help command or matching possible user input, you may need
-    all currently registered information. <code>RegisterProvider</code> carries all registered
-    metadata for the current command-line project:
+    <code>@Regs()</code> injects <code>CommandRegistry</code>. It is useful for help
+    output, command lists, and custom suggestions.
   </p>
-  <pre set:text={registeredInformationCode} />
+  <CodeBlock code={regsCode} lang="ts" />
+
+  <h2>Exception</h2>
+  <p>
+    <code>@Exception()</code> injects <code>FuncException</code> in local catch methods
+    and global error handlers. It exposes <code>code</code>,
+    <code>level</code>, <code>type</code>, <code>message</code>,
+    <code>details</code>, and <code>preventDefaultPrint()</code>.
+  </p>
+  <CodeBlock code={exceptionCode} lang="ts" />
+
+  <h2>Constructor Injection</h2>
+  <p>
+    Any parameter decorator can also be used in a command constructor. Use this when
+    several handlers need the same runtime context.
+  </p>
+  <CodeBlock code={constructorCode} lang="ts" />
 </DocsLayout>

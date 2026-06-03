@@ -142,6 +142,10 @@
     @apply mt-12 mb-4 border-t border-border pt-8 text-xl font-semibold tracking-normal text-foreground;
   }
 
+  .prose-static h3 {
+    @apply mt-8 mb-3 text-base font-semibold tracking-normal text-foreground;
+  }
+
   .prose-static p {
     @apply my-4 text-foreground/80;
   }
@@ -170,6 +174,24 @@
     @apply bg-transparent p-0 text-sm text-foreground;
     overflow-wrap: normal;
     white-space: pre;
+  }
+
+  .prose-static .code-block {
+    @apply my-5 max-w-full overflow-hidden rounded-lg border border-border bg-muted;
+  }
+
+  .prose-static .code-block pre {
+    @apply m-0 border-0 bg-transparent;
+  }
+
+  .prose-static .code-block .shiki,
+  .prose-static .code-block .shiki span {
+    color: var(--shiki-light);
+  }
+
+  .dark .prose-static .code-block .shiki,
+  .dark .prose-static .code-block .shiki span {
+    color: var(--shiki-dark);
   }
 
   .prose-static blockquote {

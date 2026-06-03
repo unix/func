@@ -1,17 +1,15 @@
 ---
+import CodeBlock from '@/components/CodeBlock.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
 const projectTree = `.
 |-- src
-|   |-- commands            main command files
-|   |   |-- hello.ts        "<Command> hello"
-|   |   |-- major.ts        "<Command>"
-|   |   +-- index.ts        entry file
-|   |-- options             options files
-|   |   |-- help.ts         "<Command> --help"
-|   |   |-- version.ts      "<Command> --version"
-|   |   +-- index.ts        entry file
-|   +-- index.ts            entry file
+|   |-- app.module.ts       application module
+|   |-- commands
+|   |   |-- hello.ts        "hello" command
+|   |   |-- major.ts        empty invocation, --help, --version
+|   |   +-- index.ts        command list
+|   +-- index.ts            runs AppModule
 |-- tests                   testcases
 |   |-- commands            test for commands
 |   +-- utils               test utils
@@ -29,6 +27,27 @@ npm run dev --`
 const npmRunCode = `npm run dev -- hello
 npm run dev -- --version`
 
+const appModuleCode = `import { FuncModule } from 'func'
+import { commands } from './commands'
+
+@FuncModule({
+  commands,
+})
+export class AppModule {}`
+
+const commandCode = `import { Command, Handler } from 'func'
+
+@Command({
+  name: 'hello',
+  description: 'print hello text',
+})
+export class Hello {
+  @Handler()
+  run() {
+    console.log('hello command trigger!')
+  }
+}`
+
 const npmBuildCode = 'npm run build'
 ---
 
@@ -37,43 +56,46 @@ const npmBuildCode = 'npm run build'
   <p>
     Ensure you have the latest version of <a href="https://nodejs.org/en/download/"
       >NodeJS</a
-    > and a package manager such as <a href="https://www.npmjs.com/">NPM</a>.
-    Running one command starts the interactive project creator:
+    > and a package manager such as <a href="https://www.npmjs.com/">NPM</a>. Running
+    one command starts the interactive project creator:
   </p>
-  <pre set:text={npmCreateCode} />
+  <CodeBlock code={npmCreateCode} lang="shell" />
 
   <h2>Development</h2>
   <p>After you create an initial project, you will see these files:</p>
-  <pre set:text={projectTree} />
+  <CodeBlock code={projectTree} />
   <p>
     Before editing, install the dependencies and set up the development environment:
   </p>
-  <pre set:text={npmInstallCode} />
+  <CodeBlock code={npmInstallCode} lang="shell" />
   <p>At this point, all preparation is complete.</p>
   <p>
-    You can browse the examples in <code>commands</code> and <code>options</code>,
-    modify them, and run your commands through the local TypeScript entry:
+    You can browse the examples in <code>commands</code>, modify them, and run your
+    commands through the local TypeScript entry:
   </p>
-  <pre set:text={npmRunCode} />
+  <CodeBlock code={npmRunCode} lang="shell" />
+  <p>The template registers commands through a root application module:</p>
+  <CodeBlock code={appModuleCode} lang="ts" />
+  <p>
+    A command is a class with one or more <code>@Handler</code> methods:
+  </p>
+  <CodeBlock code={commandCode} lang="ts" />
 
   <h2>Bundle</h2>
   <p>
     If you use the template to create a project, you only need one command to package
     it:
   </p>
-  <pre set:text={npmBuildCode} />
+  <CodeBlock code={npmBuildCode} lang="shell" />
   <p>
     After running the command, your project is packaged into the configured output
     directory.
   </p>
   <p>
-    When using <code>func</code>, you do not need to think about <code>bin</code>
-    files, file updates, or symlink problems. <code>func</code> handles all of that automatically,
-    so you can publish immediately.
+    <code>funcgo build</code> bundles the configured entry and writes an executable
+    <code>bin.js</code>. The template already points <code>package.json#bin</code>
+    at that generated file.
   </p>
-  <blockquote>
-    If you need to return to development mode, run <code>npm run dev</code> again.
-  </blockquote>
 
   <h2>Publish</h2>
   <p>
