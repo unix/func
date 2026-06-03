@@ -32,7 +32,7 @@ export const run = async (
 
 const resolveModule = (input: FuncModuleInput): ResolvedModule => {
   const params = isModuleClass(input)
-    ? Reflect.getMetadata(metadata.FUNC_MODULE_IDENTIFIER, input)
+    ? Reflect.getMetadata(metadata.FUNC_MODULE_IDENTIFIER, input) as FuncModuleParams | undefined
     : input
 
   if (!params) {

@@ -6,6 +6,7 @@
     "lib": ["esnext"],
     "types": ["node"],
     "ignoreDeprecations": "6.0",
+    "rootDir": "src",
     "outDir": "dist",
     "esModuleInterop": true,
     "removeComments": true,
