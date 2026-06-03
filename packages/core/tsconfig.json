@@ -4,6 +4,8 @@
     "module": "commonjs",
     "target": "esnext",
     "lib": ["esnext"],
+    "types": ["node"],
+    "ignoreDeprecations": "6.0",
     "outDir": "dist",
     "esModuleInterop": true,
     "removeComments": true,
