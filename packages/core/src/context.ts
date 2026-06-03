@@ -1,10 +1,12 @@
-import type { FuncErrorCode } from './constants'
-import { errorLevels, errorTypes } from './constants'
-import { FuncError } from './errors'
+import { RegisterCommandParams } from './interfaces'
+import type {
+  FuncError,
+  FuncErrorCode,
+  errorLevels,
+  errorTypes,
+} from './errors'
 
-export class CommandErrorProvider {
-  static isCommandErrorProvider: boolean = true
-
+export class FuncException {
   private defaultPrintPrevented = false
 
   constructor(private _error: FuncError) {}
@@ -39,5 +41,15 @@ export class CommandErrorProvider {
 
   preventDefaultPrint() {
     this.defaultPrintPrevented = true
+  }
+}
+
+export class CommandRegistry {
+  constructor(
+    private _commands: RegisterCommandParams[] = [],
+  ) {}
+
+  get commands(): RegisterCommandParams[] {
+    return this._commands
   }
 }

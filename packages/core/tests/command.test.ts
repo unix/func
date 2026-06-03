@@ -1,30 +1,51 @@
+import 'reflect-metadata'
+import { Command, F_SYSTEM } from '../src'
+import { handlers, metadata } from '../src/utils/metadata'
 import { expect, random, test } from './_test'
-import { Command } from '../src/annotations'
-import { metadata, handlers } from '../src/utils/metadata'
 
-test('metadata should be defined', () => {
-  const name = random()
-  const description = random()
-  const target = {}
-  Command({ name, description })(target)
+test('should define command metadata and handler type', () => {
+  const params = {
+    name: random(),
+    alias: 'b',
+    description: 'Build the project',
+  }
 
-  const output = Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, target)
-  expect(output.name).toBe(name)
-  expect(output.description).toBe(description)
+  @Command(params)
+  class BuildCommand {}
+
+  expect(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, BuildCommand)).toEqual(params)
+  expect(Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, BuildCommand)).toBe(handlers.COMMAND)
 })
 
-test('handler type should be defined', () => {
-  const target = {}
-  Command({ name: random() })(target)
+test('should copy command params before storing metadata', () => {
+  const params = {
+    name: random(),
+    description: 'Original description',
+  }
 
-  const output = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, target)
-  expect(output).toBe(handlers.COMMAND)
+  @Command(params)
+  class BuildCommand {}
+
+  params.description = 'Changed description'
+
+  expect(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, BuildCommand)).toEqual({
+    name: params.name,
+    description: 'Original description',
+  })
 })
 
-test('should get an error when name is undefined', () => {
-  expect(() => Command({ name: undefined })({})).toThrow()
-})
+test('should reject invalid command name and alias', () => {
+  expect(() => {
+    @Command({ name: '-build' })
+    class InvalidNameCommand {}
 
-test('should get an error when name starts with hyphen', () => {
-  expect(() => Command({ name: '-bad' })({})).toThrow()
+    return InvalidNameCommand
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+
+  expect(() => {
+    @Command({ name: random(), alias: 'bad alias' })
+    class InvalidAliasCommand {}
+
+    return InvalidAliasCommand
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
 })

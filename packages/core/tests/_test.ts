@@ -4,7 +4,7 @@ import type { ContainerParams } from '../src/containers/container'
 import { random } from './_utils'
 
 interface Fixtures {
-  runContainer: (argv: string[], handlers: ContainerParams) => Container
+  runContainer: (argv: string[], handlers: ContainerParams) => Promise<Container>
   setArgv: (argv: string[]) => void
 }
 
@@ -19,9 +19,11 @@ const test = baseTest.extend<Fixtures>({
     process.argv = original
   },
   runContainer: async ({ setArgv }, use) => {
-    await use((argv, handlers) => {
+    await use(async (argv, handlers) => {
       setArgv(argv)
-      return new Container(handlers)
+      const container = new Container(handlers)
+      await container.run()
+      return container
     })
   },
 })

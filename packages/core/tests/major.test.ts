@@ -1,11 +1,12 @@
+import 'reflect-metadata'
+import { CommandMajor } from '../src'
+import { handlers, metadata } from '../src/utils/metadata'
 import { expect, test } from './_test'
-import { CommandMajor } from '../src/annotations'
-import { metadata, handlers } from '../src/utils/metadata'
 
-test('handler type should be defined', () => {
-  const target = {}
-  CommandMajor()(target)
+test('should mark a class as major command handler', () => {
+  @CommandMajor()
+  class MajorCommand {}
 
-  const output = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, target)
-  expect(output).toBe(handlers.MAJOR)
+  expect(Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, MajorCommand)).toBe(handlers.MAJOR)
 })
+

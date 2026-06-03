@@ -1,11 +1,12 @@
+import 'reflect-metadata'
+import { CommandMissing } from '../src'
+import { handlers, metadata } from '../src/utils/metadata'
 import { expect, test } from './_test'
-import { CommandMissing } from '../src/annotations'
-import { metadata, handlers } from '../src/utils/metadata'
 
-test('missing should be defined', () => {
-  const target = {}
-  CommandMissing()(target)
+test('should mark a class as missing command handler', () => {
+  @CommandMissing()
+  class MissingHandler {}
 
-  const output = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, target)
-  expect(output).toBe(handlers.MISSING)
+  expect(Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, MissingHandler)).toBe(handlers.MISSING)
 })
+
