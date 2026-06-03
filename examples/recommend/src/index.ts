@@ -1,5 +1,9 @@
 import { commands } from './commands'
-import { options } from './options'
-import { Container } from 'func'
+import { FuncModule, run } from 'func'
 
-new Container([...commands, ...options])
+@FuncModule({
+  commands,
+})
+class AppModule {}
+
+run(AppModule)

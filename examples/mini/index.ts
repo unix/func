@@ -1,10 +1,16 @@
-import { Container, Command } from 'func'
+import { Command, FuncModule, Handler, run } from 'func'
 
 @Command({ name: 'create' })
 export class Create {
-  constructor() {
+  @Handler()
+  run() {
     console.log('ok')
   }
 }
 
-new Container([Create])
+@FuncModule({
+  commands: [Create],
+})
+class AppModule {}
+
+run(AppModule)

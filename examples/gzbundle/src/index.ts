@@ -1,7 +1,12 @@
 import * as commands from './commands'
-import * as options from './options'
-import { Container } from 'func'
+import { FuncModule, run } from 'func'
 
-const modules = Object.assign({}, commands, options)
+const modules = Object.assign({}, commands)
 const params = Object.values(modules) as Array<new (...args: any[]) => any>
-new Container(params)
+
+@FuncModule({
+  commands: params,
+})
+class AppModule {}
+
+run(AppModule)

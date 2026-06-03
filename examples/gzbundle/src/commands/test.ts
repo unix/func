@@ -1,10 +1,11 @@
-import { Command } from 'func'
+import { Command, Handler } from 'func'
 
 @Command({
   name: 'test',
 })
 export class Test {
-  constructor() {
+  @Handler()
+  run() {
     console.log('test ok!')
   }
 }

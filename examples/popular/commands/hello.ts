@@ -1,10 +1,11 @@
-import { Command, CommandArgsProvider } from 'func'
+import { Args, Command, FuncArgs, Handler } from 'func'
 
 @Command({
   name: 'hello',
 })
 export class Hello {
-  constructor(private args: CommandArgsProvider) {
+  @Handler()
+  run(@Args() args: FuncArgs) {
     console.log('hello invoked.')
     console.log(args.inputs, args.option)
   }
