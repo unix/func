@@ -1,0 +1,135 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const localCatchCode = `import { Catch, Command, Exception, FuncException, Handler } from 'func'
+
+@Command({ name: 'publish' })
+export class PublishCommand {
+  @Catch()
+  onError(@Exception() exception: FuncException) {
+    console.error(\`publish failed: \${exception.message}\`)
+    exception.preventDefaultPrint()
+  }
+
+  @Handler()
+  run() {
+    throw new Error('missing package')
+  }
+}`
+
+const globalCatchCode = `import { CatchAll, Exception, FuncException } from 'func'
+
+@CatchAll()
+export class ErrorHandler {
+  constructor(@Exception() exception: FuncException) {
+    if (exception.level === 'runtime-print') {
+      console.error(\`Invalid input: \${exception.message}\`)
+      exception.preventDefaultPrint()
+      return
+    }
+
+    console.error(exception.message)
+  }
+}`
+
+const moduleCode = `import { FuncModule } from 'func'
+import { PublishCommand } from './commands/publish'
+import { ErrorHandler } from './error-handler'
+
+@FuncModule({
+  commands: [PublishCommand, ErrorHandler],
+})
+export class AppModule {}`
+
+const throwFuncErrorCode = `import { F_RUNTIME_PRINT, createRuntimePrintError, errorTypes } from 'func'
+
+throw createRuntimePrintError(
+  F_RUNTIME_PRINT.VALIDATION,
+  errorTypes.INPUT,
+  'Token is required.',
+  { option: 'token' },
+)`
+
+const errorFamilies = [
+  {
+    family: 'F_SYSTEM',
+    when: '无效命令定义、重复注册、缺失处理器或无效注入配置。',
+    behavior: '立即抛出。系统错误不会传递给用户错误处理器。',
+  },
+  {
+    family: 'F_RUNTIME',
+    when: '选中的命令处理器、catch 方法或全局错误处理器抛出错误。',
+    behavior: '先传递给局部 catch，再传递给全局错误处理器。没有处理器时会直接抛出。',
+  },
+  {
+    family: 'F_RUNTIME_PRINT',
+    when: '输入错误，例如解析失败、未知选项、多个处理器标志同时命中或校验失败。',
+    behavior: '传递给处理器，并默认打印到 stderr，除非调用 preventDefaultPrint()。',
+  },
+]
+---
+
+<DocsLayout locale="zh-cn" page="errors">
+  <h1>错误处理</h1>
+  <p>
+    <code>func</code> 会区分系统错误、运行时错误和 runtime-print 错误。
+    局部命令 catch 会先于全局处理器运行。
+  </p>
+
+  <h2>错误类型</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>类型</th>
+          <th>何时出现</th>
+          <th>行为</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          errorFamilies.map(item => (
+            <tr>
+              <td>
+                <code>{item.family}</code>
+              </td>
+              <td>{item.when}</td>
+              <td>{item.behavior}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>系统错误</h2>
+  <p>
+    系统错误描述无效框架配置：重复命令名、重复选项 token、缺失处理器、不支持的数组类型、
+    无效装饰器目标或缺失 provider。它们应该在开发阶段修复，不会传递给
+    <code>@Catch</code> 或 <code>@CatchAll</code>。
+  </p>
+
+  <h2>单命令 Catch</h2>
+  <p>
+    <code>@Catch()</code> 会在命令类上注册一个方法。它会在任何全局处理器运行前，
+    捕获该命令产生的非系统错误。
+  </p>
+  <CodeBlock code={localCatchCode} lang="ts" />
+
+  <h2>全局错误处理器</h2>
+  <p>
+    <code>@CatchAll()</code> 注册全局错误处理器类。
+    <code>@CommandError()</code> 是 <code>@CatchAll()</code> 的别名。
+    全局处理器需要和应用其他命令一起注册到同一个命令列表中。
+  </p>
+  <CodeBlock code={globalCatchCode} lang="ts" />
+  <CodeBlock code={moduleCode} lang="ts" />
+
+  <h2>Runtime-print 错误</h2>
+  <p>
+    Runtime-print 错误默认会打印到 stderr。如果你的处理器已经打印了消息，
+    可以调用 <code>preventDefaultPrint()</code>。
+  </p>
+  <CodeBlock code={throwFuncErrorCode} lang="ts" />
+</DocsLayout>

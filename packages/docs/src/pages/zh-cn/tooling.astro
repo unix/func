@@ -1,0 +1,65 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const setupCode = `funcgo setup
+funcgo setup --fix`
+
+const devCode = `funcgo dev -- hello
+funcgo dev -f src/index.ts -- hello --help`
+
+const buildCode = `funcgo build
+funcgo build -o dist
+funcgo build -e react -e ink`
+
+const packageConfigCode = `"func": {
+  "entry": "src/index.ts",
+  "outDir": "dist"
+},
+"bin": {
+  "my-cli": "./dist/bin.js"
+}`
+---
+
+<DocsLayout locale="zh-cn" page="tooling">
+  <h1>工具链</h1>
+  <p>
+    <code>funcgo</code> 是用于本地开发、项目配置和生产打包的配套 CLI。
+    模板会自动把这些命令写入 <code>package.json</code>。
+  </p>
+  <p>
+    如果你用默认 <code>func</code> 模板创建项目，<code>funcgo</code> 已经集成好了。
+    你可以直接运行模板脚本，不需要再次执行 <code>funcgo setup</code>。
+  </p>
+
+  <h2>Setup</h2>
+  <p>
+    <code>funcgo setup</code> 会检查你的项目并打印建议配置。当你把
+    <code>funcgo</code> 添加到已有项目，或修复自定义配置时可以使用它。
+    添加 <code>--fix</code> 会写入推荐字段。
+  </p>
+  <CodeBlock code={setupCode} lang="shell" />
+  <p>
+    Setup 可以推断或写入 <code>func.entry</code>、<code>func.outDir</code>、
+    <code>bin</code>、<code>scripts.dev</code> 和 <code>scripts.build</code>。
+  </p>
+
+  <h2>开发</h2>
+  <p>
+    <code>funcgo dev</code> 会通过本地运行时执行 TypeScript 入口。
+    使用 <code>--</code> 将参数传给你的 CLI。
+  </p>
+  <CodeBlock code={devCode} lang="shell" />
+
+  <h2>构建</h2>
+  <p>
+    <code>funcgo build</code> 会打包配置的入口、写入输出目录，并创建可执行的
+    <code>bin.js</code>。
+  </p>
+  <CodeBlock code={buildCode} lang="shell" />
+  <p>使用 <code>-e</code> 或 <code>--external</code> 指定应保留为外部依赖的包。</p>
+
+  <h2>配置</h2>
+  <p>这些字段是你的包和 <code>funcgo</code> 之间的主要约定：</p>
+  <CodeBlock code={packageConfigCode} lang="json" />
+</DocsLayout>

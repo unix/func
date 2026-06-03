@@ -1,0 +1,147 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const flagCode = `import { CommandMajor, Flag, Handler } from 'func'
+
+@CommandMajor()
+export class Major {
+  @Flag({ alias: 'v', description: 'Print more logs' })
+  verbose = false
+
+  @Handler()
+  run() {
+    console.log(this.verbose)
+  }
+}`
+
+const valueCode = `import { Command, Handler, Value } from 'func'
+
+@Command({ name: 'serve' })
+export class ServeCommand {
+  @Value()
+  host: string = 'localhost'
+
+  @Value()
+  port: number = 3000
+
+  @Value({ name: 'dry-run', type: Boolean })
+  dryRun = false
+
+  @Handler()
+  run() {
+    console.log(this.host, this.port, this.dryRun)
+  }
+}`
+
+const arrayCode = `import { ArrayValue, Command, Handler } from 'func'
+
+@Command({ name: 'build' })
+export class BuildCommand {
+  @ArrayValue({ name: 'include', alias: 'i' })
+  includes: string[] = []
+
+  @Handler()
+  run() {
+    console.log(this.includes)
+  }
+}`
+
+const validationCode = `import {
+  Command,
+  DependsOn,
+  Enum,
+  Exclusive,
+  Flag,
+  Handler,
+  Required,
+  Value,
+  ValueValidate,
+} from 'func'
+
+@Command({ name: 'publish' })
+export class PublishCommand {
+  @Required()
+  @Enum(['dev', 'prod'])
+  @Value()
+  target?: string
+
+  @DependsOn(['token'])
+  @Value()
+  registry?: string
+
+  @Value()
+  token?: string
+
+  @Exclusive(['json'])
+  @Flag()
+  table = false
+
+  @Flag()
+  json = false
+
+  @Value()
+  @ValueValidate(value => Number(value) > 0 || 'retry must be positive')
+  retry: number = 1
+
+  @Handler()
+  run() {}
+}`
+---
+
+<DocsLayout locale="zh-cn" page="options">
+  <h1>字段选项</h1>
+  <p>
+    字段选项会把命令属性变成 CLI 选项。<code>func</code> 会解析当前命令作用域，
+    将选项值赋给命令实例，然后运行选中的处理器。
+  </p>
+
+  <h2>标志</h2>
+  <p><code>@Flag</code> 创建布尔选项。用户没有传入该标志时，会使用属性默认值。</p>
+  <CodeBlock code={flagCode} lang="ts" />
+  <p>
+    <code>my-cli --verbose</code> 和 <code>my-cli -v</code> 都会把
+    <code>this.verbose</code> 设置为 <code>true</code>。
+  </p>
+
+  <h2>值</h2>
+  <p>
+    <code>@Value</code> 创建标量值选项。它可以从 TypeScript metadata 推断
+    <code>String</code>、<code>Number</code> 和 <code>Boolean</code>。
+    推断不足时可以使用 <code>type</code>。
+  </p>
+  <CodeBlock code={valueCode} lang="ts" />
+  <p>
+    对于 <code>my-cli serve --host 0.0.0.0 --port 4000</code>，实例会收到
+    <code>host = '0.0.0.0'</code> 和 <code>port = 4000</code>。
+  </p>
+
+  <h2>重复值</h2>
+  <p><code>@ArrayValue</code> 创建重复字符串选项。适用于用户可以多次传入同一选项的场景。</p>
+  <CodeBlock code={arrayCode} lang="ts" />
+  <p>
+    <code>my-cli build -i src -i tests</code> 会把
+    <code>['src', 'tests']</code> 赋给 <code>this.includes</code>。
+  </p>
+
+  <h2>校验</h2>
+  <p>
+    字段校验器会在选项值赋值后运行。校验错误属于 runtime-print 错误，
+    因此可以由局部或全局错误处理器格式化。
+  </p>
+  <CodeBlock code={validationCode} lang="ts" />
+  <ul>
+    <li><code>@Required</code> 要求值已定义。</li>
+    <li><code>@Enum</code> 将值限制在允许列表中。</li>
+    <li><code>@DependsOn</code> 要求显式传入此选项时，同时传入相关选项。</li>
+    <li><code>@Exclusive</code> 拒绝互相冲突的显式选项组合。</li>
+    <li><code>@ValueValidate</code> 运行自定义校验逻辑。</li>
+  </ul>
+
+  <h2>子选项</h2>
+  <p>
+    <code>@SubOptions</code> 为命令作用域声明仅用于解析的选项。对于大多数类型化命令值，
+    优先使用字段选项。只有当你确实想从 <code>@Args()</code> 读取归一化选项数据时，
+    才使用子选项。
+  </p>
+</DocsLayout>

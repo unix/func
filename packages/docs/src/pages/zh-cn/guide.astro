@@ -1,0 +1,92 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const projectTree = `.
+|-- src
+|   |-- app.module.ts       application module
+|   |-- commands
+|   |   |-- hello.ts        "hello" command
+|   |   |-- major.ts        empty invocation, --help, --version
+|   |   +-- index.ts        command list
+|   +-- index.ts            runs AppModule
+|-- tests                   testcases
+|   |-- commands            test for commands
+|   +-- utils               test utils
+|-- package.json
+|-- tsconfig.json
++-- README.md`
+
+const npmCreateCode = `npm init func
+# or
+pnpm create func`
+
+const npmInstallCode = `npm i
+npm run dev --`
+
+const npmRunCode = `npm run dev -- hello
+npm run dev -- --version`
+
+const appModuleCode = `import { FuncModule } from 'func'
+import { commands } from './commands'
+
+@FuncModule({
+  commands,
+})
+export class AppModule {}`
+
+const commandCode = `import { Command, Handler } from 'func'
+
+@Command({
+  name: 'hello',
+  description: 'print hello text',
+})
+export class Hello {
+  @Handler()
+  run() {
+    console.log('hello command trigger!')
+  }
+}`
+
+const npmBuildCode = 'npm run build'
+---
+
+<DocsLayout locale="zh-cn" page="guide">
+  <h1>快速开始</h1>
+  <p>
+    请先确保已安装新版 <a href="https://nodejs.org/en/download/">NodeJS</a>
+    和 NPM、pnpm 等包管理器。执行一个命令即可启动交互式项目创建器：
+  </p>
+  <CodeBlock code={npmCreateCode} lang="shell" />
+
+  <h2>开发</h2>
+  <p>创建初始项目后，你会看到这些文件：</p>
+  <CodeBlock code={projectTree} />
+  <p>开始编辑前，先安装依赖并准备开发环境：</p>
+  <CodeBlock code={npmInstallCode} lang="shell" />
+  <p>到这里，准备工作就完成了。</p>
+  <p>
+    你可以浏览 <code>commands</code> 中的示例，修改它们，然后通过本地 TypeScript
+    入口运行命令：
+  </p>
+  <CodeBlock code={npmRunCode} lang="shell" />
+  <p>模板会通过根应用模块注册命令：</p>
+  <CodeBlock code={appModuleCode} lang="ts" />
+  <p>命令是一个带有一个或多个 <code>@Handler</code> 方法的类：</p>
+  <CodeBlock code={commandCode} lang="ts" />
+
+  <h2>打包</h2>
+  <p>如果你使用默认模板创建项目，只需要一个命令即可打包：</p>
+  <CodeBlock code={npmBuildCode} lang="shell" />
+  <p>命令执行后，项目会被打包到配置的输出目录。</p>
+  <p>
+    <code>funcgo build</code> 会打包配置的入口，并写出可执行的
+    <code>bin.js</code>。模板已经把 <code>package.json#bin</code> 指向该生成文件。
+  </p>
+
+  <h2>发布</h2>
+  <p>
+    构建产物生成后即可发布包。模板已经把 <code>package.json#bin</code>
+    指向生成的可执行文件。
+  </p>
+</DocsLayout>

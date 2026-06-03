@@ -3,11 +3,19 @@
 import react from '@astrojs/react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
+import { joinLine } from './src/lib/astroJoinLine.mjs'
 
 // https://astro.build/config
 export default defineConfig({
+  i18n: {
+    locales: ['en', 'zh-cn'],
+    defaultLocale: 'en',
+    routing: {
+      prefixDefaultLocale: false,
+    },
+  },
   output: 'static',
-  integrations: [react()],
+  integrations: [react(), joinLine()],
   vite: {
     plugins: [tailwindcss()],
   },

@@ -1,0 +1,37 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const commandCode = `import { Command, Handler } from 'func'
+
+@Command({
+  name: 'config',
+  alias: 'c',
+})
+export class ConfigCommand {
+  @Handler({ path: ['get'] })
+  get() {
+    console.log('get config')
+  }
+
+  @Handler({ flag: 'help', alias: 'h' })
+  help() {
+    console.log('usage')
+  }
+
+  @Handler()
+  run() {
+    console.log('default')
+  }
+}`
+---
+
+<DocsLayout locale="zh-cn" page="commands">
+  <h1>命令</h1>
+  <p>
+    命令文档已经移到 <a href="/zh-cn/concepts">核心概念</a>，这样左侧导航可以保持紧凑。
+    当前命令模型支持默认处理器、标志处理器和路径处理器：
+  </p>
+  <CodeBlock code={commandCode} lang="ts" />
+  <p>完整装饰器签名见 <a href="/zh-cn/apis">API 参考</a>。</p>
+</DocsLayout>

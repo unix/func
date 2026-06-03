@@ -1,0 +1,40 @@
+---
+import DocsLayout from '@/layouts/docs.astro'
+---
+
+<DocsLayout locale="zh-cn" page="/">
+  <h1>介绍</h1>
+  <p>
+    <code>func</code>是一个面向 TypeScript 的小型装饰器 CLI 框架。它适合想把命令行工具做得轻巧专注，同时又希望保留应用结构、类型安全和长期可维护性的开发者。
+  </p>
+  <p>
+    当一个 CLI 已经超出一次性脚本的范围，但还不需要庞大的平台式框架时，<code>func</code>正好能接住这段需求。它让命令定义更清楚，选项解析更稳定，校验逻辑靠近对应字段，错误处理也更容易判断和维护。
+  </p>
+  <p>
+    你会得到一套起步轻、长大后也稳的工具链：本地 TypeScript 运行很快，生产产物很小，服务可以复用，命令之间也有清楚的边界。你可以通过<a href="/zh-cn/guide">快速开始指南</a>在几秒内创建项目。
+  </p>
+
+  <h2>特性</h2>
+  <ul>
+    <li>
+      默认生产产物很小。可以查看<a
+        href="https://github.com/unix/func/blob/main/examples/popular/archived.tar.gz"
+        >参考输出</a
+      >；
+    </li>
+    <li>
+      像写 TypeScript 应用一样写 CLI：用装饰器、类和模块组织命令，不必把注册逻辑散落在各处；
+    </li>
+    <li>
+      从想法到可发布命令更快：<code>funcgo</code>负责项目初始化、本地 TypeScript 运行和生产构建；
+    </li>
+    <li>
+      让命令代码专注于业务本身，命令名、路径、标志、值、校验和缺失命令处理交给<code>func</code>；
+    </li>
+    <li>
+      从小工具扩展成多命令 CLI 时不必推倒重来，模块、可复用服务和类型化上下文注入会帮你稳住结构；
+    </li>
+    <li>把校验和错误处理放在对应命令附近，让用户看到更清晰的失败提示。</li>
+  </ul>
+
+</DocsLayout>

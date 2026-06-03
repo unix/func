@@ -1,11 +1,13 @@
 ---
-import { navItems, type DocPage } from '@/lib/docs'
+import { defaultLocale, getNavItems, type DocPage, type Locale } from '@/lib/docs'
 
 interface Props {
+  locale?: Locale
   page: DocPage
 }
 
-const { page } = Astro.props
+const { locale = defaultLocale, page } = Astro.props
+const navItems = getNavItems(locale)
 ---
 
 <aside class="min-w-0 lg:sticky lg:top-8 lg:self-start">

@@ -1,0 +1,209 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const majorCode = `import { CommandMajor, Handler } from 'func'
+
+@CommandMajor()
+export class MajorCommand {
+  @Handler()
+  run() {
+    console.log('welcome')
+  }
+}`
+
+const commandCode = `import { Command, Handler } from 'func'
+
+@Command({ name: 'build', alias: 'b' })
+export class BuildCommand {
+  @Handler()
+  run() {
+    console.log('build')
+  }
+}`
+
+const missingCode = `import { CommandMissing } from 'func'
+
+@CommandMissing()
+export class MissingCommand {
+  constructor() {
+    console.log('unknown command')
+  }
+}`
+
+const commandScopes = [
+  {
+    input: 'my-cli',
+    target: 'MajorCommand',
+    reason: '没有命令名，因此运行主命令。',
+  },
+  {
+    input: 'my-cli build',
+    target: 'BuildCommand',
+    reason: '第一个输入 token 匹配 build。',
+  },
+  {
+    input: 'my-cli b',
+    target: 'BuildCommand',
+    reason: '第一个输入 token 匹配命令别名。',
+  },
+]
+
+const missingScope = {
+  input: 'my-cli unknown',
+  target: 'MissingCommand',
+  reason: '第一个输入 token 不是已注册命令。',
+}
+
+const handlerCode = `import { Command, Handler } from 'func'
+
+@Command({ name: 'config' })
+export class ConfigCommand {
+  @Handler({ path: ['get'] })
+  get() {
+    console.log('get config')
+  }
+
+  @Handler({ flag: 'help', alias: 'h' })
+  help() {
+    console.log('usage')
+  }
+
+  @Handler()
+  run() {
+    console.log('config')
+  }
+}`
+
+const moduleCode = `import { Command, FuncModule, Handler, Service, run } from 'func'
+
+@Service()
+class ProjectService {
+  name() {
+    return 'demo'
+  }
+}
+
+@Command({ name: 'build' })
+class BuildCommand {
+  constructor(private project: ProjectService) {}
+
+  @Handler()
+  run() {
+    console.log(this.project.name())
+  }
+}
+
+@FuncModule({
+  commands: [BuildCommand],
+  services: [ProjectService],
+})
+class AppModule {}
+
+run(AppModule)`
+---
+
+<DocsLayout locale="zh-cn" page="concepts">
+  <h1>核心概念</h1>
+  <p>
+    一个 <code>func</code> 应用会把装饰过的类注册到 <code>FuncModule</code> 中。
+    运行时，<code>func</code> 会找到匹配用户 CLI 输入的类，选择一个处理器方法，
+    注入字段和参数，然后运行该处理器。
+  </p>
+
+  <h2>命令作用域</h2>
+  <p>命令作用域是拥有当前 CLI 输入的类。先从两个常见情况开始：没有命令名，以及具名命令。</p>
+
+  <h3>主命令</h3>
+  <p><code>@CommandMajor</code> 会在用户不带命令名调用 CLI 时运行。</p>
+  <CodeBlock code={majorCode} lang="ts" />
+
+  <h3>具名命令</h3>
+  <p>
+    当第一个输入 token 匹配 <code>name</code> 或 <code>alias</code> 时，
+    <code>@Command</code> 会运行。
+  </p>
+  <CodeBlock code={commandCode} lang="ts" />
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>用户输入</th>
+          <th>运行</th>
+          <th>原因</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          commandScopes.map(item => (
+            <tr>
+              <td>
+                <code>{item.input}</code>
+              </td>
+              <td>
+                <code>{item.target}</code>
+              </td>
+              <td>{item.reason}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h3>未知命令</h3>
+  <p>
+    <code>@CommandMissing</code> 是可选的。当你想为无法匹配任何具名命令的输入提供自定义消息时，
+    可以使用它。
+  </p>
+  <CodeBlock code={missingCode} lang="ts" />
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>用户输入</th>
+          <th>运行</th>
+          <th>原因</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>{missingScope.input}</code>
+          </td>
+          <td>
+            <code>{missingScope.target}</code>
+          </td>
+          <td>{missingScope.reason}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>处理器</h2>
+  <p>
+    每个命令作用域至少需要一个 <code>@Handler</code> 方法。处理器可以是默认方法、
+    标志触发方法或路径方法。路径处理器会先于标志处理器检查，并且最长匹配路径优先。
+  </p>
+  <CodeBlock code={handlerCode} lang="ts" />
+  <p>
+    对于 <code>my-cli config get</code>，会运行路径处理器。对于
+    <code>my-cli config --help</code>，会运行标志处理器。如果没有路径或标志处理器匹配，
+    则运行默认处理器。
+  </p>
+
+  <h2>模块与服务</h2>
+  <p>
+    <code>@FuncModule</code> 可以注册命令、导入功能模块并注册服务。服务只会实例化一次，
+    并且可以依赖其他已注册服务。
+  </p>
+  <CodeBlock code={moduleCode} lang="ts" />
+
+  <h2>后续主题</h2>
+  <p>
+    使用 <a href="/zh-cn/options">字段选项</a> 处理标志和值，
+    使用 <a href="/zh-cn/parameters">参数注入</a> 了解 <code>@Args</code>、
+    <code>@Regs</code> 和 <code>@Exception</code>，使用
+    <a href="/zh-cn/errors">错误处理</a> 了解局部和全局错误处理。
+  </p>
+</DocsLayout>

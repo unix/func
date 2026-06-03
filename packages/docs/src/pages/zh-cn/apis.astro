@@ -1,0 +1,382 @@
+---
+import DocsLayout from '@/layouts/docs.astro'
+
+const commandApis = [
+  {
+    signature: '@Command(params: CommandParams)',
+    structure:
+      'CommandParams = { name: string, description?: string, alias?: string }',
+    description: '注册具名命令。name 或 alias 会与第一个输入 token 匹配。',
+  },
+  {
+    signature: '@Handler(params?: HandlerParams)',
+    structure:
+      'HandlerParams = { flag?: string, alias?: string, description?: string, path?: string[] }',
+    description:
+      '注册默认处理器、标志处理器或路径处理器。path 不能与 flag 或 alias 同时使用。',
+  },
+  {
+    signature: '@SubOptions(params: Array<OptionParams>)',
+    structure:
+      'OptionParams = { name: string, type?: Boolean | String | Number | [String], description?: string, alias?: string }',
+    description:
+      '为当前命令作用域添加仅用于解析的选项。需要从命令实例读取值时，优先使用字段选项。',
+  },
+  {
+    signature: '@CommandMissing()',
+    structure: '-',
+    description: '注册当第一个输入 token 不是已知命令时实例化的类。',
+  },
+  {
+    signature: '@CommandMajor()',
+    structure: '-',
+    description: '注册空调用和顶层选项使用的主命令。',
+  },
+  {
+    signature: '@Catch()',
+    structure: '-',
+    description: '注册局部命令错误方法。它会先于全局错误处理器运行。',
+  },
+  {
+    signature: '@CatchAll() / @CommandError()',
+    structure: '-',
+    description: '注册全局错误处理器类。CommandError 是 CatchAll 的别名。',
+  },
+]
+
+const fieldApis = [
+  {
+    signature: '@Flag(params?)',
+    structure: 'params = { name?: string, alias?: string, description?: string }',
+    description: '声明一个赋值给被装饰属性的布尔选项。',
+  },
+  {
+    signature: '@Value(params?)',
+    structure:
+      'params = { name?: string, alias?: string, description?: string, type?: Boolean | String | Number | [String], required?: boolean }',
+    description: '声明标量值选项。能从 design metadata 推断类型时会自动推断。',
+  },
+  {
+    signature: '@ArrayValue(params?)',
+    structure: 'params = { name?: string, alias?: string, description?: string }',
+    description: '声明重复字符串选项，并以字符串数组赋给属性。',
+  },
+  {
+    signature: '@Required()',
+    structure: '-',
+    description: '要求选项被显式提供，或拥有已定义的值。',
+  },
+  {
+    signature: '@Enum(values)',
+    structure: 'values = Array<boolean | string | number>',
+    description: '校验标量值或数组中的每一项是否位于允许列表中。',
+  },
+  {
+    signature: '@DependsOn(options)',
+    structure: 'options = string[]',
+    description: '当此选项被显式提供时，要求同时提供其他选项。',
+  },
+  {
+    signature: '@Exclusive(options)',
+    structure: 'options = string[]',
+    description: '拒绝此选项与列表中的任一选项同时显式出现。',
+  },
+  {
+    signature: '@ValueValidate(fn)',
+    structure: 'fn(value, options) => boolean | string | void',
+    description: '运行自定义校验器。返回 false 或字符串会创建校验错误。',
+  },
+]
+
+const contextApis = [
+  {
+    signature: '@Args()',
+    description:
+      '注入 FuncArgs：命令元数据、选中的处理器、inputs、path、归一化 option 和原生解析数据。',
+  },
+  {
+    signature: '@Regs()',
+    description: '注入 CommandRegistry，用于读取已注册命令元数据。',
+  },
+  {
+    signature: '@Exception()',
+    description: '向局部 catch 方法和全局错误处理器注入 FuncException。',
+  },
+]
+
+const appApis = [
+  {
+    signature: '@FuncModule(params)',
+    structure:
+      'params = { commands?: Class[], imports?: FuncModuleInput[], services?: Class[] }',
+    description: '创建应用模块或功能模块。',
+  },
+  {
+    signature: '@Service()',
+    structure: '-',
+    description: '标记一个可被注入到命令或其他已注册服务中的服务类。',
+  },
+  {
+    signature: 'run(input, options?)',
+    structure: 'options = { argv?: string[], services?: Class[] }',
+    description: '创建应用并执行。',
+  },
+  {
+    signature: 'createApp(input, options?)',
+    structure: 'options = { argv?: string[], services?: Class[] }',
+    description: '创建底层 Container，但不运行它。',
+  },
+]
+
+const typesApis = [
+  {
+    signature: 'FuncArgs',
+    structure:
+      '{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }',
+    description: '由 Args 注入的归一化运行时上下文。',
+  },
+  {
+    signature: 'FuncException',
+    structure: 'code, details, error, level, message, type, preventDefaultPrint()',
+    description: 'catch 和错误处理器使用的 FuncError 包装对象。',
+  },
+  {
+    signature: 'CommandRegistry',
+    structure: '{ commands: RegisterCommandParams[] }',
+    description: '由 Regs 注入的只读注册表上下文。',
+  },
+]
+
+const supportApis = [
+  {
+    signature: 'funcgo setup',
+    structure: '--fix?',
+    description:
+      '检查 package.json，并建议缺失的 func.entry、func.outDir、bin、dev script 和 build script 配置。',
+  },
+  {
+    signature: 'funcgo dev',
+    structure: '-f, --file <entry>; -- <args>',
+    description: '通过本地 TypeScript 运行时执行项目入口，并把参数透传给命令。',
+  },
+  {
+    signature: 'funcgo build',
+    structure: '-f, --file <entry>; -o, --out <dir>; -e, --external <package>',
+    description:
+      '为生产环境打包项目入口，输出到 func.outDir 或 dist，并创建可执行 bin.js。',
+  },
+]
+
+const supportConfigs = [
+  {
+    signature: 'package.json#func.entry',
+    description: 'funcgo dev 和 funcgo build 在未提供 --file 时使用的默认 TypeScript 入口文件。',
+  },
+  {
+    signature: 'package.json#func.outDir',
+    description: 'funcgo build 在未提供 --out 时使用的默认构建输出目录。',
+  },
+]
+---
+
+<DocsLayout locale="zh-cn" page="apis">
+  <h1>API 参考</h1>
+  <p>
+    本页是当前 <code>func</code> 核心 API 和 <code>funcgo</code> 支持命令的紧凑参考。
+    行为细节见 <a href="/zh-cn/concepts">核心概念</a>、
+    <a href="/zh-cn/options">字段选项</a>、<a href="/zh-cn/parameters">参数注入</a>
+    和 <a href="/zh-cn/errors">错误处理</a>。
+  </p>
+  <h2>命令</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>签名</th>
+          <th>结构</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          commandApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>字段选项和校验器</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>签名</th>
+          <th>结构</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          fieldApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>上下文注入</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>签名</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          contextApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>应用</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>签名</th>
+          <th>结构</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          appApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>运行时类型</h2>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>签名</th>
+          <th>结构</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          typesApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>支持命令</h2>
+  <p>
+    <code>funcgo</code> 为 <code>func</code> 项目提供标准开发和构建命令。
+    完整流程见 <a href="/zh-cn/tooling">工具链</a>。
+  </p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>签名</th>
+          <th>结构</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          supportApis.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>
+                <code>{item.structure}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h2>配置</h2>
+  <p><code>funcgo setup --fix</code> 可以自动写入推荐项目配置。</p>
+  <div class="overflow-x-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>签名</th>
+          <th>描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          supportConfigs.map(item => (
+            <tr>
+              <td>
+                <code>{item.signature}</code>
+              </td>
+              <td>{item.description}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</DocsLayout>
