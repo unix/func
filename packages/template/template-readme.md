@@ -1,28 +1,83 @@
-# Template Guide
+# func Template Guide
 
-## How to work
+## Project Shape
 
-Framework `func` analyzes your classes, distinguishes commands from options, and runs the matching item.
-The `funcgo` service handles local development and bundling so the project can focus on command behavior.
+The template is copied as source files when you create a project with
+`npm init func`. It does not include installed packages, downloaded assets, or
+build output.
 
-Want to learn more? Read the [`func` guide](https://github.com/unix/func#guide).
+```text
+src
+|-- app.module.ts
+|-- commands
+|   |-- error.ts
+|   |-- greet.ts
+|   |-- index.ts
+|   |-- major.ts
+|   +-- missing.ts
+|-- services
+|   |-- index.ts
+|   +-- project.ts
++-- index.ts
+```
+
+`src/index.ts` runs the application module. `src/app.module.ts` registers
+commands and services. Each command class owns its handlers and options.
 
 ## Development
 
-Run `pnpm dev -- <args>` to execute the TypeScript entry locally.
+Run `npm run dev -- <args>` to execute the TypeScript entry locally.
 
 Examples:
 
 ```sh
-pnpm dev --
-pnpm dev -- hello
-pnpm dev -- --version
+npm run dev --
+npm run dev -- --help
+npm run dev -- --version
+npm run dev -- --json --mode prod --tag cli
+npm run dev -- greet --name func
+npm run dev -- greet shout --name func
 ```
 
-## Bundle
+## Commands
 
-Run `pnpm build` to bundle the CLI into the `dist` folder.
+- `Major` handles empty invocation plus top-level options such as `--help`,
+  `--version`, `--json`, `--mode`, and repeated `--tag` values.
+- `Greet` is a named command with an alias, field options, a default handler,
+  and a path handler for `greet shout`.
+- `Missing` runs when a user enters an unknown command.
+- `ErrorHandler` formats runtime-print errors and prevents duplicate default
+  printing.
 
-## Release CLI
+## Options
 
-Publish the package after the `dist` folder has been generated.
+Prefer field decorators when you want parsed values assigned to the command
+instance:
+
+- `@Flag()` for boolean options.
+- `@Value()` for string, number, or boolean values.
+- `@ArrayValue()` for repeated string values.
+- `@Enum()`, `@Required()`, `@DependsOn()`, `@Exclusive()`, and
+  `@ValueValidate()` for validation.
+
+`@Args()` injects runtime context into handlers. `@Regs()` injects command
+metadata for help output. `@Exception()` injects error context into catch and
+error handlers.
+
+## Services
+
+Register services in `@FuncModule({ services })`, then type them in command
+constructors. The template includes `ProjectService` as a small example.
+
+## Build
+
+Run `npm run build` to bundle the CLI into the `dist` folder.
+
+## Publish
+
+Publish the package after `dist` has been generated. The template already points
+`package.json#bin` at the generated executable.
+
+## Learn More
+
+Read the full docs at [func.witt.im](https://func.witt.im).

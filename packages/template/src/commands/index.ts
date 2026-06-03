@@ -1,4 +1,6 @@
-import { Hello } from './hello'
+import { ErrorHandler } from './error'
+import { Greet } from './greet'
 import { Major } from './major'
+import { Missing } from './missing'
 
-export const commands = [Hello, Major]
+export const commands = [Major, Greet, Missing, ErrorHandler]

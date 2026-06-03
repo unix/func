@@ -1,5 +1,4 @@
-import { Container } from 'func'
-import { commands } from './commands'
-import { options } from './options'
+import { run } from 'func'
+import { AppModule } from './app.module'
 
-new Container([...commands, ...options])
+run(AppModule)

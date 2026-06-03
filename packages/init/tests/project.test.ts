@@ -1,8 +1,12 @@
 import { describe, expect, test } from 'vitest'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import {
   assertProjectName,
   packageNameFromProjectName,
   promptProjectName,
+  updatePackageMetadata,
 } from '../src/project'
 import { PromptSession } from '../src/ui'
 
@@ -55,5 +59,42 @@ describe('packageNameFromProjectName', () => {
   test('normalizes directory names to package names', () => {
     expect(packageNameFromProjectName('Hello Func')).toBe('hello-func')
     expect(packageNameFromProjectName('My App')).toBe('my-app')
+  })
+})
+
+describe('updatePackageMetadata', () => {
+  test('uses the project package name as the bin command name', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-func-project-'))
+
+    try {
+      fs.writeFileSync(
+        path.join(tempDir, 'package.json'),
+        `${JSON.stringify(
+          {
+            name: 'func-template',
+            bin: {
+              template: './dist/bin.js',
+            },
+          },
+          null,
+          2,
+        )}\n`,
+      )
+
+      updatePackageMetadata(tempDir, 'my-app')
+
+      expect(
+        JSON.parse(
+          fs.readFileSync(path.join(tempDir, 'package.json'), 'utf-8'),
+        ),
+      ).toEqual({
+        name: 'my-app',
+        bin: {
+          'my-app': './dist/bin.js',
+        },
+      })
+    } finally {
+      fs.rmSync(tempDir, { force: true, recursive: true })
+    }
   })
 })

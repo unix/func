@@ -14,6 +14,7 @@
     "src",
     "tests",
     "README.md",
+    "template-readme.md",
     "tsconfig.json",
     ".gitignore"
   ],
@@ -29,10 +30,10 @@
   },
   "devDependencies": {
     "@norehq/prettier": "^0.1.0",
-    "@types/node": "^20.10.0",
+    "@types/node": "^25.9.1",
     "funcgo": "latest",
     "prettier": "^3.8.3",
-    "typescript": "^4.5.5",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.7"
   }
 }

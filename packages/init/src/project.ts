@@ -29,7 +29,7 @@ export const createProject = async (): Promise<void> => {
     copyDirectory(extractedDir, targetDir)
 
     const packageName = packageNameFromProjectName(name)
-    updatePackageName(targetDir, packageName)
+    updatePackageMetadata(targetDir, packageName)
     restoreGitignore(targetDir)
     prompt.writeLine('')
     prompt.writeLine(`${color.green('Done.')} Created ${name}.`)
@@ -93,7 +93,10 @@ export const assertProjectName = (name: string): void => {
   }
 }
 
-const updatePackageName = (targetDir: string, packageName: string): void => {
+export const updatePackageMetadata = (
+  targetDir: string,
+  packageName: string,
+): void => {
   const packagePath = path.join(targetDir, 'package.json')
   if (!fs.existsSync(packagePath)) return
 
@@ -101,8 +104,31 @@ const updatePackageName = (targetDir: string, packageName: string): void => {
     string,
     unknown
   >
+  const bin = resolveBinEntry(pkg.bin)
+
   pkg.name = packageName
+  if (bin) {
+    pkg.bin = {
+      [packageName]: bin,
+    }
+  }
+
   fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`)
+}
+
+const resolveBinEntry = (bin: unknown): string | undefined => {
+  if (typeof bin === 'string') {
+    return bin
+  }
+
+  if (!bin || typeof bin !== 'object' || Array.isArray(bin)) {
+    return undefined
+  }
+
+  const entries = Object.values(bin)
+  const firstEntry = entries.find(entry => typeof entry === 'string')
+
+  return typeof firstEntry === 'string' ? firstEntry : undefined
 }
 
 const restoreGitignore = (targetDir: string): void => {
