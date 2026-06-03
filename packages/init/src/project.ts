@@ -1,6 +1,7 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { rewriteDownloadedTemplate } from './rewrite'
 import { FUNC_TEMPLATE_URL, downloadTemplate } from './template'
 import { Loading, PromptSession, color } from './ui'
 
@@ -29,8 +30,7 @@ export const createProject = async (): Promise<void> => {
     copyDirectory(extractedDir, targetDir)
 
     const packageName = packageNameFromProjectName(name)
-    updatePackageMetadata(targetDir, packageName)
-    restoreGitignore(targetDir)
+    rewriteDownloadedTemplate(targetDir, packageName)
     prompt.writeLine('')
     prompt.writeLine(`${color.green('Done.')} Created ${name}.`)
     prompt.writeLine('')
@@ -91,52 +91,6 @@ export const assertProjectName = (name: string): void => {
   if (/[\\/]/.test(name)) {
     throw new Error('Project name cannot contain path separators.')
   }
-}
-
-export const updatePackageMetadata = (
-  targetDir: string,
-  packageName: string,
-): void => {
-  const packagePath = path.join(targetDir, 'package.json')
-  if (!fs.existsSync(packagePath)) return
-
-  const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf-8')) as Record<
-    string,
-    unknown
-  >
-  const bin = resolveBinEntry(pkg.bin)
-
-  pkg.name = packageName
-  if (bin) {
-    pkg.bin = {
-      [packageName]: bin,
-    }
-  }
-
-  fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`)
-}
-
-const resolveBinEntry = (bin: unknown): string | undefined => {
-  if (typeof bin === 'string') {
-    return bin
-  }
-
-  if (!bin || typeof bin !== 'object' || Array.isArray(bin)) {
-    return undefined
-  }
-
-  const entries = Object.values(bin)
-  const firstEntry = entries.find(entry => typeof entry === 'string')
-
-  return typeof firstEntry === 'string' ? firstEntry : undefined
-}
-
-const restoreGitignore = (targetDir: string): void => {
-  const npmignorePath = path.join(targetDir, '.npmignore')
-  const gitignorePath = path.join(targetDir, '.gitignore')
-  if (!fs.existsSync(npmignorePath) || fs.existsSync(gitignorePath)) return
-
-  fs.renameSync(npmignorePath, gitignorePath)
 }
 
 const copyDirectory = (source: string, destination: string): void => {

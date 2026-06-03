@@ -6,8 +6,8 @@ import {
   assertProjectName,
   packageNameFromProjectName,
   promptProjectName,
-  updatePackageMetadata,
 } from '../src/project'
+import { rewriteDownloadedTemplate } from '../src/rewrite'
 import { PromptSession } from '../src/ui'
 
 class AnswerPrompt extends PromptSession {
@@ -62,8 +62,8 @@ describe('packageNameFromProjectName', () => {
   })
 })
 
-describe('updatePackageMetadata', () => {
-  test('uses the project package name as the bin command name', () => {
+describe('rewriteDownloadedTemplate', () => {
+  test('rewrites template files for a user project', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-func-project-'))
 
     try {
@@ -72,6 +72,15 @@ describe('updatePackageMetadata', () => {
         `${JSON.stringify(
           {
             name: 'func-template',
+            version: '1.1.0',
+            files: [
+              'src',
+              'tests',
+              'README.md',
+              'template-readme.md',
+              'tsconfig.json',
+              '.gitignore',
+            ],
             bin: {
               template: './dist/bin.js',
             },
@@ -80,8 +89,9 @@ describe('updatePackageMetadata', () => {
           2,
         )}\n`,
       )
+      fs.writeFileSync(path.join(tempDir, '.npmignore'), 'dist\n')
 
-      updatePackageMetadata(tempDir, 'my-app')
+      rewriteDownloadedTemplate(tempDir, 'my-app')
 
       expect(
         JSON.parse(
@@ -89,10 +99,16 @@ describe('updatePackageMetadata', () => {
         ),
       ).toEqual({
         name: 'my-app',
+        version: '0.0.0',
+        files: ['dist', 'package.json', 'README.md', 'tsconfig.json'],
         bin: {
           'my-app': './dist/bin.js',
         },
       })
+      expect(fs.existsSync(path.join(tempDir, '.npmignore'))).toBe(false)
+      expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf-8')).toBe(
+        'dist\n',
+      )
     } finally {
       fs.rmSync(tempDir, { force: true, recursive: true })
     }

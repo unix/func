@@ -9,7 +9,6 @@
     "test": "pnpm build && vitest run",
     "format": "prettier --write ."
   },
-  "prettier": "@norehq/prettier",
   "files": [
     "src",
     "tests",
@@ -29,7 +28,6 @@
     "func": "latest"
   },
   "devDependencies": {
-    "@norehq/prettier": "^0.1.0",
     "@types/node": "^25.9.1",
     "funcgo": "latest",
     "prettier": "^3.8.3",
