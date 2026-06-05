@@ -26,13 +26,13 @@
     "url": "git+https://github.com/unix/func.git",
     "directory": "packages/init"
   },
-  "prettier": "@norehq/prettier",
+  "prettier": "@unix/prettier",
   "dependencies": {
     "args": "^5.0.3",
     "tar": "^7.5.15"
   },
   "devDependencies": {
-    "@norehq/prettier": "^0.1.0",
+    "@unix/prettier": "^0.1.0",
     "@swc/core": "^1.15.40",
     "@types/args": "^5.0.4",
     "@types/node": "^25.9.1",

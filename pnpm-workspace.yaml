@@ -5,3 +5,13 @@ packages:
   - packages/init
   - packages/redirect
   - packages/template
+
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  msw: true
+  sharp: true
+  workerd: true
+
+minimumReleaseAgeExclude:
+  - '@unix/prettier@0.1.0'

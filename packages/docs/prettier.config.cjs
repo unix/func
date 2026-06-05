@@ -1,4 +1,4 @@
 module.exports = {
-  ...require('@norehq/prettier'),
+  ...require('@unix/prettier'),
   plugins: ['prettier-plugin-astro'],
 }

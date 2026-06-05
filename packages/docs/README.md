@@ -14,5 +14,5 @@ pnpm format
 ```
 
 The project uses Astro, TypeScript, Tailwind CSS v4, shadcn with baseUI, and the
-`@norehq/prettier` shared rules. Deployment uses Cloudflare Workers Static
+`@unix/prettier` shared rules. Deployment uses Cloudflare Workers Static
 Assets via Wrangler.

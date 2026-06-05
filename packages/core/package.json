@@ -26,9 +26,9 @@
     "type": "git",
     "url": "git+https://github.com/unix/func.git"
   },
-  "prettier": "@norehq/prettier",
+  "prettier": "@unix/prettier",
   "devDependencies": {
-    "@norehq/prettier": "^0.1.0",
+    "@unix/prettier": "^0.1.0",
     "@swc/core": "^1.15.40",
     "@types/node": "^25.9.1",
     "prettier": "^3.8.3",

@@ -1,7 +1,7 @@
 {
   "name": "func-workspace",
   "private": true,
-  "packageManager": "pnpm@7.33.7",
+  "packageManager": "pnpm@11.5.1",
   "scripts": {
     "test": "pnpm --filter func test",
     "build": "pnpm --filter func build",
