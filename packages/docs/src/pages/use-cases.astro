@@ -1,0 +1,162 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import CommandLine from '@/components/CommandLine.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const statusCode = `import { Command, Handler } from 'func'
+
+@Command({
+  name: 'status',
+  description: 'Print service status',
+})
+export class StatusCommand {
+  @Handler()
+  run() {
+    console.log('All systems operational')
+  }
+}`
+
+const domainAddCode = `import { Command, Handler } from 'func'
+
+@Command({
+  name: 'domain',
+  description: 'Manage custom domains',
+})
+export class DomainCommand {
+  @Handler({ path: ['add'] })
+  add() {
+    console.log('Adding domain')
+  }
+}`
+
+const registerCode = `import { Command, Flag, Handler, Required, Value } from 'func'
+
+@Command({
+  name: 'register',
+  description: 'Register a domain and optional checks',
+})
+export class RegisterCommand {
+  @Flag({ description: 'Create an issue after registration' })
+  issue = false
+
+  @Flag({ description: 'Run DNS checks' })
+  dns = false
+
+  @Required()
+  @Value({ type: String })
+  domain?: string
+
+  @Handler()
+  run() {
+    console.log(this.domain, {
+      issue: this.issue,
+      dns: this.dns,
+    })
+  }
+}`
+
+const userSearchCode = `import { Args, CommandMissing, Flag, FuncArgs, Handler } from 'func'
+
+@CommandMissing()
+export class UserSearchFallback {
+  @Flag({ description: 'Include profile details' })
+  includeProfile = false
+
+  @Flag({ description: 'Only return verified users' })
+  verified = false
+
+  @Handler()
+  async search(@Args() args: FuncArgs) {
+    const [username, ...aliases] = args.inputs
+    console.log('Searching user:', {
+      username,
+      aliases,
+      includeProfile: this.includeProfile,
+      verified: this.verified,
+    })
+  }
+}`
+
+const scaleCode = `import { ArrayValue, Command, Enum, Handler } from 'func'
+
+const MACHINES = ['1x-1024m', '1x-2048m', '2x-1024m', '2x-2048m']
+
+@Command({
+  name: 'scale',
+  description: 'Scale machines',
+})
+export class ScaleCommand {
+  @Enum(MACHINES)
+  @ArrayValue({ name: 'machine' })
+  machines: string[] = []
+
+  @Handler()
+  run() {
+    console.log('Scaling to:', this.machines)
+  }
+}`
+---
+
+<DocsLayout page="use-cases">
+  <h1>Use Cases</h1>
+  <p>
+    This page starts from the command a user wants to type, then maps it to the
+    smallest <code>func</code> model that keeps the CLI predictable. The examples assume
+    the executable name is <code>saas</code>.
+  </p>
+
+  <h2>Static Command</h2>
+  <CommandLine command="saas status" />
+  <p>
+    The user needs a quick health check for the SaaS service, such as whether the
+    API, database, and background workers are available. <code>status</code> is a stable
+    top-level verb, so model it as a normal <code>@Command</code> with one default
+    <code>@Handler</code>. This keeps command discovery, help output, and future
+    options attached to the right scope.
+  </p>
+  <CodeBlock code={statusCode} lang="ts" />
+
+  <h2>Command With a Path</h2>
+  <CommandLine command="saas domain add" />
+  <p>
+    The user needs to manage domains, and adding a domain is one fixed action under
+    that domain workflow. <code>domain</code> is the command, and <code>add</code> is a
+    static action under that command. Use <code
+      >@Handler(&#123; path: ['add'] &#125;)</code
+    >
+    when the action is a fixed path inside an already selected command.
+  </p>
+  <CodeBlock code={domainAddCode} lang="ts" />
+
+  <h2>Command With Flags and a Value</h2>
+  <CommandLine command="saas register --issue --dns --domain google.com" />
+  <p>
+    The user needs to register a domain and optionally create an issue or run DNS
+    checks during the same operation. <code>register</code> is still a static command.
+    Boolean switches become <code>@Flag</code> fields, and the domain becomes a required
+    <code>@Value</code>. This lets <code>func</code> parse, assign, and validate the options
+    before the handler runs.
+  </p>
+  <CodeBlock code={registerCode} lang="ts" />
+
+  <h2>Fallback Search Input</h2>
+  <CommandLine command="saas alice ally ali --includeProfile --verified" />
+  <p>
+    The user needs to fuzzy-search users by several possible names or aliases, then
+    shape the returned users by requesting profile details and limiting results to
+    verified accounts. Here the first token is not a fixed command; it is part of the
+    search input. Use <code>@CommandMissing</code> as a first-class fallback command, then
+    keep the result filters as typed flags.
+  </p>
+  <CodeBlock code={userSearchCode} lang="ts" />
+
+  <h2>Repeated Values With an Enum</h2>
+  <CommandLine command="saas scale --machine 2x-1024m --machine 1x-2048m" />
+  <p>
+    The user needs to resize the deployment to multiple machines in one command, and
+    each machine must use a supported size. <code>scale</code> is a static command, but
+    <code>--machine</code> can be repeated. Use <code>@ArrayValue</code> for repeated input
+    and <code>@Enum</code> to reject machine types outside the allowed set.
+  </p>
+  <CodeBlock code={scaleCode} lang="ts" />
+</DocsLayout>

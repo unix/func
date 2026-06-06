@@ -1,0 +1,13 @@
+---
+interface Props {
+  command: string
+}
+
+const { command } = Astro.props
+---
+
+<div
+  class="my-5 overflow-x-auto rounded-lg border border-white/10 bg-zinc-950 px-4 py-3 font-mono text-sm leading-6 text-zinc-100 shadow-sm">
+  <span class="select-none text-zinc-500">$</span>
+  <span>{command}</span>
+</div>

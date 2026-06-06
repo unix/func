@@ -27,7 +27,7 @@ const commandApis = [
     signature: '@CommandMissing()',
     structure: '-',
     description:
-      'Register a class that is instantiated when the first input token is not a known command.',
+      'Register a fallback command for bare input whose first token is not a known command. It can define handlers and field options like a normal command.',
   },
   {
     signature: '@CommandMajor()',

@@ -25,7 +25,8 @@ const commandApis = [
   {
     signature: '@CommandMissing()',
     structure: '-',
-    description: '注册当第一个输入 token 不是已知命令时实例化的类。',
+    description:
+      '注册用于处理未知首个裸输入的 fallback command。它可以像普通命令一样定义 handler 和字段选项。',
   },
   {
     signature: '@CommandMajor()',
@@ -170,7 +171,8 @@ const supportApis = [
 const supportConfigs = [
   {
     signature: 'package.json#func.entry',
-    description: 'funcgo dev 和 funcgo build 在未提供 --file 时使用的默认 TypeScript 入口文件。',
+    description:
+      'funcgo dev 和 funcgo build 在未提供 --file 时使用的默认 TypeScript 入口文件。',
   },
   {
     signature: 'package.json#func.outDir',
@@ -182,8 +184,8 @@ const supportConfigs = [
 <DocsLayout locale="zh-cn" page="apis">
   <h1>API 参考</h1>
   <p>
-    本页是当前 <code>func</code> 核心 API 和 <code>funcgo</code> 支持命令的紧凑参考。
-    行为细节见 <a href="/zh-cn/concepts">核心概念</a>、
+    本页是当前 <code>func</code> 核心 API 和 <code>funcgo</code> 支持命令的紧凑参考。 行为细节见
+    <a href="/zh-cn/concepts">核心概念</a>、
     <a href="/zh-cn/options">字段选项</a>、<a href="/zh-cn/parameters">参数注入</a>
     和 <a href="/zh-cn/errors">错误处理</a>。
   </p>
@@ -325,8 +327,9 @@ const supportConfigs = [
 
   <h2>支持命令</h2>
   <p>
-    <code>funcgo</code> 为 <code>func</code> 项目提供标准开发和构建命令。
-    完整流程见 <a href="/zh-cn/tooling">工具链</a>。
+    <code>funcgo</code> 为 <code>func</code> 项目提供标准开发和构建命令。 完整流程见 <a
+      href="/zh-cn/tooling">工具链</a
+    >。
   </p>
   <div class="overflow-x-auto">
     <table>

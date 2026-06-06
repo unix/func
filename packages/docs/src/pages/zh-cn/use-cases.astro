@@ -1,0 +1,159 @@
+---
+import CodeBlock from '@/components/CodeBlock.astro'
+import CommandLine from '@/components/CommandLine.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+const statusCode = `import { Command, Handler } from 'func'
+
+@Command({
+  name: 'status',
+  description: 'Print service status',
+})
+export class StatusCommand {
+  @Handler()
+  run() {
+    console.log('All systems operational')
+  }
+}`
+
+const domainAddCode = `import { Command, Handler } from 'func'
+
+@Command({
+  name: 'domain',
+  description: 'Manage custom domains',
+})
+export class DomainCommand {
+  @Handler({ path: ['add'] })
+  add() {
+    console.log('Adding domain')
+  }
+}`
+
+const registerCode = `import { Command, Flag, Handler, Required, Value } from 'func'
+
+@Command({
+  name: 'register',
+  description: 'Register a domain and optional checks',
+})
+export class RegisterCommand {
+  @Flag({ description: 'Create an issue after registration' })
+  issue = false
+
+  @Flag({ description: 'Run DNS checks' })
+  dns = false
+
+  @Required()
+  @Value({ type: String })
+  domain?: string
+
+  @Handler()
+  run() {
+    console.log(this.domain, {
+      issue: this.issue,
+      dns: this.dns,
+    })
+  }
+}`
+
+const userSearchCode = `import { Args, CommandMissing, Flag, FuncArgs, Handler } from 'func'
+
+@CommandMissing()
+export class UserSearchFallback {
+  @Flag({ description: 'Include profile details' })
+  includeProfile = false
+
+  @Flag({ description: 'Only return verified users' })
+  verified = false
+
+  @Handler()
+  async search(@Args() args: FuncArgs) {
+    const [username, ...aliases] = args.inputs
+    console.log('Searching user:', {
+      username,
+      aliases,
+      includeProfile: this.includeProfile,
+      verified: this.verified,
+    })
+  }
+}`
+
+const scaleCode = `import { ArrayValue, Command, Enum, Handler } from 'func'
+
+const MACHINES = ['1x-1024m', '1x-2048m', '2x-1024m', '2x-2048m']
+
+@Command({
+  name: 'scale',
+  description: 'Scale machines',
+})
+export class ScaleCommand {
+  @Enum(MACHINES)
+  @ArrayValue({ name: 'machine' })
+  machines: string[] = []
+
+  @Handler()
+  run() {
+    console.log('Scaling to:', this.machines)
+  }
+}`
+---
+
+<DocsLayout locale="zh-cn" page="use-cases">
+  <h1>使用案例</h1>
+  <p>
+    本页从用户希望输入的命令出发，给出最小且推荐的 <code>func</code>
+    建模方式。下面的示例都假设可执行命令名是 <code>saas</code>。
+  </p>
+
+  <h2>静态命令</h2>
+  <CommandLine command="saas status" />
+  <p>
+    现在用户需要快速查看 SaaS 服务状态，例如 API、数据库和后台任务是否可用。
+    <code>status</code> 是稳定的顶层动词，推荐直接建模为普通
+    <code>@Command</code>，并提供一个默认 <code>@Handler</code
+    >。这样帮助信息、命令发现和后续选项都会自然归属到这个命令。
+  </p>
+  <CodeBlock code={statusCode} lang="ts" />
+
+  <h2>命令和路径</h2>
+  <CommandLine command="saas domain add" />
+  <p>
+    现在用户需要管理域名，而添加域名是域名管理流程下的一个固定动作。
+    <code>domain</code> 是命令，<code>add</code> 是此命令下的静态动作。 推荐使用
+    <code>@Handler(&#123; path: ['add'] &#125;)</code
+    >，当动作是已选中命令内部的固定路径时，这会比手动解析输入更清晰。
+  </p>
+  <CodeBlock code={domainAddCode} lang="ts" />
+
+  <h2>命令、开关和值</h2>
+  <CommandLine command="saas register --issue --dns --domain google.com" />
+  <p>
+    现在用户需要注册一个域名，并且可以在同一次操作里选择是否创建 issue、是否执行 DNS
+    检查。
+    <code>register</code> 仍然是静态命令。布尔开关用 <code>@Flag</code>
+    声明，域名用必填的 <code>@Value</code> 声明。这样 <code>func</code> 会在执行 handler
+    之前完成解析、赋值和校验。
+  </p>
+  <CodeBlock code={registerCode} lang="ts" />
+
+  <h2>兜底搜索输入</h2>
+  <CommandLine command="saas alice ally ali --includeProfile --verified" />
+  <p>
+    现在用户需要通过命令模糊查询系统里的用户，支持多个查询关键词，例如用户名和多个别名，
+    最后得到满足返回要求的用户列表：包含资料详情，并且只返回已验证用户。这个命令的第一个
+    token 不是固定命令名，而是搜索条件。 推荐使用 <code>@CommandMissing</code>
+    作为正式的 fallback command，再把返回值要求建模成类型化的 flag。
+  </p>
+  <CodeBlock code={userSearchCode} lang="ts" />
+
+  <h2>重复值和枚举限制</h2>
+  <CommandLine command="saas scale --machine 2x-1024m --machine 1x-2048m" />
+  <p>
+    现在用户需要用一个命令把部署缩放到多台机器，并且每台机器都必须选择系统支持的规格。
+    <code>scale</code> 是静态命令，但 <code>--machine</code>
+    可以重复传入。推荐使用 <code>@ArrayValue</code> 接收多个值，并用 <code
+      >@Enum</code
+    >
+    限制机器类型，避免用户传入任意字符串。
+  </p>
+  <CodeBlock code={scaleCode} lang="ts" />
+</DocsLayout>

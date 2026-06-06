@@ -2,6 +2,7 @@ export type DocPage =
   | '/'
   | 'guide'
   | 'concepts'
+  | 'use-cases'
   | 'commands'
   | 'options'
   | 'parameters'
@@ -25,6 +26,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     '/': '/',
     guide: 'Guide',
     concepts: 'Core Concepts',
+    'use-cases': 'Use Cases',
     commands: 'Commands',
     options: 'Field Options',
     parameters: 'Parameters',
@@ -36,6 +38,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     '/': '/',
     guide: '指南',
     concepts: '核心概念',
+    'use-cases': '使用案例',
     commands: '命令',
     options: '字段选项',
     parameters: '参数注入',
@@ -53,6 +56,7 @@ const navPages: DocPage[] = [
   'parameters',
   'errors',
   'tooling',
+  'use-cases',
   'apis',
 ]
 
