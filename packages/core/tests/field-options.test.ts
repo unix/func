@@ -106,7 +106,13 @@ test('should require explicit type when value type cannot be inferred', () => {
     }
 
     return Options
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_TYPE }))
+  }).toThrow(expect.objectContaining({
+    code: F_SYSTEM.INVALID_PARAM_TYPE,
+    details: expect.objectContaining({
+      property: 'when',
+      reason: 'cannot-infer-value-type',
+    }),
+  }))
 })
 
 test('should mark existing and future field options as required', () => {

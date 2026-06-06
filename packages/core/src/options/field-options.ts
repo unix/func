@@ -72,7 +72,10 @@ const resolveType = (
     F_SYSTEM.INVALID_PARAM_TYPE,
     errorTypes.DEFINITION,
     `Cannot infer value type for "${propertyKey}". Please pass type explicitly.`,
-    { property: propertyKey },
+    {
+      property: propertyKey,
+      reason: 'cannot-infer-value-type',
+    },
   )
 }
 
