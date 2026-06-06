@@ -42,7 +42,7 @@ export interface ContainerOptions {
 
 interface Scope {
   handler: CommandClass
-  kind: handlers.COMMAND | handlers.MAJOR
+  kind: handlers.COMMAND | handlers.MAJOR | handlers.MISSING
 }
 
 interface SelectedHandler {
@@ -57,10 +57,7 @@ export class Container {
   private services: ServiceClass[]
   datas: ContainerData
 
-  constructor(
-    params: ContainerParams,
-    options: ContainerOptions = {},
-  ) {
+  constructor(params: ContainerParams, options: ContainerOptions = {}) {
     this.argv = options.argv || process.argv.slice(2)
     this.registry = new HandlerRegistry(params)
     this.services = options.services || []
@@ -79,6 +76,13 @@ export class Container {
   private async dispatch() {
     const scope = this.scope()
     if (!scope) return
+    if (
+      scope.kind === handlers.MISSING &&
+      !this.methodHandlers(scope.handler).length
+    ) {
+      this.dispatchLegacyMissing(scope.handler)
+      return
+    }
 
     const spec = this.optionSpec(scope.handler)
     const args = this.parse(spec)
@@ -104,13 +108,27 @@ export class Container {
     try {
       this.injectFields(scope.handler, instance, args, nativeOption)
       this.validateFieldValues(scope.handler, nativeOption)
-      new ConstraintValidator(this.fieldOptions(scope.handler), args, nativeOption).validate()
+      new ConstraintValidator(
+        this.fieldOptions(scope.handler),
+        args,
+        nativeOption,
+      ).validate()
 
-      const methodParams = factory.getMethodServiceParams(instance, selectedHandler.data.methodName)
+      const methodParams = factory.getMethodServiceParams(
+        instance,
+        selectedHandler.data.methodName,
+      )
 
-      await Promise.resolve(instance[selectedHandler.data.methodName](...methodParams))
+      await Promise.resolve(
+        instance[selectedHandler.data.methodName](...methodParams),
+      )
     } catch (error) {
-      const caught = await this.dispatchLocalCatch(scope.handler, instance, error, factory)
+      const caught = await this.dispatchLocalCatch(
+        scope.handler,
+        instance,
+        error,
+        factory,
+      )
       if (caught) return
 
       throw error
@@ -122,7 +140,10 @@ export class Container {
     if (command) return { handler: command, kind: handlers.COMMAND }
 
     if (this.argv[0] && !this.argv[0].startsWith('-')) {
-      return this.dispatchMissing()
+      const missing = this.registry.missing()[0]
+      if (missing) return { handler: missing, kind: handlers.MISSING }
+
+      return undefined
     }
 
     const major = this.registry.major()
@@ -140,8 +161,7 @@ export class Container {
     return undefined
   }
 
-  private dispatchMissing(): undefined {
-    const missing = this.registry.missing()
+  private dispatchLegacyMissing(missing: CommandClass) {
     const args = { _: this.argv } as arg.Result<any>
     const factory = new Factory({
       nativeOption: {},
@@ -150,11 +170,8 @@ export class Container {
       inputs: this.argv,
       services: this.services,
     })
-    missing.forEach(missCommand => {
-      const params = factory.getServiceParams(missCommand)
-      new missCommand(...params)
-    })
-    return undefined
+    const params = factory.getServiceParams(missing)
+    new missing(...params)
   }
 
   private parse(spec: arg.Spec): arg.Result<any> {
@@ -219,7 +236,9 @@ export class Container {
             throw createRuntimePrintError(
               F_RUNTIME_PRINT.VALIDATION,
               errorTypes.INPUT,
-              typeof result === 'string' ? result : `Option "--${data.name}" is invalid.`,
+              typeof result === 'string'
+                ? result
+                : `Option "--${data.name}" is invalid.`,
               { option: data.name, value: nativeOption[data.name] },
             )
           }
@@ -264,7 +283,8 @@ export class Container {
       )
     }
 
-    const selectedHandler = matchedHandlers[0] || methodHandlers.find(data => !data.flag)
+    const selectedHandler =
+      matchedHandlers[0] || methodHandlers.find(data => !data.flag)
     if (selectedHandler) {
       return {
         data: selectedHandler,
@@ -400,7 +420,8 @@ export class Container {
     const funcError = normalizeRuntimeError(error)
     if (funcError.level === errorLevels.SYSTEM) return false
 
-    const catches: CatchParams[] = Reflect.getMetadata(metadata.METHOD_CATCH_IDENTIFIER, handler) || []
+    const catches: CatchParams[] =
+      Reflect.getMetadata(metadata.METHOD_CATCH_IDENTIFIER, handler) || []
     if (!catches.length) return false
 
     await catches.reduce(async (promise, data) => {

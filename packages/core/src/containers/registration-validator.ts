@@ -30,17 +30,25 @@ export class RegistrationValidator {
       errorScopes.COMMAND,
     )
     this.validateMajorCount()
+    this.validateMissingCount()
 
     this.registry
       .commands()
       .concat(this.registry.majors())
+      .concat(
+        this.registry
+          .missing()
+          .filter(handler => this.methodHandlers(handler).length),
+      )
       .forEach(handler => this.validateCommandShape(handler))
   }
 
   private validateKnownHandlers() {
     if (!this.registry.invalidHandlers.length) return
 
-    const names = this.registry.invalidHandlers.map(handler => handler.name || '<anonymous>')
+    const names = this.registry.invalidHandlers.map(
+      handler => handler.name || '<anonymous>',
+    )
     throw createSystemError(
       F_SYSTEM.UNKNOWN_HANDLER,
       errorTypes.REGISTRATION,
@@ -58,6 +66,18 @@ export class RegistrationValidator {
       errorTypes.REGISTRATION,
       `Only one major command can be registered: ${majors.map(item => item.name).join(', ')}.`,
       { scope: errorScopes.COMMAND, handlers: majors.map(item => item.name) },
+    )
+  }
+
+  private validateMissingCount() {
+    const missing = this.registry.missing()
+    if (missing.length <= 1) return
+
+    throw createSystemError(
+      F_SYSTEM.DUPLICATE_HANDLER,
+      errorTypes.REGISTRATION,
+      `Only one missing command can be registered: ${missing.map(item => item.name).join(', ')}.`,
+      { scope: errorScopes.COMMAND, handlers: missing.map(item => item.name) },
     )
   }
 
@@ -111,7 +131,11 @@ export class RegistrationValidator {
 
     let defaultHandler = ''
     const tokens: Record<string, string> = {}
-    const registerToken = (token: string | undefined, owner: string, type: errorTokenTypes) => {
+    const registerToken = (
+      token: string | undefined,
+      owner: string,
+      type: errorTokenTypes,
+    ) => {
       if (!token) return
       if (tokens[token]) {
         throw createSystemError(
@@ -143,7 +167,11 @@ export class RegistrationValidator {
 
     subOptions.forEach(data => {
       this.validateOptionType(data, handler.name)
-      registerToken(`--${data.name}`, `SubOptions.${data.name}`, errorTokenTypes.OPTION_NAME)
+      registerToken(
+        `--${data.name}`,
+        `SubOptions.${data.name}`,
+        errorTokenTypes.OPTION_NAME,
+      )
       registerToken(
         data.alias ? `-${data.alias}` : undefined,
         `SubOptions.${data.name}`,
@@ -202,5 +230,9 @@ export class RegistrationValidator {
       `Option "${data.name}" in "${handlerName}" uses Array. Please use [String] instead.`,
       { option: data.name, handler: handlerName },
     )
+  }
+
+  private methodHandlers(handler: CommandClass): HandlerParams[] {
+    return Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, handler) || []
   }
 }
