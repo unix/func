@@ -40,6 +40,15 @@ const ogImageUrl = new URL('/func.png', siteUrl).toString()
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
     <title>{title}</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-42E9D4VEVW"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || []
+      function gtag() {
+        dataLayer.push(arguments)
+      }
+      gtag('js', new Date())
+      gtag('config', 'G-42E9D4VEVW')
+    </script>
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">
     <slot />
