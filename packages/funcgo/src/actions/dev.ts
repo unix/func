@@ -1,5 +1,8 @@
 import arg from 'arg'
-import { run } from '../utils/command'
+import {
+  isCommandFailureError,
+  run,
+} from '../utils/command'
 import { cwd, resolveEntry } from '../utils/paths'
 
 interface DevArgs {
@@ -16,8 +19,21 @@ export const dev = async (argv: string[]): Promise<void> => {
   }
 
   const tsNodeRegister = resolveTsNodeRegister()
+  const devErrorHandler = resolveDevErrorHandler()
 
-  await run('node', ['-r', tsNodeRegister, entry, ...args.userArgs], { cwd })
+  try {
+    await run('node', ['-r', tsNodeRegister, '-r', devErrorHandler, entry, ...args.userArgs], {
+      cwd,
+      silentFailure: true,
+    })
+  } catch (error) {
+    if (isCommandFailureError(error) && error.silent) {
+      process.exitCode = error.code || 1
+      return
+    }
+
+    throw error
+  }
 }
 
 export const parseDevArgs = (argv: string[]): DevArgs => {
@@ -47,4 +63,8 @@ const resolveTsNodeRegister = (): string => {
   } catch (error) {
     return require.resolve('ts-node/register')
   }
+}
+
+export const resolveDevErrorHandler = (): string => {
+  return require.resolve('../utils/dev-error-handler')
 }
