@@ -13,6 +13,7 @@ Default project template for creating TypeScript command-line tools with
 - Command aliases and path handlers.
 - Missing-command and runtime-print error handlers.
 - Service injection through `@FuncModule`.
+- Centralized template settings in `src/config.ts`.
 - A source-only template that builds into a small CLI output.
 
 <br/>

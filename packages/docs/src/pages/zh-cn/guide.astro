@@ -5,9 +5,10 @@ import DocsLayout from '@/layouts/docs.astro'
 const projectTree = `.
 |-- src
 |   |-- app.module.ts       application module
+|   |-- config.ts           template settings
 |   |-- commands
-|   |   |-- hello.ts        "hello" command
-|   |   |-- major.ts        empty invocation, --help, --version
+|   |   |-- hello.command.ts  "hello" command
+|   |   |-- major.command.ts  empty invocation, --help, --version
 |   |   +-- index.ts        command list
 |   +-- index.ts            runs AppModule
 |-- tests                   testcases
@@ -66,8 +67,7 @@ const npmBuildCode = 'npm run build'
   <CodeBlock code={npmInstallCode} lang="shell" />
   <p>到这里，准备工作就完成了。</p>
   <p>
-    你可以浏览 <code>commands</code> 中的示例，修改它们，然后通过本地 TypeScript
-    入口运行命令：
+    你可以浏览 <code>commands</code> 中的示例，修改它们，然后通过本地 TypeScript 入口运行命令：
   </p>
   <CodeBlock code={npmRunCode} lang="shell" />
   <p>模板会通过根应用模块注册命令：</p>

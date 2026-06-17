@@ -1,15 +1,7 @@
-import {
-  ArrayValue,
-  CommandMajor,
-  Enum,
-  Flag,
-  Handler,
-  Regs,
-  Value,
-} from 'func'
+import { ArrayValue, CommandMajor, Enum, Flag, Handler, Regs, Value } from 'func'
 import type { CommandRegistry } from 'func'
-import pkg from '../../package.json'
-import { ProjectService } from '../services/project'
+import { config } from '../config'
+import { ProjectService } from '../services/project.service'
 
 @CommandMajor()
 export class Major {
@@ -19,11 +11,11 @@ export class Major {
   })
   json = false
 
-  @Enum(['dev', 'prod'])
+  @Enum(config.runtime.modes)
   @Value({
     description: 'runtime mode',
   })
-  mode: string = 'dev'
+  mode: string = config.runtime.defaultMode
 
   @ArrayValue({
     name: 'tag',
@@ -55,11 +47,11 @@ export class Major {
 
   @Handler({ flag: 'help', alias: 'h', description: 'print help' })
   help(@Regs() regs: CommandRegistry) {
-    console.log(pkg.name)
+    console.log(config.package.name)
     console.log('')
     console.log('Usage:')
-    console.log(`  ${pkg.name} [options]`)
-    console.log(`  ${pkg.name} <command> [options]`)
+    console.log(`  ${config.package.name} [options]`)
+    console.log(`  ${config.package.name} <command> [options]`)
     console.log('')
     console.log('Commands:')
 
@@ -74,13 +66,15 @@ export class Major {
     console.log('  -h, --help       print help')
     console.log('  -v, --version    print version')
     console.log('  -j, --json       print JSON output')
-    console.log('      --mode       runtime mode: dev, prod')
+    console.log(
+      `      --mode       runtime mode: ${config.runtime.modes.join(', ')}`,
+    )
     console.log('      --tag        add an output tag')
   }
 
   @Handler({ flag: 'version', alias: 'v', description: 'print version' })
   version() {
-    console.log(pkg.version)
+    console.log(config.package.version)
   }
 
   private commandLine(name: string, alias?: string): string {

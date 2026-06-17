@@ -9,20 +9,22 @@ build output.
 ```text
 src
 |-- app.module.ts
+|-- config.ts
 |-- commands
-|   |-- error.ts
-|   |-- greet.ts
+|   |-- error.command.ts
+|   |-- greet.command.ts
 |   |-- index.ts
-|   |-- major.ts
-|   +-- missing.ts
+|   |-- major.command.ts
+|   +-- missing.command.ts
 |-- services
 |   |-- index.ts
-|   +-- project.ts
+|   +-- project.service.ts
 +-- index.ts
 ```
 
 `src/index.ts` runs the application module. `src/app.module.ts` registers
-commands and services. Each command class owns its handlers and options.
+commands and services. `src/config.ts` collects template settings. Each command
+class owns its handlers and options.
 
 ## Development
 

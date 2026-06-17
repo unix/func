@@ -5,9 +5,10 @@ import DocsLayout from '@/layouts/docs.astro'
 const projectTree = `.
 |-- src
 |   |-- app.module.ts       application module
+|   |-- config.ts           template settings
 |   |-- commands
-|   |   |-- hello.ts        "hello" command
-|   |   |-- major.ts        empty invocation, --help, --version
+|   |   |-- hello.command.ts  "hello" command
+|   |   |-- major.command.ts  empty invocation, --help, --version
 |   |   +-- index.ts        command list
 |   +-- index.ts            runs AppModule
 |-- tests                   testcases

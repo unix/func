@@ -1,9 +1,9 @@
 import { Service } from 'func'
-import pkg from '../../package.json'
+import { config } from '../config'
 
 @Service()
 export class ProjectService {
   name() {
-    return pkg.name
+    return config.package.name
   }
 }

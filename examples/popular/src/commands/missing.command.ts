@@ -1,7 +1,4 @@
-import {
-  Args,
-  CommandMissing,
-} from 'func'
+import { Args, CommandMissing } from 'func'
 import type { FuncArgs } from 'func'
 
 @CommandMissing()

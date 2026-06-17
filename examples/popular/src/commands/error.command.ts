@@ -1,7 +1,4 @@
-import {
-  CatchAll,
-  Exception,
-} from 'func'
+import { CatchAll, Exception } from 'func'
 import type { FuncException } from 'func'
 
 @CatchAll()
