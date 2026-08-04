@@ -1,54 +1,35 @@
-<p width="640" height="320" align="center">
-<img src="./demo.png" width="640" height="320"/>
+<p align="center">
+  <img
+    src="https://raw.githubusercontent.com/unix/func/master/demo.png"
+    width="640"
+    alt="func"
+  />
 </p>
-<br/>
 
-## FUNC
+<h1 align="center">func</h1>
 
-[![CircleCI](https://circleci.com/gh/unix/func.svg?style=svg)](https://circleci.com/gh/unix/func) [![Build Status](https://travis-ci.org/unix/func.svg?branch=master)](https://travis-ci.org/unix/func)
+<p align="center">Build CLIs like TypeScript applications.</p>
 
-More popular and simple way to build command-line tools.
+<p align="center">
+  A lightweight CLI framework with decorators, runtime validation, services, and
+  production tooling.
+</p>
 
-<br/>
+<p align="center">
+  <a href="https://func.witt.im">Documentation</a> ·
+  <a href="https://func.witt.im/guide">Quick Start</a> ·
+  <a href="https://func.witt.im/zh-cn">中文文档</a>
+</p>
 
-## Feature
-
-- Very small volume ≈ [7kb](https://github.com/unix/func/blob/master/examples/gzbundle/archived.tar.gz)
-
-- Elegant grammar
-
-- Very few dependencies, maximum optimized running speed and `npm` download time
-
-- Template support, best practices right away
-
-<br/>
-
-## Quick Start
-
-Just run `pnpm create func` to create project.
-
-1. `pnpm create func`: create project
-
-2. `pnpm install`: install deps.
-
-3. `pnpm start`: setup link and development ready.
-
-It's all.
-
-<br/>
-
-## Documentation
-
-- [func.witt.im](https://func.witt.im)
-
-<br/>
+```sh
+npm init func
+```
 
 ## Thanks
 
-Thanks to [Shannon Moeller](https://github.com/shannonmoeller) for donating the pkgname "func" on npm!
+Thanks to [Shannon Moeller](https://github.com/shannonmoeller) for donating the
+package name `func` on npm.
 
-<br/>
-
-## LICENSE
+## License
 
 [MIT](./LICENSE)
