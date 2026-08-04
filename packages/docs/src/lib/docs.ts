@@ -162,5 +162,5 @@ export function getEditUrl(page: DocPage, locale: Locale = defaultLocale) {
   const slug = page === '/' ? 'index' : page
   const localePath = locale === defaultLocale ? '' : `${locale}/`
 
-  return `https://github.com/unix/func/edit/master/packages/docs/src/pages/${localePath}${slug}.mdx`
+  return `https://github.com/unix/func/edit/main/packages/docs/src/pages/${localePath}${slug}.mdx`
 }
