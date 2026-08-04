@@ -29,7 +29,7 @@
   "prettier": "@unix/prettier",
   "dependencies": {
     "args": "^5.0.3",
-    "tar": "^7.5.15"
+    "tar": "^7.5.21"
   },
   "devDependencies": {
     "@unix/prettier": "^0.1.0",
