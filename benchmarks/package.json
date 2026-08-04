@@ -1,0 +1,49 @@
+{
+  "name": "func-cli-benchmarks",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "bin": {
+    "benchmark-cac": "./dist/cac/bin.mjs",
+    "benchmark-commander": "./dist/commander/bin.mjs",
+    "benchmark-func": "./dist/func/bin.mjs",
+    "benchmark-oclif": "./dist/oclif/bin.mjs",
+    "benchmark-yargs": "./dist/yargs/bin.mjs"
+  },
+  "scripts": {
+    "build": "pnpm --filter func build && tsc --project tsconfig.json && node scripts/bundle.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "tsc --project tsconfig.json --noEmit",
+    "report": "pnpm build && vitest run && node scripts/benchmark.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@oclif/core": "4.13.2",
+    "cac": "7.0.0",
+    "commander": "15.0.0",
+    "func": "workspace:*",
+    "yargs": "18.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@types/yargs": "17.0.35",
+    "@unix/prettier": "^0.1.0",
+    "esbuild": "^0.27.7",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  },
+  "oclif": {
+    "bin": "benchmark-oclif",
+    "commands": {
+      "strategy": "explicit",
+      "target": "./dist/oclif/commands.mjs",
+      "identifier": "COMMANDS"
+    },
+    "dirname": "benchmark-oclif",
+    "topicSeparator": " "
+  }
+}

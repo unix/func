@@ -1,0 +1,1109 @@
+{
+  "schemaVersion": 3,
+  "generatedAt": "2026-08-04T02:27:17.642Z",
+  "environment": {
+    "node": "v24.15.0",
+    "platform": "darwin",
+    "platformRelease": "25.5.0",
+    "architecture": "arm64",
+    "cpu": "Apple M1 Max",
+    "logicalCores": 10,
+    "totalMemoryBytes": 68719476736,
+    "freeMemoryBytesAtStart": 2346516480
+  },
+  "frameworks": {
+    "func": {
+      "package": "func",
+      "version": "2.2.0"
+    },
+    "commander": {
+      "package": "commander",
+      "version": "15.0.0"
+    },
+    "yargs": {
+      "package": "yargs",
+      "version": "18.1.0"
+    },
+    "oclif": {
+      "package": "@oclif/core",
+      "version": "4.13.2"
+    },
+    "cac": {
+      "package": "cac",
+      "version": "7.0.0"
+    }
+  },
+  "methodology": {
+    "implementation": {
+      "runtimeCodeShared": false,
+      "mode": "Every adapter independently implements parsing, validation, error handling, business rules, and output assembly.",
+      "sharedArtifacts": [
+        "black-box argv fixtures",
+        "expected exit status and error fragments",
+        "expected text and JSON output",
+        "runtime scenario argv"
+      ]
+    },
+    "acceptance": {
+      "caseCount": 27,
+      "successCaseCount": 5,
+      "errorCaseCount": 22,
+      "invocationCount": 135,
+      "mode": "Each final bundle is executed as a subprocess against the same black-box cases."
+    },
+    "authoring": {
+      "mode": "Weighted, evidence-backed review of the committed adapters against a shared 0-4 rubric.",
+      "interpretation": "DX and maintainability are workload-specific authoring proxies. Every grade, weight, and evidence note is included in this report; they are not universal framework rankings.",
+      "scoreFormula": "For each dimension, sum criterion weight × level / 4, then round to an integer from 0 to 100."
+    },
+    "bundle": {
+      "mode": "esbuild ESM bundle, minified, tree-shaken, target node24",
+      "metric": "Sum of all runtime .mjs files. oclif uses explicit discovery with shared chunks.",
+      "exclusions": "oclif auto-transpilation is disabled and its optional development-only typescript loader is externalized."
+    },
+    "source": {
+      "mode": "UTF-8 bytes and non-blank lines in each independent adapter implementation.",
+      "exclusions": "Shared black-box fixtures, tests, build scripts, and report scripts.",
+      "interpretation": "A context metric for implementation footprint, not a code-quality ranking."
+    },
+    "runtime": {
+      "mode": "End-to-end wall time of a fresh Node.js process with piped stdout and stderr.",
+      "order": "Framework order rotates for every sample to reduce ordering bias.",
+      "iterations": 20,
+      "warmups": 5
+    }
+  },
+  "capabilities": {
+    "contract": [
+      {
+        "id": "multi-entry-routing",
+        "requirement": "Three command groups, four leaf actions, command aliases, and unknown-command handling."
+      },
+      {
+        "id": "positional-inputs",
+        "requirement": "Required positional values plus variadic components and configuration files."
+      },
+      {
+        "id": "option-parsing",
+        "requirement": "String, integer, boolean, aliased, defaulted, and repeated options across the command groups."
+      },
+      {
+        "id": "enum-validation",
+        "requirement": "Eight enum domains covering deployment, configuration, platform, and verification choices."
+      },
+      {
+        "id": "numeric-validation",
+        "requirement": "Integer parsing and inclusive ranges for replicas, timeout, canary percentage, and warning limits."
+      },
+      {
+        "id": "option-relationships",
+        "requirement": "Dependent and mutually exclusive options, including approval/confirm and confirm/dry-run."
+      },
+      {
+        "id": "business-validation",
+        "requirement": "Cross-field release policy, image formats, unique slugs, repeated key/value maps, and file extensions."
+      },
+      {
+        "id": "error-and-output",
+        "requirement": "Non-zero normalized errors plus deterministic text and JSON success output."
+      }
+    ],
+    "mechanisms": {
+      "func": {
+        "routing": "@Command + @Handler",
+        "required": "@Required",
+        "enums": "@Enum",
+        "numericRanges": "@Value(type) + @ValueValidate",
+        "repeatedValues": "@ArrayValue",
+        "dependencies": "@DependsOn",
+        "exclusivity": "@Exclusive",
+        "errorBoundary": "@Catch + @CommandError"
+      },
+      "commander": {
+        "routing": "Command subcommands + Argument",
+        "required": "requiredOption + required arguments",
+        "enums": "Option/Argument.choices",
+        "numericRanges": "Option.argParser",
+        "repeatedValues": "Option.argParser collector",
+        "dependencies": "command shape + local validation",
+        "exclusivity": "Option.conflicts",
+        "errorBoundary": "exitOverride + local catch"
+      },
+      "yargs": {
+        "routing": "command builders",
+        "required": "demandOption + required positionals",
+        "enums": "choices",
+        "numericRanges": "number parsing + check",
+        "repeatedValues": "array options",
+        "dependencies": "implies + check",
+        "exclusivity": "conflicts",
+        "errorBoundary": "fail + local catch"
+      },
+      "oclif": {
+        "routing": "explicit Command classes",
+        "required": "Args/Flags required",
+        "enums": "Args/Flags options",
+        "numericRanges": "Flags.integer min/max",
+        "repeatedValues": "multiple flags/args",
+        "dependencies": "Flags dependsOn",
+        "exclusivity": "Flags exclusive",
+        "errorBoundary": "Config catch handler"
+      },
+      "cac": {
+        "routing": "command schemas",
+        "required": "local validation",
+        "enums": "local oneOf validation",
+        "numericRanges": "local integer validation",
+        "repeatedValues": "option accumulation + local normalization",
+        "dependencies": "local validation",
+        "exclusivity": "local validation",
+        "errorBoundary": "local catch"
+      }
+    }
+  },
+  "authoring": {
+    "criteria": {
+      "dx": [
+        {
+          "id": "type-continuity",
+          "label": "Type continuity",
+          "measurement": "How precisely input declarations flow into handlers without assertions, coercion, or duplicated interfaces.",
+          "weight": 30
+        },
+        {
+          "id": "validation-authoring",
+          "label": "Validation authoring",
+          "measurement": "How much of the tested input policy is expressed beside the input declaration instead of in local control flow.",
+          "weight": 25
+        },
+        {
+          "id": "command-composition",
+          "label": "Command composition",
+          "measurement": "Whether commands can be isolated, nested, registered, and reused without rebuilding parser state by hand.",
+          "weight": 20
+        },
+        {
+          "id": "error-authoring",
+          "label": "Error authoring",
+          "measurement": "How much normalized validation and error-boundary behavior the framework provides.",
+          "weight": 15
+        },
+        {
+          "id": "isolated-testing",
+          "label": "Isolated testing",
+          "measurement": "How directly a command or parser can be exercised with supplied argv and without process-level side effects.",
+          "weight": 10
+        }
+      ],
+      "maintainability": [
+        {
+          "id": "rule-locality",
+          "label": "Rule locality",
+          "measurement": "Whether declarations and their validation relationships remain visible in the same local unit.",
+          "weight": 30
+        },
+        {
+          "id": "local-glue",
+          "label": "Local glue burden",
+          "measurement": "How much parser-specific validation, normalization, and adapter control flow remains after business logic is excluded.",
+          "weight": 30
+        },
+        {
+          "id": "type-escapes",
+          "label": "Type escape burden",
+          "measurement": "How often parsed values cross assertions, broad records, conversions, or manually duplicated type contracts.",
+          "weight": 20
+        },
+        {
+          "id": "command-isolation",
+          "label": "Command isolation",
+          "measurement": "Whether commands have independent modules or classes with explicit registration boundaries.",
+          "weight": 10
+        },
+        {
+          "id": "error-boundary",
+          "label": "Error boundary",
+          "measurement": "Whether failures converge on one framework-supported boundary instead of per-command catches.",
+          "weight": 10
+        }
+      ]
+    },
+    "frameworks": {
+      "func": {
+        "dx": {
+          "evidence": {
+            "command-composition": {
+              "evidence": "Command classes and handler paths isolate command groups; the benchmark registers the command classes explicitly.",
+              "level": 3
+            },
+            "error-authoring": {
+              "evidence": "@Catch and @CommandError provide framework boundaries; the adapter only normalizes benchmark output.",
+              "level": 4
+            },
+            "isolated-testing": {
+              "evidence": "Command classes are isolated, while end-to-end parsing still runs through the func runtime.",
+              "level": 3
+            },
+            "type-continuity": {
+              "evidence": "Decorator-backed class fields retain their declared TypeScript types through handlers without argument casts.",
+              "level": 4
+            },
+            "validation-authoring": {
+              "evidence": "Required, enum, numeric, repeated, dependency, and exclusivity rules are adjacent decorators; release policy remains business code.",
+              "level": 3
+            }
+          },
+          "score": 86
+        },
+        "maintainability": {
+          "evidence": {
+            "command-isolation": {
+              "evidence": "Each command group is represented by a command class with scoped handlers.",
+              "level": 3
+            },
+            "error-boundary": {
+              "evidence": "@Catch and @CommandError converge parsing and command failures.",
+              "level": 4
+            },
+            "local-glue": {
+              "evidence": "Parser adaptation is carried by decorators; local control flow is primarily workload-specific release policy and output assembly.",
+              "level": 3
+            },
+            "rule-locality": {
+              "evidence": "Input shape and reusable validation rules sit on the affected fields; cross-field business policy stays in the handler.",
+              "level": 3
+            },
+            "type-escapes": {
+              "evidence": "Handlers consume typed fields and FuncArgs without adapter-level assertions.",
+              "level": 4
+            }
+          },
+          "score": 83
+        }
+      },
+      "commander": {
+        "dx": {
+          "evidence": {
+            "command-composition": {
+              "evidence": "The command tree and reusable command factories support separation, with registration performed imperatively.",
+              "level": 3
+            },
+            "error-authoring": {
+              "evidence": "exitOverride captures parser failures, while the adapter supplies local catches and normalized output.",
+              "level": 2
+            },
+            "isolated-testing": {
+              "evidence": "Command instances can parse supplied argv, although process behavior must be disabled or overridden explicitly.",
+              "level": 3
+            },
+            "type-continuity": {
+              "evidence": "The benchmark manually mirrors option declarations with ReleaseOptions, ConfigOptions, and ArtifactOptions interfaces.",
+              "level": 2
+            },
+            "validation-authoring": {
+              "evidence": "Required values, choices, parsers, and conflicts are declarative; dependencies and business relationships remain local.",
+              "level": 2
+            }
+          },
+          "score": 58
+        },
+        "maintainability": {
+          "evidence": {
+            "command-isolation": {
+              "evidence": "Subcommands have explicit tree boundaries, but the benchmark keeps registration and handlers in one adapter module.",
+              "level": 2
+            },
+            "error-boundary": {
+              "evidence": "Parser errors and action errors require separate local normalization paths.",
+              "level": 2
+            },
+            "local-glue": {
+              "evidence": "Argument parsers remove some conversion work, while relationship validation and safe execution wrappers remain local.",
+              "level": 2
+            },
+            "rule-locality": {
+              "evidence": "Simple rules are adjacent to options; action-dependent and cross-field rules are implemented in action handlers.",
+              "level": 2
+            },
+            "type-escapes": {
+              "evidence": "Manual option interfaces preserve handler types but duplicate the parser declarations.",
+              "level": 2
+            }
+          },
+          "score": 50
+        }
+      },
+      "yargs": {
+        "dx": {
+          "evidence": {
+            "command-composition": {
+              "evidence": "CommandModule objects isolate builders and handlers and can be registered independently or through a directory hierarchy.",
+              "level": 4
+            },
+            "error-authoring": {
+              "evidence": "check and fail integrate with parser errors, while the benchmark still supplies a local catch and normalized output.",
+              "level": 2
+            },
+            "isolated-testing": {
+              "evidence": "Command modules and parsers accept supplied argv without requiring process.argv.",
+              "level": 4
+            },
+            "type-continuity": {
+              "evidence": "Builder return types now flow into CommandModule handlers without handler casts; an inference helper and external @types package remain necessary.",
+              "level": 3
+            },
+            "validation-authoring": {
+              "evidence": "choices, demandOption, conflicts, and implies are declarative; numeric ranges and cross-field policy use three check callbacks.",
+              "level": 2
+            }
+          },
+          "score": 73
+        },
+        "maintainability": {
+          "evidence": {
+            "command-isolation": {
+              "evidence": "Release, config, and artifact are independent CommandModule values with typed builders and handlers.",
+              "level": 4
+            },
+            "error-boundary": {
+              "evidence": "fail integrates parser failures, followed by one local catch for benchmark output.",
+              "level": 2
+            },
+            "local-glue": {
+              "evidence": "Native relationships remove some glue, but three check callbacks still own numeric and cross-field validation.",
+              "level": 2
+            },
+            "rule-locality": {
+              "evidence": "Each check stays with its command builder, but several unrelated rules accumulate inside the callback.",
+              "level": 2
+            },
+            "type-escapes": {
+              "evidence": "Typed builder inference removes handler assertions and boundary coercions; one helper connects builder and module generics.",
+              "level": 3
+            }
+          },
+          "score": 60
+        }
+      },
+      "oclif": {
+        "dx": {
+          "evidence": {
+            "command-composition": {
+              "evidence": "Independent Command classes and explicit discovery provide strong command boundaries with framework registration.",
+              "level": 4
+            },
+            "error-authoring": {
+              "evidence": "The Config catch handler centralizes framework failures; the benchmark adds output normalization.",
+              "level": 3
+            },
+            "isolated-testing": {
+              "evidence": "Command classes are independently addressable but require the oclif config and discovery harness.",
+              "level": 2
+            },
+            "type-continuity": {
+              "evidence": "Args and Flags infer parsed values in command methods; the extracted release helper duplicates a ReleaseFlags interface.",
+              "level": 3
+            },
+            "validation-authoring": {
+              "evidence": "Required values, options, integer ranges, repeated values, dependsOn, and exclusive are declarative; business policy remains local.",
+              "level": 3
+            }
+          },
+          "score": 78
+        },
+        "maintainability": {
+          "evidence": {
+            "command-isolation": {
+              "evidence": "Every leaf action is an independent Command class discovered through one registry.",
+              "level": 4
+            },
+            "error-boundary": {
+              "evidence": "Config supplies a shared catch handler for command failures.",
+              "level": 3
+            },
+            "local-glue": {
+              "evidence": "Flag parsing and relationships need little adapter glue; workload-specific release and artifact policy remains local.",
+              "level": 3
+            },
+            "rule-locality": {
+              "evidence": "Most input rules sit in static Args and Flags declarations; business policy sits in command methods or the shared release helper.",
+              "level": 3
+            },
+            "type-escapes": {
+              "evidence": "Parsed args and flags remain typed, with one manually mirrored interface at the shared release helper boundary.",
+              "level": 3
+            }
+          },
+          "score": 78
+        }
+      },
+      "cac": {
+        "dx": {
+          "evidence": {
+            "command-composition": {
+              "evidence": "Command schemas provide basic grouping, while nested behavior and normalization are assembled locally.",
+              "level": 2
+            },
+            "error-authoring": {
+              "evidence": "The adapter owns validation errors, catching, formatting, and exit status.",
+              "level": 1
+            },
+            "isolated-testing": {
+              "evidence": "The parser can receive argv, but command behavior remains coupled to local normalization and execution wrappers.",
+              "level": 2
+            },
+            "type-continuity": {
+              "evidence": "Handlers receive broad option records and locally narrow or convert parsed values.",
+              "level": 1
+            },
+            "validation-authoring": {
+              "evidence": "Command schemas describe option presence, while required, enum, numeric, repeated, and relationship validation is local.",
+              "level": 1
+            }
+          },
+          "score": 33
+        },
+        "maintainability": {
+          "evidence": {
+            "command-isolation": {
+              "evidence": "Command schemas create named sections, but parsing, validation, and handlers share one adapter module.",
+              "level": 2
+            },
+            "error-boundary": {
+              "evidence": "A local catch normalizes every parser and handler failure.",
+              "level": 1
+            },
+            "local-glue": {
+              "evidence": "Most validation and parsed-value normalization is implemented by adapter helpers and handler control flow.",
+              "level": 1
+            },
+            "rule-locality": {
+              "evidence": "Option schemas and their required, enum, range, and relationship rules are split across declarations and handlers.",
+              "level": 1
+            },
+            "type-escapes": {
+              "evidence": "Broad records and local conversions form the command-handler boundary.",
+              "level": 1
+            }
+          },
+          "score": 28
+        }
+      }
+    },
+    "scale": [
+      {
+        "level": 0,
+        "label": "absent",
+        "meaning": "The tested workflow has no practical support for this criterion."
+      },
+      {
+        "level": 1,
+        "label": "local",
+        "meaning": "The adapter implements the concern locally with little framework help."
+      },
+      {
+        "level": 2,
+        "label": "mixed",
+        "meaning": "Framework primitives help, but recurring local glue is still required."
+      },
+      {
+        "level": 3,
+        "label": "supported",
+        "meaning": "The framework carries the concern with small integration code."
+      },
+      {
+        "level": 4,
+        "label": "direct",
+        "meaning": "A typed framework mechanism carries the concern without duplicate rules."
+      }
+    ]
+  },
+  "bundle": {
+    "func": {
+      "files": ["dist/func/bin.mjs"],
+      "fileCount": 1,
+      "rawBytes": 67309,
+      "gzipBytes": 17250,
+      "brotliBytes": 15348,
+      "source": {
+        "files": ["src/adapters/func.ts"],
+        "bytes": 12535,
+        "nonBlankLines": 366,
+        "relativeToFunc": {
+          "byteDelta": 0,
+          "byteRatio": 1,
+          "nonBlankLineDelta": 0,
+          "nonBlankLineRatio": 1
+        }
+      },
+      "relativeToFunc": {
+        "rawDeltaBytes": 0,
+        "rawDeltaPercent": 0,
+        "rawRatio": 1,
+        "gzipRatio": 1,
+        "brotliRatio": 1
+      }
+    },
+    "commander": {
+      "files": ["dist/commander/bin.mjs"],
+      "fileCount": 1,
+      "rawBytes": 45989,
+      "gzipBytes": 13633,
+      "brotliBytes": 12260,
+      "source": {
+        "files": ["src/adapters/commander.ts"],
+        "bytes": 12112,
+        "nonBlankLines": 367,
+        "relativeToFunc": {
+          "byteDelta": -423,
+          "byteRatio": 0.966,
+          "nonBlankLineDelta": 1,
+          "nonBlankLineRatio": 1.003
+        }
+      },
+      "relativeToFunc": {
+        "rawDeltaBytes": -21320,
+        "rawDeltaPercent": -31.675,
+        "rawRatio": 0.683,
+        "gzipRatio": 0.79,
+        "brotliRatio": 0.799
+      }
+    },
+    "yargs": {
+      "files": ["dist/yargs/bin.mjs"],
+      "fileCount": 1,
+      "rawBytes": 117778,
+      "gzipBytes": 36711,
+      "brotliBytes": 32002,
+      "source": {
+        "files": ["src/adapters/yargs.ts"],
+        "bytes": 11896,
+        "nonBlankLines": 330,
+        "relativeToFunc": {
+          "byteDelta": -639,
+          "byteRatio": 0.949,
+          "nonBlankLineDelta": -36,
+          "nonBlankLineRatio": 0.902
+        }
+      },
+      "relativeToFunc": {
+        "rawDeltaBytes": 50469,
+        "rawDeltaPercent": 74.981,
+        "rawRatio": 1.75,
+        "gzipRatio": 2.128,
+        "brotliRatio": 2.085
+      }
+    },
+    "oclif": {
+      "files": [
+        "dist/oclif/bin.mjs",
+        "dist/oclif/chunks/chunk-XUGGKNIM.mjs",
+        "dist/oclif/commands.mjs"
+      ],
+      "fileCount": 3,
+      "rawBytes": 338175,
+      "gzipBytes": 105406,
+      "brotliBytes": 89351,
+      "source": {
+        "files": ["src/adapters/oclif.ts", "src/adapters/oclif-commands.ts"],
+        "bytes": 10401,
+        "nonBlankLines": 279,
+        "relativeToFunc": {
+          "byteDelta": -2134,
+          "byteRatio": 0.83,
+          "nonBlankLineDelta": -87,
+          "nonBlankLineRatio": 0.762
+        }
+      },
+      "relativeToFunc": {
+        "rawDeltaBytes": 270866,
+        "rawDeltaPercent": 402.422,
+        "rawRatio": 5.024,
+        "gzipRatio": 6.11,
+        "brotliRatio": 5.822
+      }
+    },
+    "cac": {
+      "files": ["dist/cac/bin.mjs"],
+      "fileCount": 1,
+      "rawBytes": 17455,
+      "gzipBytes": 6469,
+      "brotliBytes": 5848,
+      "source": {
+        "files": ["src/adapters/cac.ts"],
+        "bytes": 12608,
+        "nonBlankLines": 335,
+        "relativeToFunc": {
+          "byteDelta": 73,
+          "byteRatio": 1.006,
+          "nonBlankLineDelta": -31,
+          "nonBlankLineRatio": 0.915
+        }
+      },
+      "relativeToFunc": {
+        "rawDeltaBytes": -49854,
+        "rawDeltaPercent": -74.067,
+        "rawRatio": 0.259,
+        "gzipRatio": 0.375,
+        "brotliRatio": 0.381
+      }
+    }
+  },
+  "runtime": {
+    "scenarios": {
+      "simple-routing": {
+        "args": [
+          "artifact",
+          "inspect",
+          "registry.example.com/payments@sha256:0123456789abcdef",
+          "--platform",
+          "linux/amd64",
+          "--verify",
+          "checksum",
+          "--metadata",
+          "source=ci",
+          "--json"
+        ],
+        "expectSuccess": true,
+        "results": {
+          "func": {
+            "samples": 20,
+            "minMs": 37.011,
+            "medianMs": 39.189,
+            "meanMs": 39.446,
+            "p95Ms": 41.027,
+            "maxMs": 41.621,
+            "standardDeviationMs": 1.048,
+            "relativeToFunc": {
+              "meanDeltaMs": 0,
+              "meanDeltaPercent": 0,
+              "meanRatio": 1
+            }
+          },
+          "commander": {
+            "samples": 20,
+            "minMs": 37.974,
+            "medianMs": 39.428,
+            "meanMs": 39.59,
+            "p95Ms": 41.498,
+            "maxMs": 41.779,
+            "standardDeviationMs": 1.021,
+            "relativeToFunc": {
+              "meanDeltaMs": 0.144,
+              "meanDeltaPercent": 0.365,
+              "meanRatio": 1.004
+            }
+          },
+          "yargs": {
+            "samples": 20,
+            "minMs": 68.809,
+            "medianMs": 72.114,
+            "meanMs": 71.753,
+            "p95Ms": 74.04,
+            "maxMs": 74.312,
+            "standardDeviationMs": 1.64,
+            "relativeToFunc": {
+              "meanDeltaMs": 32.307,
+              "meanDeltaPercent": 81.902,
+              "meanRatio": 1.819
+            }
+          },
+          "oclif": {
+            "samples": 20,
+            "minMs": 66.588,
+            "medianMs": 69.729,
+            "meanMs": 70.179,
+            "p95Ms": 73.966,
+            "maxMs": 83.99,
+            "standardDeviationMs": 3.648,
+            "relativeToFunc": {
+              "meanDeltaMs": 30.733,
+              "meanDeltaPercent": 77.912,
+              "meanRatio": 1.779
+            }
+          },
+          "cac": {
+            "samples": 20,
+            "minMs": 33.609,
+            "medianMs": 34.522,
+            "meanMs": 34.945,
+            "p95Ms": 36.569,
+            "maxMs": 37.256,
+            "standardDeviationMs": 1.013,
+            "relativeToFunc": {
+              "meanDeltaMs": -4.501,
+              "meanDeltaPercent": -11.411,
+              "meanRatio": 0.886
+            }
+          }
+        }
+      },
+      "complex-valid-parse": {
+        "args": [
+          "release",
+          "plan",
+          "payments",
+          "api",
+          "worker",
+          "scheduler",
+          "--environment",
+          "production",
+          "--region",
+          "eu-west-1",
+          "--strategy",
+          "canary",
+          "--replicas",
+          "8",
+          "--timeout",
+          "480",
+          "--artifact",
+          "registry.example.com/payments@sha256:0123456789abcdef",
+          "--canary-percent",
+          "15",
+          "--tag",
+          "owner=platform",
+          "--tag",
+          "tier=critical",
+          "--set",
+          "LOG_LEVEL=info",
+          "--set",
+          "FEATURE_X=true",
+          "--json"
+        ],
+        "expectSuccess": true,
+        "results": {
+          "func": {
+            "samples": 20,
+            "minMs": 42.98,
+            "medianMs": 46.895,
+            "meanMs": 48.01,
+            "p95Ms": 49.653,
+            "maxMs": 70.183,
+            "standardDeviationMs": 5.287,
+            "relativeToFunc": {
+              "meanDeltaMs": 0,
+              "meanDeltaPercent": 0,
+              "meanRatio": 1
+            }
+          },
+          "commander": {
+            "samples": 20,
+            "minMs": 43.566,
+            "medianMs": 46.911,
+            "meanMs": 47.245,
+            "p95Ms": 49.691,
+            "maxMs": 54.49,
+            "standardDeviationMs": 2.262,
+            "relativeToFunc": {
+              "meanDeltaMs": -0.765,
+              "meanDeltaPercent": -1.593,
+              "meanRatio": 0.984
+            }
+          },
+          "yargs": {
+            "samples": 20,
+            "minMs": 70.116,
+            "medianMs": 74.127,
+            "meanMs": 75.016,
+            "p95Ms": 78.407,
+            "maxMs": 83.995,
+            "standardDeviationMs": 2.808,
+            "relativeToFunc": {
+              "meanDeltaMs": 27.006,
+              "meanDeltaPercent": 56.251,
+              "meanRatio": 1.563
+            }
+          },
+          "oclif": {
+            "samples": 20,
+            "minMs": 65.946,
+            "medianMs": 68.88,
+            "meanMs": 69.511,
+            "p95Ms": 74.109,
+            "maxMs": 74.339,
+            "standardDeviationMs": 2.244,
+            "relativeToFunc": {
+              "meanDeltaMs": 21.501,
+              "meanDeltaPercent": 44.784,
+              "meanRatio": 1.448
+            }
+          },
+          "cac": {
+            "samples": 20,
+            "minMs": 39.979,
+            "medianMs": 42.985,
+            "meanMs": 43.18,
+            "p95Ms": 47.312,
+            "maxMs": 47.51,
+            "standardDeviationMs": 1.902,
+            "relativeToFunc": {
+              "meanDeltaMs": -4.83,
+              "meanDeltaPercent": -10.06,
+              "meanRatio": 0.899
+            }
+          }
+        }
+      },
+      "enum-validation-error": {
+        "args": [
+          "release",
+          "plan",
+          "payments",
+          "api",
+          "--artifact",
+          "registry.example.com/payments:v1",
+          "--environment",
+          "qa",
+          "--json"
+        ],
+        "expectSuccess": false,
+        "results": {
+          "func": {
+            "samples": 20,
+            "minMs": 37.088,
+            "medianMs": 38.79,
+            "meanMs": 39.248,
+            "p95Ms": 40.801,
+            "maxMs": 43.662,
+            "standardDeviationMs": 1.528,
+            "relativeToFunc": {
+              "meanDeltaMs": 0,
+              "meanDeltaPercent": 0,
+              "meanRatio": 1
+            }
+          },
+          "commander": {
+            "samples": 20,
+            "minMs": 35.106,
+            "medianMs": 38.711,
+            "meanMs": 38.757,
+            "p95Ms": 42.095,
+            "maxMs": 43.508,
+            "standardDeviationMs": 2.055,
+            "relativeToFunc": {
+              "meanDeltaMs": -0.491,
+              "meanDeltaPercent": -1.251,
+              "meanRatio": 0.987
+            }
+          },
+          "yargs": {
+            "samples": 20,
+            "minMs": 62.626,
+            "medianMs": 65.757,
+            "meanMs": 66.265,
+            "p95Ms": 70.395,
+            "maxMs": 71.127,
+            "standardDeviationMs": 2.312,
+            "relativeToFunc": {
+              "meanDeltaMs": 27.017,
+              "meanDeltaPercent": 68.837,
+              "meanRatio": 1.688
+            }
+          },
+          "oclif": {
+            "samples": 20,
+            "minMs": 63.04,
+            "medianMs": 67.225,
+            "meanMs": 67.529,
+            "p95Ms": 70.144,
+            "maxMs": 72.385,
+            "standardDeviationMs": 2.244,
+            "relativeToFunc": {
+              "meanDeltaMs": 28.281,
+              "meanDeltaPercent": 72.057,
+              "meanRatio": 1.721
+            }
+          },
+          "cac": {
+            "samples": 20,
+            "minMs": 32.179,
+            "medianMs": 34.6,
+            "meanMs": 34.984,
+            "p95Ms": 38.079,
+            "maxMs": 38.415,
+            "standardDeviationMs": 1.83,
+            "relativeToFunc": {
+              "meanDeltaMs": -4.264,
+              "meanDeltaPercent": -10.864,
+              "meanRatio": 0.891
+            }
+          }
+        }
+      },
+      "cross-option-validation-error": {
+        "args": [
+          "release",
+          "apply",
+          "payments",
+          "api",
+          "--artifact",
+          "registry.example.com/payments:v1",
+          "--confirm",
+          "--dry-run",
+          "--json"
+        ],
+        "expectSuccess": false,
+        "results": {
+          "func": {
+            "samples": 20,
+            "minMs": 36.113,
+            "medianMs": 38.71,
+            "meanMs": 38.515,
+            "p95Ms": 40.003,
+            "maxMs": 41.309,
+            "standardDeviationMs": 1.226,
+            "relativeToFunc": {
+              "meanDeltaMs": 0,
+              "meanDeltaPercent": 0,
+              "meanRatio": 1
+            }
+          },
+          "commander": {
+            "samples": 20,
+            "minMs": 35.977,
+            "medianMs": 38.404,
+            "meanMs": 38.411,
+            "p95Ms": 40.729,
+            "maxMs": 41.152,
+            "standardDeviationMs": 1.582,
+            "relativeToFunc": {
+              "meanDeltaMs": -0.104,
+              "meanDeltaPercent": -0.27,
+              "meanRatio": 0.997
+            }
+          },
+          "yargs": {
+            "samples": 20,
+            "minMs": 62.836,
+            "medianMs": 67.135,
+            "meanMs": 66.813,
+            "p95Ms": 69.513,
+            "maxMs": 70.278,
+            "standardDeviationMs": 2.179,
+            "relativeToFunc": {
+              "meanDeltaMs": 28.298,
+              "meanDeltaPercent": 73.473,
+              "meanRatio": 1.735
+            }
+          },
+          "oclif": {
+            "samples": 20,
+            "minMs": 65.191,
+            "medianMs": 68.561,
+            "meanMs": 68.694,
+            "p95Ms": 71.25,
+            "maxMs": 72.048,
+            "standardDeviationMs": 1.883,
+            "relativeToFunc": {
+              "meanDeltaMs": 30.179,
+              "meanDeltaPercent": 78.356,
+              "meanRatio": 1.784
+            }
+          },
+          "cac": {
+            "samples": 20,
+            "minMs": 32.255,
+            "medianMs": 34.633,
+            "meanMs": 34.994,
+            "p95Ms": 37.96,
+            "maxMs": 39.659,
+            "standardDeviationMs": 1.808,
+            "relativeToFunc": {
+              "meanDeltaMs": -3.521,
+              "meanDeltaPercent": -9.142,
+              "meanRatio": 0.909
+            }
+          }
+        }
+      }
+    },
+    "overall": {
+      "func": {
+        "meanMs": 41.305,
+        "relativeToFunc": {
+          "meanDeltaMs": 0,
+          "meanDeltaPercent": 0,
+          "meanRatio": 1
+        }
+      },
+      "commander": {
+        "meanMs": 41.001,
+        "relativeToFunc": {
+          "meanDeltaMs": -0.304,
+          "meanDeltaPercent": -0.736,
+          "meanRatio": 0.993
+        }
+      },
+      "yargs": {
+        "meanMs": 69.962,
+        "relativeToFunc": {
+          "meanDeltaMs": 28.657,
+          "meanDeltaPercent": 69.379,
+          "meanRatio": 1.694
+        }
+      },
+      "oclif": {
+        "meanMs": 68.978,
+        "relativeToFunc": {
+          "meanDeltaMs": 27.673,
+          "meanDeltaPercent": 66.997,
+          "meanRatio": 1.67
+        }
+      },
+      "cac": {
+        "meanMs": 37.026,
+        "relativeToFunc": {
+          "meanDeltaMs": -4.279,
+          "meanDeltaPercent": -10.36,
+          "meanRatio": 0.896
+        }
+      }
+    }
+  },
+  "rankings": {
+    "bundleRawBytes": [
+      {
+        "framework": "cac",
+        "rank": 1
+      },
+      {
+        "framework": "commander",
+        "rank": 2
+      },
+      {
+        "framework": "func",
+        "rank": 3
+      },
+      {
+        "framework": "yargs",
+        "rank": 4
+      },
+      {
+        "framework": "oclif",
+        "rank": 5
+      }
+    ],
+    "runtimeMeanMs": [
+      {
+        "framework": "cac",
+        "rank": 1
+      },
+      {
+        "framework": "commander",
+        "rank": 2
+      },
+      {
+        "framework": "func",
+        "rank": 3
+      },
+      {
+        "framework": "oclif",
+        "rank": 4
+      },
+      {
+        "framework": "yargs",
+        "rank": 5
+      }
+    ]
+  }
+}
