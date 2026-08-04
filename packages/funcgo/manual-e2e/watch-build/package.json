@@ -1,0 +1,8 @@
+{
+  "name": "funcgo-manual-watch-build",
+  "private": true,
+  "func": {
+    "entry": "src/index.ts",
+    "outDir": "dist"
+  }
+}

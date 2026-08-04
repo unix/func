@@ -21,7 +21,28 @@ describe('parseBuildArgs', () => {
       file: 'src/index.ts',
       out: 'build',
       external: ['react', 'chalk'],
+      watch: false,
+      watchPaths: [],
     })
+  })
+
+  test('parses watch and repeated watch paths', () => {
+    const args = parseBuildArgs([
+      '--watch',
+      '--watch-path',
+      'src/**/*.ts',
+      '--watch-path',
+      'config.json',
+    ])
+
+    expect(args.watch).toBe(true)
+    expect(args.watchPaths).toEqual(['src/**/*.ts', 'config.json'])
+  })
+
+  test('requires watch when watch paths are provided', () => {
+    expect(() => parseBuildArgs(['--watch-path', 'src'])).toThrow(
+      'Option "--watch-path" requires "--watch".',
+    )
   })
 
   test('writes bin file after ncc build finishes', async () => {

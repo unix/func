@@ -1,9 +1,12 @@
 {
   "name": "funcgo",
-  "version": "0.1.5",
+  "version": "0.2.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.12.0"
+  },
   "bin": {
     "funcgo": "./dist/bin.js"
   },
@@ -13,6 +16,8 @@
     "chmod-bin": "node -e \"require('fs').chmodSync('dist/bin.js', 0o755)\"",
     "test": "vitest run",
     "test:file": "vitest run",
+    "test:manual:build": "cd manual-e2e/build && ts-node --project ../../tsconfig.json ../../src/bin.ts build",
+    "test:manual:watch": "cd manual-e2e/watch-build && ts-node --project ../../tsconfig.json ../../src/bin.ts build --watch",
     "release": "pnpm build && pnpm publish --access public --no-git-checks",
     "format": "prettier --write ."
   },
@@ -28,15 +33,18 @@
   },
   "prettier": "@unix/prettier",
   "dependencies": {
+    "@parcel/watcher": "^2.6.0",
     "@vercel/ncc": "^0.38.4",
     "arg": "^5.0.2",
+    "picomatch": "^4.0.4",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "@unix/prettier": "^0.1.0",
     "@swc/core": "^1.15.40",
     "@types/node": "^25.9.1",
+    "@types/picomatch": "^4.0.3",
+    "@unix/prettier": "^0.1.0",
     "prettier": "^3.8.3",
     "unplugin-swc": "^1.5.9",
     "vite": "^6.4.2",

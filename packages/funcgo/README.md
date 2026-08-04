@@ -16,6 +16,11 @@ Standard tooling for [`func`](https://github.com/unix/func) development.
 
 - build cli project: `funcgo build`
 
+- continuously build when TypeScript files change: `funcgo build --watch`
+
+- continuously build using custom paths or globs:
+  `funcgo build --watch --watch-path 'src/**/*.ts' --watch-path config.json`
+
 <br/>
 
 ### Params
@@ -25,6 +30,7 @@ Standard tooling for [`func`](https://github.com/unix/func) development.
 - `funcgo dev`: [-f, 'entry file'] [--, 'command args']
 
 - `funcgo build`: [-f, 'entry file'] [-o, 'output dir'] [-e, 'external package']
+  [--watch] [--watch-path, 'file, directory, or positive glob']
 
 <br/>
 
