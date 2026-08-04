@@ -73,14 +73,7 @@ describe('rewriteDownloadedTemplate', () => {
           {
             name: 'func-template',
             version: '1.1.0',
-            files: [
-              'src',
-              'tests',
-              'README.md',
-              'template-readme.md',
-              'tsconfig.json',
-              '.gitignore',
-            ],
+            files: ['src', 'tests', 'README.md', 'tsconfig.json', '.gitignore'],
             bin: {
               template: './dist/bin.js',
             },
@@ -94,9 +87,7 @@ describe('rewriteDownloadedTemplate', () => {
       rewriteDownloadedTemplate(tempDir, 'my-app')
 
       expect(
-        JSON.parse(
-          fs.readFileSync(path.join(tempDir, 'package.json'), 'utf-8'),
-        ),
+        JSON.parse(fs.readFileSync(path.join(tempDir, 'package.json'), 'utf-8')),
       ).toEqual({
         name: 'my-app',
         version: '0.0.0',
