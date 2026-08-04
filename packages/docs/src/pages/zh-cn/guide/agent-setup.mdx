@@ -1,0 +1,113 @@
+---
+title: 使用 Agent 操作 func
+description: 了解何时让 Agent 创建 func 项目、优化项目结构或补充测试，再从当前仓库直接开始操作。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import AgentTask from '@/components/AgentTask.astro'
+import Callout from '@/components/Callout.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const createPrompt = `开始操作前，先阅读 https://func.witt.im/setup.txt，并遵循当前仓库中的所有项目指引。
+
+请在当前仓库中创建一个名为 func-example 的 func CLI 项目。检查仓库结构、包管理器和 workspace 约定，将新项目放在不会干扰现有应用的目录中。权限允许时，自行准备缺失的 Node.js 或包管理器环境；保留仓库已有指令和规范。
+
+创建后安装依赖，阅读生成的源码，并通过 package script 运行 CLI 的帮助处理器。不要添加示例之外的自定义功能。最后说明创建或修改了哪些文件、为什么选择当前目录，以及实际执行的验证和结果。`
+
+export const structurePrompt = `开始操作前，先阅读 https://func.witt.im/rules.txt，并遵循当前仓库中的所有项目指引。
+
+请检查当前 func 项目的结构，并在不改变任何用户可见 CLI 行为的前提下进行优化。找出职责混杂的文件：保持可执行入口精简，按业务职责组织命令、模块与服务，将生成产物与源码分开，并保留现有 package manager、scripts 和对外命令。
+
+移动文件前先检查 import、模块注册和测试路径。完成后运行最小相关检查，并说明结构调整、保持不变的行为以及实际验证结果。`
+
+export const testPrompt = `开始操作前，先阅读 https://func.witt.im/rules.txt，并遵循当前仓库中的所有项目指引。
+
+请检查当前 func CLI 的命令与已有测试，找出用户可见行为中缺少覆盖的部分并补充测试用例。优先使用参数数组启动 package 的可执行文件，从用户视角覆盖标准命令名、已有别名或处理器路径、成功输出、选项约束，以及应用负责的失败行为。
+
+断言应关注退出行为，以及不会随机变化的 stdout 或 stderr 文本，不要重复测试 func 内部实现。运行最小相关测试集，并报告新增覆盖与实际结果。`
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="guide/agent-setup">
+  <Callout locale="zh-cn" title="按你的项目阶段选择" variant="note">
+
+如果你已经完成[快速起步](/zh-cn/guide)，可以略过第一个章节。后两个章节面向已经可以运行的 func 项目。
+
+  </Callout>
+
+下面的三个任务分别用于创建项目、整理结构和补充测试。Agent 组件会将完整提示词发送给所选应用，你也可以复制提示词并按项目需求修改。
+
+## 创建一个新的 func 项目
+
+### 适合的情况
+
+这个场景适合第一次使用 func 的开发者，也适合希望在现有 monorepo 中快速建立独立 CLI package 的团队。只需要在编码 Agent 中打开目标仓库，无需手动逐项检查 Node.js、包管理器或 workspace 配置。
+
+### Agent 执行的操作
+
+- 读取仓库指引，检查包管理器和目录结构。
+- 创建固定名为 `func-example` 的项目，并安装所需依赖。
+- 阅读生成源码并运行帮助处理器，确认 CLI 可以工作。
+
+### 完成后的项目
+
+仓库中会新增一个可以运行的 func 项目，同时得到一份报告，列出创建的文件、目录位置和实际验证结果。 该项目可以用于学习，也可以作为后续业务 CLI 的基础。
+
+<AgentTask
+  description="在当前仓库创建并验证固定名为 func-example 的可运行项目。"
+  locale="zh-cn"
+  prompt={createPrompt}
+  title="让 Agent 创建 func 项目"
+/>
+
+## 优化已有 func 项目结构
+
+### 何时需要整理
+
+这个场景面向已经维护 func 项目的开发者。当命令越来越多、处理器中混入大量业务逻辑，或源码与生成产物混在一起时， 可以让 Agent 在不改变 CLI 行为的前提下整理结构。
+
+### Agent 如何整理
+
+- 检查入口、模块注册、命令、服务、测试和输出目录之间的职责。
+- 识别职责混杂的文件，并按业务职责重新组织项目。
+- 修正文件移动影响的 import、注册和测试路径，并运行相关检查。
+
+### 整理后的变化
+
+用户调用 CLI 的方式和输出保持不变，但可执行入口更精简，命令与可复用服务的职责更清楚。后续增加功能、定位问题或把项目交给其他维护者时，需要理解和改动的范围会更小。
+
+<AgentTask
+  description="保持命令行为和输出不变，重新整理入口、模块、命令与服务的职责。"
+  locale="zh-cn"
+  prompt={structurePrompt}
+  title="让 Agent 优化 func 项目结构"
+/>
+
+## 为命令补充测试用例
+
+### 何时需要补充测试
+
+这个场景适合正在增加命令、准备发布版本或完成结构调整的维护者。它关注你的 CLI 向使用者承诺的行为，而不是重新测试 func 框架内部实现，因此也适合作为团队合并代码前的回归保护。
+
+### Agent 如何补充测试
+
+- 对照现有命令和测试，找出用户可见行为中的覆盖缺口。
+- 从可执行文件启动 CLI，覆盖命令名、别名、处理器路径、选项约束与失败行为。
+- 断言退出行为，以及不会随机变化的 stdout 和 stderr，并运行最小相关测试集。
+
+### 新增测试覆盖什么
+
+新增测试会覆盖应用对外提供的 CLI 行为：用户如何调用、成功时看到什么，以及出错时如何退出。 重构或升级依赖后，这些测试能更早发现行为变化，也不会依赖容易变动的内部实现。
+
+<AgentTask
+  description="从用户视角补齐命令、别名、选项约束与失败行为的验收覆盖。"
+  locale="zh-cn"
+  prompt={testPrompt}
+  title="让 Agent 补充 CLI 测试"
+/>
+
+## 参考与验证
+
+执行完成后，可以对照 [`setup.txt`](/setup.txt) 与 [`rules.txt`](/rules.txt) 检查 Agent 是否遵守 func 的项目创建、目录组织和测试约定。完整的人工步骤仍可在 [快速起步](/zh-cn/guide) 中参考。
+
+</DocsLayout>

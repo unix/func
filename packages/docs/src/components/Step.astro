@@ -1,0 +1,29 @@
+---
+interface Props {
+  description?: string
+  number: number | string
+  title: string
+}
+
+const { description, number, title } = Astro.props
+const hasDescriptionSlot = Astro.slots.has('description')
+---
+
+<li class="docs-step">
+  <div class="docs-step-rail" aria-hidden="true">
+    <span class="docs-step-number">{number}</span>
+  </div>
+  <div class="docs-step-content">
+    <h3 class="docs-step-title">{title}</h3>
+    {
+      (description || hasDescriptionSlot) && (
+        <p class="docs-step-description">
+          {hasDescriptionSlot ? <slot name="description" /> : description}
+        </p>
+      )
+    }
+    <div class="docs-step-body">
+      <slot />
+    </div>
+  </div>
+</li>

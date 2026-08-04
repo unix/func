@@ -1,0 +1,256 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  description: string
+  locale?: Locale
+  prompt: string
+  title: string
+}
+
+const { description, locale = defaultLocale, prompt, title } = Astro.props
+const encodedPrompt = encodeURIComponent(prompt)
+const labels =
+  locale === 'zh-cn'
+    ? {
+        copied: '已复制提示词',
+        copy: '复制提示词',
+        copyError: '复制失败',
+        openWith: (name: string) => `在 ${name} 中打开“${title}”任务`,
+        prompt: '任务提示词',
+      }
+    : {
+        copied: 'Prompt copied',
+        copy: 'Copy prompt',
+        copyError: 'Copy failed',
+        openWith: (name: string) => `Open “${title}” in ${name}`,
+        prompt: 'Task prompt',
+      }
+const agents = [
+  {
+    href: `codex://new?prompt=${encodedPrompt}`,
+    icon: '/icons/agents/codex.svg',
+    invertInDark: true,
+    name: 'Codex',
+  },
+  {
+    href: `cursor://anysphere.cursor-deeplink/prompt?text=${encodedPrompt}`,
+    icon: '/icons/agents/cursor.svg',
+    invertInDark: true,
+    name: 'Cursor',
+  },
+  {
+    href: `claude://code/new?q=${encodedPrompt}`,
+    icon: '/icons/agents/claude-code.svg',
+    invertInDark: false,
+    name: 'Claude Code',
+  },
+]
+---
+
+<section
+  class="agent-task my-6 w-full overflow-hidden rounded-xl border bg-card shadow-xs transition-colors duration-200"
+  data-agent-task
+  data-minimap-ignore>
+  <div
+    class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 items-start gap-3">
+      <div
+        aria-hidden="true"
+        class="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-xs font-semibold text-muted-foreground">
+        &gt;_
+      </div>
+      <div class="min-w-0 pt-0.5">
+        <div class="text-sm font-semibold text-foreground">
+          {title}
+        </div>
+        <div class="mt-1 text-xs leading-relaxed text-muted-foreground">
+          {description}
+        </div>
+      </div>
+    </div>
+
+    <div class="flex shrink-0 items-center gap-1.5 pl-12 sm:pl-0">
+      {
+        agents.map(agent => (
+          <a
+            aria-label={labels.openWith(agent.name)}
+            class="group inline-flex size-9 cursor-pointer select-none items-center justify-center rounded-lg border bg-background text-foreground shadow-xs outline-none transition-all hover:border-ring hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+            data-astro-reload
+            href={agent.href}
+            title={labels.openWith(agent.name)}>
+            <img
+              alt=""
+              aria-hidden="true"
+              class:list={[
+                'size-4 object-contain transition-opacity duration-200 group-hover:opacity-80',
+                agent.invertInDark && 'dark:invert',
+              ]}
+              draggable="false"
+              src={agent.icon}
+            />
+            <span class="sr-only">{agent.name}</span>
+          </a>
+        ))
+      }
+      <button
+        aria-label={labels.copy}
+        class="inline-flex size-9 cursor-pointer select-none items-center justify-center rounded-lg border bg-background text-muted-foreground shadow-xs outline-none transition-all hover:border-ring hover:bg-muted/50 hover:text-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:cursor-wait disabled:opacity-50"
+        data-agent-task-copy
+        data-copied-label={labels.copied}
+        data-copy-error-label={labels.copyError}
+        data-default-label={labels.copy}
+        title={labels.copy}
+        type="button">
+        <span class="inline-flex" data-agent-task-copy-icon>
+          <svg
+            aria-hidden="true"
+            class="size-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M9 15C9 12.1716 9 10.7574 9.87868 9.87868C10.7574 9 12.1716 9 15 9H16C18.8284 9 20.2426 9 21.1213 9.87868C22 10.7574 22 12.1716 22 15V16C22 18.8284 22 20.2426 21.1213 21.1213C20.2426 22 18.8284 22 16 22H15C12.1716 22 10.7574 22 9.87868 21.1213C9 20.2426 9 18.8284 9 16V15Z"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"></path>
+            <path
+              d="M16.9999 9C16.9975 6.04291 16.9528 4.51121 16.092 3.46243C15.9258 3.25989 15.7401 3.07418 15.5376 2.90796C14.4312 2 12.7875 2 9.5 2C6.21252 2 4.56878 2 3.46243 2.90796C3.25989 3.07417 3.07418 3.25989 2.90796 3.46243C2 4.56878 2 6.21252 2 9.5C2 12.7875 2 14.4312 2.90796 15.5376C3.07417 15.7401 3.25989 15.9258 3.46243 16.092C4.51121 16.9528 6.04291 16.9975 9 16.9999"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"></path>
+          </svg>
+        </span>
+        <span data-agent-task-copy-success hidden>
+          <svg
+            aria-hidden="true"
+            class="size-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11 10.6667C11 10.6667 11.75 10.6667 12.5 12C12.5 12 14.8824 8.66667 17 8"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"></path>
+            <path
+              d="M7 11V9C7 5.70017 7 4.05025 8.02513 3.02513C9.05025 2 10.7002 2 14 2C17.2998 2 18.9497 2 19.9749 3.02513C21 4.05025 21 5.70017 21 9V11C21 14.2998 21 15.9497 19.9749 16.9749C18.9497 18 17.2998 18 14 18C10.7002 18 9.05025 18 8.02513 16.9749C7 15.9497 7 14.2998 7 11Z"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"></path>
+            <path
+              d="M3 6V15C3 18.2998 3 19.9497 4.02513 20.9749C5.05025 22 6.70017 22 10 22H17"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"></path>
+          </svg>
+        </span>
+        <span aria-live="polite" class="sr-only" data-agent-task-copy-label>
+          {labels.copy}
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <div
+    aria-label={labels.prompt}
+    class="max-h-48 overflow-y-auto border-t bg-muted/30 px-4 py-3 font-mono text-xs leading-5 whitespace-pre-wrap text-foreground/80 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+    data-agent-task-prompt
+    role="region"
+    set:text={prompt}
+    tabindex="0"
+  />
+</section>
+
+<style>
+  .agent-task a {
+    text-decoration: none;
+  }
+</style>
+
+<script>
+  const copyAgentTaskPrompt = async (value: string) => {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(value)
+      return
+    }
+
+    const textarea = document.createElement('textarea')
+    textarea.value = value
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.append(textarea)
+    textarea.select()
+    const copied = document.execCommand('copy')
+    textarea.remove()
+
+    if (!copied) throw new Error('Unable to copy agent task prompt')
+  }
+
+  const bindAgentTaskCopyButtons = () => {
+    document
+      .querySelectorAll<HTMLButtonElement>('[data-agent-task-copy]')
+      .forEach(button => {
+        button.onclick = async () => {
+          if (button.disabled) return
+
+          const task = button.closest<HTMLElement>('[data-agent-task]')
+          const prompt = task?.querySelector<HTMLElement>('[data-agent-task-prompt]')
+          const promptText = prompt?.textContent
+          if (!promptText) return
+
+          const copyIcon = button.querySelector<HTMLElement>(
+            '[data-agent-task-copy-icon]',
+          )
+          const successIcon = button.querySelector<HTMLElement>(
+            '[data-agent-task-copy-success]',
+          )
+          const statusLabel = button.querySelector<HTMLElement>(
+            '[data-agent-task-copy-label]',
+          )
+          const defaultLabel = button.dataset.defaultLabel ?? 'Copy prompt'
+          const previousTimer = Number(button.dataset.resetTimer)
+          if (previousTimer) window.clearTimeout(previousTimer)
+
+          button.disabled = true
+          button.setAttribute('aria-busy', 'true')
+
+          try {
+            await copyAgentTaskPrompt(promptText)
+            const copiedLabel = button.dataset.copiedLabel ?? 'Prompt copied'
+            button.setAttribute('aria-label', copiedLabel)
+            button.title = copiedLabel
+            if (statusLabel) statusLabel.textContent = copiedLabel
+            if (copyIcon) copyIcon.hidden = true
+            if (successIcon) successIcon.hidden = false
+          } catch {
+            const errorLabel = button.dataset.copyErrorLabel ?? 'Copy failed'
+            button.setAttribute('aria-label', errorLabel)
+            button.title = errorLabel
+            if (statusLabel) statusLabel.textContent = errorLabel
+          }
+
+          button.disabled = false
+          button.removeAttribute('aria-busy')
+          button.dataset.resetTimer = String(
+            window.setTimeout(() => {
+              button.setAttribute('aria-label', defaultLabel)
+              button.title = defaultLabel
+              if (statusLabel) statusLabel.textContent = defaultLabel
+              if (copyIcon) copyIcon.hidden = false
+              if (successIcon) successIcon.hidden = true
+              delete button.dataset.resetTimer
+            }, 2000),
+          )
+        }
+      })
+  }
+
+  document.addEventListener('astro:page-load', bindAgentTaskCopyButtons)
+  bindAgentTaskCopyButtons()
+</script>

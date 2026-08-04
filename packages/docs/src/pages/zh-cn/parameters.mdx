@@ -1,0 +1,162 @@
+---
+title: 参数注入
+description: 注入归一化参数、命令注册表、异常和已注册服务。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const argsCode = [
+  "import { Args, Command, FuncArgs, Handler } from 'func'",
+  '',
+  "@Command({ name: 'config' })",
+  'export class ConfigCommand {',
+  "  @Handler({ path: ['profile', 'set'] })",
+  '  setProfile(@Args() args: FuncArgs) {',
+  "    console.log(args.path) // ['profile', 'set']",
+  '    console.log(args.inputs) // 路径之后的位置输入',
+  "    console.log(args.command?.name) // 'config'",
+  "    console.log(args.handler?.methodName) // 'setProfile'",
+  '  }',
+  '}',
+].join('\n')
+
+export const fieldsCode = [
+  "import { Args, Command, FuncArgs, Handler, Value } from 'func'",
+  '',
+  "@Command({ name: 'serve' })",
+  'export class ServeCommand {',
+  '  @Value()',
+  '  port: number = 3000',
+  '',
+  '  @Handler()',
+  '  run(@Args() args: FuncArgs) {',
+  '    console.log(this.port) // 已声明字段的推荐读取方式',
+  '    console.log(args.option.port) // 同一个归一化值',
+  '  }',
+  '}',
+].join('\n')
+
+export const regsCode = [
+  "import { CommandMajor, CommandRegistry, Handler, Regs } from 'func'",
+  '',
+  '@CommandMajor()',
+  'export class MajorCommand {',
+  "  @Handler({ flag: 'help', alias: 'h' })",
+  '  help(@Regs() registry: CommandRegistry) {',
+  '    registry.commands.forEach((command) => {',
+  "      const alias = command.alias ? `, ${command.alias}` : ''",
+  "      console.log(`${command.name}${alias} ${command.description || ''}`)",
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const exceptionCode = [
+  "import { Catch, Command, Exception, FuncException, Handler } from 'func'",
+  '',
+  "@Command({ name: 'publish' })",
+  'export class PublishCommand {',
+  '  @Catch()',
+  '  onError(@Exception() exception: FuncException) {',
+  '    console.error(`publish failed: ${exception.message}`)',
+  '  }',
+  '',
+  '  @Handler()',
+  '  run() {',
+  "    throw new Error('registry unavailable')",
+  '  }',
+  '}',
+].join('\n')
+
+export const constructorCode = [
+  "import { Args, Command, FuncArgs, Handler, Service } from 'func'",
+  '',
+  '@Service()',
+  'export class ProjectService {',
+  '  find(name: string) {',
+  '    return { name }',
+  '  }',
+  '}',
+  '',
+  "@Command({ name: 'inspect' })",
+  'export class InspectCommand {',
+  '  constructor(',
+  '    private project: ProjectService,',
+  '    @Args() private args: FuncArgs,',
+  '  ) {}',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.project.find(this.args.inputs[0]))',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="parameters">
+
+参数注入可以读取 func 的执行上下文，也可以获取已注册的服务。框架提供的值使用 `@Args()`、`@Regs()` 和 `@Exception()`。没有这些 装饰器的参数会按照 TypeScript 发出的运行时类型解析为服务；该服务必须已经注册，否则参数值 为 `undefined`。
+
+上下文装饰器可以用于命令构造函数和处理器方法。只有一个处理器需要时放在方法上；多个方法都 需要时放在构造函数上。
+
+## 通过 Args 读取当前调用
+
+命令与处理器选中后，`@Args()` 会注入一个 `FuncArgs` 对象。它可以读取位置输入、当前命令和处理器的元数据，也可以在需要时访问底层解析结果。
+
+<CodeBlock code={argsCode} filename="src/commands/config.command.ts" lang="ts" />
+
+对于 `ship config profile set work alice`，path 是 `['profile', 'set']`，剩余 inputs 是 `['work', 'alice']`。 func 不会为位置值赋予语义名称；处理器需要决定每个位置的含义，并在需要时校验缺失或额外输入。
+
+| 字段      | 包含内容                                                              |
+| --------- | --------------------------------------------------------------------- |
+| `command` | 选中的具名 @Command 元数据；主命令和缺失命令作用域中为 undefined。    |
+| `handler` | 选中方法的元数据，包括 methodName、path、flag、alias 和 description。 |
+| `inputs`  | 移除命令名和选中处理器路径后剩余的位置 token。                        |
+| `path`    | 选中的处理器路径；默认处理器和标志处理器中为空数组。                  |
+| `option`  | 按长名称归一化后的选项值，包括字段选项获得的默认值。                  |
+| `native`  | 底层解析器结果，包括位置数组 \_ 和带连字符的键。                      |
+
+### 已声明选项应优先读取字段
+
+`args.option` 会暴露所有归一化值，包括仅解析的 sub-options。对于已知的 `@Flag`、`@Value` 或 `@ArrayValue`，读取 `this.field` 更清楚，也能保留 TypeScript 属性类型。
+
+<CodeBlock code={fieldsCode} filename="src/commands/serve.command.ts" lang="ts" />
+
+只有需要兼容依赖底层解析结果的旧代码时，才建议使用 `native`。 新命令应读取字段、`inputs` 和 `option`。
+
+## 通过 Regs 生成命令列表和帮助信息
+
+`@Regs()` 注入 `CommandRegistry`。其中的 `commands` 数组包含已注册具名命令的元数据，包括描述、别名、处理器、字段选项和 sub-options。该列表不包含主命令、缺失命令和错误处理器类。
+
+<CodeBlock code={regsCode} filename="src/commands/major.command.ts" lang="ts" />
+
+func 提供注册表，但不会强制帮助界面的设计。你的 CLI 可以自行控制分组、翻译、示例和格式，命令声明中的 name 和 description 仍可作为统一的数据来源。
+
+## 通过 Exception 读取错误信息
+
+`@Exception()` 只适用于局部 `@Catch()` 方法或全局错误处理器的构造函数。它注入的 `FuncException` 包含 `code`、`level`、`type`、`message`、 `details`、归一化后的 `error` 以及 `preventDefaultPrint()`。
+
+<CodeBlock
+  code={exceptionCode}
+  filename="src/commands/publish.command.ts"
+  lang="ts"
+/>
+
+不要在普通处理器中注入 `@Exception()` ，因为此时还没有错误对象。错误处理顺序和默认输出见 [错误处理](/zh-cn/errors)。
+
+## 组合上下文与服务注入
+
+服务参数不使用参数装饰器；类类型本身就是注入 token，并且该服务必须出现在解析后模块的 `services` 列表中。上下文与服务可以混合出现在同一个构造函数中：
+
+<CodeBlock
+  code={constructorCode}
+  filename="src/commands/inspect.command.ts"
+  lang="ts"
+/>
+
+如果服务解析为 `undefined`，请确认它已经注册，并且 `tsconfig.json` 启用了装饰器元数据。`FuncArgs` 这样的接口在运行时没有类 token，所以参数上必须保留 `@Args()`。
+
+</DocsLayout>

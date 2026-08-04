@@ -1,0 +1,148 @@
+---
+title: 已有项目如何接入
+description: 在不替换现有运行时和构建流程的前提下，为 TypeScript 项目添加独立的 func CLI 入口。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const separateTree = `.
+|-- src                     已有应用
+|-- package.json            已有应用 package
++-- tools
+    +-- admin-cli           独立 func package
+        |-- src
+        |-- tests
+        |-- package.json
+        +-- dist            独立 bundle 输出`
+
+export const createCode = `cd tools
+npm init func
+# 在项目名提示中输入 "admin-cli"
+
+cd admin-cli
+npm install
+npm run dev -- --help`
+
+export const installCode = `npm install func
+npm install --save-dev funcgo`
+
+export const mixedTree = `src/cli
+|-- commands
+|   +-- hello.command.ts
+|-- cli.module.ts
++-- index.ts`
+
+export const entryCode = `import { run } from 'func'
+import { CliModule } from './cli.module'
+
+run(CliModule)`
+
+export const moduleCode = [
+  "import { FuncModule } from 'func'",
+  "import { HelloCommand } from './commands/hello.command'",
+  '',
+  '@FuncModule({',
+  '  commands: [HelloCommand],',
+  '})',
+  'export class CliModule {}',
+].join('\n')
+
+export const commandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'hello',",
+  "  description: 'Print a greeting',",
+  '})',
+  'export class HelloCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('Hello from func')",
+  '  }',
+  '}',
+].join('\n')
+
+export const devCode = `npx funcgo setup
+npx funcgo dev -f src/cli/index.ts -- --help
+npx funcgo dev -f src/cli/index.ts -- hello`
+
+export const buildCode = `npx funcgo build -f src/cli/index.ts -o dist/cli`
+
+export const packageConfigCode = `{
+  "func": {
+    "entry": "src/cli/index.ts",
+    "outDir": "dist/cli"
+  },
+  "bin": {
+    "admin-cli": "./dist/cli/bin.js"
+  }
+}`
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="guide/existing-project">
+
+推荐创建一个带独立 `package.json` 的新目录。CLI 可以导入 应用公开模块或共享 package，但它的运行时依赖、测试和生成 bundle 都留在宿主应用的 package 与构建流程之外。
+
+## 推荐：创建独立 CLI package
+
+<CodeBlock code={separateTree} filename="仓库结构" />
+
+独立目录可以避免宿主 package 的应用 bundler 将命令文件和 CLI 专用依赖混入产物， CLI 也可以单独发布、设置版本、测试或移除。在 monorepo 中，应把新目录加入已有 workspace 配置，而不是把它安装进应用 package。
+
+创建器会交互式询问目录名。在父目录中运行以下命令即可创建 CLI package：
+
+<CodeBlock code={createCode} lang="shell" />
+
+通过已有 workspace package 或明确对外开放的模块共享业务代码。不要为了获取某个服务而导入应用 bootstrap；bootstrap 经常会在 import 时启动服务器、连接数据库或注册进程事件。
+
+## 备选：在现有 package 中隔离 func
+
+当仓库无法增加 workspace，或 CLI 本来就是同一应用的私有接口时，也可以共用 package。 只安装运行时和开发工具，不替换应用已有 scripts：
+
+<CodeBlock code={installCode} lang="shell" />
+
+把 CLI 文件全部放进专用目录。一个小型 func 应用通常包含一个可执行入口、一个根 `@FuncModule`、若干命令类和可选服务类组成：
+
+<CodeBlock code={mixedTree} filename="隔离的 CLI 源码" />
+<CodeBlock code={entryCode} filename="src/cli/index.ts" lang="ts" />
+<CodeBlock code={moduleCode} filename="src/cli/cli.module.ts" lang="ts" />
+<CodeBlock
+  code={commandCode}
+  filename="src/cli/commands/hello.command.ts"
+  lang="ts"
+/>
+
+### 为什么这不会启动宿主应用
+
+func 装饰器只会把元数据附加到声明它的类；import 时不会解析参数或执行处理器。只有显式调用 `run(CliModule)` 调用。只要仅有 `src/cli/index.ts` 调用 `run`，并且宿主应用不导入这个入口，func 就不会替换应用运行时或 bootstrap。
+
+命令可以安全导入没有副作用的共享业务模块。如果共享逻辑需要状态或其他协作者，应把它包装为 `@Service` 并注册到 CLI 模块，而不是在命令文件内初始化全局状态。
+
+## 使用显式路径运行
+
+<Callout locale="zh-cn" title="修改配置前请检查" variant="caution">
+
+首次请运行不带 `{'--fix'}` 的 `funcgo setup`。 已有项目通常已经定义通用的 `dev` 和 `build` scripts。
+
+</Callout>
+
+先运行不带 `{'--fix'}` 的 `funcgo setup` 查看建议。在已有 package 中，自动设置可能会建议替换通用的 `dev` 和 `build` scripts，所以首次 接入应保持显式：
+
+<CodeBlock code={devCode} lang="shell" />
+
+确认 CLI 可以正常运行后，可添加 `cli:dev`、`cli:build` 等专用 scripts。不要占用应用已经使用的名字。
+
+## 构建到独立输出目录
+
+把 CLI bundle 输出到自己的目录，避免宿主构建意外打包它。如果生成产物不应提交，请加入 `.gitignore`。
+
+<CodeBlock code={buildCode} lang="shell" />
+
+如果 CLI 需要成为 package 的公开接口，请添加永久 func 配置和 `bin` 映射：
+
+  <CodeBlock code={packageConfigCode} filename="package.json" lang="json" />
+</DocsLayout>

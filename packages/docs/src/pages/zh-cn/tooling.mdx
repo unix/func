@@ -1,0 +1,121 @@
+---
+title: 工具链
+description: 使用 funcgo 配置、运行、打包并持续构建 func 项目。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const installCommands = {
+  npm: 'npm install --save-dev funcgo',
+  yarn: 'yarn add --dev funcgo',
+  pnpm: 'pnpm add --save-dev funcgo',
+  bun: 'bun add --dev funcgo',
+}
+
+export const setupCode = `funcgo setup
+funcgo setup --fix`
+
+export const devCode = `funcgo dev -- greet --name Ada
+funcgo dev -f src/cli/index.ts -- --help`
+
+export const buildCode = `funcgo build
+funcgo build -f src/cli/index.ts -o dist/cli
+funcgo build -e react -e ink`
+
+export const watchCode = `funcgo build --watch
+funcgo build --watch --watch-path 'src/**/*.ts' --watch-path config.json`
+
+export const packageConfigCode = `{
+  "scripts": {
+    "dev": "funcgo dev --",
+    "build": "funcgo build"
+  },
+  "func": {
+    "entry": "src/index.ts",
+    "outDir": "dist"
+  },
+  "bin": {
+    "ship": "./dist/bin.js"
+  }
+}`
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="tooling">
+
+`func` 是命令运行时，`funcgo` 是项目工具。它只负责三件事：检查 package 配置、在本地开发时执行 TypeScript 入口，以及将该入口打包到用于发布的输出目录。 它不会替你决定命令模型，也不会自动生成应用帮助。
+
+  <Callout locale="zh-cn" title="仅用于开发" variant="note">
+
+`funcgo` 是脚手架和构建工具，不会进入最终 bundle。它与 `func` 的关系，类似于 Vite 与 React 的关系。
+
+  </Callout>
+
+自动创建的默认模板项目已经自带 `funcgo`。其他项目使用本页命令前，请先将 `funcgo` 安装到开发依赖：
+
+<CodeBlock
+  code={installCommands.npm}
+  lang="shell"
+  packageManagerCommands={installCommands}
+/>
+
+普通流程使用 package scripts；需要自定义文件、输出、外部依赖或监听目标时，可以直接调用 `funcgo`。
+
+## 通过 setup 检查配置
+
+<Callout locale="zh-cn" title="默认只读" variant="note">
+
+`funcgo setup` 只输出建议，不会修改文件。使用 `--fix` 会更新 package 配置和常规 script 名称。
+
+</Callout>
+
+`funcgo setup` 会读取当前 `package.json` ，列出缺失的配置，以及与推荐值不同的配置。不带 `--fix` 时不会修改任何内容。
+
+<CodeBlock code={setupCode} lang="shell" />
+
+`--fix` 可以写入 `func.entry`、`func.outDir`、 `bin` 映射，以及常规的 `dev`、`build` scripts。新的 CLI package 可以直接采用这些默认值。已有应用 package 中的通用 script 名可能已经被使用，因此应在修改前检查建议内容。
+
+setup 会在存在时识别 `src/index.ts` 或 `index.ts` 。如果找不到入口，它会推荐 `src/index.ts`。运行 dev 或 build 前，请确保该文件存在。
+
+## 通过 dev 执行一次 TypeScript
+
+`funcgo dev` 会使用本地 TypeScript 运行时启动 Node.js 并执行解析到的入口。 `--` 之后的所有内容都会保持原样成为 CLI 参数数组。
+
+<CodeBlock code={devCode} lang="shell" />
+
+`-f`/`--file` 可以在不修改 package 配置的情况下选择其他入口。 `dev` 只运行一次然后退出，并不会监听源码。编辑时可以重复执行；也可以像 [快速起步](/zh-cn/guide)所述，通过 build watch 和全局链接的可执行文件开发。
+
+## 创建生产 bundle
+
+`funcgo build` 会打包解析到的入口和它可达的依赖，在输出目录写入 `index.js`，并创建加载该文件的可执行 `bin.js`。
+
+<CodeBlock code={buildCode} lang="shell" />
+
+使用 `-f`/`--file` 自定义入口，使用 `-o`/`--out` 设置隔离输出。每个 `-e`/`--external` 会把一个 package 保留在 bundle 之外。这些 external package 仍然是运行时依赖，必须保留在 dependencies 中，并随包一起安装。
+
+## 输入变化时重新构建
+
+`--watch` 会保持 build 进程运行。启动时生成一次 bundle，匹配的文件变化时自动重新构建。默认监听 `src/**/*.ts`。
+
+<CodeBlock code={watchCode} lang="shell" />
+
+每个额外文件、目录或正向 glob 都要重复传入 `--watch-path` 。自定义监听路径会替换默认集合。例如，添加配置文件时仍需显式传入 TypeScript glob。 `--watch-path` 必须和 `--watch` 一起使用；不支持负向 glob。输出目录、`node_modules` 和`.git` 会被忽略，以避免构建循环。
+
+## 理解解析优先级
+
+| 设置     | 优先级（由高至低）                                                |
+| -------- | ----------------------------------------------------------------- |
+| 入口文件 | `--file / -f → package.json#func.entry → src/index.ts → index.ts` |
+| 构建输出 | `--out / -o → package.json#func.outDir → dist`                    |
+| 监听目标 | `每个 --watch-path → 没有自定义路径时使用 src/**/*.ts`            |
+
+命令行选项适合临时试验或指定次要入口。常用的 package 配置应保存在 `package.json` 中， 便于本地开发、CI、全局链接和发布共用：
+
+<CodeBlock code={packageConfigCode} filename="package.json" lang="json" />
+
+`bin` 的键是用户实际输入的命令名，值必须指向所选输出目录内生成的 `bin.js`。紧凑参数列表见[API 参考](/zh-cn/apis)。
+
+</DocsLayout>

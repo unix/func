@@ -1,6 +1,4 @@
 @import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 @import '@fontsource-variable/inter';
 
 @custom-variant dark (&:is(.dark *));
@@ -49,6 +47,7 @@
 }
 
 :root {
+  color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -84,6 +83,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
@@ -121,8 +121,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html::selection,
+  html ::selection {
+    @apply bg-zinc-700 text-zinc-50;
+  }
   body {
     @apply bg-background text-foreground;
+  }
+  html,
+  body {
+    overscroll-behavior-y: none;
   }
   html {
     @apply font-sans;
@@ -130,36 +138,104 @@
 }
 
 @layer components {
+  .docs-nav-link {
+    @apply border-l-2 border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground;
+  }
+
+  .docs-nav-link[aria-current='page'] {
+    @apply border-violet-500 bg-violet-500/10 font-medium text-violet-700 dark:text-violet-300;
+  }
+
+  .docs-minimap[data-empty='true'] {
+    display: none;
+  }
+
+  .docs-minimap-link {
+    @apply block rounded-sm px-2 py-1 text-xs leading-5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground;
+  }
+
+  .docs-minimap-link[data-active='true'] {
+    @apply font-medium text-violet-700 dark:text-violet-300;
+  }
+
+  .docs-title {
+    @apply font-mono text-[1.625rem] leading-tight font-bold tracking-[-0.05em] text-foreground sm:text-4xl sm:tracking-tight;
+  }
+
+  .docs-description {
+    @apply mt-4 w-full max-w-none text-[0.9375rem] leading-6 text-muted-foreground sm:text-base sm:leading-7;
+  }
+
+  .docs-description p {
+    @apply my-2;
+  }
+
+  .docs-description > :first-child {
+    @apply mt-0;
+  }
+
+  .docs-description > :last-child {
+    @apply mb-0;
+  }
+
+  .docs-description a {
+    @apply rounded-sm font-medium text-foreground underline decoration-border underline-offset-4 outline-none transition-colors hover:decoration-violet-500 focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .docs-description code {
+    @apply rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-foreground;
+  }
+
+  .docs-description strong {
+    @apply font-semibold text-foreground/80;
+  }
+
   .prose-static {
-    @apply max-w-full text-base leading-7 text-foreground;
+    @apply max-w-full text-[0.9375rem] leading-6 text-foreground sm:text-base sm:leading-7;
   }
 
   .prose-static h1 {
-    @apply mb-5 text-3xl font-semibold tracking-normal text-balance text-foreground;
+    @apply mb-6 font-mono text-[1.625rem] leading-tight font-bold tracking-[-0.05em] text-foreground sm:text-4xl sm:tracking-tight;
   }
 
   .prose-static h2 {
-    @apply mt-12 mb-4 border-t border-border pt-8 text-xl font-semibold tracking-normal text-foreground;
+    @apply mt-10 mb-4 font-mono text-xl leading-snug font-semibold tracking-[-0.05em] text-foreground sm:text-2xl sm:leading-normal sm:tracking-tight;
   }
 
   .prose-static h3 {
-    @apply mt-8 mb-3 text-base font-semibold tracking-normal text-foreground;
+    @apply mt-6 mb-3 font-mono text-base leading-6 font-semibold tracking-[-0.045em] text-foreground sm:text-lg sm:leading-7 sm:tracking-tight;
+  }
+
+  .prose-static :where(h2, h3) {
+    scroll-margin-top: 5rem;
   }
 
   .prose-static p {
-    @apply my-4 text-foreground/80;
+    @apply my-4 text-foreground/75;
   }
 
   .prose-static a {
-    @apply font-medium text-foreground underline underline-offset-4;
+    @apply rounded-sm font-medium text-foreground underline decoration-border underline-offset-4 outline-none transition-colors hover:decoration-violet-500 focus-visible:ring-2 focus-visible:ring-ring;
   }
 
   .prose-static ul {
-    @apply my-4 ml-5 list-disc space-y-2 text-foreground/80;
+    @apply my-5 ml-5 list-disc space-y-2 text-foreground/75;
+  }
+
+  .prose-static ol {
+    @apply my-5 list-decimal space-y-2 pl-6 text-foreground/75 marker:font-mono marker:text-muted-foreground;
   }
 
   .prose-static li {
     @apply pl-1;
+  }
+
+  .prose-static > ol > li {
+    @apply pl-0;
+  }
+
+  .prose-static > ol > li::marker {
+    content: counter(list-item) '.\2009';
   }
 
   .prose-static code {
@@ -167,7 +243,7 @@
   }
 
   .prose-static pre {
-    @apply my-5 max-w-full overflow-x-auto rounded-lg border border-border bg-muted p-4 text-sm leading-6;
+    @apply my-6 max-w-full overflow-x-auto rounded-md border border-border bg-muted/30 px-4 py-2 text-sm leading-6;
   }
 
   .prose-static pre code {
@@ -177,7 +253,7 @@
   }
 
   .prose-static .code-block {
-    @apply my-5 max-w-full overflow-hidden rounded-lg border border-border bg-muted;
+    @apply my-6 max-w-full overflow-hidden rounded-md border border-border bg-muted/30 shadow-xs;
   }
 
   .prose-static .code-block pre {
@@ -194,27 +270,275 @@
     color: var(--shiki-dark);
   }
 
+  .prose-static .code-block:not([data-terminal='true']) pre {
+    @apply pl-2;
+  }
+
+  .prose-static .code-block:not([data-terminal='true']) code {
+    counter-reset: code-line;
+  }
+
+  .prose-static .code-block:not([data-terminal='true']) code .line {
+    counter-increment: code-line;
+  }
+
+  .prose-static .code-block:not([data-terminal='true']) code .line::before {
+    content: counter(code-line);
+    @apply mr-4 inline-block w-6 select-none text-right text-[0.6875rem] text-muted-foreground/40;
+  }
+
+  .prose-static .code-block[data-terminal='true'] pre {
+    @apply px-0;
+  }
+
+  .prose-static .code-block[data-terminal='true'] code {
+    @apply flex flex-col;
+  }
+
+  .prose-static .code-block[data-terminal='true'] code .line {
+    @apply flex h-8 min-w-full items-center px-4 transition-colors duration-200 ease-out hover:bg-muted;
+  }
+
+  .prose-static .code-block[data-terminal='true'] code .line::before {
+    content: '$';
+    @apply mr-3 inline-block shrink-0 select-none text-xs text-muted-foreground/50;
+  }
+
+  .prose-static .code-block .terminal-line-content {
+    @apply min-w-max flex-1;
+  }
+
+  .prose-static .code-block .terminal-line-copy {
+    @apply pointer-events-none sticky right-2 ml-4 inline-flex h-7 shrink-0 cursor-pointer select-none items-center rounded-md bg-transparent px-2 font-mono text-[0.6875rem] leading-none font-medium text-muted-foreground/50 opacity-0 outline-none transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:bg-transparent disabled:text-muted-foreground/35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/35 disabled:focus-visible:ring-0;
+  }
+
+  .prose-static
+    .code-block[data-terminal='true']
+    code
+    .line:hover
+    .terminal-line-copy,
+  .prose-static
+    .code-block[data-terminal='true']
+    code
+    .line:focus-within
+    .terminal-line-copy {
+    @apply pointer-events-auto opacity-100;
+  }
+
   .prose-static blockquote {
-    @apply my-5 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground/80;
+    @apply my-6 border-l-2 pl-4 text-sm text-muted-foreground;
   }
 
   .prose-static table {
-    @apply my-5 w-full border-collapse text-sm;
+    @apply my-6 block w-max max-w-full overflow-x-auto border-collapse text-sm;
+    min-width: min(36rem, 100%);
   }
 
   .prose-static th {
-    @apply border-b border-border px-3 py-2 text-left font-medium text-foreground;
+    @apply border-b bg-muted/50 px-4 py-3 text-left font-mono text-xs font-medium tracking-wide text-muted-foreground;
   }
 
   .prose-static td {
-    @apply border-b border-border px-3 py-3 align-top text-foreground/80;
+    @apply border-b px-4 py-3 align-top text-muted-foreground;
+  }
+
+  .prose-static tbody tr:last-child td {
+    @apply border-b-0;
   }
 
   .prose-static .caption {
-    @apply -mt-3 text-sm text-foreground/70;
+    @apply -mt-3 text-sm text-muted-foreground;
+  }
+
+  .docs-callout {
+    @apply my-6 flex gap-3 rounded-lg border bg-card p-4 shadow-xs;
+  }
+
+  .docs-callout-icon {
+    @apply flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background font-mono text-sm font-semibold text-violet-600 dark:text-violet-400;
+  }
+
+  .prose-static .docs-callout-title {
+    @apply m-0 font-mono text-sm leading-6 font-semibold text-foreground;
+  }
+
+  .prose-static .docs-callout-content {
+    @apply mt-1 text-sm leading-6 text-muted-foreground;
+  }
+
+  .prose-static .docs-callout-content :where(p, ul, ol) {
+    @apply my-2 text-sm leading-6;
+  }
+
+  .prose-static .docs-callout-content > :first-child {
+    @apply mt-0;
+  }
+
+  .prose-static .docs-callout-content > :last-child {
+    @apply mb-0;
+  }
+
+  .docs-steps {
+    @apply my-8 ml-0 list-none space-y-0;
+  }
+
+  .docs-step {
+    @apply relative grid grid-cols-[2rem_minmax(0,1fr)] gap-4 pb-8 pl-0 last:pb-0;
+  }
+
+  .docs-step-rail {
+    @apply relative flex justify-center;
+  }
+
+  .docs-step:not(:last-child) .docs-step-rail::after {
+    position: absolute;
+    top: 2.25rem;
+    bottom: -0.25rem;
+    width: 1px;
+    background: color-mix(in oklch, var(--muted-foreground) 20%, transparent);
+    content: '';
+  }
+
+  .docs-step-number {
+    @apply relative z-10 flex size-8 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10 font-mono text-xs font-medium text-violet-700 tabular-nums dark:text-violet-300;
+  }
+
+  .prose-static .docs-step-title {
+    @apply mt-0 mb-1 font-sans text-base leading-6 font-semibold tracking-normal;
+  }
+
+  .prose-static .docs-step-description {
+    @apply my-0 text-sm leading-6 text-muted-foreground;
+  }
+
+  .docs-step-body {
+    @apply mt-3;
+  }
+
+  .docs-step-body > :first-child {
+    @apply mt-0;
+  }
+
+  .docs-step-body > :last-child {
+    @apply mb-0;
+  }
+
+  .docs-feature-grid {
+    @apply my-8 grid overflow-hidden rounded-2xl border bg-card divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0;
+  }
+
+  .docs-feature-card {
+    @apply block p-6 no-underline outline-none transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-8;
+  }
+
+  .prose-static .docs-feature-card {
+    @apply no-underline;
+  }
+
+  .docs-feature-index {
+    @apply flex size-10 items-center justify-center rounded-lg border bg-background font-mono text-xs font-medium text-violet-700 tabular-nums dark:text-violet-300;
+  }
+
+  .prose-static .docs-feature-card h3 {
+    @apply mt-5 mb-0 font-sans text-base leading-6 font-semibold tracking-normal text-foreground;
+  }
+
+  .prose-static .docs-feature-card p {
+    @apply mt-2 mb-0 text-sm leading-6 text-muted-foreground;
+  }
+
+  .docs-feature-link {
+    @apply mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-foreground;
+  }
+
+  .docs-flow-diagram {
+    @apply my-8 overflow-hidden rounded-lg border bg-card p-4 shadow-xs sm:p-6;
+  }
+
+  .prose-static .docs-flow-diagram figcaption {
+    @apply font-mono text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase;
+  }
+
+  .prose-static .docs-flow-diagram ol {
+    @apply mt-5 ml-0 flex list-none flex-col gap-3 sm:flex-row sm:gap-0 sm:overflow-x-auto;
+  }
+
+  .prose-static .docs-flow-diagram li {
+    @apply relative min-w-0 flex-1 pl-0 sm:min-w-40 sm:px-3 lg:min-w-28 lg:px-2;
+  }
+
+  .docs-flow-stage-heading {
+    @apply relative z-10 flex items-center gap-2 sm:flex-col sm:items-start sm:gap-3;
+  }
+
+  .docs-flow-stage-heading > span {
+    @apply flex size-8 shrink-0 items-center justify-center rounded-full border border-violet-500/30 bg-card font-mono text-xs font-medium text-violet-700 tabular-nums dark:text-violet-300;
+  }
+
+  .prose-static .docs-flow-stage-heading h3 {
+    @apply m-0 font-sans text-sm leading-5 font-semibold tracking-normal sm:min-h-10;
+  }
+
+  .prose-static .docs-flow-diagram li > p {
+    @apply mt-2 mb-0 text-xs leading-5 text-muted-foreground sm:pl-0;
+  }
+
+  .docs-flow-diagram li:not(:last-child)::after {
+    position: absolute;
+    top: 2rem;
+    bottom: -0.75rem;
+    left: 1rem;
+    width: 1px;
+    background: color-mix(in oklch, var(--muted-foreground) 20%, transparent);
+    content: '';
+  }
+
+  .docs-decision-table {
+    @apply my-8 overflow-hidden rounded-lg border bg-card;
+  }
+
+  .prose-static .docs-decision-table table {
+    @apply m-0 table w-full min-w-2xl overflow-visible;
+  }
+
+  .prose-static .docs-decision-table tbody td:first-child code {
+    @apply border border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300;
+  }
+
+  .prose-static details {
+    @apply my-3 rounded-lg border bg-card px-4 shadow-xs;
+  }
+
+  .prose-static summary {
+    @apply cursor-pointer py-3 font-medium text-foreground outline-none marker:text-violet-500 hover:text-foreground/75 focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .prose-static details[open] summary {
+    @apply border-b;
+  }
+
+  .prose-static details > :not(summary) {
+    @apply text-sm leading-6;
   }
 
   .prose-static :where(h1, h2, p, li, td, th, a, blockquote) {
     overflow-wrap: anywhere;
+  }
+}
+
+@media (min-width: 40rem) {
+  .docs-flow-diagram li:not(:last-child)::after {
+    top: 1rem;
+    right: -0.75rem;
+    bottom: auto;
+    left: 2.75rem;
+    width: auto;
+    height: 1px;
+  }
+}
+
+@media (hover: none) {
+  .prose-static .code-block .terminal-line-copy {
+    @apply pointer-events-auto opacity-100;
   }
 }

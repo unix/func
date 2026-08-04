@@ -1,0 +1,139 @@
+---
+title: 错误处理
+description: 使用局部 catch 和全局处理器处理定义错误、运行时错误及可打印输入错误。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import TerminalDemo from '@/components/TerminalDemo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const localCatchCode = [
+  "import { Catch, Command, Exception, FuncException, Handler } from 'func'",
+  '',
+  "@Command({ name: 'publish' })",
+  'export class PublishCommand {',
+  '  @Catch()',
+  '  onError(@Exception() exception: FuncException) {',
+  '    console.error(`Publish failed: ${exception.message}`)',
+  '  }',
+  '',
+  '  @Handler()',
+  '  async run() {',
+  "    throw new Error('Registry is unavailable')",
+  '  }',
+  '}',
+].join('\n')
+
+export const globalCatchCode = [
+  "import { CatchAll, Exception, FuncException } from 'func'",
+  '',
+  '@CatchAll()',
+  'export class ErrorHandler {',
+  '  constructor(@Exception() exception: FuncException) {',
+  "    if (exception.level === 'runtime-print') {",
+  '      console.error(`Invalid input: ${exception.message}`)',
+  '      exception.preventDefaultPrint()',
+  '      return',
+  '    }',
+  '',
+  '    console.error(`Unexpected error: ${exception.message}`)',
+  '  }',
+  '}',
+].join('\n')
+
+export const moduleCode = [
+  "import { FuncModule } from 'func'",
+  "import { ErrorHandler } from './commands/error.command'",
+  "import { PublishCommand } from './commands/publish.command'",
+  '',
+  '@FuncModule({',
+  '  commands: [PublishCommand, ErrorHandler],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const throwInputErrorCode = [
+  "import { F_RUNTIME_PRINT, createRuntimePrintError, errorTypes } from 'func'",
+  '',
+  "throw createRuntimePrintError(F_RUNTIME_PRINT.VALIDATION, errorTypes.INPUT, 'Token is required.', { option: 'token' })",
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="errors">
+
+不同错误需要不同的处理方式。重复命令名是开发缺陷，应阻止应用启动；网络失败可能需要补充命令上下文； 对于无效选项，通常向 CLI 用户输出一条简明的 stderr 信息即可。
+
+func 通过错误分类和固定的处理顺序区分这些情况。你可以使用默认的输入错误输出，也可以为某个命令添加局部 catch，或注册全局格式化器。无需在每个处理器外重复包裹 `try/catch`。
+
+## 错误分类
+
+| 分类              | 谁应修复     | 示例                                                       | 处理方式                                                                   |
+| ----------------- | ------------ | ---------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `F_SYSTEM`        | 开发者       | 重复 token、缺失处理器、无效装饰器目标或不支持的选项类型。 | 立即抛出，不会传递给局部或全局用户处理器。                                 |
+| `F_RUNTIME`       | 应用或依赖   | 处理器抛错、服务请求失败，或业务代码拒绝某项操作。         | 局部 catch 可以处理；未处理的错误会传递给已注册的全局处理器。              |
+| `F_RUNTIME_PRINT` | CLI 用户输入 | 未知选项、解析失败、处理器标志冲突或校验失败。             | 使用相同的错误处理流程；默认向 stderr 输出消息，全局处理器可以关闭该输出。 |
+
+## 修复系统错误，而不是格式化它
+
+<Callout locale="zh-cn" title="系统错误属于定义缺陷" variant="caution">
+
+系统错误不会传递给局部或全局用户错误处理器。它表示代码或配置有误，不是用户可以修正的输入问题。
+
+</Callout>
+
+系统错误表示应用图或装饰器声明无效：命令与选项 token 重复、存在多个主命令或缺失命令作用域、 选项类型不支持、处理器缺失，或装饰器参数无效。它们会在用户错误处理器之前抛出，并且应该让开发 检查失败。不要把它转换成“请重试”这类用户提示，应直接修复定义。
+
+## 处理单个命令的错误
+
+`@Catch()` 装饰同一个命令类的方法。当 func 为该命令的字段赋值、执行校验或运行处理器时产生非系统错误，该方法会接收错误对象。
+
+<CodeBlock
+  code={localCatchCode}
+  filename="src/commands/publish.command.ts"
+  lang="ts"
+/>
+<TerminalDemo
+  command="ship publish"
+  demo="errors-local-catch"
+  locale="zh-cn"
+  rows={2}
+  sourceUrl="/demos/errors-local-catch.ts"
+/>
+
+局部 catch 正常结束后，func 会认为该错误已经处理。全局处理器不会运行，func 也不会输出默认信息。因此，局部方法必须负责输出、恢复或记录。如果局部 catch 自己抛错，新错误会传给全局处理器。
+
+当某个命令需要专门的恢复或提示时，可以使用局部 catch。例如，清理未完成的发布， 或在错误信息中加入目标 registry。所有命令共用的格式规则应写在全局处理器中。
+
+## 统一格式化所有错误
+
+`@CatchAll()` 注册一个错误处理器类。`@CommandError()` 是为了 兼容保留的等价名称。虽然用户不能把它选为命令，但仍要把该类注册到模块的 `commands` 列表中。
+
+<CodeBlock
+  code={globalCatchCode}
+  filename="src/commands/error.command.ts"
+  lang="ts"
+/>
+<CodeBlock code={moduleCode} filename="src/app.module.ts" lang="ts" />
+
+普通抛出值和原生 `Error` 到达全局处理器前，会被归一化为 `F_RUNTIME` 处理器错误。`FuncException` 包含消息、分类、归一化错误和 details，可直接用于记录。
+
+## 避免输入错误重复输出
+
+全局处理器运行后，func 会默认把 `F_RUNTIME_PRINT` 的消息输出到 stderr。如果全局处理器已经输出自定义信息，请像上例一样调用 `preventDefaultPrint()` 。如果默认消息已经满足需求，无需在全局处理器中再次输出。
+
+内置解析和字段校验会自动创建 runtime-print 错误。业务代码如果发现其他可由用户修正的输入问题，并希望使用相同的输出规则，可以使用 `createRuntimePrintError()`：
+
+<CodeBlock code={throwInputErrorCode} lang="ts" />
+
+## 什么时候需要自定义错误处理
+
+- func 默认输入信息已经足够时，不添加自定义处理器。
+- 单个命令需要恢复或补充命令上下文时，使用 `@Catch()`。
+- 需要统一前缀、结构化日志、翻译或遥测时，使用 `@CatchAll()`。
+- 正常命令结果写入 stdout，失败信息写入 stderr。
+- 不要在用户输出或日志中包含 token、密码或携带完整凭据的请求。
+
+</DocsLayout>

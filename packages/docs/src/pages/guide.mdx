@@ -1,0 +1,362 @@
+---
+title: Quick Start
+description: Create, develop, and bundle a func CLI project with the default TypeScript template.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import Step from '@/components/Step.astro'
+import Steps from '@/components/Steps.astro'
+import TerminalDemo from '@/components/TerminalDemo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const projectTree = `.
+|-- src
+|   |-- app.module.ts          root module
+|   |-- config.ts              package and runtime settings
+|   |-- commands
+|   |   |-- error.command.ts   global input-error output
+|   |   |-- greet.command.ts   named command example
+|   |   |-- major.command.ts   empty input, help, and version
+|   |   |-- missing.command.ts unknown-command response
+|   |   +-- index.ts           command list
+|   |-- services
+|   |   +-- project.service.ts injectable service example
+|   +-- index.ts               executable entry
+|-- tests                      executable behavior tests
+|-- package.json
+|-- tsconfig.json
++-- README.md`
+
+export const createCommands = {
+  npm: 'npm init func',
+  yarn: 'yarn create func',
+  pnpm: 'pnpm create func',
+  bun: 'bun create func',
+}
+
+export const installCommands = {
+  npm: `cd ship
+npm install
+npm run dev -- --help`,
+  yarn: `cd ship
+yarn install
+yarn dev --help`,
+  pnpm: `cd ship
+pnpm install
+pnpm dev --help`,
+  bun: `cd ship
+bun install
+bun run dev -- --help`,
+}
+
+export const runCommands = {
+  npm: `npm run dev -- greet
+npm run dev -- greet --name Ada
+npm run dev -- greet shout --name Ada`,
+  yarn: `yarn dev greet
+yarn dev greet --name Ada
+yarn dev greet shout --name Ada`,
+  pnpm: `pnpm dev greet
+pnpm dev greet --name Ada
+pnpm dev greet shout --name Ada`,
+  bun: `bun run dev -- greet
+bun run dev -- greet --name Ada
+bun run dev -- greet shout --name Ada`,
+}
+
+export const statusCommands = {
+  npm: 'npm run dev -- status',
+  yarn: 'yarn dev status',
+  pnpm: 'pnpm dev status',
+  bun: 'bun run dev -- status',
+}
+
+export const packageScriptsCode = `{
+  "scripts": {
+    "dev": "funcgo dev --",
+    "build": "funcgo build"
+  }
+}`
+
+export const commandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'status',",
+  "  description: 'Print service status',",
+  '})',
+  'export class StatusCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('All systems operational')",
+  '  }',
+  '}',
+].join('\n')
+
+export const registerCode = `import { ErrorHandler } from './error.command'
+import { Major } from './major.command'
+import { Missing } from './missing.command'
+import { StatusCommand } from './status.command'
+
+export const commands = [Major, StatusCommand, Missing, ErrorHandler]`
+
+export const moduleCode = [
+  "import { FuncModule } from 'func'",
+  "import { commands } from './commands'",
+  "import { services } from './services'",
+  '',
+  '@FuncModule({',
+  '  commands,',
+  '  services,',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const globalLinkCommands = {
+  npm: `npm run build
+npm link
+
+# Use the key from package.json#bin
+
+ship --help`,
+  yarn: `yarn build
+yarn global add file:.
+
+# Use the key from package.json#bin
+
+ship --help`,
+  pnpm: `pnpm build
+pnpm add --global .
+
+# Use the key from package.json#bin
+
+ship --help`,
+  bun: `bun run build
+bun link --global
+
+# Use the key from package.json#bin
+
+ship --help`,
+}
+
+export const unlinkCommands = {
+  npm: 'npm uninstall --global ship',
+  yarn: 'yarn global remove ship',
+  pnpm: 'pnpm remove --global ship',
+  bun: 'bun unlink',
+}
+
+export const watchCommands = {
+  npm: [
+    'npm run build -- --watch',
+    '',
+    '# Watch additional files or custom globs',
+    "npm run build -- --watch --watch-path 'src/**/*.ts' --watch-path config.json",
+  ].join('\n'),
+  yarn: [
+    'yarn build --watch',
+    '',
+    '# Watch additional files or custom globs',
+    "yarn build --watch --watch-path 'src/**/*.ts' --watch-path config.json",
+  ].join('\n'),
+  pnpm: [
+    'pnpm build --watch',
+    '',
+    '# Watch additional files or custom globs',
+    "pnpm build --watch --watch-path 'src/**/*.ts' --watch-path config.json",
+  ].join('\n'),
+  bun: [
+    'bun run build -- --watch',
+    '',
+    '# Watch additional files or custom globs',
+    "bun run build -- --watch --watch-path 'src/**/*.ts' --watch-path config.json",
+  ].join('\n'),
+}
+
+export const buildCommands = {
+  npm: `npm run build
+npm pack --dry-run`,
+  yarn: `yarn build
+yarn pack --dry-run`,
+  pnpm: `pnpm build
+pnpm pack --dry-run`,
+  bun: `bun run build
+bun pm pack --dry-run`,
+}
+
+<DocsLayout frontmatter={frontmatter} page="guide">
+  <Callout title="What you will finish" variant="note">
+
+You will create a TypeScript project, run its generated CLI, add a `status` command, and inspect the files that would be published.
+
+  </Callout>
+
+<Steps>
+  <Step number="1" title="Create the project">
+
+<span slot="description">
+  Install <a href="https://nodejs.org/en/download">Node.js 20.12 or newer</a> first.
+</span>
+
+The creator asks for a project name, creates a new directory, and copies the TypeScript template into it. It will not overwrite an existing directory. If you use an agent to create it automatically, follow the [agent setup guide](/guide/agent-setup).
+
+    <CodeBlock
+      code={createCommands.npm}
+      lang="shell"
+      packageManagerCommands={createCommands}
+    />
+
+  </Step>
+  <Step
+    number="2"
+    title="Install and inspect the generated CLI"
+    description="Enter the new directory, install dependencies, and run its help handler.">
+    <CodeBlock
+      code={installCommands.npm}
+      lang="shell"
+      packageManagerCommands={installCommands}
+    />
+  </Step>
+</Steps>
+
+<Callout variant="tip">
+
+In CLI terminology, `greet` in `ship greet --name Ada` is a command, while `--name` is an option. If those terms are new, read [Commands](/commands) before changing the template.
+
+</Callout>
+
+## Understand the generated project
+
+In the default template, the `src` directory contains all application code and `tests` contains the test cases. A `dist` directory will also appear after you run `build`.
+In most cases, only the contents of `dist` are ultimately published.
+
+<CodeBlock code={projectTree} filename="Project structure" />
+
+The executable entry calls `run(AppModule)`. The root module gathers the command and service classes that func is allowed to use:
+
+<CodeBlock code={moduleCode} filename="src/app.module.ts" lang="ts" />
+
+Commands describe the user-facing CLI. Services hold reusable work that should not be tied to parsing or printing. Tests spawn the generated executable so dispatch, input parsing, and output are checked together.
+
+## Run commands during development
+
+The template exposes funcgo through ordinary npm scripts:
+
+<CodeBlock code={packageScriptsCode} filename="package.json" lang="json" />
+
+In the npm tab, `npm run dev -- <arguments>` follows npm's argument-passthrough convention. The first `--` tells npm to stop reading its own options and append everything that follows to the script. The script's trailing `--` then tells `funcgo dev` that those tokens belong to your CLI rather than funcgo. You do not need to parse or remove either delimiter in application code.
+
+<CodeBlock
+  code={runCommands.npm}
+  lang="shell"
+  packageManagerCommands={runCommands}
+/>
+
+Each invocation executes the TypeScript entry once. This is the fastest way to test a command while editing because no production bundle is required. Use the switcher in the terminal header for the equivalent commands from other package managers.
+
+### Add your first command
+
+Create a class with a stable command name and one default handler. The class name is only for TypeScript; users type the `name` from `@Command` .
+
+<CodeBlock code={commandCode} filename="src/commands/status.command.ts" lang="ts" />
+
+Export it from the command list so `AppModule` can register it, then run `npm run dev -- status`.
+
+<CodeBlock code={registerCode} filename="src/commands/index.ts" lang="ts" />
+<TerminalDemo
+  command={statusCommands.npm}
+  demo="guide-status"
+  packageManagerCommands={statusCommands}
+  rows={2}
+  sourceUrl="/demos/guide-status.ts"
+/>
+
+See [Commands](/commands) before adding aliases or several actions, and [Field Options](/options) before accepting flags or values.
+
+## Optional: Map the command globally
+
+This step is not required to use funcgo. Create a global link only if you want to type the final command name directly during development, such as `ship`; otherwise, keep using `npm run dev -- <command>`.
+
+<Callout variant="caution">
+
+Global mapping reads the generated `dist/bin.js`. Build successfully before running the selected package manager's global mapping command, and use the exact key from `package.json#bin` as the command name. This example assumes that the command name in `bin` is `ship`.
+
+</Callout>
+
+During development, your package manager can map the current package into its global command directory. Build first because `package.json#bin` points to the generated `dist/bin.js`, then create the link from the project root:
+
+<CodeBlock
+  code={globalLinkCommands.npm}
+  lang="shell"
+  packageManagerCommands={globalLinkCommands}
+/>
+<TerminalDemo
+  command="ship --help"
+  demo="guide-help"
+  rows={8}
+  sourceUrl="/demos/guide-help.ts"
+/>
+
+The command name here is `ship`, so you can run `ship --help` above. The mapping uses this project's build output. Rebuild the bundle after source changes and rerun the mapping command when needed.
+
+To remove the mapping, use the corresponding command for the active package manager:
+
+<CodeBlock
+  code={unlinkCommands.npm}
+  lang="shell"
+  packageManagerCommands={unlinkCommands}
+/>
+
+### Rebuild while files change
+
+`funcgo build --watch` performs an initial build, watches `src/**/*.ts` by default, and rebuilds after matching changes. Keep it running in one terminal and invoke the globally linked command in another. Press `Ctrl+C` to stop watching.
+
+<CodeBlock
+  code={watchCommands.npm}
+  lang="shell"
+  packageManagerCommands={watchCommands}
+/>
+
+Each `--watch-path` can be a file, directory, or positive glob. Use it for inputs outside `src`, such as a JSON configuration file. Generated output, `node_modules`, and `.git` are ignored.
+
+## Troubleshoot the first run
+
+<details>
+
+<summary>The shell cannot find the global command</summary>
+
+Confirm that the build produced `dist/bin.js`, run `npm link` from the package root, and invoke the key from `package.json#bin` rather than the package name.
+
+</details>
+<details>
+
+<summary>func reports an unknown command</summary>
+
+Export the command class from the registered command list. Creating the file and adding `@Command()` does not register the class by itself.
+
+</details>
+<details>
+
+<summary>npm consumes an option intended for the CLI</summary>
+
+Keep the passthrough separator: use `npm run dev -- status --json`. The tokens after `--` belong to your CLI.
+
+</details>
+
+## Bundle and prepare to publish
+
+The build script bundles the configured TypeScript entry into `func.outDir` (the template uses `dist`) and creates an executable `bin.js`. The package's `bin` field exposes that file under the command name users will install.
+
+<CodeBlock
+  code={buildCommands.npm}
+  lang="shell"
+  packageManagerCommands={buildCommands}
+/>
+
+The dry-run pack command in the terminal shows which files would be published without publishing them. Confirm that the bundle, package metadata, README, and license are present, then run `npm publish` to publish the package to npm. For custom entry, output, external dependency, and watch settings, see [Tooling](/tooling).
+
+</DocsLayout>

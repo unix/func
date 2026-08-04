@@ -1,0 +1,110 @@
+---
+title: Work with func using an Agent
+description: Learn when to ask an agent to create a func project, improve its structure, or add tests, then start directly from your repository.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import AgentTask from '@/components/AgentTask.astro'
+import Callout from '@/components/Callout.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const createPrompt = `Before making changes, read https://func.witt.im/setup.txt and follow every project instruction in the current repository.
+
+Create a func CLI project named func-example in the current repository. Inspect the repository structure, package manager, and workspace conventions first, then choose a project boundary that will not interfere with the existing application. Set up any missing Node.js or package-manager environment yourself when permissions allow, and preserve the repository's existing instructions and conventions.
+
+After creation, install dependencies, read the generated source, and run the CLI help handler through its package script. Do not add custom behavior beyond the generated example. Finish by reporting the files you created or changed, the project boundary you chose, and the verification you actually ran with its result.`
+
+export const structurePrompt = `Before making changes, read https://func.witt.im/rules.txt and follow every project instruction in the current repository.
+
+Inspect the current func project and improve its structure without changing any user-visible CLI behavior. Identify mixed responsibilities or unclear boundaries yourself. Keep the executable entry small, organize commands, modules, and services by business responsibility, isolate generated output, and preserve the existing package manager, scripts, and public commands.
+
+Check imports, module registration, and test paths before moving files. Run the smallest relevant checks when finished, then report the structural changes, the behavior you preserved, and the verification result.`
+
+export const testPrompt = `Before making changes, read https://func.witt.im/rules.txt and follow every project instruction in the current repository.
+
+Inspect the current func CLI commands and tests, identify gaps in user-visible behavior, and add the missing test cases. Prefer spawning the package executable with argument arrays. Cover canonical command names, existing aliases or handler paths, successful output, option constraints, and failure behavior owned by the application.
+
+Keep assertions focused on exit behavior and stable stdout or stderr text. Do not duplicate tests for func internals. Run the smallest relevant test set and report the new coverage and actual result.`
+
+<DocsLayout frontmatter={frontmatter} page="guide/agent-setup">
+  <Callout title="Choose for your project stage" variant="note">
+
+If you have completed [Quick Start](/guide), skip the first section. The other workflows are for func projects that already run.
+
+  </Callout>
+
+The three tasks below cover project creation, structural improvements, and additional tests. The Agent component sends the complete prompt to the selected application; you can also copy and adapt the prompt to your project's needs.
+
+## Create a new func project
+
+### Who it is for
+
+This workflow is for developers using func for the first time and teams that want to establish an isolated CLI package inside an existing monorepo. Open the target repository in your coding agent; you do not need to check Node.js, package-manager, or workspace configuration one item at a time.
+
+### What the agent does
+
+- Reads repository instructions and checks the package manager and directory boundary.
+- Creates a project with the fixed name `func-example` and installs its dependencies.
+- Reads the generated source and runs the help handler to verify the CLI.
+
+### Expected result
+
+The repository gains a runnable func project with a clear boundary, plus a report of created files, the chosen location, and the verification result. Use it as a learning baseline or the foundation for a real business CLI.
+
+<AgentTask
+  description="Create and verify a runnable project named func-example in the current repository."
+  prompt={createPrompt}
+  title="Ask an agent to create a func project"
+/>
+
+## Improve an existing func project
+
+### Who it is for
+
+This workflow is for maintainers of a working func project. Use it when commands keep accumulating, handlers have started to own business logic, or the boundaries between modules, services, and generated output are no longer clear.
+
+### What the agent does
+
+- Inspects the responsibilities of the entry, modules, commands, services, tests, and output.
+- Finds mixed responsibilities and reorganizes the project around business boundaries.
+- Updates affected imports, registrations, and test paths, then runs relevant checks.
+
+### Expected result
+
+Users invoke the CLI in exactly the same way and receive the same output, while the executable entry becomes smaller and commands and reusable services gain clearer ownership. Future features, debugging, and team handoffs require a smaller area of the project to understand and change.
+
+<AgentTask
+  description="Reorganize entry, module, command, and service boundaries without changing CLI behavior."
+  prompt={structurePrompt}
+  title="Ask an agent to improve the project structure"
+/>
+
+## Add tests for CLI commands
+
+### Who it is for
+
+This workflow is for maintainers adding commands, preparing a release, or finishing a structural refactor. It protects the behavior your CLI promises to users instead of re-testing func internals, making it useful as regression coverage before merging code.
+
+### What the agent does
+
+- Compares existing commands and tests to find gaps in user-visible behavior.
+- Spawns the executable to cover command names, aliases, handler paths, option constraints, and owned failures.
+- Asserts stable exit behavior, stdout, and stderr, then runs the smallest relevant test set.
+
+### Expected result
+
+The new tests protect the CLI contract your application owns: how users invoke it, what success prints, and how failures exit. They expose behavior regressions during later refactors or dependency upgrades without relying on brittle implementation details.
+
+<AgentTask
+  description="Add acceptance coverage for commands, aliases, option constraints, and owned failures."
+  prompt={testPrompt}
+  title="Ask an agent to add CLI tests"
+/>
+
+## Reference and verify
+
+After a task finishes, compare the result with [`setup.txt`](/setup.txt) and [`rules.txt`](/rules.txt) to verify the func setup, project boundary, and testing conventions. The manual workflow remains available in [Quick Start](/guide).
+
+</DocsLayout>

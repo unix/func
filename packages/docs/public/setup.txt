@@ -1,0 +1,26 @@
+func setup for coding agents
+
+func is a decorator-based TypeScript framework for command-line applications. Use it when a CLI needs named commands, typed options, validation, reusable services, and a production bundle without a large framework.
+
+When the user asks you to create a func project:
+
+1. Read the repository's agent instructions and preserve its package manager and conventions.
+2. Ensure Node.js 20.12 or newer and an npm-compatible package manager are available. Determine this yourself; do not give the user a preliminary environment-check command. If Node.js is missing or older, prefer an existing version manager such as mise, asdf, nvm, or Volta and install an active LTS release that satisfies the requirement. If no version manager exists, use the platform's standard package manager (for example Homebrew on macOS or winget on Windows) or the official Node.js distribution. If the repository declares `packageManager`, activate that manager with Corepack when available; otherwise use npm. Avoid system-wide installs with sudo. Only ask the user when permissions or network policy prevent you from completing installation.
+3. For a new standalone project, run `npm init func` or `pnpm create func`, answer the interactive project-name prompt, enter the new directory, and install dependencies.
+4. For an existing repository, prefer a new, self-contained package or directory for the CLI. Read https://func.witt.im/guide/existing-project.md before deciding to mix the CLI into an existing application package.
+5. Read the generated source before editing it. Keep `src/index.ts` as the runtime entry, register commands and services through `@FuncModule`, and place each business command in a focused command class.
+6. Run the CLI through the package script and pass user arguments after `--`, for example `npm run dev -- greet --name Ada`.
+7. Add or update tests for the requested behavior. Follow https://func.witt.im/rules.txt for project structure and test coverage.
+8. Verify the relevant command behavior and tests. Build only when the task requires a distributable executable or the repository's test script builds as part of its normal verification.
+
+Essential documentation:
+
+- Quick start: https://func.witt.im/guide.md
+- Commands: https://func.witt.im/commands.md
+- Core concepts: https://func.witt.im/concepts.md
+- Field options: https://func.witt.im/options.md
+- Existing projects: https://func.witt.im/guide/existing-project.md
+- Tooling: https://func.witt.im/tooling.md
+- Project and test rules: https://func.witt.im/rules.txt
+
+Do not invent func APIs. If the requested behavior is not covered here, read the linked Markdown documentation or the API reference at https://func.witt.im/apis.md before changing files.

@@ -1,34 +1,64 @@
 ---
 import DocsHeader from '@/components/DocsHeader.astro'
+import DocsFooter from '@/components/DocsFooter.astro'
+import DocsMinimap from '@/components/DocsMinimap.astro'
 import DocsSidebar from '@/components/DocsSidebar.astro'
-import { defaultLocale, getSiteTitle, type DocPage, type Locale } from '@/lib/docs'
+import DocsTitleMeta from '@/components/DocsTitleMeta.astro'
+import DocsToolbar from '@/components/DocsToolbar.astro'
+import {
+  defaultLocale,
+  getEditUrl,
+  getMarkdownPath,
+  type DocFrontmatter,
+  type DocPage,
+  type Locale,
+} from '@/lib/docs'
 import Layout from '@/layouts/main.astro'
 
 interface Props {
-  description?: string
+  frontmatter: DocFrontmatter
   locale?: Locale
   page: DocPage
-  title?: string
 }
 
-const {
-  description = 'Modern Command Line Framework.',
-  locale = defaultLocale,
-  page,
-  title = getSiteTitle(locale),
-} = Astro.props
+const { frontmatter, locale = defaultLocale, page } = Astro.props
+const { authors, description, lastModified, title } = frontmatter
+const markdownPath = getMarkdownPath(page, locale)
+const editUrl = getEditUrl(page, locale)
 ---
 
-<Layout title={title} description={description}>
-  <main class="mx-auto min-h-screen w-full max-w-6xl px-6 py-8 md:px-8 md:py-10">
+<Layout authors={authors} title={title} description={description} locale={locale}>
+  <div class="mx-auto min-h-screen w-full max-w-7xl bg-background">
     <DocsHeader locale={locale} page={page} />
 
-    <div class="grid min-w-0 gap-10 py-10 lg:grid-cols-[13rem_minmax(0,1fr)]">
+    <main
+      class="grid min-h-[calc(100svh-4rem)] min-w-0 px-4 sm:px-6 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-x-8 lg:px-8 xl:grid-cols-[11rem_minmax(0,1fr)_11rem] xl:gap-x-10">
       <DocsSidebar locale={locale} page={page} />
 
-      <article class="prose-static min-w-0 max-w-full lg:max-w-3xl">
-        <slot />
-      </article>
-    </div>
-  </main>
+      <div class="min-w-0">
+        <div
+          class="mx-auto w-full max-w-3xl pt-6 pb-8 md:pt-8 md:pb-12 lg:pt-10 lg:pb-16">
+          <div class="mb-10">
+            <h1 class="docs-title">{title}</h1>
+            <div class="docs-description">
+              <p>{description}</p>
+            </div>
+            <div
+              class="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+              <DocsTitleMeta lastModified={lastModified} locale={locale} />
+              <DocsToolbar locale={locale} markdownPath={markdownPath} />
+            </div>
+          </div>
+
+          <article class="prose-static min-w-0" data-doc-content>
+            <slot />
+          </article>
+
+          <DocsFooter editUrl={editUrl} locale={locale} />
+        </div>
+      </div>
+
+      <DocsMinimap locale={locale} />
+    </main>
+  </div>
 </Layout>

@@ -1,0 +1,125 @@
+---
+title: Runtime Execution Model
+description: Understand how func assembles an application, then performs command-scope selection, option parsing, handler dispatch, instance and parameter preparation, validation, execution, and error routing.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import FlowDiagram from '@/components/FlowDiagram.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const runtimeStages = [
+  {
+    label: 'Assemble application',
+    description:
+      'Expand modules, collect commands and services, and validate the complete CLI model.',
+  },
+  {
+    label: 'Select command',
+    description:
+      "Use argv's first token to select a named, major, or missing command.",
+  },
+  {
+    label: 'Parse scope',
+    description:
+      "Use the selected command's option rules to parse all arguments and identify unknown options.",
+  },
+  {
+    label: 'Dispatch handler',
+    description:
+      'Check the longest handler path, handler option, and default handler in order.',
+  },
+  {
+    label: 'Prepare execution',
+    description:
+      'Create the selected command and services, assign fields, validate, and produce method parameters.',
+  },
+  {
+    label: 'Invoke or fail',
+    description:
+      'Await the single handler; route failures to local or application-level handling according to their phase.',
+  },
+]
+
+<DocsLayout frontmatter={frontmatter} page="runtime">
+
+The func runtime operates in two phases. At application startup, it first aggregates module declarations into a complete command-line model. When each invocation arrives, it finds exactly one handler to call based on the command active for that invocation.
+Decorators provide declarations and metadata. The `func` runtime combines and isolates that declared data while ensuring commands share global rules for services, errors, validation, and more.
+
+For example, `ship project member add alice --role owner --force` yields the `project` command scope, the `role` and `force` options, the `member add` handler path, and the remaining positional input `alice`. Each stage consumes only the portion it owns and passes the result to the next stage.
+
+<FlowDiagram stages={runtimeStages} title="func runtime pipeline" />
+
+## Assemble the application
+
+The root `@FuncModule` is the runtime assembly boundary. func recursively expands imports and combines registered commands and services into an application-level model. A module describes structure; assembly does not instantiate every command and service. Instances are created only when an invocation needs them.
+
+Commands are grouped by role. `@Command` contributes named commands, `@CommandMajor` provides the top-level scope when no named command is present, `@CommandMissing` receives unknown commands, and error handlers participate separately in failure routing. The service list becomes the provider set available to dependency injection.
+
+Assembly also checks that the model is deterministic: command names and aliases cannot collide; an application has at most one major and one missing command; option tokens within a command are unique; except for a legacy missing command, every dispatchable command has a handler and at most one default handler. These are func registration constraints, not POSIX rules. They prevent dispatch from depending on declaration order or accidental overwrites.
+
+## Select command scope
+
+The shell processes quoting, escaping, and variable expansion before giving argv to the program. func does not tokenize a command-line string again. It inspects only the first token after the executable to decide which command class owns the invocation; options are not parsed yet.
+
+| argv prefix        | Command scope         | Treatment                                                                                      |
+| ------------------ | --------------------- | ---------------------------------------------------------------------------------------------- |
+| `[] / [--version]` | Major command         | No named command token is present; the application's top-level command handles the invocation. |
+| `[project, ...]`   | Named project command | The first token matches a command name or alias.                                               |
+| `[unknown, ...]`   | Missing command       | The first operand matches no named command and the application registered a missing command.   |
+
+A hyphen-prefixed token denotes an option under Unix command-line convention, so it is not treated as a command name; an option-first invocation belongs to the major command. Treating the first operand as a command is func's application of the common command/subcommand model, not a POSIX requirement for every utility.
+
+If an unknown command has no missing-command scope, the runtime does not fall back to the major command. Scope selection is strict rather than a sequence of attempts. That property gives the next phase one unambiguous option grammar.
+
+### Parse options for the current command
+
+Only after scope selection can func establish the option grammar for an invocation. That grammar combines the selected command's field options, handler options, and sub-options. Fields from other commands do not participate, so options on the major command do not automatically become global options for named commands.
+
+The terminology follows [POSIX Utility Argument Syntax](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html): an _option_ is a named switch, an _option-argument_ is its value, and an _operand_ is positional input. func also supports GNU-style `--long-options` and permits options on either side of operands. That intermixing follows the [GNU command-line convention](https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces), not strict POSIX ordering.
+
+Declared options undergo alias normalization and Boolean, String, Number, or repeated string conversion in this phase. An unrecognized hyphen-prefixed token becomes an unknown-option error; ordinary tokens remain operands for handler dispatch. A named command's command token is removed before dispatch, while major and missing commands have no command token to remove.
+
+Major, named, and modern missing commands use the same option parser. A legacy constructor-only missing command is the compatibility branch: it receives raw input directly and does not enter the field-and-handler pipeline.
+
+## Dispatch exactly one handler
+
+After option parsing, remaining operands drive action dispatch. Major, named, and modern missing commands use the same three-part selection:
+
+1. Find handler paths that prefix the current operands and choose the longest match.
+2. If no path matches, inspect explicitly supplied handler options.
+3. If neither selects a handler, use the default handler.
+
+Longest path first is _longest-prefix matching_, the “more specific first” rule used in routing and syntax analysis. If both `profile` and `profile get` exist, `profile get work` selects the latter and leaves `work` as the business operand.
+
+Path, handler option, then default is func's runtime contract rather than part of POSIX or GNU option syntax. A path describes a structural branch of the command and therefore precedes an option that switches actions. Once dispatch reaches the handler-option branch, one invocation may explicitly select at most one action; multiple action options are a mutual-exclusion error.
+
+### Prepare and execute the selected command
+
+Once the handler is known, the runtime creates the selected command and services needed by that invocation. Services resolve by constructor type and are reused within the command's dependency graph; unselected commands are not instantiated. Parameters such as `@Args` and `@Regs` are produced from the selected command, handler, path, remaining inputs, and option result.
+
+After construction, func assigns explicit options to fields, retains class-property defaults for omitted values, then runs required checks, field validators, and cross-field constraints. Only after validation does it invoke the one selected handler. Synchronous returns and Promises use the same completion semantics.
+
+Because field assignment happens after command construction, a constructor can receive services or invocation context but must not rely on fields already being overwritten by argv. Handlers and local catches observe command state after field injection and default merging.
+
+## Route errors according to their phase
+
+Duplicate tokens, missing handlers, and invalid command shapes found during assembly are registration errors. They occur before the application run boundary exists, stop startup directly, and cannot enter a command's local catch.
+
+Scope selection, option parsing, handler dispatch, and command construction happen outside the local-catch boundary; input or construction failures there enter application-level error handling. Field injection, validation, parameter preparation, and handler invocation already have a command instance, so they enter that command's local catch first and reach application-level routing only when unhandled.
+
+A system error always indicates a framework declaration or registration defect and is rethrown. Runtime errors may reach local or global handling. Runtime-print errors also carry func's default stderr output. See [Error Handling](/errors) for the complete levels and print controls.
+
+### Q&A
+
+| Question                                             | Runtime answer                                                                                       |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Are options on the major command global?             | No. Scope is selected first, and only options declared by that scope are parsed.                     |
+| What runs when a path and handler option both match? | The path handler. Structural paths have precedence over action options.                              |
+| Can one invocation run multiple handlers?            | No. Path, action-option, and default handlers are exclusive branches that produce one target.        |
+| What happens to tokens consumed by a path?           | They are recorded as the selected path and removed from the final positional inputs.                 |
+| Can a constructor read fields populated from argv?   | It must not rely on them. The command is constructed before option fields and defaults are assigned. |
+| Can a local catch handle an unknown option?          | No. Option parsing precedes command construction, so parse errors go to application-level routing.   |
+
+</DocsLayout>

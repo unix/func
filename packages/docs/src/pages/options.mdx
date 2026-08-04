@@ -1,0 +1,182 @@
+---
+title: Field Options
+description: Define command flags, scalar values, repeated values, defaults, aliases, and validation.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const flagCode = [
+  "import { Command, Flag, Handler } from 'func'",
+  '',
+  "@Command({ name: 'serve' })",
+  'export class ServeCommand {',
+  "  @Flag({ alias: 'v', description: 'Print request logs' })",
+  '  verbose = false',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.verbose)',
+  '  }',
+  '}',
+].join('\n')
+
+export const valueCode = [
+  "import { Command, Handler, Value } from 'func'",
+  '',
+  "@Command({ name: 'serve' })",
+  'export class ServeCommand {',
+  "  @Value({ description: 'Interface to bind' })",
+  "  host: string = 'localhost'",
+  '',
+  "  @Value({ alias: 'p', description: 'Port to listen on' })",
+  '  port: number = 3000',
+  '',
+  "  @Value({ name: 'config-file', type: String })",
+  '  configFile?: string',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.host, this.port, this.configFile)',
+  '  }',
+  '}',
+].join('\n')
+
+export const arrayCode = [
+  "import { ArrayValue, Command, Handler } from 'func'",
+  '',
+  "@Command({ name: 'build' })",
+  'export class BuildCommand {',
+  "  @ArrayValue({ name: 'include', alias: 'i' })",
+  '  includes: string[] = []',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.includes)',
+  '  }',
+  '}',
+].join('\n')
+
+export const validationCode = [
+  "import { Command, DependsOn, Enum, Exclusive, Flag, Handler, Required, Value, ValueValidate } from 'func'",
+  '',
+  "@Command({ name: 'publish' })",
+  'export class PublishCommand {',
+  '  @Required()',
+  "  @Enum(['dev', 'prod'])",
+  '  @Value({ type: String })',
+  '  target?: string',
+  '',
+  "  @DependsOn(['token'])",
+  '  @Value({ type: String })',
+  '  registry?: string',
+  '',
+  '  @Value({ type: String })',
+  '  token?: string',
+  '',
+  "  @Exclusive(['json'])",
+  '  @Flag()',
+  '  table = false',
+  '',
+  '  @Flag()',
+  '  json = false',
+  '',
+  "  @ValueValidate((value) => Number(value) > 0 || 'retry must be positive')",
+  '  @Value()',
+  '  retry: number = 1',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+].join('\n')
+
+export const subOptionsCode = [
+  "import { Args, Command, FuncArgs, Handler, SubOptions } from 'func'",
+  '',
+  '@SubOptions([',
+  "  { name: 'format', alias: 'f', type: String },",
+  "  { name: 'raw', type: Boolean },",
+  '])',
+  "@Command({ name: 'inspect' })",
+  'export class InspectCommand {',
+  '  @Handler()',
+  '  run(@Args() args: FuncArgs) {',
+  '    console.log(args.option.format, args.option.raw)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="options">
+
+A field option is a command property that also describes part of the public CLI. func builds the selected command's option parser from these decorated fields, assigns parsed or default values to the instance, validates them, and only then calls the selected handler.
+
+Field options belong to one command scope. An option declared on `ServeCommand` is available to `ship serve`, not automatically to the major command or another named command.
+
+## Choose the value shape
+
+| User need                            | Example syntax                  | Decorator       | Field value                   |
+| ------------------------------------ | ------------------------------- | --------------- | ----------------------------- |
+| A yes/no switch                      | `--verbose or -v`               | `@Flag()`       | `boolean`                     |
+| One string, number, or boolean value | `--port 3000`                   | `@Value()`      | `string \| number \| boolean` |
+| The same option more than once       | `--include src --include tests` | `@ArrayValue()` | `string[]`                    |
+
+## Boolean flags
+
+`@Flag()` creates a boolean switch. Without the option, the property's initializer is used. Passing the long name or its one-character alias sets the field to `true`.
+
+<CodeBlock code={flagCode} filename="src/commands/serve.command.ts" lang="ts" />
+
+Both `ship serve --verbose` and `ship serve -v` produce `this.verbose === true`. Use a field flag for data that modifies an action. If the option must select a different method, use a handler flag instead; see [Commands](/commands).
+
+## Scalar values
+
+`@Value()` consumes one value. func can infer `String`, `Number`, and `Boolean` from emitted TypeScript decorator metadata. Pass `type` explicitly for an optional property or any declaration whose runtime type cannot be inferred.
+
+<CodeBlock code={valueCode} filename="src/commands/serve.command.ts" lang="ts" />
+
+`ship serve --host 0.0.0.0 --port 4000 --config-file ./dev.json` assigns a string, a number, and a string to the three fields. A property name is the default public option name. For camel-case fields that should use conventional kebab case, set `name` explicitly as shown by `configFile`.
+
+The property initializer is the default when the user omits the option. Defaults are application behavior, so choose them intentionally and include them in help output when users need to know them.
+
+## Repeated string values
+
+`@ArrayValue()` collects repeated occurrences into a string array. Use it when order or multiplicity matters; do not ask users to invent a comma-separated format and parse it themselves.
+
+<CodeBlock code={arrayCode} filename="src/commands/build.command.ts" lang="ts" />
+
+`ship build -i src -i tests` assigns `['src', 'tests']` to `this.includes`. Array values currently contain strings; convert them in business code only when the public CLI genuinely needs another representation.
+
+## Validate before business code runs
+
+Validators run after fields receive parsed or default values and before the handler. A failure becomes a runtime-print input error, so the command's business operation is not started.
+
+<CodeBlock
+  code={validationCode}
+  filename="src/commands/publish.command.ts"
+  lang="ts"
+/>
+
+- `@Required()` rejects `undefined`. A defined property default satisfies it, so omit the default when the user must provide the option.
+- `@Enum(values)` accepts only listed scalar values, or requires every repeated array item to be listed.
+- `@DependsOn(['token'])` requires `--token` only when the decorated option is explicitly supplied.
+- `@Exclusive(['json'])` rejects an invocation that explicitly supplies both options.
+- `@ValueValidate(fn)` receives the normalized value and all option values. Return `false` for a generic error, a string for a user-facing message, or nothing for success.
+
+Names passed to dependency and exclusivity validators are public long option names without `--`, not TypeScript property names or short aliases.
+
+## Parse-only sub-options
+
+`@SubOptions()` declares options that appear only in `@Args().option`; func does not assign them to fields. They are useful when adapting an existing dynamic option model, but they hide the available data from the command instance and make defaults less visible. Prefer field options for normal typed commands.
+
+<CodeBlock
+  code={subOptionsCode}
+  filename="src/commands/inspect.command.ts"
+  lang="ts"
+/>
+
+Undeclared option-looking tokens are rejected. Use [Parameters](/parameters) for remaining positional input and complete runtime context.
+
+</DocsLayout>

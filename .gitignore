@@ -1,6 +1,7 @@
 .idea
 node_modules
 /temp
+/packages/docs/.wrangler/
 yarn-error.log
 .DS_Store
 *.map

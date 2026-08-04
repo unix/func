@@ -1,0 +1,208 @@
+---
+title: Use Cases
+description: Map common CLI workflows to small, predictable func command models.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import CodeBlock from '@/components/CodeBlock.astro'
+import TerminalDemo from '@/components/TerminalDemo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const statusCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'status',",
+  "  description: 'Print service status',",
+  '})',
+  'export class StatusCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('All systems operational')",
+  '  }',
+  '}',
+].join('\n')
+
+export const domainAddCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'domain',",
+  "  description: 'Manage custom domains',",
+  '})',
+  'export class DomainCommand {',
+  "  @Handler({ path: ['add'] })",
+  '  add() {',
+  "    console.log('Adding domain')",
+  '  }',
+  '}',
+].join('\n')
+
+export const registerCode = [
+  "import { Command, Flag, Handler, Required, Value } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'register',",
+  "  description: 'Register a domain and optional checks',",
+  '})',
+  'export class RegisterCommand {',
+  "  @Flag({ description: 'Create an issue after registration' })",
+  '  issue = false',
+  '',
+  "  @Flag({ description: 'Run DNS checks' })",
+  '  dns = false',
+  '',
+  '  @Required()',
+  '  @Value({ type: String })',
+  '  domain?: string',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.domain, {',
+  '      issue: this.issue,',
+  '      dns: this.dns,',
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const userSearchCode = [
+  "import { Args, CommandMissing, Flag, FuncArgs, Handler } from 'func'",
+  '',
+  '@CommandMissing()',
+  'export class UserSearchFallback {',
+  "  @Flag({ description: 'Include profile details' })",
+  '  includeProfile = false',
+  '',
+  "  @Flag({ description: 'Only return verified users' })",
+  '  verified = false',
+  '',
+  '  @Handler()',
+  '  async search(@Args() args: FuncArgs) {',
+  '    const [username, ...aliases] = args.inputs',
+  "    console.log('Searching user:', {",
+  '      username,',
+  '      aliases,',
+  '      includeProfile: this.includeProfile,',
+  '      verified: this.verified,',
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const scaleCode = [
+  "import { ArrayValue, Command, Enum, Handler } from 'func'",
+  '',
+  "const MACHINES = ['1x-1024m', '1x-2048m', '2x-1024m', '2x-2048m']",
+  '',
+  '@Command({',
+  "  name: 'scale',",
+  "  description: 'Scale machines',",
+  '})',
+  'export class ScaleCommand {',
+  '  @Enum(MACHINES)',
+  "  @ArrayValue({ name: 'machine' })",
+  '  machines: string[] = []',
+  '',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('Scaling to:', this.machines)",
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="use-cases">
+
+This page starts from the command a user wants to type, then maps it to the smallest `func` model that keeps the CLI predictable. The examples assume the executable name is `ship`.
+
+## Static Command
+
+<TerminalDemo
+  command="ship status"
+  demo="use-cases"
+  rows={2}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+The user needs a quick health check for the SaaS service, such as whether the API, database, and background workers are available. `status` is a stable top-level verb, so model it as a normal `@Command` with one default `@Handler`. This keeps command discovery, help output, and future options attached to the right scope.
+
+<CodeBlock code={statusCode} filename="src/commands/status.command.ts" lang="ts" />
+
+## Command With a Path
+
+<TerminalDemo
+  command="ship domain add"
+  demo="use-cases"
+  rows={2}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+The user needs to manage domains, and adding a domain is one fixed action under that domain workflow. `domain` is the command, and `add` is a static action under that command. Use `@Handler({ path: ['add'] })` when the action is a fixed path inside an already selected command.
+
+<CodeBlock
+  code={domainAddCode}
+  filename="src/commands/domain.command.ts"
+  lang="ts"
+/>
+
+## Command With Flags and a Value
+
+<TerminalDemo
+  command="ship register --issue --dns --domain google.com"
+  demo="use-cases"
+  rows={6}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+The user needs to register a domain and optionally create an issue or run DNS checks during the same operation. `register` is still a static command. Boolean switches become `@Flag` fields, and the domain becomes a required `@Value`. This lets `func` parse, assign, and validate the options before the handler runs.
+
+<CodeBlock
+  code={registerCode}
+  filename="src/commands/register.command.ts"
+  lang="ts"
+/>
+
+## Fallback Search Input
+
+<TerminalDemo
+  command="ship alice ally ali --includeProfile --verified"
+  demo="use-cases"
+  rows={10}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+The user needs to fuzzy-search users by several possible names or aliases, then shape the returned users by requesting profile details and limiting results to verified accounts. Here the first token is not a fixed command; it is part of the search input. Use `@CommandMissing` as a first-class fallback command, then keep the result filters as typed flags.
+
+<CodeBlock
+  code={userSearchCode}
+  filename="src/commands/user-search.command.ts"
+  lang="ts"
+/>
+
+## Repeated Values With an Enum
+
+<TerminalDemo
+  command="ship scale --machine 2x-1024m --machine 1x-2048m"
+  demo="use-cases"
+  rows={6}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+The user needs to resize the deployment to multiple machines in one command, and each machine must use a supported size. `scale` is a static command, but `--machine` can be repeated. Use `@ArrayValue` for repeated input and `@Enum` to reject machine types outside the allowed set.
+
+<CodeBlock code={scaleCode} filename="src/commands/scale.command.ts" lang="ts" />
+
+## Check the model before adding files
+
+- Write the exact invocation a user should remember before choosing decorators.
+- Use a named command only for a stable top-level word, not for arbitrary user data.
+- Use a handler path for fixed nested words and `@Args().inputs` for variable positional data.
+- Use field options for named data that benefits from a type, default, alias, description, or validation.
+- Keep one invocation in one command scope; coordinate multi-step business work through injected services.
+- Test the canonical input plus every alias, path, and validation rule your public contract adds.
+
+If two models appear to work, prefer the one that makes invalid input impossible to confuse with a valid command. The detailed selection rules are in [Commands](/commands) and [Field Options](/options).
+
+</DocsLayout>

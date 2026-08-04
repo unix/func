@@ -1,0 +1,168 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+import { codeToHtml } from '@/lib/shiki'
+
+interface Props {
+  locale?: Locale
+}
+
+const { locale = defaultLocale } = Astro.props
+
+const commanderCode = `const artifact = program
+  .command('artifact')
+  .description('inspect an artifact')
+
+artifact
+  .command('inspect')
+  .requiredOption('--reference <image>')
+  .addOption(
+    new Option('--platform <platform>')
+      .choices(platforms)
+      .default('linux/amd64'),
+  )
+  .option(
+    '--retries <count>',
+    'download retries',
+    value => {
+      const retries = Number(value)
+      if (Number.isNaN(retries)) {
+        throw new InvalidArgumentError(
+          'retries must be a number',
+        )
+      }
+      return retries
+    },
+    2,
+  )
+  .option('--json')
+  .action(options => {
+    if (!isDigestReference(options.reference)) {
+      throw new Error(
+        'reference must include a sha256 digest',
+      )
+    }
+
+    inspectArtifact(options.reference, options)
+  })`
+
+const funcCode = `@Command({ name: 'artifact' })
+class ArtifactCommand extends FuncCommand {
+  @Required()
+  @ValueValidate(isDigestReference)
+  @Value()
+  reference?: string
+
+  @Enum(platforms)
+  @Value()
+  platform = 'linux/amd64'
+
+  @Value({ type: Number })
+  retries = 2
+
+  @Flag()
+  json = false
+
+  @Handler({ path: ['inspect'] })
+  inspect(): void {
+    inspectArtifact(this.reference!, this)
+  }
+}`
+
+const highlight = (code: string) =>
+  codeToHtml(code, {
+    lang: 'ts',
+    themes: {
+      dark: 'github-dark',
+      light: 'github-light',
+    },
+    defaultColor: false,
+  })
+
+const [commanderHtml, funcHtml] = await Promise.all([
+  highlight(commanderCode),
+  highlight(funcCode),
+])
+
+const codeLines = (code: string) =>
+  code.split('\n').filter(line => line.trim().length > 0).length
+
+const labels =
+  locale === 'zh-cn'
+    ? {
+        commander: '解析回调、默认值和错误分支都堆叠在命令链上。',
+        func: '默认解析器与字段验证器先处理输入；inspect 只调用业务函数。',
+        lines: '行',
+      }
+    : {
+        commander:
+          'Parser callbacks, defaults, and error branches accumulate on the command chain.',
+        func: 'Default parsers and field validators prepare input; inspect only calls the business function.',
+        lines: 'lines',
+      }
+---
+
+<figure class="my-8" data-minimap-ignore>
+  <div class="grid border bg-background md:grid-cols-2 md:divide-x md:divide-border">
+    <section
+      class="grid min-w-0 grid-rows-[auto_1fr_auto] border-b md:border-b-0"
+      aria-label="Commander">
+      <div class="flex items-center justify-between gap-4 border-b px-3 py-2">
+        <span class="font-mono text-xs font-semibold text-foreground">
+          Commander
+        </span>
+        <span class="font-mono text-[0.6875rem] text-muted-foreground">
+          {codeLines(commanderCode)}
+          {labels.lines}
+        </span>
+      </div>
+      <div class="code-panel overflow-x-auto bg-muted/20" set:html={commanderHtml} />
+      <div class="border-t px-3 py-2.5 text-xs leading-5 text-muted-foreground">
+        {labels.commander}
+      </div>
+    </section>
+
+    <section class="grid min-w-0 grid-rows-[auto_1fr_auto]" aria-label="func">
+      <div class="flex items-center justify-between gap-4 border-b px-3 py-2">
+        <span class="font-mono text-xs font-semibold text-foreground">func</span>
+        <span class="font-mono text-[0.6875rem] text-muted-foreground">
+          {codeLines(funcCode)}
+          {labels.lines}
+        </span>
+      </div>
+      <div class="code-panel overflow-x-auto bg-muted/20" set:html={funcHtml} />
+      <div class="border-t px-3 py-2.5 text-xs leading-5 text-muted-foreground">
+        {labels.func}
+      </div>
+    </section>
+  </div>
+</figure>
+
+<style>
+  .code-panel :global(.shiki) {
+    margin: 0;
+    min-width: max-content;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0.75rem;
+    font-size: 0.6875rem;
+    line-height: 1.25rem;
+  }
+
+  .code-panel :global(.shiki code) {
+    background: transparent;
+    padding: 0;
+    font-size: inherit;
+    color: var(--shiki-light);
+  }
+
+  .code-panel :global(.shiki span) {
+    color: var(--shiki-light);
+  }
+
+  :global(.dark) .code-panel :global(.shiki code),
+  :global(.dark) .code-panel :global(.shiki span) {
+    color: var(--shiki-dark);
+  }
+</style>

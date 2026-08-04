@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">func</title>
+  <desc id="desc">The func Sweep mark in black on a transparent background.</desc>
+  <path
+    d="M145 45c-43-7-67 13-67 50v20c0 32-15 50-43 50M55 106h91"
+    fill="none"
+    stroke="#09090b"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="27"
+    transform="translate(21.21 4.1) scale(1.18)"
+  />
+</svg>

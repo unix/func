@@ -1,0 +1,108 @@
+---
+import AgentMenu from '@/components/AgentMenu.astro'
+import { defaultLocale, siteUrl, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+  markdownPath: string
+}
+
+const { locale = defaultLocale, markdownPath } = Astro.props
+const markdownUrl = new URL(markdownPath, siteUrl).toString()
+const labels =
+  locale === 'zh-cn'
+    ? {
+        copied: '已复制',
+        copy: '复制 Markdown',
+        copying: '复制中…',
+        error: '复制失败',
+      }
+    : {
+        copied: 'Copied',
+        copy: 'Copy Markdown',
+        copying: 'Copying…',
+        error: 'Copy failed',
+      }
+const controlClass =
+  'inline-flex h-7 cursor-pointer select-none items-center gap-1.5 rounded-md px-2 font-mono text-[0.6875rem] text-muted-foreground outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:h-8 md:px-2.5 md:text-xs'
+---
+
+<div class="flex items-center gap-1">
+  <button
+    aria-live="polite"
+    class:list={[
+      controlClass,
+      'bg-muted/70 text-foreground disabled:cursor-wait disabled:bg-muted/50 disabled:text-muted-foreground disabled:hover:bg-muted/50 disabled:hover:text-muted-foreground disabled:focus-visible:ring-0',
+    ]}
+    data-copied-label={labels.copied}
+    data-copy-markdown
+    data-copying-label={labels.copying}
+    data-default-label={labels.copy}
+    data-error-label={labels.error}
+    data-markdown-path={markdownPath}
+    type="button">
+    {labels.copy}
+  </button>
+  <AgentMenu locale={locale} markdownUrl={markdownUrl} />
+</div>
+
+<script>
+  const copyText = async (value: string) => {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(value)
+      return
+    }
+
+    const textarea = document.createElement('textarea')
+    textarea.value = value
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.append(textarea)
+    textarea.select()
+    const copied = document.execCommand('copy')
+    textarea.remove()
+
+    if (!copied) throw new Error('Unable to copy Markdown')
+  }
+
+  const bindCopyButtons = () => {
+    document
+      .querySelectorAll<HTMLButtonElement>('[data-copy-markdown]')
+      .forEach(button => {
+        button.onclick = async () => {
+          if (button.disabled) return
+
+          const defaultLabel = button.dataset.defaultLabel ?? 'Copy Markdown'
+          const copyingLabel = button.dataset.copyingLabel ?? defaultLabel
+          const copiedLabel = button.dataset.copiedLabel ?? defaultLabel
+          const errorLabel = button.dataset.errorLabel ?? defaultLabel
+          const markdownPath = button.dataset.markdownPath
+          if (!markdownPath) return
+
+          button.disabled = true
+          button.setAttribute('aria-busy', 'true')
+          button.textContent = copyingLabel
+
+          try {
+            const response = await fetch(markdownPath)
+            if (!response.ok)
+              throw new Error(`Markdown request failed: ${response.status}`)
+
+            await copyText(await response.text())
+            button.textContent = copiedLabel
+          } catch {
+            button.textContent = errorLabel
+          }
+
+          window.setTimeout(() => {
+            button.disabled = false
+            button.removeAttribute('aria-busy')
+            button.textContent = defaultLabel
+          }, 2000)
+        }
+      })
+  }
+
+  document.addEventListener('astro:page-load', bindCopyButtons)
+  bindCopyButtons()
+</script>

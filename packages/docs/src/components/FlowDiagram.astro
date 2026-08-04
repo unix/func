@@ -1,0 +1,30 @@
+---
+interface FlowStage {
+  description: string
+  label: string
+}
+
+interface Props {
+  stages: FlowStage[]
+  title: string
+}
+
+const { stages, title } = Astro.props
+---
+
+<figure class="docs-flow-diagram" data-minimap-ignore>
+  <figcaption>{title}</figcaption>
+  <ol>
+    {
+      stages.map((stage, index) => (
+        <li>
+          <div class="docs-flow-stage-heading">
+            <span aria-hidden="true">{index + 1}</span>
+            <h3>{stage.label}</h3>
+          </div>
+          <p>{stage.description}</p>
+        </li>
+      ))
+    }
+  </ol>
+</figure>

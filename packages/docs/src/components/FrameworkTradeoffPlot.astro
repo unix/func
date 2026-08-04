@@ -1,0 +1,373 @@
+---
+import benchmarkReport from '../../../../benchmarks/report.json'
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+}
+
+const { locale = defaultLocale } = Astro.props
+
+const frameworkIds = ['func', 'commander', 'yargs', 'oclif', 'cac'] as const
+type FrameworkId = (typeof frameworkIds)[number]
+
+const frameworkNames: Record<FrameworkId, string> = {
+  func: 'func',
+  commander: 'Commander',
+  yargs: 'yargs',
+  oclif: '@oclif/core',
+  cac: 'cac',
+}
+
+const labelPlacement: Record<
+  FrameworkId,
+  { anchor: 'end' | 'middle' | 'start'; labelDx: number; labelDy: number }
+> = {
+  func: { anchor: 'start', labelDx: 12, labelDy: 4 },
+  commander: { anchor: 'end', labelDx: -10, labelDy: 3 },
+  yargs: { anchor: 'start', labelDx: 10, labelDy: -12 },
+  oclif: { anchor: 'end', labelDx: -10, labelDy: 18 },
+  cac: { anchor: 'end', labelDx: -12, labelDy: -5 },
+}
+
+interface Point2D {
+  x: number
+  y: number
+}
+
+const bundleRange = { min: 0, max: 350 }
+const startupRange = { min: 35, max: 75 }
+const dxRange = { min: 0, max: 100 }
+const origin: Point2D = { x: 100, y: 350 }
+const bundleAxis: Point2D = { x: 430, y: 0 }
+const startupAxis: Point2D = { x: 130, y: -75 }
+const dxAxis: Point2D = { x: 0, y: -225 }
+
+const normalize = (value: number, range: { min: number; max: number }) =>
+  (value - range.min) / (range.max - range.min)
+
+const project = (bundleKiB: number, startupMs: number, dx: number) => {
+  const bundlePosition = normalize(bundleKiB, bundleRange)
+  const startupPosition = normalize(startupMs, startupRange)
+  const dxPosition = normalize(dx, dxRange)
+
+  return {
+    x:
+      origin.x +
+      bundlePosition * bundleAxis.x +
+      startupPosition * startupAxis.x +
+      dxPosition * dxAxis.x,
+    y:
+      origin.y +
+      bundlePosition * bundleAxis.y +
+      startupPosition * startupAxis.y +
+      dxPosition * dxAxis.y,
+  }
+}
+
+const toSvgPoints = (points: Point2D[]) =>
+  points.map(point => `${point.x},${point.y}`).join(' ')
+
+const floorOrigin = project(bundleRange.min, startupRange.min, dxRange.min)
+const floorBundleEnd = project(bundleRange.max, startupRange.min, dxRange.min)
+const floorFarCorner = project(bundleRange.max, startupRange.max, dxRange.min)
+const floorStartupEnd = project(bundleRange.min, startupRange.max, dxRange.min)
+const ceilingOrigin = project(bundleRange.min, startupRange.min, dxRange.max)
+const ceilingBundleEnd = project(bundleRange.max, startupRange.min, dxRange.max)
+const ceilingFarCorner = project(bundleRange.max, startupRange.max, dxRange.max)
+const ceilingStartupEnd = project(bundleRange.min, startupRange.max, dxRange.max)
+const floor = [floorOrigin, floorBundleEnd, floorFarCorner, floorStartupEnd]
+const ceiling = [
+  ceilingOrigin,
+  ceilingBundleEnd,
+  ceilingFarCorner,
+  ceilingStartupEnd,
+]
+const backPlane = [
+  floorStartupEnd,
+  floorFarCorner,
+  ceilingFarCorner,
+  ceilingStartupEnd,
+]
+const verticalEdges = [
+  { end: ceilingOrigin, start: floorOrigin },
+  { end: ceilingBundleEnd, start: floorBundleEnd },
+  { end: ceilingFarCorner, start: floorFarCorner },
+  { end: ceilingStartupEnd, start: floorStartupEnd },
+]
+const bundleTicks = [0, 100, 200, 300, 350].map(value => ({
+  back: project(value, startupRange.max, dxRange.min),
+  front: project(value, startupRange.min, dxRange.min),
+  topBack: project(value, startupRange.max, dxRange.max),
+  value,
+}))
+const startupTicks = [35, 45, 55, 65, 75].map(value => ({
+  far: project(bundleRange.max, value, dxRange.min),
+  front: project(bundleRange.min, value, dxRange.min),
+  value,
+}))
+const dxTicks = [0, 25, 50, 75, 100].map(value => ({
+  back: project(bundleRange.min, startupRange.max, value),
+  farBack: project(bundleRange.max, startupRange.max, value),
+  front: project(bundleRange.min, startupRange.min, value),
+  value,
+}))
+
+const points = frameworkIds.map(id => {
+  const bundleKiB = benchmarkReport.bundle[id].rawBytes / 1024
+  const startupMs = benchmarkReport.runtime.overall[id].meanMs
+  const dx = benchmarkReport.authoring.frameworks[id].dx.score
+  const maintainability =
+    benchmarkReport.authoring.frameworks[id].maintainability.score
+  const position = project(bundleKiB, startupMs, dx)
+  const floorPosition = project(bundleKiB, startupMs, dxRange.min)
+
+  return {
+    bundleKiB,
+    floorPosition,
+    id,
+    label: frameworkNames[id],
+    radius: 4 + (maintainability / 100) * 4,
+    startupMs,
+    ...position,
+    ...labelPlacement[id],
+  }
+})
+
+const labels =
+  locale === 'zh-cn'
+    ? {
+        bundle: 'bundle size（KiB）',
+        coldStart: '冷启动（ms）',
+        description:
+          '每个点由 bundle size、冷启动时间和 DX 三个坐标定位；点越大，可维护性代理分越高。',
+        dx: 'DX',
+        methodology:
+          'bundle 与冷启动来自 benchmarks/report.json，三条轴分别采用 0–350 KiB、35–75 ms 和 DX 0–100 的线性刻度。DX 与可维护性来自报告中的 authoring evaluation：每项按 0–4 级评定，再按公开权重折算为 100 分；判定依据和证据随报告提交。这是当前 workload 的工程代理指标，不是通用排名。',
+        title: '体积、冷启动、DX 与可维护性',
+      }
+    : {
+        bundle: 'bundle size (KiB)',
+        coldStart: 'cold start (ms)',
+        description:
+          'Each point is positioned by bundle size, cold-start time, and DX; larger points indicate a higher maintainability proxy.',
+        dx: 'DX',
+        methodology:
+          'Bundle and startup values come from benchmarks/report.json. The axes use linear scales of 0–350 KiB, 35–75 ms, and DX 0–100. DX and maintainability come from the report authoring evaluation: every criterion is graded from 0 to 4 and converted to 100 with published weights; the report includes each grade and its evidence. These are workload-specific engineering proxies, not universal rankings.',
+        title: 'Bundle size, cold start, DX, and maintainability',
+      }
+---
+
+<figure class="my-8 overflow-hidden rounded-lg border bg-card" data-minimap-ignore>
+  <figcaption class="border-b px-4 py-3">
+    <span class="block text-sm font-medium text-foreground">{labels.title}</span>
+    <span class="mt-1 block text-xs leading-5 text-muted-foreground">
+      {labels.description}
+    </span>
+  </figcaption>
+
+  <div class="select-none p-2 sm:p-4">
+    <svg
+      aria-label={`${labels.title}。${labels.methodology}`}
+      class="h-auto w-full"
+      role="img"
+      viewBox="0 0 760 400"
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker
+          id="framework-axis-arrow"
+          markerHeight="6"
+          markerWidth="6"
+          orient="auto"
+          refX="5"
+          refY="3"
+          viewBox="0 0 6 6">
+          <path class="fill-muted-foreground" d="M0 0L6 3L0 6Z"></path>
+        </marker>
+      </defs>
+
+      <g stroke-width="1">
+        <polygon class="fill-muted/20 stroke-border/70" points={toSvgPoints(floor)}
+        ></polygon>
+        <polygon
+          class="fill-muted/10 stroke-border/70"
+          points={toSvgPoints(backPlane)}></polygon>
+      </g>
+
+      <g class="stroke-border/50" fill="none" stroke-width="1">
+        {
+          bundleTicks.slice(1, -1).map(tick => (
+            <>
+              <line
+                x1={tick.front.x}
+                x2={tick.back.x}
+                y1={tick.front.y}
+                y2={tick.back.y}
+              />
+              <line
+                stroke-dasharray="3 5"
+                x1={tick.back.x}
+                x2={tick.topBack.x}
+                y1={tick.back.y}
+                y2={tick.topBack.y}
+              />
+            </>
+          ))
+        }
+        {
+          startupTicks
+            .slice(1, -1)
+            .map(tick => (
+              <line
+                x1={tick.front.x}
+                x2={tick.far.x}
+                y1={tick.front.y}
+                y2={tick.far.y}
+              />
+            ))
+        }
+        {
+          dxTicks
+            .slice(1, -1)
+            .map(tick => (
+              <line
+                stroke-dasharray="3 5"
+                x1={tick.back.x}
+                x2={tick.farBack.x}
+                y1={tick.back.y}
+                y2={tick.farBack.y}
+              />
+            ))
+        }
+      </g>
+
+      <g class="stroke-border/70" fill="none" stroke-width="1">
+        <polygon points={toSvgPoints(floor)}></polygon>
+        <polygon points={toSvgPoints(ceiling)}></polygon>
+        {
+          verticalEdges.map(edge => (
+            <line
+              x1={edge.start.x}
+              x2={edge.end.x}
+              y1={edge.start.y}
+              y2={edge.end.y}
+            />
+          ))
+        }
+      </g>
+
+      <g
+        class="stroke-muted-foreground"
+        fill="none"
+        marker-end="url(#framework-axis-arrow)"
+        stroke-width="1.25">
+        <line
+          x1={floorOrigin.x}
+          x2={floorBundleEnd.x}
+          y1={floorOrigin.y}
+          y2={floorBundleEnd.y}></line>
+        <line
+          x1={floorOrigin.x}
+          x2={floorStartupEnd.x}
+          y1={floorOrigin.y}
+          y2={floorStartupEnd.y}></line>
+        <line
+          x1={floorOrigin.x}
+          x2={ceilingOrigin.x}
+          y1={floorOrigin.y}
+          y2={ceilingOrigin.y}></line>
+      </g>
+
+      <g class="fill-muted-foreground font-mono text-[9px] tabular-nums">
+        {
+          bundleTicks.map(tick => (
+            <text text-anchor="middle" x={tick.front.x} y={tick.front.y + 17}>
+              {tick.value}
+            </text>
+          ))
+        }
+        {
+          startupTicks.map(tick => (
+            <text text-anchor="end" x={tick.front.x - 9} y={tick.front.y + 3}>
+              {tick.value}
+            </text>
+          ))
+        }
+        {
+          dxTicks.slice(1).map(tick => (
+            <text text-anchor="end" x={tick.front.x - 9} y={tick.front.y + 3}>
+              {tick.value}
+            </text>
+          ))
+        }
+      </g>
+
+      <g class="fill-muted-foreground font-mono text-[10px]">
+        <text text-anchor="middle" x={floorBundleEnd.x} y={floorBundleEnd.y + 39}>
+          {labels.bundle}
+        </text>
+        <text
+          transform={`translate(${floorStartupEnd.x + 10} ${floorStartupEnd.y - 10}) rotate(-30)`}>
+          {labels.coldStart}
+        </text>
+        <text text-anchor="end" x={ceilingOrigin.x - 9} y={ceilingOrigin.y - 10}>
+          {labels.dx}
+        </text>
+      </g>
+
+      <g class="stroke-border/70" fill="none" stroke-dasharray="2 4">
+        {
+          points.map(point => (
+            <line
+              x1={point.x}
+              x2={point.floorPosition.x}
+              y1={point.y}
+              y2={point.floorPosition.y}
+            />
+          ))
+        }
+      </g>
+
+      {
+        points.map(point => (
+          <g>
+            <circle
+              class:list={[
+                point.id === 'func'
+                  ? 'fill-violet-600 stroke-violet-300 dark:fill-violet-400 dark:stroke-violet-700'
+                  : 'fill-foreground/70 stroke-background',
+              ]}
+              cx={point.x}
+              cy={point.y}
+              r={point.radius}
+              stroke-width="2"
+            />
+            <text
+              class:list={[
+                'font-mono text-[10px]',
+                point.id === 'func'
+                  ? 'fill-violet-700 dark:fill-violet-300'
+                  : 'fill-muted-foreground',
+              ]}
+              text-anchor={point.anchor}
+              x={point.x + point.labelDx}
+              y={point.y + point.labelDy}>
+              <tspan>{point.label}</tspan>
+              <tspan
+                class="fill-muted-foreground text-[9px] font-normal"
+                dy="13"
+                x={point.x + point.labelDx}>
+                {point.bundleKiB.toFixed(1)} KiB · {point.startupMs.toFixed(1)} ms
+              </tspan>
+            </text>
+          </g>
+        ))
+      }
+    </svg>
+  </div>
+
+  <div
+    class="border-t bg-muted/20 px-4 py-3 text-xs leading-5 text-muted-foreground">
+    {labels.methodology}
+  </div>
+</figure>

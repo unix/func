@@ -1,0 +1,47 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface DecisionItem {
+  choice: string
+  example: string
+  when?: string
+}
+
+interface Props {
+  items: DecisionItem[]
+  locale?: Locale
+}
+
+const { items, locale = defaultLocale } = Astro.props
+const labels =
+  locale === 'zh-cn'
+    ? { choice: '类别', example: '评分', when: '表现' }
+    : { choice: 'Category', example: 'Score', when: 'Performance' }
+---
+
+<div class="docs-decision-table overflow-x-auto">
+  <table>
+    <thead>
+      <tr>
+        <th class="whitespace-nowrap">{labels.choice}</th>
+        <th>{labels.when}</th>
+        <th>{labels.example}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        items.map(item => (
+          <tr>
+            <td class="whitespace-nowrap">
+              <code>{item.choice}</code>
+            </td>
+            <td>{item.when ?? <slot />}</td>
+            <td>
+              {item.example === '✅' ? item.example : <code>{item.example}</code>}
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>

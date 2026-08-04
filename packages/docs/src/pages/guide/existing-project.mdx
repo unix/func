@@ -1,0 +1,148 @@
+---
+title: Add func to an Existing Project
+description: Add an isolated func CLI entry to an existing TypeScript project without replacing its current runtime or build flow.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const separateTree = `.
+|-- src                     existing application
+|-- package.json            existing application package
++-- tools
+    +-- admin-cli           independent func package
+        |-- src
+        |-- tests
+        |-- package.json
+        +-- dist            independent bundle output`
+
+export const createCode = `cd tools
+npm init func
+# Enter "admin-cli" at the project-name prompt
+
+cd admin-cli
+npm install
+npm run dev -- --help`
+
+export const installCode = `npm install func
+npm install --save-dev funcgo`
+
+export const mixedTree = `src/cli
+|-- commands
+|   +-- hello.command.ts
+|-- cli.module.ts
++-- index.ts`
+
+export const entryCode = `import { run } from 'func'
+import { CliModule } from './cli.module'
+
+run(CliModule)`
+
+export const moduleCode = [
+  "import { FuncModule } from 'func'",
+  "import { HelloCommand } from './commands/hello.command'",
+  '',
+  '@FuncModule({',
+  '  commands: [HelloCommand],',
+  '})',
+  'export class CliModule {}',
+].join('\n')
+
+export const commandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'hello',",
+  "  description: 'Print a greeting',",
+  '})',
+  'export class HelloCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('Hello from func')",
+  '  }',
+  '}',
+].join('\n')
+
+export const devCode = `npx funcgo setup
+npx funcgo dev -f src/cli/index.ts -- --help
+npx funcgo dev -f src/cli/index.ts -- hello`
+
+export const buildCode = `npx funcgo build -f src/cli/index.ts -o dist/cli`
+
+export const packageConfigCode = `{
+  "func": {
+    "entry": "src/cli/index.ts",
+    "outDir": "dist/cli"
+  },
+  "bin": {
+    "admin-cli": "./dist/cli/bin.js"
+  }
+}`
+
+<DocsLayout frontmatter={frontmatter} page="guide/existing-project">
+
+We recommend creating a new directory with its own `package.json`. The CLI can import public application modules or shared packages, while its runtime dependencies, tests, and generated bundle remain outside the host application's package and build pipeline.
+
+## Recommended: create a separate CLI package
+
+<CodeBlock code={separateTree} filename="Repository structure" />
+
+This boundary prevents command files and CLI-only dependencies from being discovered by an application bundler that scans the host package. It also lets you publish, version, test, or remove the CLI independently. In a monorepo, add the new directory to the existing workspace configuration instead of installing it into the application package.
+
+The creator accepts a plain directory name interactively. Enter the parent directory first, then create the CLI package inside it:
+
+<CodeBlock code={createCode} lang="shell" />
+
+Share business code through an existing workspace package or a stable public module. Avoid importing the application bootstrap merely to reach a service; bootstraps often start servers, connect to databases, or register process handlers as an import side effect.
+
+## Alternative: isolate func inside the existing package
+
+A shared package is reasonable when the repository cannot add another workspace or the CLI is a private interface to the same application code. Install the runtime and development tool without replacing the application's existing scripts:
+
+<CodeBlock code={installCode} lang="shell" />
+
+Keep every CLI-owned file under a dedicated directory. A small func application normally consists of one executable entry, one root `@FuncModule`, command classes, and optional service classes:
+
+<CodeBlock code={mixedTree} filename="Isolated CLI source" />
+<CodeBlock code={entryCode} filename="src/cli/index.ts" lang="ts" />
+<CodeBlock code={moduleCode} filename="src/cli/cli.module.ts" lang="ts" />
+<CodeBlock
+  code={commandCode}
+  filename="src/cli/commands/hello.command.ts"
+  lang="ts"
+/>
+
+### Why this does not start the host application
+
+func decorators attach metadata to the classes that declare them; they do not parse arguments or execute handlers on import. The explicit `run(CliModule)` call starts dispatch. As long as only `src/cli/index.ts` calls `run` and the host application does not import that entry, func does not replace the application runtime or bootstrap.
+
+Commands may safely import shared, side-effect-free business modules. If shared logic needs state or collaborators, wrap it in a `@Service` and register that service in the CLI module instead of initializing global state in a command file.
+
+## Run with explicit paths first
+
+<Callout title="Inspect before applying configuration" variant="caution">
+
+Start with `funcgo setup` without `--fix`. Existing projects often already own generic `dev` and `build` scripts.
+
+</Callout>
+
+Run `funcgo setup` without `--fix` to inspect its suggestions. In an existing package, automatic setup may propose replacing generic `dev` and `build` scripts, so keep the first integration explicit:
+
+<CodeBlock code={devCode} lang="shell" />
+
+Once the boundary is proven, add dedicated scripts such as `cli:dev` and `cli:build`; do not take over names already owned by the application.
+
+## Build to an isolated output
+
+Send the CLI bundle to its own output directory so the host build never packages it accidentally. Add generated output to `.gitignore` when it should not be committed.
+
+<CodeBlock code={buildCode} lang="shell" />
+
+Add permanent func configuration and a `bin` mapping only when the CLI should become a public package interface:
+
+  <CodeBlock code={packageConfigCode} filename="package.json" lang="json" />
+</DocsLayout>

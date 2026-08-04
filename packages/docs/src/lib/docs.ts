@@ -1,18 +1,30 @@
 export type DocPage =
   | '/'
   | 'guide'
+  | 'guide/agent-setup'
+  | 'guide/existing-project'
   | 'concepts'
   | 'use-cases'
   | 'commands'
   | 'options'
   | 'parameters'
   | 'tooling'
+  | 'runtime'
   | 'errors'
   | 'apis'
+  | 'glossary'
 
 export type Locale = 'en' | 'zh-cn'
 
+export interface DocFrontmatter {
+  authors: string[]
+  description: string
+  lastModified: string
+  title: string
+}
+
 export const siteName = 'FUNC'
+export const siteUrl = 'https://func.witt.im'
 export const defaultLocale: Locale = 'en'
 export const locales: Locale[] = [defaultLocale, 'zh-cn']
 
@@ -23,47 +35,90 @@ const siteSlogans: Record<Locale, string> = {
 
 const navLabels: Record<Locale, Record<DocPage, string>> = {
   en: {
-    '/': '/',
-    guide: 'Guide',
-    concepts: 'Core Concepts',
-    'use-cases': 'Use Cases',
+    '/': 'Introduction',
+    guide: 'Quick Start',
+    'guide/agent-setup': 'Work with func using an Agent',
+    'guide/existing-project': 'Existing Projects',
+    concepts: 'Concepts',
+    'use-cases': 'Examples',
     commands: 'Commands',
     options: 'Field Options',
     parameters: 'Parameters',
     tooling: 'Tooling',
+    runtime: 'Runtime',
     errors: 'Errors',
     apis: 'API Reference',
+    glossary: 'Glossary',
   },
   'zh-cn': {
-    '/': '/',
-    guide: '指南',
-    concepts: '核心概念',
-    'use-cases': '使用案例',
+    '/': '介绍',
+    guide: '快速起步',
+    'guide/agent-setup': '使用 Agent 操作 func',
+    'guide/existing-project': '已有项目如何接入',
+    concepts: '概念',
+    'use-cases': '示例',
     commands: '命令',
     options: '字段选项',
     parameters: '参数注入',
     tooling: '工具链',
+    runtime: '深入了解运行时',
     errors: '错误处理',
     apis: 'API 参考',
+    glossary: '术语索引',
   },
 }
 
-const navPages: DocPage[] = [
-  '/',
-  'guide',
-  'concepts',
-  'options',
-  'parameters',
-  'errors',
-  'tooling',
-  'use-cases',
-  'apis',
-]
+const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
+  en: [
+    { pages: ['/'] },
+    {
+      label: 'Guide',
+      pages: ['guide', 'guide/agent-setup', 'guide/existing-project'],
+    },
+    {
+      label: 'Documentation',
+      pages: [
+        'concepts',
+        'commands',
+        'options',
+        'parameters',
+        'errors',
+        'tooling',
+        'runtime',
+      ],
+    },
+    { label: 'Reference', pages: ['glossary', 'apis', 'use-cases'] },
+  ],
+  'zh-cn': [
+    { pages: ['/'] },
+    {
+      label: '指南',
+      pages: ['guide', 'guide/agent-setup', 'guide/existing-project'],
+    },
+    {
+      label: '核心文档',
+      pages: [
+        'concepts',
+        'commands',
+        'options',
+        'parameters',
+        'errors',
+        'tooling',
+        'runtime',
+      ],
+    },
+    { label: '参考资料', pages: ['glossary', 'apis', 'use-cases'] },
+  ],
+}
 
 export const siteTitle = `${siteName} - ${siteSlogans[defaultLocale]}`
 
 export function getSiteTitle(locale: Locale = defaultLocale) {
   return `${siteName} - ${siteSlogans[locale]}`
+}
+
+export function getSiteSlogan(locale: Locale = defaultLocale) {
+  return siteSlogans[locale]
 }
 
 export function getLocalePath(page: DocPage, locale: Locale = defaultLocale) {
@@ -73,14 +128,17 @@ export function getLocalePath(page: DocPage, locale: Locale = defaultLocale) {
     return path
   }
 
-  return page === '/' ? `/${locale}/` : `/${locale}${path}`
+  return page === '/' ? `/${locale}` : `/${locale}${path}`
 }
 
-export function getNavItems(locale: Locale = defaultLocale) {
-  return navPages.map(id => ({
-    id,
-    label: navLabels[locale][id],
-    href: getLocalePath(id, locale),
+export function getNavGroups(locale: Locale = defaultLocale) {
+  return navGroups[locale].map(group => ({
+    label: group.label,
+    items: group.pages.map(id => ({
+      id,
+      label: navLabels[locale][id],
+      href: getLocalePath(id, locale),
+    })),
   }))
 }
 
@@ -90,5 +148,19 @@ export function getLanguageSwitch(page: DocPage, locale: Locale = defaultLocale)
   return {
     href: getLocalePath(page, targetLocale),
     label: targetLocale === defaultLocale ? 'EN' : '中文',
+    locale: targetLocale,
   }
+}
+
+export function getMarkdownPath(page: DocPage, locale: Locale = defaultLocale) {
+  const slug = page === '/' ? 'index' : page
+
+  return locale === defaultLocale ? `/${slug}.md` : `/${locale}/${slug}.md`
+}
+
+export function getEditUrl(page: DocPage, locale: Locale = defaultLocale) {
+  const slug = page === '/' ? 'index' : page
+  const localePath = locale === defaultLocale ? '' : `${locale}/`
+
+  return `https://github.com/unix/func/edit/master/packages/docs/src/pages/${localePath}${slug}.mdx`
 }

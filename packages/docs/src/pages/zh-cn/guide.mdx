@@ -1,0 +1,364 @@
+---
+title: 快速开始
+description: 使用默认 TypeScript 模板创建、开发和打包 func CLI 项目。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import Step from '@/components/Step.astro'
+import Steps from '@/components/Steps.astro'
+import TerminalDemo from '@/components/TerminalDemo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const projectTree = `.
+|-- src
+|   |-- app.module.ts          根模块
+|   |-- config.ts              包信息与运行时设置
+|   |-- commands
+|   |   |-- error.command.ts   全局输入错误输出
+|   |   |-- greet.command.ts   具名命令示例
+|   |   |-- major.command.ts   空输入、帮助与版本
+|   |   |-- missing.command.ts 未知命令响应
+|   |   +-- index.ts           命令列表
+|   |-- services
+|   |   +-- project.service.ts 可注入服务示例
+|   +-- index.ts               可执行入口
+|-- tests                      可执行行为测试
+|-- package.json
+|-- tsconfig.json
++-- README.md`
+
+export const createCommands = {
+  npm: 'npm init func',
+  yarn: 'yarn create func',
+  pnpm: 'pnpm create func',
+  bun: 'bun create func',
+}
+
+export const installCommands = {
+  npm: `cd ship
+npm install
+npm run dev -- --help`,
+  yarn: `cd ship
+yarn install
+yarn dev --help`,
+  pnpm: `cd ship
+pnpm install
+pnpm dev --help`,
+  bun: `cd ship
+bun install
+bun run dev -- --help`,
+}
+
+export const runCommands = {
+  npm: `npm run dev -- greet
+npm run dev -- greet --name Ada
+npm run dev -- greet shout --name Ada`,
+  yarn: `yarn dev greet
+yarn dev greet --name Ada
+yarn dev greet shout --name Ada`,
+  pnpm: `pnpm dev greet
+pnpm dev greet --name Ada
+pnpm dev greet shout --name Ada`,
+  bun: `bun run dev -- greet
+bun run dev -- greet --name Ada
+bun run dev -- greet shout --name Ada`,
+}
+
+export const statusCommands = {
+  npm: 'npm run dev -- status',
+  yarn: 'yarn dev status',
+  pnpm: 'pnpm dev status',
+  bun: 'bun run dev -- status',
+}
+
+export const packageScriptsCode = `{
+  "scripts": {
+    "dev": "funcgo dev --",
+    "build": "funcgo build"
+  }
+}`
+
+export const commandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'status',",
+  "  description: 'Print service status',",
+  '})',
+  'export class StatusCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('All systems operational')",
+  '  }',
+  '}',
+].join('\n')
+
+export const registerCode = `import { ErrorHandler } from './error.command'
+import { Major } from './major.command'
+import { Missing } from './missing.command'
+import { StatusCommand } from './status.command'
+
+export const commands = [Major, StatusCommand, Missing, ErrorHandler]`
+
+export const moduleCode = [
+  "import { FuncModule } from 'func'",
+  "import { commands } from './commands'",
+  "import { services } from './services'",
+  '',
+  '@FuncModule({',
+  '  commands,',
+  '  services,',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const globalLinkCommands = {
+  npm: `npm run build
+npm link
+
+# 使用 package.json#bin 中的键名
+
+ship --help`,
+  yarn: `yarn build
+yarn global add file:.
+
+# 使用 package.json#bin 中的键名
+
+ship --help`,
+  pnpm: `pnpm build
+pnpm add --global .
+
+# 使用 package.json#bin 中的键名
+
+ship --help`,
+  bun: `bun run build
+bun link --global
+
+# 使用 package.json#bin 中的键名
+
+ship --help`,
+}
+
+export const unlinkCommands = {
+  npm: 'npm uninstall --global ship',
+  yarn: 'yarn global remove ship',
+  pnpm: 'pnpm remove --global ship',
+  bun: 'bun unlink',
+}
+
+export const watchCommands = {
+  npm: [
+    'npm run build -- --watch',
+    '',
+    '# 监听额外文件或自定义 glob',
+    "npm run build -- --watch --watch-path 'src/**/*.ts' --watch-path config.json",
+  ].join('\n'),
+  yarn: [
+    'yarn build --watch',
+    '',
+    '# 监听额外文件或自定义 glob',
+    "yarn build --watch --watch-path 'src/**/*.ts' --watch-path config.json",
+  ].join('\n'),
+  pnpm: [
+    'pnpm build --watch',
+    '',
+    '# 监听额外文件或自定义 glob',
+    "pnpm build --watch --watch-path 'src/**/*.ts' --watch-path config.json",
+  ].join('\n'),
+  bun: [
+    'bun run build -- --watch',
+    '',
+    '# 监听额外文件或自定义 glob',
+    "bun run build -- --watch --watch-path 'src/**/*.ts' --watch-path config.json",
+  ].join('\n'),
+}
+
+export const buildCommands = {
+  npm: `npm run build
+npm pack --dry-run`,
+  yarn: `yarn build
+yarn pack --dry-run`,
+  pnpm: `pnpm build
+pnpm pack --dry-run`,
+  bun: `bun run build
+bun pm pack --dry-run`,
+}
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="guide">
+  <Callout locale="zh-cn" title="你将完成什么" variant="note">
+
+你会创建一个 TypeScript 项目，运行生成的 CLI，增加 `status` 命令，并检查发布包中将要包含的文件。
+
+  </Callout>
+
+<Steps>
+  <Step number="1" title="创建项目">
+
+<span slot="description">
+  请先安装 <a href="https://nodejs.org/zh-cn/download">Node.js 20.12 或更高版本</a>。
+</span>
+
+创建器会询问项目名，创建同名的新目录，并把 TypeScript 模板复制进去。它不会覆盖已有目录。如果你使用 Agent 自动创建，请参考 [Agent 创建指引](/zh-cn/guide/agent-setup)。
+
+    <CodeBlock
+      code={createCommands.npm}
+      lang="shell"
+      packageManagerCommands={createCommands}
+    />
+
+  </Step>
+  <Step
+    number="2"
+    title="安装并检查生成的 CLI"
+    description="进入新目录、安装依赖，然后运行模板自带的帮助处理器。">
+    <CodeBlock
+      code={installCommands.npm}
+      lang="shell"
+      packageManagerCommands={installCommands}
+    />
+  </Step>
+</Steps>
+
+<Callout locale="zh-cn" variant="tip">
+
+在 CLI 术语中，`ship greet --name Ada` 里的 `greet` 是命令，`--name` 是选项。如果这些概念还不熟悉，可以在修改模板前阅读 [命令](/zh-cn/commands)。
+
+</Callout>
+
+## 认识生成的项目
+
+在默认模板中，`src` 文件夹用于存放所有业务代码，`tests` 用于存放测试用例，如果你后续运行 `build` 命令则还会出现 `dist` 文件夹。
+通常在最后发布时，只有 `dist` 文件夹的内容会被发布。
+
+<CodeBlock code={projectTree} filename="项目结构" />
+
+可执行入口会调用 `run(AppModule)`。根模块收集允许 func 使用的命令类和 服务类：
+
+<CodeBlock code={moduleCode} filename="src/app.module.ts" lang="ts" />
+
+命令描述用户可以如何调用 CLI；可复用且与参数解析、输出无关的逻辑放在服务中。 测试直接启动生成的可执行文件，因此能够同时验证命令分发、输入解析和输出。
+
+## 开发时运行命令
+
+模板通过普通 npm scripts 暴露 funcgo：
+
+<CodeBlock code={packageScriptsCode} filename="package.json" lang="json" />
+
+npm 标签中的 `npm run dev -- <参数>` 使用的是 npm 参数透传规范。第一个 `--` 告诉 npm 停止解析自己的选项，把后续内容追加到 script；script 末尾 的 `--` 用于区分 `funcgo dev` 和你的 CLI 参数。位于它后面的 token 不属于 funcgo。应用代码不需要自行解析或移除这两个分隔符。
+
+<CodeBlock
+  code={runCommands.npm}
+  lang="shell"
+  packageManagerCommands={runCommands}
+/>
+
+每次调用只执行一次 TypeScript 入口，无需生成生产 bundle，适合在编辑命令时快速验证。 其他包管理器的等价写法可以通过终端右上角切换。
+
+### 添加第一个命令
+
+创建一个带有固定命令名和默认处理器的类。类名只在 TypeScript 代码中使用；用户实际输入的是 `@Command` 中的 `name`。
+
+<CodeBlock code={commandCode} filename="src/commands/status.command.ts" lang="ts" />
+
+将它加入命令列表，由 `AppModule` 注册后运行 `npm run dev -- status`。
+
+<CodeBlock code={registerCode} filename="src/commands/index.ts" lang="ts" />
+<TerminalDemo
+  command={statusCommands.npm}
+  demo="guide-status"
+  locale="zh-cn"
+  packageManagerCommands={statusCommands}
+  rows={2}
+  sourceUrl="/demos/guide-status.ts"
+/>
+
+如果要添加别名或多个动作，请阅读[命令](/zh-cn/commands) ；如果要接收标志和值，请阅读 [字段选项](/zh-cn/options)。
+
+## 可选：把命令映射到全局
+
+这一步不是使用 funcgo 的必要条件。只有希望在开发期间直接输入最终命令名进行调试（例如 `ship`）时才需要创建全局链接；否则继续使用 `npm run dev -- <命令>` 即可。
+
+<Callout locale="zh-cn" variant="caution">
+
+全局映射读取生成的 `dist/bin.js` 。运行所选包管理器的全局映射命令前必须成功构建；调用命令时使用 `package.json#bin` 中的键名。在本示例中，我们假定 `bin` 中的命令名是 `ship`。
+
+</Callout>
+
+开发期间，包管理器可以把当前包映射到全局命令目录。由于 `package.json#bin` 指向 生成的 `dist/bin.js` ，请在项目根目录构建并创建链接：
+
+<CodeBlock
+  code={globalLinkCommands.npm}
+  lang="shell"
+  packageManagerCommands={globalLinkCommands}
+/>
+<TerminalDemo
+  command="ship --help"
+  demo="guide-help"
+  locale="zh-cn"
+  rows={8}
+  sourceUrl="/demos/guide-help.ts"
+/>
+
+这里的命令名是 `ship`，因此可以运行上面的 `ship --help` 。映射使用当前项目的构建产物；源码变化后请重新生成 bundle，必要时重新执行映射命令。
+
+取消映射时，使用当前包管理器对应的解除映射命令：
+
+<CodeBlock
+  code={unlinkCommands.npm}
+  lang="shell"
+  packageManagerCommands={unlinkCommands}
+/>
+
+### 监听文件并持续构建
+
+`funcgo build --watch` 启动时会执行一次构建，之后默认监听 `src/**/*.ts` ，匹配文件变化后自动重新构建。可以在一个终端保持监听，在另一 个终端调用已经全局链接的命令。按 `Ctrl+C` 停止监听。
+
+<CodeBlock
+  code={watchCommands.npm}
+  lang="shell"
+  packageManagerCommands={watchCommands}
+/>
+
+每个 `--watch-path` 都可以是文件、目录或正向 glob。配置文件位于 `src` 之外时，可以用它补充监听范围。生成目录、`node_modules` 和`.git` 会被忽略。
+
+## 首次运行的常见问题
+
+<details>
+
+<summary>终端找不到全局命令</summary>
+
+确认构建已经生成 `dist/bin.js`，在包根目录执行 `npm link` ，并使用 `package.json#bin` 中的键名，而不是包名调用命令。
+
+</details>
+<details>
+
+<summary>func 提示未知命令</summary>
+
+请从已注册的命令列表导出命令类。仅创建文件和添加 `@Command()` 并不会自动注册该类。
+
+</details>
+<details>
+
+<summary>npm 吞掉了本应传给 CLI 的选项</summary>
+
+保留参数透传分隔符：使用 `npm run dev -- status --json`。只有 `--` 后面的 token 才属于你的 CLI。
+
+</details>
+
+## 打包并准备发布
+
+build script 会把配置的 TypeScript 入口打包到 `func.outDir`（模板默认 为 `dist`），并创建可执行的 `bin.js`。包内的 `bin` 字段决定用户安装后可以调用的命令名。
+
+<CodeBlock
+  code={buildCommands.npm}
+  lang="shell"
+  packageManagerCommands={buildCommands}
+/>
+
+终端中的 dry-run pack 命令只展示即将发布的文件，不会真正发布。请确认列表中包含 bundle、 包信息、README 和 license；确认无误后，运行 `npm publish` 才会真正发布到 npm。自定义入口、输出、 外部依赖和监听范围见[工具链](/zh-cn/tooling)。
+
+</DocsLayout>

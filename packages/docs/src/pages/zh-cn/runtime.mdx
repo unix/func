@@ -1,0 +1,119 @@
+---
+title: 运行时执行模型
+description: 了解 func 如何装配应用，并依次完成命令作用域选择、选项解析、处理器分派、实例与参数准备、校验、执行和错误路由。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import FlowDiagram from '@/components/FlowDiagram.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const runtimeStages = [
+  {
+    label: '装配应用',
+    description: '展开模块，收集命令与服务，并验证整份命令行模型。',
+  },
+  {
+    label: '选择命令',
+    description: '根据 argv 的第一个 token 确定具名、主命令或缺失命令。',
+  },
+  {
+    label: '解析作用域',
+    description: '使用所选命令的 option 规则解析完整参数，并识别未知选项。',
+  },
+  {
+    label: '分派处理器',
+    description: '依次检查最长 handler path、handler option 和默认处理器。',
+  },
+  {
+    label: '准备执行',
+    description: '创建所选命令及其服务，写入字段，执行校验并生成方法参数。',
+  },
+  {
+    label: '调用或失败',
+    description: '等待唯一处理器完成；失败按发生阶段进入局部或应用级错误路由。',
+  },
+]
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="runtime">
+
+func 的运行时分为两个时期。应用启动时，它先把模块声明聚合成一份完整的命令行模型；每次调用到来后，再根据当前激活的命令找到唯一的处理器调用。
+装饰器提供声明与元数据，`func` 运行时会把这些声明的数据组合与隔离，同时也确保这些命令之间共享服务、错误、验证等全局规则。
+
+例如 `ship project member add alice --role owner --force` 会依次得到 `project` 命令作用域、`role` 和 `force` 选项、`member add` 处理器路径，以及剩余的 `alice` 位置输入。各阶段只消费自己负责的部分，并把结果交给下一阶段。
+
+<FlowDiagram stages={runtimeStages} title="func 运行时管线" />
+
+## 装配应用
+
+根 `@FuncModule` 是运行时的装配边界。func 递归展开 imports，将各模块注册的 commands 和 services 合并为应用级模型。模块描述结构，但不会因为装配过程而创建所有命令与服务；实例只在某次调用实际需要时产生。
+
+命令在这里按角色分组：`@Command` 形成具名命令集合，`@CommandMajor` 提供没有具名命令时的顶层作用域，`@CommandMissing` 接收未知 command，错误处理器则独立参与失败路由。服务列表形成后续依赖注入可使用的 provider 集合。
+
+装配阶段还会检查整份模型是否可判定：command name 和 alias 不能重复；应用最多有一个主命令和一个缺失命令；同一命令内的 option token 不能冲突；除兼容型缺失命令外，可分派命令必须有处理器，且最多有一个默认处理器。这些不是 POSIX 规则，而是 func 的注册约束。它们保证运行时不会依赖声明顺序或偶然的覆盖关系完成分派。
+
+## 选择命令作用域
+
+shell 已经完成引号、转义和变量展开后，才把 argv 交给程序。func 不重新拆分字符串，而是直接检查可执行文件之后的第一个 token。这个阶段只决定由哪个命令类解释本次调用，还不解析 option。
+
+| argv 开头          | 命令作用域       | 处理方式                                                  |
+| ------------------ | ---------------- | --------------------------------------------------------- |
+| `[] / [--version]` | 主命令           | 没有具名 command token；由应用的顶层命令处理。            |
+| `[project, ...]`   | 具名命令 project | 第一个 token 匹配 command name 或 alias。                 |
+| `[unknown, ...]`   | 缺失命令         | 第一个普通 token 未匹配具名命令，并且应用注册了缺失命令。 |
+
+以连字符开头的 token 按 Unix 命令行惯例表示 option，因此不会被当作 command name；option-first 调用属于主命令。把第一个普通 token 作为 command 则是 func 对常见 command/subcommand 模型的约定，不是 POSIX 对所有 utility 的要求。
+
+如果未知 command 没有对应的缺失命令，运行时不会把它回退到主命令。作用域是严格选择，不是逐个命令尝试。这个性质使后续 option 解析只面对一份明确的语法。
+
+### 解析当前命令的 option
+
+命令作用域确定后，func 才能建立本次调用的 option 规则。规则由该命令的字段 option、handler option 和 sub-options 共同组成。其他命令的字段不会加入，因此主命令 option 也不会自然成为具名命令的 global option。
+
+这里沿用 [POSIX Utility Argument Syntax](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html) 的术语：_option_ 是具名开关，_option-argument_ 是选项携带的值，_operand_ 是位置输入。func 同时支持 GNU 风格的 `--long-option`，并允许 option 出现在 operand 前后；这种交错方式属于 [GNU command-line convention](https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces)，不是严格 POSIX 的排列方式。
+
+已声明的 option 在这一阶段完成 alias 归一化和 Boolean、String、Number、重复字符串等类型转换。未识别且仍以连字符开头的 token 被归类为 unknown option；普通 token 则保留为 operand，交给处理器分派。具名命令的 command token 会在分派前移除，主命令和缺失命令没有这一步。
+
+主命令、具名命令和带处理器的缺失命令使用同一套 option 解析。旧式的构造函数型缺失命令是兼容分支：它直接接收原始输入，不进入字段和处理器管线。
+
+## 分派唯一处理器
+
+option 解析完成后，运行时使用剩余 operand 选择处理器。主命令、具名命令和现代缺失命令执行相同的三段分派：
+
+1. 查找以当前 operand 开头的 handler path，并选择最长匹配。
+2. 没有 path 命中时，检查显式出现的 handler option。
+3. 前两者都没有选中处理器时，使用默认处理器。
+
+最长 path 优先是 _longest-prefix matching_，也就是路由与语法分析常用的“更具体者优先”规则。若同时声明 `profile` 和 `profile get`，输入 `profile get work` 会选择后者，并留下 `work` 作为业务 operand。
+
+path、handler option、default 的先后顺序是 func 的运行时契约，不属于 POSIX 或 GNU option 规范。path 描述命令的结构分支，因此优先于用于切换动作的 option；进入 handler option 分支后，一次调用最多只能显式选择一个动作，否则产生互斥冲突。
+
+### 准备并执行所选命令
+
+处理器确定后，运行时才创建命令实例和该调用需要的服务。服务按构造函数类型解析，并在本次命令的依赖图中复用；未选中的命令不会实例化。`@Args`、`@Regs` 等参数则由当前命令、处理器、path、剩余 inputs 和 option 结果生成。
+
+命令构造完成后，func 把显式 option 写入字段，未提供的字段保留类属性默认值，然后依次执行 required 检查、字段 validator 和跨字段 constraint。校验通过后，唯一处理器才会被调用；同步返回和 Promise 使用相同的完成语义。
+
+由于字段赋值发生在命令构造之后，构造函数可以接收服务或调用上下文，但不应依赖字段已经被 argv 覆盖。处理器和局部 catch 看到的才是完成字段注入与默认值合并后的命令状态。
+
+## 按阶段路由错误
+
+装配阶段发现的重复 token、缺失处理器或无效命令形状属于注册错误。它们发生在应用运行边界建立之前，直接阻止应用启动，也不会进入命令自己的 catch。
+
+作用域选择、option 解析、处理器分派以及命令构造发生在局部 catch 之外；这些阶段的输入错误或构造错误进入应用级错误处理。字段注入、校验、参数准备和处理器调用已经拥有命令实例，因此会先进入当前命令的局部 catch，未处理的失败再进入应用级路由。
+
+system error 始终表示框架声明或注册缺陷，会直接抛出。runtime error 可以交给局部或全局处理；runtime-print error 还带有 func 的默认 stderr 输出。完整错误等级与打印控制见 [错误处理](/zh-cn/errors)。
+
+### Q&A
+
+| 问题                                      | 运行时答案                                                           |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| 主命令上的 option 是全局 option 吗？      | 不是。命令作用域先确定，随后只解析该作用域声明的 option。            |
+| path 和 handler option 同时匹配时执行谁？ | 执行 path 处理器；结构路径优先于动作选项。                           |
+| 一次调用会执行多个处理器吗？              | 不会。路径、动作选项和默认处理器是互斥分支，最终只产生一个调用目标。 |
+| 匹配 path 后，那些 token 去哪里了？       | 它们记录为当前 path，并从最终位置 inputs 中移除。                    |
+| 构造函数中能读取解析后的字段吗？          | 不能依赖。命令先完成构造，随后才写入 option 字段和默认值。           |
+| 局部 catch 能处理未知 option 吗？         | 不能。选项解析早于命令实例创建，解析错误直接进入应用级错误路由。     |
+
+</DocsLayout>

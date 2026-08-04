@@ -1,0 +1,186 @@
+---
+title: 命令
+description: 定义面向用户的 func 命令、别名，以及同一命令作用域内的多个动作。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import CodeBlock from '@/components/CodeBlock.astro'
+import DecisionTable from '@/components/DecisionTable.astro'
+import TerminalDemo from '@/components/TerminalDemo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const modelingChoices = [
+  {
+    choice: '@Command',
+    when: '固定的顶层单词表示业务领域或动作。',
+    example: 'ship deploy',
+  },
+  {
+    choice: '@Handler({ path })',
+    when: '固定的嵌套单词用于选择当前命令中的一个动作。',
+    example: 'ship config profile get',
+  },
+  {
+    choice: '@Flag / @Value',
+    when: '具名数据需要类型、默认值、别名、描述或校验。',
+    example: 'ship deploy --env prod',
+  },
+  {
+    choice: '@Args().inputs',
+    when: '剩余位置 token 是可变用户数据，而不是固定语法。',
+    example: 'ship search alice team-a',
+  },
+]
+
+export const simpleCommandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'status',",
+  "  description: 'Print service status',",
+  '})',
+  'export class StatusCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('All systems operational')",
+  '  }',
+  '}',
+].join('\n')
+
+export const registerCode = `import { ErrorHandler } from './error.command'
+import { Major } from './major.command'
+import { Missing } from './missing.command'
+import { StatusCommand } from './status.command'
+
+export const commands = [Major, StatusCommand, Missing, ErrorHandler]`
+
+export const statusCommands = {
+  npm: 'npm run dev -- status',
+  yarn: 'yarn dev status',
+  pnpm: 'pnpm dev status',
+  bun: 'bun run dev -- status',
+}
+
+export const aliasCode = `@Command({
+  name: 'status',
+  alias: 's',
+  description: 'Print service status',
+})
+export class StatusCommand {}`
+
+export const projectCommandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'project',",
+  "  alias: 'p',",
+  "  description: 'Manage projects and members',",
+  '})',
+  'export class ProjectCommand {',
+  '  @Handler()',
+  '  list() {',
+  "    console.log('List projects')",
+  '  }',
+  '',
+  "  @Handler({ path: ['create'] })",
+  '  create() {',
+  "    console.log('Create project')",
+  '  }',
+  '',
+  "  @Handler({ path: ['member', 'add'] })",
+  '  addMember() {',
+  "    console.log('Add project member')",
+  '  }',
+  '',
+  "  @Handler({ flag: 'help', alias: 'h', description: 'Print project help' })",
+  '  help() {',
+  "    console.log('Project usage')",
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="commands">
+
+命令是用户在可执行文件名之后输入的固定单词，用来指定业务领域或动作。在 `git commit` 中，`git` 是可执行文件，`commit` 是 命令。在 func 中，这个命令由带有 `@Command({ name: 'commit' })` 的类建模。
+
+func 只使用第一个输入 token 匹配具名命令。如果 token 匹配 name 或 alias，本次调用就归该命令处理； 以连字符开头的 token 交给主命令作用域。确定作用域后，该类的处理器和字段会解析其余 token。
+
+## 分清一次调用中的每个部分
+
+| 用户输入                 | 命令作用域 | 其余部分的含义                        |
+| ------------------------ | ---------- | ------------------------------------- |
+| `ship status`            | `status`   | 没有额外输入，因此运行默认处理器。    |
+| `ship config get`        | `config`   | get 是 config 命令内的处理器路径。    |
+| `ship deploy --env prod` | `deploy`   | --env prod 是 deploy 命令的值选项。   |
+| `ship --help`            | `主命令`   | --help 可以选择主命令中的一个处理器。 |
+
+主命令是 func 独有的作用域，处理没有具名命令的调用。它与未知命令行为一起在 [核心概念](/zh-cn/concepts)中介绍。
+
+## 根据命令格式选择装饰器
+
+写下完整的命令示例，区分其中的固定语法和可变数据，就可以确定各部分应使用的 func 装饰器：
+
+<DecisionTable items={modelingChoices} locale="zh-cn" />
+
+## 添加最小可用命令
+
+最小命令只需要一个类和一个默认处理器。`name` 是用户实际输入的命令名； `description` 是帮助处理器可以通过 `@Regs()` 读取的元数据。
+
+<CodeBlock
+  code={simpleCommandCode}
+  filename="src/commands/status.command.ts"
+  lang="ts"
+/>
+
+创建文件并添加装饰器后，还要把该类加入根模块的命令列表：
+
+<CodeBlock code={registerCode} filename="src/commands/index.ts" lang="ts" />
+<TerminalDemo
+  command={statusCommands.npm}
+  demo="guide-status"
+  locale="zh-cn"
+  packageManagerCommands={statusCommands}
+  rows={2}
+  sourceUrl="/demos/guide-status.ts"
+/>
+
+func 匹配到 `StatusCommand` 后会创建实例，并调用默认处理器 `run()`。每个命令至少需要一个处理器，且只能定义一个默认处理器。
+
+## 只在确实节省输入时添加别名
+
+别名是同一命令的另一个名称，不会创建新命令，也不会调用其他处理器：
+
+<CodeBlock code={aliasCode} lang="ts" />
+
+`ship status` 和 `ship s` 现在都会选择 `StatusCommand`。频繁使用的命令可以采用容易辨认的缩写，例如用 `g` 表示 `greet` 。很少使用的命令，或容易与其他命令混淆的缩写，不适合用作别名。所有已注册命令的 name 和 alias 都不能重复。
+
+命令别名可以超过一个字符；`-h` 这样的选项别名则必须是单个字符。装饰器中的值不需要带开头的连字符，func 会为选项补上它。
+
+## 把相关动作放入同一个命令
+
+固定的顶层动词或资源名适合定义为命令。同一资源有多个动作时，可以共用一个命令， 通过处理器路径区分具体动作，例如 `project`、`project create` 和`project member add`：
+
+<CodeBlock
+  code={projectCommandCode}
+  filename="src/commands/project.command.ts"
+  lang="ts"
+/>
+
+- `ship project` 运行默认的 `list()` 处理器。
+- `ship project create` 运行 `create()` 路径处理器。
+- `ship p member add` 通过命令别名和最长匹配路径运行 `addMember()`。
+- `ship project --help` 运行由处理器标志选择的 help 方法。
+
+处理器标志用来选择互斥动作；字段 `@Flag()` 只向已选中的处理器提供布尔值。 func 的匹配顺序为：路径处理器、处理器标志、默认处理器。路径不能声明 alias， 也不能与处理器 flag 同时使用。
+
+## 组织多个命令
+
+一个应用可以注册多个具名命令，通常每个顶层业务领域对应一个类。较大的业务领域可以放入独立的 `@FuncModule`，由根模块 import。不要把无关的操作都写在一个命令类中。
+
+一次 CLI 调用只会选中一个顶层命令。对于 `ship build deploy`，func 会选中 `build`，而 `deploy` 只是剩余输入。固定的嵌套动作应使用处理器路径； 需要连续执行多个业务操作时，可以定义一个专用命令，并在处理器中调用共享服务。
+
+下一步可以用[字段选项](/zh-cn/options)接收标志和值，或通过 [示例](/zh-cn/use-cases)了解常见用户需求应如何定义命令。
+
+</DocsLayout>

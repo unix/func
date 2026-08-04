@@ -1,0 +1,148 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+}
+
+const { locale = defaultLocale } = Astro.props
+const label = locale === 'zh-cn' ? '本页内容' : 'On this page'
+---
+
+<aside
+  class="docs-minimap hidden min-w-0 xl:block"
+  data-doc-minimap
+  data-empty="true">
+  <nav aria-label={label} class="sticky top-24 py-10">
+    <p
+      class="mb-3 px-2 font-mono text-[0.6875rem] tracking-wide text-muted-foreground uppercase">
+      {label}
+    </p>
+    <ol class="space-y-1" data-minimap-list></ol>
+  </nav>
+</aside>
+
+<script>
+  let cleanupMinimap: (() => void) | undefined
+
+  const slugFromText = (value: string) => {
+    return (
+      value
+        .normalize('NFKD')
+        .toLocaleLowerCase()
+        .replace(/[^\p{Letter}\p{Number}\s-]/gu, '')
+        .trim()
+        .replace(/\s+/g, '-') || 'section'
+    )
+  }
+
+  const mountMinimap = () => {
+    cleanupMinimap?.()
+
+    const minimap = document.querySelector<HTMLElement>('[data-doc-minimap]')
+    const list = minimap?.querySelector<HTMLOListElement>('[data-minimap-list]')
+    const headings = Array.from(
+      document.querySelectorAll<HTMLHeadingElement>(
+        '[data-doc-content] :is(h2, h3)',
+      ),
+    ).filter(heading => !heading.closest('[data-minimap-ignore]'))
+    if (!minimap || !list) return
+
+    list.replaceChildren()
+    minimap.dataset.empty = headings.length === 0 ? 'true' : 'false'
+    if (headings.length === 0) return
+
+    const slugCounts = new Map<string, number>()
+    const links = headings.map(heading => {
+      const baseSlug = heading.id || slugFromText(heading.textContent ?? '')
+      const count = slugCounts.get(baseSlug) ?? 0
+      const slug = count === 0 ? baseSlug : `${baseSlug}-${count + 1}`
+      slugCounts.set(baseSlug, count + 1)
+      heading.id = slug
+
+      const item = document.createElement('li')
+      if (heading.tagName === 'H3') item.className = 'pl-3'
+
+      const link = document.createElement('a')
+      link.className = 'docs-minimap-link'
+      link.href = `#${slug}`
+      link.textContent = heading.textContent
+      link.addEventListener('click', event => {
+        if (
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        )
+          return
+
+        event.preventDefault()
+        window.history.pushState(null, '', link.hash)
+        heading.scrollIntoView({ behavior: 'smooth' })
+      })
+      item.append(link)
+      list.append(item)
+
+      return link
+    })
+
+    const setActive = (id: string) => {
+      links.forEach((link, index) => {
+        const isActive = headings[index]?.id === id
+        link.dataset.active = isActive ? 'true' : 'false'
+
+        if (isActive) {
+          link.setAttribute('aria-current', 'location')
+          return
+        }
+
+        link.removeAttribute('aria-current')
+      })
+    }
+
+    const syncActiveHeading = () => {
+      const activationOffset = Math.min(window.innerHeight * 0.2, 120)
+      let activeHeading = headings[0]
+
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top > activationOffset) break
+        activeHeading = heading
+      }
+
+      const isAtDocumentEnd =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 2
+      if (isAtDocumentEnd) activeHeading = headings.at(-1) ?? activeHeading
+
+      setActive(activeHeading.id)
+    }
+
+    let frame: number | undefined
+    const scheduleActiveHeadingSync = () => {
+      if (frame !== undefined) return
+
+      frame = window.requestAnimationFrame(() => {
+        frame = undefined
+        syncActiveHeading()
+      })
+    }
+
+    window.addEventListener('scroll', scheduleActiveHeadingSync, {
+      passive: true,
+    })
+    window.addEventListener('resize', scheduleActiveHeadingSync)
+    cleanupMinimap = () => {
+      window.removeEventListener('scroll', scheduleActiveHeadingSync)
+      window.removeEventListener('resize', scheduleActiveHeadingSync)
+      if (frame !== undefined) window.cancelAnimationFrame(frame)
+    }
+
+    const hash = decodeURIComponent(window.location.hash.slice(1))
+    if (hash) document.getElementById(hash)?.scrollIntoView()
+    syncActiveHeading()
+  }
+
+  document.addEventListener('astro:page-load', mountMinimap)
+  mountMinimap()
+</script>

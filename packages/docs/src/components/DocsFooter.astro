@@ -1,0 +1,28 @@
+---
+import ExternalLinkIcon from '@/components/ExternalLinkIcon.astro'
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  editUrl: string
+  locale?: Locale
+}
+
+const { editUrl, locale = defaultLocale } = Astro.props
+const labels =
+  locale === 'zh-cn'
+    ? { edit: '在 GitHub 编辑此页' }
+    : {
+        edit: 'Edit this page on GitHub',
+      }
+---
+
+<footer class="mt-16 flex justify-end text-sm text-muted-foreground">
+  <a
+    class="inline-flex items-center gap-1.5 rounded-md font-medium text-foreground outline-none hover:underline hover:underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring"
+    href={editUrl}
+    rel="noreferrer"
+    target="_blank">
+    {labels.edit}
+    <ExternalLinkIcon class="size-3.5" />
+  </a>
+</footer>

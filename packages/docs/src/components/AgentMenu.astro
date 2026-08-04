@@ -1,0 +1,133 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+  markdownUrl: string
+}
+
+const { locale = defaultLocale, markdownUrl } = Astro.props
+const prompt =
+  locale === 'zh-cn'
+    ? `阅读 ${markdownUrl}，并基于这份文档帮助我完成任务。`
+    : `Read ${markdownUrl} and help me complete a task using this documentation.`
+const encodedPrompt = encodeURIComponent(prompt)
+const label = locale === 'zh-cn' ? '在应用中打开' : 'Open in'
+const agentLinks = [
+  {
+    href: `codex://new?prompt=${encodedPrompt}`,
+    icon: '/icons/agents/codex.svg',
+    invertInDark: true,
+    label: 'Codex',
+  },
+  {
+    href: `cursor://anysphere.cursor-deeplink/prompt?text=${encodedPrompt}`,
+    icon: '/icons/agents/cursor.svg',
+    invertInDark: true,
+    label: 'Cursor',
+  },
+  {
+    href: `claude://code/new?q=${encodedPrompt}`,
+    icon: '/icons/agents/claude-code.svg',
+    invertInDark: false,
+    label: 'Claude Code',
+  },
+]
+---
+
+<div class="relative hidden md:block" data-agent-menu>
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    class="inline-flex h-8 cursor-pointer select-none items-center gap-1.5 rounded-md px-2.5 font-mono text-xs text-muted-foreground outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-expanded:bg-muted/60 aria-expanded:text-foreground"
+    data-agent-menu-button
+    type="button">
+    {label}
+    <svg
+      aria-hidden="true"
+      class="size-3.5"
+      fill="none"
+      viewBox="0 0 16 16"
+      xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="m4.5 6 3.5 3.5L11.5 6"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.25"></path>
+    </svg>
+  </button>
+  <div
+    class="absolute top-full right-0 z-20 mt-1.5 min-w-44 rounded-lg border bg-popover p-1.5 text-popover-foreground shadow-lg"
+    data-agent-menu-content
+    hidden
+    role="menu">
+    {
+      agentLinks.map(link => (
+        <a
+          class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
+          data-astro-reload
+          href={link.href}
+          role="menuitem">
+          <img
+            alt=""
+            class:list={[
+              'size-4 object-contain',
+              link.invertInDark && 'dark:invert',
+            ]}
+            src={link.icon}
+          />
+          <span>{link.label}</span>
+        </a>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  const closeAgentMenus = () => {
+    document.querySelectorAll<HTMLElement>('[data-agent-menu]').forEach(menu => {
+      const button = menu.querySelector<HTMLButtonElement>(
+        '[data-agent-menu-button]',
+      )
+      const content = menu.querySelector<HTMLElement>('[data-agent-menu-content]')
+      if (!button || !content) return
+
+      button.setAttribute('aria-expanded', 'false')
+      content.hidden = true
+    })
+  }
+
+  document.addEventListener('click', event => {
+    if (!(event.target instanceof Element)) return
+
+    const button = event.target.closest<HTMLButtonElement>(
+      '[data-agent-menu-button]',
+    )
+    if (button) {
+      const menu = button.closest<HTMLElement>('[data-agent-menu]')
+      const content = menu?.querySelector<HTMLElement>('[data-agent-menu-content]')
+      if (!content) return
+
+      const willOpen = content.hidden
+      closeAgentMenus()
+      content.hidden = !willOpen
+      button.setAttribute('aria-expanded', String(willOpen))
+      return
+    }
+
+    if (event.target.closest('[data-agent-menu]')) return
+
+    closeAgentMenus()
+  })
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return
+
+    const openButton = document.querySelector<HTMLButtonElement>(
+      '[data-agent-menu-button][aria-expanded="true"]',
+    )
+    closeAgentMenus()
+    openButton?.focus()
+  })
+</script>

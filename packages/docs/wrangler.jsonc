@@ -3,6 +3,12 @@
   "name": "func-docs",
   "compatibility_date": "2026-06-01",
   "assets": {
-    "directory": "./dist"
-  }
+    "binding": "ASSETS",
+    "directory": "./dist",
+    "html_handling": "drop-trailing-slash",
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
 }

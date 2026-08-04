@@ -1,7 +1,9 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 
 const SKIP_TAGS = new Set(['script', 'style', 'pre', 'code', 'textarea'])
-const CJK_PUNCTUATION_RE = /[\u3001\u3002\uff0c\uff0e\uff1a\uff1b\uff01\uff1f\u2014\u2026\u300c\u300d\u300e\u300f\u300a\u300b\u3008\u3009\u3010\u3011\uff08\uff09]/
+const MARKDOWN_TEXT_ROOTS = new Set(['heading', 'paragraph', 'tableCell'])
+const CJK_PUNCTUATION_RE =
+  /[\u3001\u3002\uff0c\uff0e\uff1a\uff1b\uff01\uff1f\u2014\u2026\u300c\u300d\u300e\u300f\u300a\u300b\u3008\u3009\u3010\u3011\uff08\uff09]/
 const LINE_BREAK_RE = /[ \t]*\r?\n[ \t]*/g
 
 export function joinLine() {
@@ -20,6 +22,18 @@ export function joinLine() {
       },
     },
   }
+}
+
+export function remarkJoinLine() {
+  return tree => {
+    joinMarkdownTextLines(tree)
+  }
+}
+
+export function joinMarkdownTextLines(tree) {
+  transformMarkdownNode(tree)
+
+  return tree
 }
 
 function joinLineHtml() {
@@ -50,7 +64,7 @@ async function joinGeneratedHtml(dir) {
   const entries = await readdir(dir, { withFileTypes: true })
 
   await Promise.all(
-    entries.map(async (entry) => {
+    entries.map(async entry => {
       const url = new URL(entry.name, dir)
 
       if (entry.isDirectory()) {
@@ -69,14 +83,15 @@ async function joinGeneratedHtml(dir) {
       if (nextHtml !== html) {
         await writeFile(url, nextHtml)
       }
-    })
+    }),
   )
 }
 
 function joinTextLines(text, tokens, tokenIndex) {
   return text.replace(LINE_BREAK_RE, (match, offset, source) => {
     const before =
-      previousVisibleChar(source, offset) || previousVisibleTokenChar(tokens, tokenIndex)
+      previousVisibleChar(source, offset) ||
+      previousVisibleTokenChar(tokens, tokenIndex)
     const after =
       nextVisibleChar(source, offset + match.length) ||
       nextVisibleTokenChar(tokens, tokenIndex)
@@ -91,6 +106,75 @@ function joinTextLines(text, tokens, tokenIndex) {
 
     return match
   })
+}
+
+function transformMarkdownNode(node) {
+  if (!node || typeof node !== 'object') {
+    return
+  }
+
+  if (MARKDOWN_TEXT_ROOTS.has(node.type)) {
+    const tokens = []
+    collectMarkdownTokens(node, tokens)
+
+    for (const [index, token] of tokens.entries()) {
+      if (!token.mutable) {
+        continue
+      }
+
+      token.node.value = joinTextLines(token.node.value, tokens, index)
+      token.value = token.node.value
+    }
+
+    return
+  }
+
+  if (!Array.isArray(node.children)) {
+    return
+  }
+
+  for (const child of node.children) {
+    transformMarkdownNode(child)
+  }
+}
+
+function collectMarkdownTokens(node, tokens) {
+  if (node.type === 'text') {
+    tokens.push({
+      type: 'text',
+      value: node.value,
+      mutable: true,
+      node,
+    })
+    return
+  }
+
+  if (node.type === 'inlineCode') {
+    tokens.push({ type: 'text', value: node.value, mutable: false })
+    return
+  }
+
+  if (node.type === 'image') {
+    tokens.push({ type: 'text', value: node.alt ?? '', mutable: false })
+    return
+  }
+
+  if (
+    node.type === 'break' ||
+    node.type === 'html' ||
+    node.type === 'mdxTextExpression'
+  ) {
+    tokens.push({ type: 'barrier', value: '', mutable: false })
+    return
+  }
+
+  if (!Array.isArray(node.children)) {
+    return
+  }
+
+  for (const child of node.children) {
+    collectMarkdownTokens(child, tokens)
+  }
 }
 
 function tokenizeHtml(html) {
@@ -158,6 +242,10 @@ function previousVisibleTokenChar(tokens, index) {
   for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
     const token = tokens[cursor]
 
+    if (token.type === 'barrier') {
+      return ''
+    }
+
     if (token.type === 'tag') {
       continue
     }
@@ -175,6 +263,10 @@ function previousVisibleTokenChar(tokens, index) {
 function nextVisibleTokenChar(tokens, index) {
   for (let cursor = index + 1; cursor < tokens.length; cursor += 1) {
     const token = tokens[cursor]
+
+    if (token.type === 'barrier') {
+      return ''
+    }
 
     if (token.type === 'tag') {
       continue

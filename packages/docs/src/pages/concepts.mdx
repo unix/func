@@ -1,0 +1,150 @@
+---
+title: Core Concepts
+description: Understand how the framework organizes commands and services through func's design model.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const conceptModel = [
+  'Application definition',
+  '@FuncModule()',
+  '├─ registers command scopes',
+  '│  ├─ @CommandMajor()       entry without a named command',
+  '│  ├─ @Command({ name })    matches a top-level command',
+  '│  └─ @CommandMissing()     optional fallback for no match',
+  '└─ registers @Service()     reusable business capabilities',
+  '',
+  'One CLI invocation that enters execution',
+  '└─ selects one command scope',
+  '   └─ selects one @Handler()',
+  '      ├─ reads field options from the command instance',
+  '      ├─ reads positional input through @Args()',
+  '      └─ calls injected services to perform the work',
+].join('\n')
+
+export const commandAnatomy = [
+  'ship project member add alice --role owner --force',
+  '│    │       └───┬────┘ │     └────┬─────┘ └──┬──┘',
+  '│    │           │      │          │          └─ @Flag()',
+  '│    │           │      │          └─ @Value()',
+  '│    │           │      └─ @Args().inputs',
+  "│    │           └─ @Handler({ path: ['member', 'add'] })",
+  "│    └─ @Command({ name: 'project' })",
+  '└─ package.json#bin',
+].join('\n')
+
+export const mappedApplicationCode = [
+  "import { Args, Command, Flag, FuncModule, Handler, Service, Value } from 'func'",
+  "import type { FuncArgs } from 'func'",
+  '',
+  '@Service()',
+  'class ProjectService {',
+  "  addMember(username: string, role = 'member', force = false) {",
+  '    return { force, role, username }',
+  '  }',
+  '}',
+  '',
+  "@Command({ name: 'project' })",
+  'export class ProjectCommand {',
+  '  @Value()',
+  '  role?: string',
+  '',
+  '  @Flag()',
+  '  force = false',
+  '',
+  '  constructor(private project: ProjectService) {}',
+  '',
+  "  @Handler({ path: ['member', 'add'] })",
+  '  addMember(@Args() args: FuncArgs) {',
+  "    const [username = ''] = args.inputs",
+  '    console.log(this.project.addMember(username, this.role, this.force))',
+  '  }',
+  '}',
+  '',
+  '@FuncModule({',
+  '  commands: [ProjectCommand],',
+  '  services: [ProjectService],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="concepts">
+
+When working with the `func` framework, users generally do not need to care about the details of what each invocation does. They can follow the application architecture and define concrete command scopes and services.
+Once you understand the design model, there is almost no need to debug or dive into the internals. In that sense, it is much like developing a typical web application.
+
+After developers declare their commands, the framework collects all metadata through reflection and stores it in registries. Whenever a user invokes the script, `func` selects a matching command and handler from these static registries,
+then passes the user-provided context data to the handler. Before that data reaches the handler, declared validation and rules filter it automatically. At runtime, everything follows the declared types.
+
+## Definitions and invocations
+
+A command is the most basic unit. A project usually contains multiple command-derived classes, which are the entry points ultimately used to execute commands.
+
+`@FuncModule()` defines the application's root routing and registers command scopes and services. Command scopes interpret CLI input and select actions; services provide reusable business capabilities. Each invocation selects only one execution path from the registered commands rather than running multiple command classes in sequence.
+
+<CodeBlock code={conceptModel} filename="The func mental model" />
+
+## Command types
+
+A command scope is the decorated class that ultimately owns an invocation. It owns the field options for that invocation and selects a handler inside the class. func has three mutually exclusive command scopes. If the corresponding major or missing command has not been registered, func does not manufacture a default scope:
+
+| Command scope   | Selection rule                                           | func API                       |
+| --------------- | -------------------------------------------------------- | ------------------------------ |
+| Major command   | There is no input token, or the first token is an option | `@CommandMajor()`              |
+| Named command   | The first bare token matches a name or alias             | `@Command({ name })`           |
+| Missing command | The first bare token matches no named command            | `@CommandMissing() (optional)` |
+
+<Callout title="A command represents only the top-level scope" variant="decision">
+
+func uses only the first bare token to match a named command. In `ship project member add`, `project` selects `ProjectCommand`. `member add` still belongs to that command scope and does not select more command classes.
+
+</Callout>
+
+## One command scope executes only one handler
+
+A handler is the method that performs a concrete action inside a command class. It is declared with `@Handler()`. One command scope can expose three kinds of action entry points:
+
+- A **default handler** has no path or flag and runs when no other entry point matches.
+- A **path handler** uses a fixed sequence of positional tokens, such as `member add`, to select an action.
+- A **flag handler** uses an option such as `--help` or `--version` to switch to a mutually exclusive action.
+
+Regardless of how many handlers a class declares, one invocation ultimately runs only one. See [Runtime](/runtime) for the exact priority between longest path matching, flag handlers, and the default handler.
+
+<Callout
+  title="The same surface syntax can have different responsibilities"
+  variant="decision">
+
+A `--force` declared with `@Flag()` supplies boolean data to the action already selected. A `--help` declared with `@Handler({ flag: 'help' })` selects another action. Both start with a hyphen, but one is data and the other selects a handler.
+
+</Callout>
+
+## Map a command to func concepts
+
+The following example uses one invocation to connect all of the concepts, so it matches only `@Command({ name: 'project' })`. It first selects the `project` command scope, then the `member add` handler. The remaining parts provide positional and named data:
+
+<CodeBlock code={commandAnatomy} filename="Input parts and func APIs" />
+
+The other methods and properties in this command are instantiated only after the `project` command is matched. Which method executes depends on the remaining input.
+Here, the input matches the `['member', 'add']` decorator on `addMember`, so that method runs:
+
+<CodeBlock code={mappedApplicationCode} filename="src/app.module.ts" lang="ts" />
+<Callout title="Not every concept corresponds to an input token">
+
+`@FuncModule()` and `@Service()` organize application code and have no corresponding CLI token. Commands, handlers, and inputs describe how a user invokes the application; modules and services describe how the application organizes its capabilities internally.
+
+</Callout>
+
+## What to read next
+
+- [Commands](/commands): define names, aliases, default handlers, and handler paths.
+- [Field Options](/options): receive flags, values, repeated values, and validate them.
+- [Parameters](/parameters): read positional input, the selected handler, and other runtime context.
+- [Runtime](/runtime): follow module resolution, matching priority, instance creation, and the complete execution order.
+- [Glossary](/glossary): look up precise definitions of the concepts introduced here.
+
+</DocsLayout>

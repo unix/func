@@ -1,22 +1,399 @@
 ---
-import { codeToHtml, type BundledLanguage } from 'shiki'
+import { format } from 'prettier'
+import { codeToHtml, type BundledLanguage, type ShikiTransformer } from '@/lib/shiki'
 
 type CodeLanguage = BundledLanguage | 'text'
+type PackageManager = 'bun' | 'npm' | 'pnpm' | 'yarn'
 
 interface Props {
   code: string
+  filename?: string
   lang?: CodeLanguage
+  packageManagerCommands?: Record<PackageManager, string>
 }
 
-const { code, lang = 'text' } = Astro.props
-const html = await codeToHtml(code.trimEnd(), {
-  lang,
-  themes: {
-    dark: 'github-dark',
-    light: 'github-light',
+const { code, filename, lang = 'text', packageManagerCommands } = Astro.props
+const isChinese = Astro.url.pathname.startsWith('/zh-cn')
+const isTerminal = ['bash', 'console', 'shell', 'sh', 'zsh'].includes(lang)
+const isTypeScript = ['ts', 'tsx', 'typescript'].includes(lang)
+const isJson = ['json', 'jsonc'].includes(lang)
+const isMarkdown = ['markdown', 'md', 'mdx'].includes(lang)
+const codeType = isTerminal
+  ? {
+      icon: undefined,
+      label: isChinese ? '终端' : 'Terminal',
+    }
+  : isTypeScript
+    ? { icon: '/icons/code/typescript.svg', label: 'TypeScript' }
+    : isJson
+      ? { icon: '/icons/code/json.svg', label: 'JSON' }
+      : isMarkdown
+        ? { icon: '/icons/code/markdown.svg', label: 'Markdown' }
+        : { icon: undefined, label: isChinese ? '文本' : 'Text' }
+const codeLabel = filename ?? codeType.label
+const normalizeIndentation = (value: string) => {
+  const lines = value.replace(/\r\n?/g, '\n').split('\n')
+  while (lines[0]?.trim() === '') lines.shift()
+  while (lines.at(-1)?.trim() === '') lines.pop()
+
+  const populatedLines = lines.filter(line => line.trim() !== '')
+  if (populatedLines.length === 0) return ''
+
+  const commonIndent = Math.min(
+    ...populatedLines.map(line => line.match(/^[\t ]*/)?.[0].length ?? 0),
+  )
+
+  return lines.map(line => line.slice(commonIndent)).join('\n')
+}
+
+const parserByLanguage: Partial<Record<CodeLanguage, string>> = {
+  js: 'babel',
+  javascript: 'babel',
+  jsx: 'babel',
+  ts: 'typescript',
+  tsx: 'typescript',
+  typescript: 'typescript',
+}
+const normalizedCode = normalizeIndentation(code)
+const parser = parserByLanguage[lang]
+let formattedCode = normalizedCode
+
+if (parser) {
+  try {
+    formattedCode = (
+      await format(normalizedCode, {
+        parser,
+        printWidth: 120,
+        semi: false,
+        singleQuote: true,
+        trailingComma: 'all',
+      })
+    ).trimEnd()
+  } catch {
+    formattedCode = normalizedCode
+  }
+}
+
+const terminalLineCopyTransformer = (): ShikiTransformer => ({
+  name: 'terminal-line-copy',
+  line(node, line) {
+    const lineContent = node.children
+    node.children = [
+      {
+        type: 'element',
+        tagName: 'span',
+        properties: { className: ['terminal-line-content'] },
+        children: lineContent,
+      },
+      {
+        type: 'element',
+        tagName: 'button',
+        properties: {
+          'aria-label': isChinese ? `复制第 ${line} 行` : `Copy line ${line}`,
+          'aria-live': 'polite',
+          className: ['terminal-line-copy'],
+          'data-copy-line': String(line - 1),
+          'data-default-label': 'Copy',
+          type: 'button',
+        },
+        children: [{ type: 'text', value: 'Copy' }],
+      },
+    ]
   },
-  defaultColor: false,
 })
+
+const highlightCode = (value: string) =>
+  codeToHtml(value, {
+    lang,
+    themes: {
+      dark: 'github-dark',
+      light: 'github-light',
+    },
+    defaultColor: false,
+    transformers: isTerminal ? [terminalLineCopyTransformer()] : undefined,
+  })
+
+const packageManagerOrder: PackageManager[] = ['npm', 'yarn', 'pnpm', 'bun']
+const packageManagerVariants =
+  isTerminal && packageManagerCommands
+    ? await Promise.all(
+        packageManagerOrder.map(async packageManager => {
+          const variantCode = normalizeIndentation(
+            packageManagerCommands[packageManager],
+          )
+
+          return {
+            code: variantCode,
+            html: await highlightCode(variantCode),
+            packageManager,
+          }
+        }),
+      )
+    : []
+const defaultPackageManagerVariant = packageManagerVariants[0]
+
+if (defaultPackageManagerVariant) {
+  formattedCode = defaultPackageManagerVariant.code
+}
+
+const html =
+  defaultPackageManagerVariant?.html ?? (await highlightCode(formattedCode))
 ---
 
-<div class="code-block" set:html={html} />
+<div class="code-block" data-terminal={isTerminal ? 'true' : undefined}>
+  <div
+    class="flex h-10 select-none items-center justify-between gap-4 border-b border-border bg-muted/50 px-3">
+    <div class="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+      {
+        isTerminal ? (
+          <svg
+            aria-hidden="true"
+            class="size-4 shrink-0"
+            fill="none"
+            viewBox="0 0 16 16"
+            xmlns="http://www.w3.org/2000/svg">
+            <rect
+              height="11"
+              rx="1.75"
+              stroke="currentColor"
+              stroke-width="1.25"
+              width="13"
+              x="1.5"
+              y="2.5"
+            />
+            <path
+              d="m4.25 6 2 2-2 2M8.5 10h3"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.25"
+            />
+          </svg>
+        ) : codeType.icon ? (
+          <img
+            alt=""
+            aria-hidden="true"
+            class="size-4 shrink-0 opacity-60 dark:invert"
+            draggable="false"
+            src={codeType.icon}
+          />
+        ) : (
+          <svg
+            aria-hidden="true"
+            class="size-4 shrink-0"
+            fill="none"
+            viewBox="0 0 16 16"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M4.5 1.75h4.75l2.25 2.3v10.2h-7a1 1 0 0 1-1-1V2.75a1 1 0 0 1 1-1Z"
+              stroke="currentColor"
+              stroke-linejoin="round"
+            />
+            <path d="M9.25 1.75v2.5h2.25" stroke="currentColor" />
+          </svg>
+        )
+      }
+      <span class="truncate font-mono">{codeLabel}</span>
+    </div>
+    {
+      packageManagerVariants.length ? (
+        <div
+          aria-label={isChinese ? '选择包管理器' : 'Choose a package manager'}
+          class="inline-flex shrink-0 items-center gap-0.5"
+          role="group">
+          {packageManagerVariants.map(({ packageManager }, index) => (
+            <button
+              aria-pressed={index === 0 ? 'true' : 'false'}
+              class="inline-flex h-7 cursor-pointer select-none items-center rounded-sm px-2 font-mono text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:bg-muted data-[active=true]:text-foreground"
+              data-active={index === 0 ? 'true' : 'false'}
+              data-package-manager-select={packageManager}
+              type="button">
+              {packageManager}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          aria-live="polite"
+          class="inline-flex h-7 shrink-0 cursor-pointer select-none items-center rounded-md bg-transparent px-2 font-mono text-[0.6875rem] font-medium text-muted-foreground/60 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:bg-transparent disabled:text-muted-foreground/40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/40 disabled:focus-visible:ring-0"
+          data-copy-code
+          data-default-label={isTerminal ? 'Copy all' : 'Copy'}
+          type="button">
+          {isTerminal ? 'Copy all' : 'Copy'}
+        </button>
+      )
+    }
+  </div>
+  <template data-code-source>{formattedCode}</template>
+  <div data-code-content set:html={html} />
+  {
+    packageManagerVariants.map(variant => (
+      <template
+        data-code-variant-content={variant.packageManager}
+        data-code-variant-source={variant.code}>
+        <Fragment set:html={variant.html} />
+      </template>
+    ))
+  }
+</div>
+
+<script>
+  type PackageManager = 'bun' | 'npm' | 'pnpm' | 'yarn'
+
+  const packageManagerChangeEvent = 'package-manager-change'
+  const packageManagerStorageKey = 'package-manager'
+  const packageManagers: PackageManager[] = ['npm', 'yarn', 'pnpm', 'bun']
+
+  const isPackageManager = (value: string | null): value is PackageManager =>
+    packageManagers.includes(value as PackageManager)
+
+  const preferredPackageManager = (): PackageManager => {
+    try {
+      const storedPackageManager = localStorage.getItem(packageManagerStorageKey)
+      if (isPackageManager(storedPackageManager)) return storedPackageManager
+    } catch {
+      return 'npm'
+    }
+
+    return 'npm'
+  }
+
+  const storePackageManager = (packageManager: PackageManager) => {
+    try {
+      localStorage.setItem(packageManagerStorageKey, packageManager)
+    } catch {
+      return
+    }
+  }
+
+  const copyCodeText = async (value: string) => {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(value)
+      return
+    }
+
+    const textarea = document.createElement('textarea')
+    textarea.value = value
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.append(textarea)
+    textarea.select()
+    const copied = document.execCommand('copy')
+    textarea.remove()
+
+    if (!copied) throw new Error('Unable to copy code')
+  }
+
+  const bindCodeCopyButtons = () => {
+    document
+      .querySelectorAll<HTMLButtonElement>('[data-copy-code], [data-copy-line]')
+      .forEach(button => {
+        button.onclick = async () => {
+          if (button.disabled) return
+
+          const block = button.closest<HTMLElement>('.code-block')
+          const source =
+            block?.querySelector<HTMLTemplateElement>('[data-code-source]')
+          const sourceText = source?.content.textContent
+          if (sourceText == null) return
+
+          const lineIndex = button.dataset.copyLine
+          const value =
+            lineIndex === undefined
+              ? sourceText
+              : sourceText.split('\n')[Number(lineIndex)]
+          if (value === undefined) return
+
+          const defaultLabel = button.dataset.defaultLabel ?? 'Copy'
+          const previousTimer = Number(button.dataset.resetTimer)
+          if (previousTimer) window.clearTimeout(previousTimer)
+
+          button.disabled = true
+          button.setAttribute('aria-busy', 'true')
+
+          try {
+            await copyCodeText(value)
+            button.textContent = 'Copied'
+          } catch {
+            button.textContent = 'Copy failed'
+          }
+
+          button.disabled = false
+          button.removeAttribute('aria-busy')
+          button.dataset.resetTimer = String(
+            window.setTimeout(() => {
+              button.textContent = defaultLabel
+              delete button.dataset.resetTimer
+            }, 2000),
+          )
+        }
+      })
+  }
+
+  const selectPackageManager = (
+    block: HTMLElement,
+    packageManager: PackageManager,
+  ) => {
+    const button = block.querySelector<HTMLButtonElement>(
+      `[data-package-manager-select="${packageManager}"]`,
+    )
+    const content = block.querySelector<HTMLElement>('[data-code-content]')
+    const variantContent = block.querySelector<HTMLTemplateElement>(
+      `[data-code-variant-content="${packageManager}"]`,
+    )
+    const source = block.querySelector<HTMLTemplateElement>('[data-code-source]')
+    if (!button || !content || !variantContent || !source) return
+
+    content.replaceChildren(variantContent.content.cloneNode(true))
+    source.content.replaceChildren(
+      document.createTextNode(variantContent.dataset.codeVariantSource ?? ''),
+    )
+    block
+      .querySelectorAll<HTMLButtonElement>('[data-package-manager-select]')
+      .forEach(option => {
+        const isActive = option === button
+        option.dataset.active = String(isActive)
+        option.setAttribute('aria-pressed', String(isActive))
+      })
+  }
+
+  const applyPackageManager = (packageManager: PackageManager) => {
+    document.documentElement.dataset.packageManager = packageManager
+    document.querySelectorAll<HTMLElement>('.code-block').forEach(block => {
+      selectPackageManager(block, packageManager)
+    })
+    bindCodeCopyButtons()
+    document.dispatchEvent(
+      new CustomEvent(packageManagerChangeEvent, {
+        detail: { packageManager },
+      }),
+    )
+  }
+
+  const bindCodeVariantButtons = () => {
+    document
+      .querySelectorAll<HTMLButtonElement>('[data-package-manager-select]')
+      .forEach(button => {
+        button.onclick = () => {
+          const packageManager = button.dataset.packageManagerSelect
+          if (!isPackageManager(packageManager)) return
+
+          storePackageManager(packageManager)
+          applyPackageManager(packageManager)
+        }
+      })
+  }
+
+  const initializeCodeBlocks = () => {
+    bindCodeVariantButtons()
+    applyPackageManager(preferredPackageManager())
+  }
+
+  document.addEventListener('astro:page-load', initializeCodeBlocks)
+  window.addEventListener('storage', event => {
+    if (event.key !== packageManagerStorageKey) return
+
+    applyPackageManager(preferredPackageManager())
+  })
+  initializeCodeBlocks()
+</script>

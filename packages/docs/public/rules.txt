@@ -1,0 +1,81 @@
+func project structure and testing rules for coding agents
+
+Use these rules when the user has not supplied a stronger repository-specific convention. Existing repository instructions always take precedence.
+
+1. Choose a project boundary
+
+- Prefer a dedicated package or directory for a func CLI, especially inside an existing application or monorepo. This keeps the CLI entry, dependencies, tests, and build output out of the host application's bundle.
+- In a standalone CLI package, keep runtime source under `src`, tests under `tests`, and generated output under the configured `func.outDir` (normally `dist`).
+- If the CLI must share an application package, isolate it under a directory such as `src/cli` and use explicit funcgo entry and output paths. Import shared application services into the CLI; do not make the application bootstrap import or run the CLI entry.
+
+2. Give each file one role
+
+- `src/index.ts`: the executable entry. It should import the root module and call `run(RootModule)`.
+- `src/app.module.ts`: the composition root. It registers commands, imports feature modules, and registers services.
+- `src/commands/*.command.ts`: small or cross-cutting command classes. Keep parsing declarations next to the handler that consumes them.
+- `src/<feature>/<feature>.module.ts`: a feature boundary when one business area owns several commands or services.
+- `src/<feature>/*.command.ts`: commands for that feature.
+- `src/<feature>/*.service.ts`: reusable business logic, filesystem or network access, and other work that should not live in a command handler.
+- `src/config.ts`: package metadata and static settings when several commands need them.
+- `tests/commands/*.test.ts`: executable behavior tests from the CLI user's point of view.
+- `tests/utils/*`: shared process-spawning and fixture helpers only; do not hide business assertions here.
+
+3. Model the CLI deliberately
+
+- Use `@Command({ name })` for a stable top-level word such as `build`, `deploy`, or `config`.
+- Use one `@Command` class per top-level business area. Add fixed actions inside it with `@Handler({ path: [...] })`.
+- Use `@CommandMajor()` for invocation without a named command and for truly top-level options such as `--help` or `--version`.
+- Use `@CommandMissing()` only when unknown first input is meaningful data or when the product needs a custom unknown-command response.
+- Use a default `@Handler()` for the command's normal action. Handler flags select mutually exclusive actions; `@Flag()` fields are boolean data and do not select a handler.
+- Use `@Flag`, `@Value`, and `@ArrayValue` instead of manually parsing known options from `process.argv`.
+- Use `@Args()` only for remaining positional input or runtime metadata that field decorators do not represent.
+- Put reusable work in `@Service()` classes and inject them. Command handlers should coordinate input, services, and output.
+- Group large applications with `@FuncModule({ imports })`; do not create a single command registry file that imports every implementation detail across all domains.
+
+4. Preserve runtime boundaries
+
+- Importing decorated command or service classes defines metadata but should not start the CLI. Only the executable entry should call `run(...)`.
+- Do not import `src/index.ts` from application code, tests, or reusable modules because importing it executes the CLI.
+- Keep build output, temporary fixtures, credentials, and local state out of source directories and version control.
+- Keep user-facing output stable. Write normal results to stdout and failures to stderr. Never log secrets or full credential values.
+
+5. Create tests from user-visible behavior
+
+- Prefer black-box tests that spawn the built `package.json#bin` target with an argument array. This covers dispatch, parsing, validation, dependency registration, output, and exit behavior together.
+- Build once in the test setup when the package's normal test script requires the executable. Do not rebuild separately in every test.
+- Give each test one observable reason to fail. Assert exit code plus the smallest stable stdout or stderr fragment that proves the behavior.
+- Do not assert ANSI colors, timing, absolute paths, full stack traces, or entire help screens unless formatting itself is the requirement.
+- Use argument arrays instead of shell command strings so spaces and special characters are tested safely and consistently across platforms.
+- Use temporary directories for filesystem behavior and delete them after the test. Stub external network services or inject a fake service; tests must not depend on production accounts.
+
+6. Cover the acceptance surface that changed
+
+For a new named command, cover:
+
+- its canonical command name;
+- its alias, when one is declared;
+- the default handler's successful result;
+- every added path handler or handler flag;
+- required, repeated, enum, dependency, exclusivity, or custom validation introduced by the change;
+- unknown or extra input only when the command defines behavior for it;
+- expected stderr and exit behavior for failures owned by the application.
+
+For a changed service, cover the service logic directly when it has meaningful branching, then keep at least one CLI-level test proving the command is wired to it.
+
+For help or discovery output, assert the relevant command name, alias, and description through `@Regs()` output. Do not duplicate framework metadata tests for every command.
+
+7. Finish with focused verification
+
+- Run the repository's formatter and linter when available.
+- Run the smallest relevant test set first, then the package test command when the change affects registration, shared services, or common error handling.
+- Verify a representative command manually when process execution, output streams, or global linking changed.
+- Report what was verified and any check that could not run. Do not claim coverage that was not executed.
+
+Reference documentation:
+
+- https://func.witt.im/commands.md
+- https://func.witt.im/concepts.md
+- https://func.witt.im/options.md
+- https://func.witt.im/parameters.md
+- https://func.witt.im/errors.md
+- https://func.witt.im/tooling.md

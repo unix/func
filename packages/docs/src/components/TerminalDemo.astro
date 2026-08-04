@@ -1,0 +1,1100 @@
+---
+import Button from '@/components/ui/button.astro'
+import ExternalLinkIcon from '@/components/ExternalLinkIcon.astro'
+import type { TerminalDemoId } from '@/demos/protocol'
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+type PackageManager = 'bun' | 'npm' | 'pnpm' | 'yarn'
+
+interface Props {
+  command: string
+  demo: TerminalDemoId
+  locale?: Locale
+  packageManagerCommands?: Record<PackageManager, string>
+  rows?: number
+  sourceUrl: string
+}
+
+const {
+  command,
+  demo,
+  locale = defaultLocale,
+  packageManagerCommands,
+  rows = 3,
+  sourceUrl,
+} = Astro.props
+const visibleRows = Number.isFinite(rows)
+  ? Math.min(10, Math.max(2, Math.round(rows)))
+  : 3
+const labels =
+  locale === 'zh-cn'
+    ? {
+        complete: '运行完成',
+        failed: '运行失败',
+        focusActive: '已聚焦',
+        focusInactive: '点击终端以聚焦',
+        loadError: '无法启动浏览器示例。',
+        ready: '准备运行',
+        reset: '重置',
+        run: '运行',
+        running: '运行中…',
+        source: '查看源文件',
+        timeout: '示例运行超时。',
+        title: '交互终端',
+      }
+    : {
+        complete: 'Completed',
+        failed: 'Failed',
+        focusActive: 'Focused',
+        focusInactive: 'Click terminal to focus',
+        loadError: 'Unable to start the browser demo.',
+        ready: 'Ready to run',
+        reset: 'Reset',
+        run: 'Run',
+        running: 'Running…',
+        source: 'View source',
+        timeout: 'The demo timed out.',
+        title: 'Interactive terminal',
+      }
+---
+
+<section
+  aria-label={`${labels.title}: ${command}`}
+  class="terminal-demo"
+  data-command={command}
+  data-complete-label={labels.complete}
+  data-demo-id={demo}
+  data-failed-label={labels.failed}
+  data-focus="false"
+  data-focus-active-label={labels.focusActive}
+  data-focus-inactive-label={labels.focusInactive}
+  data-load-error-label={labels.loadError}
+  data-package-manager-commands={packageManagerCommands
+    ? JSON.stringify(packageManagerCommands)
+    : undefined}
+  data-ready-label={labels.ready}
+  data-reset-label={labels.reset}
+  data-run-label={labels.run}
+  data-running-label={labels.running}
+  data-state="idle"
+  data-terminal-demo
+  data-title-label={labels.title}
+  data-timeout-label={labels.timeout}>
+  <form data-terminal-demo-form>
+    <header class="terminal-demo-header">
+      <div class="terminal-demo-heading">
+        <span aria-hidden="true" class="terminal-demo-window-controls">
+          <span data-control="close"></span>
+          <span data-control="minimize"></span>
+          <span data-control="maximize"></span>
+        </span>
+        <span class="hidden md:inline">{labels.title}</span>
+        <span class="terminal-demo-focus-status">
+          <span aria-hidden="true" class="terminal-demo-focus-dot"></span>
+          <span data-terminal-demo-focus-label>{labels.focusInactive}</span>
+        </span>
+      </div>
+      <Button
+        aria-label={`${labels.run}: ${command}`}
+        class="terminal-demo-run cursor-pointer select-none"
+        data-action="run"
+        data-loading="false"
+        data-terminal-demo-run
+        size="sm"
+        type="submit"
+        variant="outline">
+        <svg
+          aria-hidden="true"
+          data-run-icon
+          fill="currentColor"
+          viewBox="0 0 16 16"
+          xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 3.6v8.8L12 8 5 3.6Z"></path>
+        </svg>
+        <svg
+          aria-hidden="true"
+          data-loading-icon
+          fill="none"
+          viewBox="0 0 16 16"
+          xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="8" opacity="0.2" r="5.25" stroke="currentColor"
+          ></circle>
+          <path d="M8 2.75A5.25 5.25 0 0 1 13.25 8" stroke="currentColor"></path>
+        </svg>
+        <svg
+          aria-hidden="true"
+          data-reset-icon
+          fill="none"
+          viewBox="0 0 16 16"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M4.1 5.1A5 5 0 1 1 3 8.25M4.1 5.1V2.75M4.1 5.1H1.75"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.25"></path>
+        </svg>
+        <span data-terminal-demo-run-label>{labels.run}</span>
+      </Button>
+    </header>
+
+    <div
+      class="terminal-demo-body"
+      data-terminal-demo-body
+      data-rows={visibleRows}
+      style={`--terminal-demo-rows: ${visibleRows}`}>
+      <div
+        class="terminal-demo-scroll"
+        data-scrollable="false"
+        data-terminal-demo-scroll>
+        <div aria-hidden="true" class="terminal-demo-spacer"></div>
+        <label class="terminal-demo-command">
+          <span aria-hidden="true" class="terminal-demo-prompt">$</span>
+          <span class="sr-only">{labels.title}</span>
+          <span
+            class="terminal-demo-input-sizing"
+            data-terminal-demo-input-sizing
+            data-value={command}>
+            <input
+              aria-label={`${labels.title}: ${command}`}
+              autocomplete="off"
+              autocapitalize="off"
+              data-terminal-demo-input
+              size="1"
+              spellcheck="false"
+              type="text"
+              value={command}
+            />
+          </span>
+          <span aria-hidden="true" class="terminal-demo-cursor"></span>
+        </label>
+        <div
+          aria-live="polite"
+          class="terminal-demo-output"
+          data-terminal-demo-output
+          role="log">
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <footer class="terminal-demo-footer">
+    <span class="terminal-demo-status">
+      <span aria-hidden="true" class="terminal-demo-status-dot"></span>
+      <span data-terminal-demo-status>{labels.ready}</span>
+    </span>
+    <a
+      class="terminal-demo-source"
+      href={sourceUrl}
+      rel="noreferrer"
+      target="_blank">
+      {labels.source}
+      <ExternalLinkIcon class="size-3" />
+    </a>
+  </footer>
+</section>
+
+<style>
+  .terminal-demo {
+    --terminal-demo-accent: oklch(0.75 0.17 152);
+    --terminal-demo-border: oklch(1 0 0 / 10%);
+    --terminal-demo-font-family: var(--font-mono);
+    --terminal-demo-font-size: 0.875rem;
+    --terminal-demo-line-height: 1.75rem;
+    --terminal-demo-muted: oklch(0.72 0.014 286);
+    --terminal-demo-surface: oklch(0.141 0.005 285.823);
+    --terminal-demo-surface-raised: oklch(0.18 0.008 285.823);
+    --terminal-demo-text: oklch(0.92 0.004 286.32);
+    margin-block: 1.5rem;
+    overflow: hidden;
+    border: 1px solid var(--terminal-demo-border);
+    border-radius: var(--radius-lg);
+    background: var(--terminal-demo-surface);
+    box-shadow:
+      0 12px 32px oklch(0.1 0.01 285 / 18%),
+      0 1px 2px oklch(0.1 0.01 285 / 30%);
+    transition: border-color 150ms ease-out;
+  }
+
+  .terminal-demo[data-focus='true'] {
+    border-color: oklch(1 0 0 / 22%);
+  }
+
+  .terminal-demo[data-state='idle'] {
+    cursor: text;
+  }
+
+  .terminal-demo-header,
+  .terminal-demo-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-inline: 0.75rem;
+  }
+
+  .terminal-demo-header {
+    min-height: 2.5rem;
+    border-bottom: 1px solid var(--terminal-demo-border);
+    background: var(--terminal-demo-surface-raised);
+  }
+
+  .terminal-demo-heading,
+  .terminal-demo-status {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .terminal-demo-heading {
+    overflow: hidden;
+    color: var(--terminal-demo-muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .terminal-demo-focus-status {
+    display: inline-flex;
+    min-width: 0;
+    height: 1.25rem;
+    align-items: center;
+    gap: 0.25rem;
+    padding-inline: 0.375rem;
+    overflow: hidden;
+    border: 1px solid var(--terminal-demo-border);
+    border-radius: 9999px;
+    background: oklch(1 0 0 / 4%);
+    color: var(--terminal-demo-muted);
+    font-size: 0.625rem;
+    line-height: 1;
+    white-space: nowrap;
+    transition:
+      border-color 150ms ease-out,
+      background-color 150ms ease-out,
+      color 150ms ease-out;
+  }
+
+  .terminal-demo-focus-status [data-terminal-demo-focus-label] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .terminal-demo-focus-dot {
+    width: 0.25rem;
+    height: 0.25rem;
+    flex: none;
+    border-radius: 9999px;
+    background: var(--terminal-demo-muted);
+    transition: background-color 150ms ease-out;
+  }
+
+  .terminal-demo[data-focus='true'] .terminal-demo-focus-status {
+    border-color: oklch(0.75 0.17 152 / 32%);
+    background: oklch(0.75 0.17 152 / 8%);
+    color: var(--terminal-demo-text);
+  }
+
+  .terminal-demo[data-focus='true'] .terminal-demo-focus-dot {
+    background: var(--terminal-demo-accent);
+  }
+
+  .terminal-demo-window-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-right: 0.125rem;
+  }
+
+  .terminal-demo-window-controls span {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px oklch(0 0 0 / 14%);
+  }
+
+  .terminal-demo-window-controls [data-control='close'] {
+    background: oklch(0.64 0.22 25 / 80%);
+  }
+
+  .terminal-demo-window-controls [data-control='minimize'] {
+    background: oklch(0.77 0.16 75 / 80%);
+  }
+
+  .terminal-demo-window-controls [data-control='maximize'] {
+    background: oklch(0.69 0.17 150 / 80%);
+  }
+
+  .terminal-demo-body {
+    height: calc(var(--terminal-demo-line-height) * var(--terminal-demo-rows));
+    overflow: hidden;
+    background:
+      radial-gradient(
+        circle at 12% -50%,
+        oklch(0.55 0.16 290 / 12%),
+        transparent 48%
+      ),
+      linear-gradient(oklch(1 0 0 / 1.5%), transparent 35%),
+      var(--terminal-demo-surface);
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 2%);
+    color: var(--terminal-demo-text);
+    cursor: text;
+    font-family: var(--terminal-demo-font-family);
+    font-size: var(--terminal-demo-font-size);
+    line-height: var(--terminal-demo-line-height);
+  }
+
+  .terminal-demo-scroll {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .terminal-demo-scroll::-webkit-scrollbar {
+    width: 0;
+  }
+
+  .terminal-demo-scroll[data-scrollable='true'] {
+    scrollbar-color: oklch(1 0 0 / 18%) transparent;
+    scrollbar-width: thin;
+  }
+
+  .terminal-demo-scroll[data-scrollable='true']::-webkit-scrollbar {
+    width: 0.5rem;
+  }
+
+  .terminal-demo-scroll::-webkit-scrollbar-thumb {
+    border: 0.125rem solid transparent;
+    border-radius: 9999px;
+    background: oklch(1 0 0 / 18%);
+    background-clip: padding-box;
+  }
+
+  .terminal-demo-spacer {
+    height: calc(var(--terminal-demo-line-height) * (var(--terminal-demo-rows) - 1));
+  }
+
+  .terminal-demo-command {
+    display: flex;
+    min-height: var(--terminal-demo-line-height);
+    align-items: center;
+    gap: 0.625rem;
+    padding-inline: 1rem;
+    transition: background-color 150ms ease-out;
+  }
+
+  .terminal-demo-command:focus-within {
+    background: oklch(1 0 0 / 2.5%);
+  }
+
+  .terminal-demo-prompt {
+    color: oklch(0.73 0.19 318);
+    font-weight: 700;
+    user-select: none;
+  }
+
+  .terminal-demo-input-sizing {
+    display: inline-grid;
+    max-width: calc(100% - 2.5rem);
+    min-width: 1ch;
+    overflow: hidden;
+    vertical-align: top;
+  }
+
+  .terminal-demo-input-sizing::after {
+    width: auto;
+    min-width: 1ch;
+    content: attr(data-value) ' ';
+    visibility: hidden;
+    white-space: pre;
+  }
+
+  .terminal-demo-input-sizing::after,
+  .terminal-demo-command input {
+    grid-area: 1 / 1;
+    font-family: var(--terminal-demo-font-family);
+    font-size: var(--terminal-demo-font-size);
+    line-height: var(--terminal-demo-line-height);
+  }
+
+  .terminal-demo-command input {
+    width: 100%;
+    min-width: 1ch;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--terminal-demo-text);
+    caret-color: var(--terminal-demo-accent);
+    caret-shape: block;
+    cursor: text;
+  }
+
+  .terminal-demo-command input[readonly] {
+    caret-color: transparent;
+    cursor: default;
+  }
+
+  .terminal-demo-cursor {
+    width: 0.5rem;
+    height: 1.125rem;
+    flex: none;
+    margin-left: -0.5rem;
+    border-radius: 0.0625rem;
+    background: var(--terminal-demo-accent);
+    animation: terminal-demo-cursor 1.05s steps(1, end) infinite;
+    box-shadow: 0 0 0.5rem oklch(0.75 0.17 152 / 24%);
+  }
+
+  .terminal-demo-command:focus-within .terminal-demo-cursor,
+  .terminal-demo:not([data-state='idle']) .terminal-demo-cursor {
+    animation: none;
+    opacity: 0;
+  }
+
+  .terminal-demo[data-focus='false'][data-state='idle'] .terminal-demo-cursor {
+    animation: none;
+    background: var(--terminal-demo-muted);
+    box-shadow: none;
+    opacity: 0.28;
+  }
+
+  .terminal-demo-output,
+  .terminal-demo :global(.terminal-demo-output-line),
+  .terminal-demo :global(.terminal-demo-output-text) {
+    font-family: var(--terminal-demo-font-family);
+    font-size: var(--terminal-demo-font-size);
+    line-height: var(--terminal-demo-line-height);
+  }
+
+  .terminal-demo-output {
+    color: var(--terminal-demo-text);
+  }
+
+  .terminal-demo :global(.terminal-demo-output-line) {
+    display: grid;
+    min-height: var(--terminal-demo-line-height);
+    align-items: center;
+    grid-template-columns: 0.75rem minmax(0, 1fr);
+    gap: 0.625rem;
+    padding-inline: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .terminal-demo :global(.terminal-demo-output-prefix) {
+    color: var(--terminal-demo-accent);
+    font-weight: 700;
+    user-select: none;
+  }
+
+  .terminal-demo :global(.terminal-demo-output-text) {
+    min-width: 0;
+    white-space: pre-wrap;
+  }
+
+  .terminal-demo :global(.terminal-demo-output-line[data-stream='stderr']) {
+    color: oklch(0.74 0.17 25);
+  }
+
+  .terminal-demo
+    :global(
+      .terminal-demo-output-line[data-stream='stderr'] .terminal-demo-output-prefix
+    ) {
+    color: oklch(0.7 0.2 25);
+  }
+
+  .terminal-demo-footer {
+    min-height: 2.25rem;
+    border-top: 1px solid var(--terminal-demo-border);
+    background: var(--terminal-demo-surface-raised);
+    color: var(--terminal-demo-muted);
+    font-size: 0.6875rem;
+  }
+
+  .terminal-demo-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 0.25rem;
+    color: var(--terminal-demo-muted);
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    outline: none;
+    transition: color 150ms ease-out;
+  }
+
+  .terminal-demo-source:hover {
+    color: var(--terminal-demo-text);
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+  }
+
+  .terminal-demo-source:focus-visible {
+    box-shadow: 0 0 0 2px oklch(0.7 0.03 286 / 65%);
+  }
+
+  .terminal-demo-status-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    flex: none;
+    border-radius: 9999px;
+    background: var(--terminal-demo-muted);
+  }
+
+  .terminal-demo[data-state='running'] .terminal-demo-status-dot {
+    animation: terminal-demo-pulse 1s ease-in-out infinite;
+    background: var(--terminal-demo-text);
+  }
+
+  .terminal-demo[data-state='success'] .terminal-demo-status-dot {
+    background: oklch(0.62 0.15 153);
+  }
+
+  .terminal-demo[data-state='error'] .terminal-demo-status-dot {
+    background: oklch(0.7 0.2 25);
+  }
+
+  .terminal-demo :global(.terminal-demo-run) {
+    border-color: var(--terminal-demo-border);
+    background: oklch(1 0 0 / 4%);
+    color: var(--terminal-demo-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .terminal-demo :global(.terminal-demo-run:hover) {
+    background: oklch(1 0 0 / 9%);
+    color: var(--terminal-demo-text);
+  }
+
+  .terminal-demo :global(.terminal-demo-run:focus-visible) {
+    border-color: oklch(1 0 0 / 28%);
+    box-shadow: 0 0 0 2px oklch(0.7 0.03 286 / 30%);
+  }
+
+  .terminal-demo
+    :global(.terminal-demo-run :is([data-loading-icon], [data-reset-icon])) {
+    display: none;
+  }
+
+  .terminal-demo :global(.terminal-demo-run[data-loading='true']) {
+    cursor: wait;
+    opacity: 0.55;
+  }
+
+  .terminal-demo :global(.terminal-demo-run:disabled:hover) {
+    background: oklch(1 0 0 / 4%);
+    color: var(--terminal-demo-muted);
+  }
+
+  .terminal-demo :global(.terminal-demo-run[data-loading='true'] [data-run-icon]) {
+    display: none;
+  }
+
+  .terminal-demo
+    :global(.terminal-demo-run[data-loading='true'] [data-loading-icon]) {
+    display: block;
+    animation: terminal-demo-spin 700ms linear infinite;
+  }
+
+  .terminal-demo :global(.terminal-demo-run[data-action='reset'] [data-run-icon]) {
+    display: none;
+  }
+
+  .terminal-demo :global(.terminal-demo-run[data-action='reset'] [data-reset-icon]) {
+    display: block;
+  }
+
+  @media (max-width: 47.999rem) {
+    .terminal-demo {
+      --terminal-demo-surface: oklch(0.141 0.005 285.823 / 84%);
+      --terminal-demo-surface-raised: oklch(0.18 0.008 285.823 / 78%);
+      -webkit-backdrop-filter: blur(1rem);
+      backdrop-filter: blur(1rem);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .terminal-demo[data-state='running'] .terminal-demo-status-dot,
+    .terminal-demo-cursor,
+    .terminal-demo
+      :global(.terminal-demo-run[data-loading='true'] [data-loading-icon]) {
+      animation: none;
+    }
+  }
+
+  @keyframes terminal-demo-cursor {
+    0%,
+    48% {
+      opacity: 1;
+    }
+
+    49%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes terminal-demo-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes terminal-demo-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+
+<script>
+  import type { TerminalDemoId, TerminalDemoWorkerMessage } from '@/demos/protocol'
+
+  type PackageManager = 'bun' | 'npm' | 'pnpm' | 'yarn'
+  type TerminalDemoState = 'error' | 'idle' | 'running' | 'success'
+
+  interface PackageManagerChangeDetail {
+    packageManager: PackageManager
+  }
+
+  interface ActiveTerminalDemo {
+    timeout: number
+    worker: Worker
+  }
+
+  interface TerminalDemoElements {
+    button: HTMLButtonElement
+    buttonLabel: HTMLElement
+    focusLabel: HTMLElement
+    input: HTMLInputElement
+    inputSizing: HTMLElement
+    output: HTMLElement
+    scroll: HTMLElement
+    status: HTMLElement
+  }
+
+  const packageManagerChangeEvent = 'package-manager-change'
+  const packageManagerStorageKey = 'package-manager'
+  const packageManagers: PackageManager[] = ['npm', 'yarn', 'pnpm', 'bun']
+  const terminalDemoRuns = new Map<HTMLElement, ActiveTerminalDemo>()
+
+  const isPackageManager = (value: string | null): value is PackageManager =>
+    packageManagers.includes(value as PackageManager)
+
+  const preferredPackageManager = (): PackageManager => {
+    try {
+      const storedPackageManager = localStorage.getItem(packageManagerStorageKey)
+      if (isPackageManager(storedPackageManager)) return storedPackageManager
+    } catch {
+      // Fall back to the package manager already applied to the document.
+    }
+
+    const documentPackageManager =
+      document.documentElement.dataset.packageManager ?? null
+    if (isPackageManager(documentPackageManager)) return documentPackageManager
+
+    return 'npm'
+  }
+
+  const syncTerminalDemoInput = (elements: TerminalDemoElements) => {
+    elements.inputSizing.dataset.value = elements.input.value
+  }
+
+  const placeTerminalDemoCaretAtEnd = (input: HTMLInputElement) => {
+    const end = input.value.length
+    input.setSelectionRange(end, end)
+  }
+
+  const scrollTerminalDemoToBottom = (elements: TerminalDemoElements) => {
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto'
+      : 'smooth'
+    window.requestAnimationFrame(() => {
+      const command = elements.input.closest<HTMLElement>('.terminal-demo-command')
+      const contentHeight =
+        (command?.scrollHeight ?? 0) + elements.output.scrollHeight
+      elements.scroll.dataset.scrollable = String(
+        contentHeight > elements.scroll.clientHeight,
+      )
+      elements.scroll.scrollTo({ behavior, top: elements.scroll.scrollHeight })
+    })
+  }
+
+  const appendTerminalDemoOutput = (
+    elements: TerminalDemoElements,
+    text: string,
+    stream: 'stderr' | 'stdout',
+  ) => {
+    text.split(/\r?\n/).forEach((textLine, index) => {
+      const line = document.createElement('span')
+      const prefix = document.createElement('span')
+      const content = document.createElement('span')
+      line.className = 'terminal-demo-output-line'
+      line.dataset.stream = stream
+      prefix.className = 'terminal-demo-output-prefix'
+      prefix.setAttribute('aria-hidden', 'true')
+      prefix.textContent = index === 0 ? (stream === 'stderr' ? '!' : '>') : ''
+      content.className = 'terminal-demo-output-text'
+      content.textContent = textLine
+      line.append(prefix, content)
+      elements.output.append(line)
+    })
+    scrollTerminalDemoToBottom(elements)
+  }
+
+  const syncTerminalDemoFocus = (
+    root: HTMLElement,
+    elements: TerminalDemoElements,
+  ) => {
+    const isFocused = document.activeElement === elements.input
+    root.dataset.focus = String(isFocused)
+    elements.focusLabel.textContent = isFocused
+      ? (root.dataset.focusActiveLabel ?? 'Focused')
+      : (root.dataset.focusInactiveLabel ?? 'Click terminal to focus')
+  }
+
+  const setTerminalDemoState = (
+    root: HTMLElement,
+    elements: TerminalDemoElements,
+    state: TerminalDemoState,
+  ) => {
+    const isRunning = state === 'running'
+    const isReset = state === 'error' || state === 'success'
+    const statusLabels = {
+      error: root.dataset.failedLabel ?? 'Failed',
+      idle: root.dataset.readyLabel ?? 'Ready',
+      running: root.dataset.runningLabel ?? 'Running…',
+      success: root.dataset.completeLabel ?? 'Completed',
+    }
+    root.dataset.state = state
+    root.setAttribute('aria-busy', String(isRunning))
+    elements.button.disabled = isRunning
+    elements.button.dataset.action = isReset ? 'reset' : 'run'
+    elements.button.dataset.loading = String(isRunning)
+    elements.buttonLabel.textContent = isRunning
+      ? (root.dataset.runningLabel ?? 'Running…')
+      : isReset
+        ? (root.dataset.resetLabel ?? 'Reset')
+        : (root.dataset.runLabel ?? 'Run')
+    elements.button.setAttribute(
+      'aria-label',
+      `${elements.buttonLabel.textContent}: ${elements.input.value}`,
+    )
+    elements.input.readOnly = state !== 'idle'
+    elements.status.textContent = statusLabels[state]
+    syncTerminalDemoFocus(root, elements)
+  }
+
+  const finishTerminalDemo = (
+    root: HTMLElement,
+    elements: TerminalDemoElements,
+    active: ActiveTerminalDemo,
+    state: 'error' | 'success',
+  ) => {
+    window.clearTimeout(active.timeout)
+    active.worker.terminate()
+    terminalDemoRuns.delete(root)
+    setTerminalDemoState(root, elements, state)
+  }
+
+  const resetTerminalDemo = (root: HTMLElement, elements: TerminalDemoElements) => {
+    const active = terminalDemoRuns.get(root)
+    if (active) {
+      window.clearTimeout(active.timeout)
+      active.worker.terminate()
+      terminalDemoRuns.delete(root)
+    }
+
+    elements.output.replaceChildren()
+    elements.input.value = root.dataset.command ?? ''
+    syncTerminalDemoInput(elements)
+    elements.scroll.scrollTop = 0
+    elements.scroll.dataset.scrollable = 'false'
+    setTerminalDemoState(root, elements, 'idle')
+    window.queueMicrotask(() => {
+      elements.input.focus()
+      placeTerminalDemoCaretAtEnd(elements.input)
+    })
+  }
+
+  const terminalDemoElements = (
+    root: HTMLElement,
+  ): TerminalDemoElements | undefined => {
+    const button = root.querySelector<HTMLButtonElement>('[data-terminal-demo-run]')
+    const buttonLabel = button?.querySelector<HTMLElement>(
+      '[data-terminal-demo-run-label]',
+    )
+    const focusLabel = root.querySelector<HTMLElement>(
+      '[data-terminal-demo-focus-label]',
+    )
+    const input = root.querySelector<HTMLInputElement>('[data-terminal-demo-input]')
+    const inputSizing = root.querySelector<HTMLElement>(
+      '[data-terminal-demo-input-sizing]',
+    )
+    const output = root.querySelector<HTMLElement>('[data-terminal-demo-output]')
+    const scroll = root.querySelector<HTMLElement>('[data-terminal-demo-scroll]')
+    const status = root.querySelector<HTMLElement>('[data-terminal-demo-status]')
+    if (
+      !button ||
+      !buttonLabel ||
+      !focusLabel ||
+      !input ||
+      !inputSizing ||
+      !output ||
+      !scroll ||
+      !status
+    )
+      return undefined
+
+    return {
+      button,
+      buttonLabel,
+      focusLabel,
+      input,
+      inputSizing,
+      output,
+      scroll,
+      status,
+    }
+  }
+
+  const packageManagerCommand = (
+    root: HTMLElement,
+    packageManager: PackageManager,
+  ) => {
+    const serializedCommands = root.dataset.packageManagerCommands
+    if (!serializedCommands) return undefined
+
+    try {
+      const commands = JSON.parse(serializedCommands) as Record<
+        PackageManager,
+        unknown
+      >
+      const command = commands[packageManager]
+      if (typeof command === 'string') return command
+    } catch {
+      return undefined
+    }
+
+    return undefined
+  }
+
+  const updateTerminalDemoCommand = (
+    root: HTMLElement,
+    elements: TerminalDemoElements,
+    command: string,
+  ) => {
+    if (root.dataset.command === command) return
+
+    const active = terminalDemoRuns.get(root)
+    if (active) {
+      window.clearTimeout(active.timeout)
+      active.worker.terminate()
+      terminalDemoRuns.delete(root)
+    }
+
+    const title = root.dataset.titleLabel ?? 'Interactive terminal'
+    root.dataset.command = command
+    root.setAttribute('aria-label', `${title}: ${command}`)
+    elements.input.setAttribute('aria-label', `${title}: ${command}`)
+    elements.input.value = command
+    elements.output.replaceChildren()
+    elements.scroll.scrollTop = 0
+    elements.scroll.dataset.scrollable = 'false'
+    syncTerminalDemoInput(elements)
+    setTerminalDemoState(root, elements, 'idle')
+  }
+
+  const applyTerminalDemoPackageManager = (packageManager: PackageManager) => {
+    document
+      .querySelectorAll<HTMLElement>(
+        '[data-terminal-demo][data-package-manager-commands]',
+      )
+      .forEach(root => {
+        const elements = terminalDemoElements(root)
+        const command = packageManagerCommand(root, packageManager)
+        if (!elements || !command) return
+
+        updateTerminalDemoCommand(root, elements, command)
+      })
+  }
+
+  const initializeTerminalDemoPackageManagers = () => {
+    applyTerminalDemoPackageManager(preferredPackageManager())
+  }
+
+  document.addEventListener('input', event => {
+    if (!(event.target instanceof HTMLInputElement)) return
+    if (!event.target.matches('[data-terminal-demo-input]')) return
+
+    const root = event.target.closest<HTMLElement>('[data-terminal-demo]')
+    if (!root) return
+
+    const elements = terminalDemoElements(root)
+    if (!elements) return
+
+    syncTerminalDemoInput(elements)
+    elements.button.setAttribute(
+      'aria-label',
+      `${root.dataset.runLabel ?? 'Run'}: ${elements.input.value}`,
+    )
+  })
+
+  document.addEventListener('focusin', event => {
+    if (!(event.target instanceof HTMLInputElement)) return
+    if (!event.target.matches('[data-terminal-demo-input]')) return
+
+    const root = event.target.closest<HTMLElement>('[data-terminal-demo]')
+    if (!root) return
+
+    const elements = terminalDemoElements(root)
+    if (!elements) return
+
+    if (event.target.dataset.caretInitialized !== 'true') {
+      event.target.dataset.caretInitialized = 'true'
+      placeTerminalDemoCaretAtEnd(event.target)
+    }
+    syncTerminalDemoFocus(root, elements)
+  })
+
+  document.addEventListener('focusout', event => {
+    if (!(event.target instanceof HTMLInputElement)) return
+    if (!event.target.matches('[data-terminal-demo-input]')) return
+
+    const root = event.target.closest<HTMLElement>('[data-terminal-demo]')
+    if (!root) return
+
+    window.queueMicrotask(() => {
+      const elements = terminalDemoElements(root)
+      if (!elements) return
+
+      syncTerminalDemoFocus(root, elements)
+    })
+  })
+
+  document.addEventListener('keydown', event => {
+    if (!(event.target instanceof HTMLInputElement)) return
+    if (!event.target.matches('[data-terminal-demo-input]')) return
+    if (event.key !== 'Enter') return
+
+    const root = event.target.closest<HTMLElement>('[data-terminal-demo]')
+    if (!root || root.dataset.state === 'idle' || root.dataset.state === 'running')
+      return
+
+    const elements = terminalDemoElements(root)
+    if (!elements) return
+
+    event.preventDefault()
+    resetTerminalDemo(root, elements)
+  })
+
+  document.addEventListener('click', event => {
+    if (!(event.target instanceof Element)) return
+
+    const root = event.target.closest<HTMLElement>('[data-terminal-demo]')
+    if (!root || root.dataset.state === 'running') return
+    if (
+      event.target.closest(
+        'a, button, input, select, textarea, [contenteditable="true"]',
+      )
+    )
+      return
+
+    const elements = terminalDemoElements(root)
+    if (!elements) return
+
+    elements.input.focus()
+    placeTerminalDemoCaretAtEnd(elements.input)
+  })
+
+  document.addEventListener(
+    'submit',
+    event => {
+      if (!(event.target instanceof HTMLFormElement)) return
+      if (!event.target.matches('[data-terminal-demo-form]')) return
+
+      event.preventDefault()
+      const root = event.target.closest<HTMLElement>('[data-terminal-demo]')
+      if (!root || root.dataset.state === 'running') return
+
+      const elements = terminalDemoElements(root)
+      const demoId = root.dataset.demoId as TerminalDemoId | undefined
+      if (!elements || !demoId) return
+
+      if (root.dataset.state !== 'idle') {
+        resetTerminalDemo(root, elements)
+        return
+      }
+
+      elements.output.replaceChildren()
+      setTerminalDemoState(root, elements, 'running')
+
+      const worker = new Worker(
+        new URL('../demos/terminal-demo.worker.ts', import.meta.url),
+        { type: 'module' },
+      )
+      const active: ActiveTerminalDemo = { timeout: 0, worker }
+      active.timeout = window.setTimeout(() => {
+        appendTerminalDemoOutput(
+          elements,
+          root.dataset.timeoutLabel ?? 'The demo timed out.',
+          'stderr',
+        )
+        finishTerminalDemo(root, elements, active, 'error')
+      }, 3000)
+      terminalDemoRuns.set(root, active)
+
+      worker.onmessage = (event: MessageEvent<TerminalDemoWorkerMessage>) => {
+        const message = event.data
+        if (message.type === 'output') {
+          appendTerminalDemoOutput(elements, message.text, message.stream)
+          return
+        }
+
+        finishTerminalDemo(root, elements, active, message.status)
+      }
+      worker.onerror = event => {
+        event.preventDefault()
+        appendTerminalDemoOutput(
+          elements,
+          root.dataset.loadErrorLabel ?? 'Unable to start the browser demo.',
+          'stderr',
+        )
+        finishTerminalDemo(root, elements, active, 'error')
+      }
+      worker.postMessage({ command: elements.input.value, demoId, type: 'run' })
+    },
+    { capture: true },
+  )
+
+  document.addEventListener('astro:before-swap', () => {
+    terminalDemoRuns.forEach(active => {
+      window.clearTimeout(active.timeout)
+      active.worker.terminate()
+    })
+    terminalDemoRuns.clear()
+  })
+
+  document.addEventListener(packageManagerChangeEvent, event => {
+    const packageManager = (event as CustomEvent<PackageManagerChangeDetail>).detail
+      ?.packageManager
+    if (!isPackageManager(packageManager ?? null)) return
+
+    applyTerminalDemoPackageManager(packageManager)
+  })
+  window.addEventListener('storage', event => {
+    if (event.key !== packageManagerStorageKey) return
+
+    initializeTerminalDemoPackageManagers()
+  })
+  document.addEventListener('astro:page-load', initializeTerminalDemoPackageManagers)
+  initializeTerminalDemoPackageManagers()
+</script>

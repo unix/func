@@ -1,0 +1,135 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  lastModified: string
+  locale?: Locale
+}
+
+const { lastModified, locale = defaultLocale } = Astro.props
+const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+const hasExplicitTime = !dateOnlyPattern.test(lastModified)
+const modifiedAt = new Date(
+  hasExplicitTime ? lastModified : `${lastModified}T00:00:00Z`,
+)
+const hasValidDate = !Number.isNaN(modifiedAt.valueOf())
+const modifiedDateTime = hasValidDate
+  ? hasExplicitTime
+    ? modifiedAt.toISOString()
+    : modifiedAt.toISOString().slice(0, 10)
+  : lastModified
+const dateLocale = locale === 'zh-cn' ? 'zh-CN' : 'en'
+const modifiedText = hasValidDate
+  ? new Intl.DateTimeFormat(dateLocale, {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(modifiedAt)
+  : lastModified
+const labels =
+  locale === 'zh-cn'
+    ? { modified: '更新于', recent: '最近' }
+    : { modified: 'Updated', recent: 'Recently' }
+const relativeFormatter = new Intl.RelativeTimeFormat(dateLocale, {
+  numeric: 'always',
+})
+const relativeText = (() => {
+  if (!hasValidDate) return null
+
+  const now = new Date()
+
+  if (!hasExplicitTime) {
+    const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    const modifiedDay = Date.UTC(
+      modifiedAt.getUTCFullYear(),
+      modifiedAt.getUTCMonth(),
+      modifiedAt.getUTCDate(),
+    )
+    const elapsedDays = (today - modifiedDay) / 86_400_000
+    const absoluteDays = Math.abs(elapsedDays)
+
+    if (elapsedDays === 0) return labels.recent
+    if (absoluteDays < 7) return relativeFormatter.format(-elapsedDays, 'day')
+    if (absoluteDays < 30)
+      return relativeFormatter.format(-Math.round(elapsedDays / 7), 'week')
+    if (absoluteDays < 365)
+      return relativeFormatter.format(-Math.round(elapsedDays / 30), 'month')
+
+    return relativeFormatter.format(-Math.round(elapsedDays / 365), 'year')
+  }
+
+  const elapsedSeconds = (now.valueOf() - modifiedAt.valueOf()) / 1000
+  const absoluteSeconds = Math.abs(elapsedSeconds)
+  const relativeUnits: {
+    seconds: number
+    unit: Intl.RelativeTimeFormatUnit
+  }[] = [
+    { seconds: 31_536_000, unit: 'year' },
+    { seconds: 2_592_000, unit: 'month' },
+    { seconds: 604_800, unit: 'week' },
+    { seconds: 86_400, unit: 'day' },
+    { seconds: 3_600, unit: 'hour' },
+    { seconds: 60, unit: 'minute' },
+  ]
+  const relativeUnit = relativeUnits.find(
+    ({ seconds }) => absoluteSeconds >= seconds,
+  )
+
+  if (!relativeUnit) return labels.recent
+
+  return relativeFormatter.format(
+    -Math.round(elapsedSeconds / relativeUnit.seconds),
+    relativeUnit.unit,
+  )
+})()
+---
+
+<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+  <svg
+    aria-hidden="true"
+    class="size-3.5 shrink-0"
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M18 2V4M6 2V4"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1.5"></path>
+    <path
+      d="M11.9955 13H12.0045M11.9955 17H12.0045M15.991 13H16M8 13H8.00897M8 17H8.00897"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"></path>
+    <path
+      d="M3.5 8H20.5"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1.5"></path>
+    <path
+      d="M2.5 12.2432C2.5 7.88594 2.5 5.70728 3.75212 4.35364C5.00424 3 7.01949 3 11.05 3H12.95C16.9805 3 18.9958 3 20.2479 4.35364C21.5 5.70728 21.5 7.88594 21.5 12.2432V12.7568C21.5 17.1141 21.5 19.2927 20.2479 20.6464C18.9958 22 16.9805 22 12.95 22H11.05C7.01949 22 5.00424 22 3.75212 20.6464C2.5 19.2927 2.5 17.1141 2.5 12.7568V12.2432Z"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1.5"></path>
+    <path
+      d="M3 8H21"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1.5"></path>
+  </svg>
+  <span>
+    {labels.modified}{' '}
+    <time datetime={modifiedDateTime}>{modifiedText}</time>
+  </span>
+  {
+    relativeText && (
+      <span class="rounded-sm bg-muted px-1.5 py-0.5 text-[0.625rem] leading-none font-medium text-foreground/70">
+        {relativeText}
+      </span>
+    )
+  }
+</div>

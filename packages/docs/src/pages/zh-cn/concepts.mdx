@@ -1,0 +1,148 @@
+---
+title: 核心概念
+description: 参考 func 的设计思路，理解框架如何组织命令与服务。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const conceptModel = [
+  '应用定义',
+  '@FuncModule()',
+  '├─ 注册命令作用域',
+  '│  ├─ @CommandMajor()       没有具名命令时的入口',
+  '│  ├─ @Command({ name })    匹配顶层命令',
+  '│  └─ @CommandMissing()     无法匹配时的可选后备',
+  '└─ 注册 @Service()          可复用的业务能力',
+  '',
+  '一次进入执行的 CLI 调用',
+  '└─ 选择一个命令作用域',
+  '   └─ 选择一个 @Handler()',
+  '      ├─ 读取命令实例上的字段选项',
+  '      ├─ 通过 @Args() 读取位置输入',
+  '      └─ 调用注入的服务完成业务',
+].join('\n')
+
+export const commandAnatomy = [
+  'ship project member add alice --role owner --force',
+  '│    │       └───┬────┘ │     └────┬─────┘ └──┬──┘',
+  '│    │           │      │          │          └─ @Flag()',
+  '│    │           │      │          └─ @Value()',
+  '│    │           │      └─ @Args().inputs',
+  "│    │           └─ @Handler({ path: ['member', 'add'] })",
+  "│    └─ @Command({ name: 'project' })",
+  '└─ package.json#bin',
+].join('\n')
+
+export const mappedApplicationCode = [
+  "import { Args, Command, Flag, FuncModule, Handler, Service, Value } from 'func'",
+  "import type { FuncArgs } from 'func'",
+  '',
+  '@Service()',
+  'class ProjectService {',
+  "  addMember(username: string, role = 'member', force = false) {",
+  '    return { force, role, username }',
+  '  }',
+  '}',
+  '',
+  "@Command({ name: 'project' })",
+  'export class ProjectCommand {',
+  '  @Value()',
+  '  role?: string',
+  '',
+  '  @Flag()',
+  '  force = false',
+  '',
+  '  constructor(private project: ProjectService) {}',
+  '',
+  "  @Handler({ path: ['member', 'add'] })",
+  '  addMember(@Args() args: FuncArgs) {',
+  "    const [username = ''] = args.inputs",
+  '    console.log(this.project.addMember(username, this.role, this.force))',
+  '  }',
+  '}',
+  '',
+  '@FuncModule({',
+  '  commands: [ProjectCommand],',
+  '  services: [ProjectService],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="concepts">
+
+`func` 框架内用户一般不用关心具体调用在做什么，仅跟随应用架构什么具体的命令作用域、服务即可完成工作，
+当你理解设计模型后，几乎不需要进行调试和深入底层，这与开发常见的 Web 应用没有什么区别。
+
+在开发者完成命令的声明后，框架会通过反射获取所有的元信息并将其列为注册表，每当用户运行脚本唤起时，`func` 就从这些静态注册表中选择一个匹配的命令与相关的处理器进行处理，
+并且将用户提供的上下文数据传递给处理器，这些数据在到达处理器之前会自动被预先声明的验证、规则所过滤，真正运行时，一切都遵循已声明的类型工作。
+
+## 定义与调用
+
+Command 是最基础的单元，通常一个工程中包含了多个 Command 衍生类，这些类是最后命令运行的入口。
+
+`@FuncModule()` 定义应用根路由，注册命令作用域和服务。命令作用域负责解释 CLI 输入并选择动作；服务提供可复用的业务能力。每次调用只会从已注册的命令中选择一条执行路径，而不会依次运行多个命令类。
+
+<CodeBlock code={conceptModel} filename="func 心智模型" />
+
+## Command 类型
+
+命令作用域是本次调用最终归属的装饰器类。它拥有当前调用的字段选项，并负责在类中选择处理器。func 有三种互斥的命令作用域。主命令或缺失命令未注册时，对应输入不会凭空创建一个默认作用域：
+
+| 命令作用域 | 选择条件                              | func API                    |
+| ---------- | ------------------------------------- | --------------------------- |
+| 主命令     | 没有输入 token，或第一个 token 是选项 | `@CommandMajor()`           |
+| 具名命令   | 第一个裸 token 匹配 name 或 alias     | `@Command({ name })`        |
+| 缺失命令   | 第一个裸 token 无法匹配具名命令       | `@CommandMissing()（可选）` |
+
+<Callout locale="zh-cn" title="命令只表示顶层作用域" variant="decision">
+
+func 只用第一个裸 token 匹配具名命令。对于 `ship project member add`， `project` 选择 `ProjectCommand`；`member add` 仍属于这个命令作用域，不会继续选择其他命令类。
+
+</Callout>
+
+## 一个命令作用域只执行一个处理器
+
+处理器是命令类中执行具体动作的方法，由 `@Handler()` 声明。一个命令作用域可以提供三种动作入口：
+
+- **默认处理器**没有路径或标志，在其他入口都未匹配时执行；
+- **路径处理器**使用一段固定的位置 token 选择动作，例如 `member add`；
+- **标志处理器**使用 `--help` 或 `--version` 一类选项切换到互斥动作。
+
+无论类中声明了多少个处理器，一次调用最终只执行其中一个。路径的最长匹配、标志处理器和默认处理器之间的精确优先级见 [深入了解运行时](/zh-cn/runtime)。
+
+<Callout locale="zh-cn" title="相同表面语法可以承担不同职责" variant="decision">
+
+`@Flag()` 声明的 `--force` 向已经选中的动作提供布尔数据； `@Handler({ flag: 'help' })` 声明的 `--help` 则选择另一个动作。两者都以连字符开头，但一个是数据，另一个用来选择处理器。
+
+</Callout>
+
+## 命令对应的 Func 概念
+
+下面只使用一个调用贯穿所有概念 (即只命中 `@Command({ name: 'project' })`)。先选择 `project` 命令作用域，再选择 `member add` 处理器；其余片段分别提供位置数据和具名数据：
+
+<CodeBlock code={commandAnatomy} filename="输入片段与 func API" />
+
+在此 Command 中的其他方法、属性等都必须在命中 `project` 命令后会被实例化，是否被执行取决于后续命令的选择，
+比如此处命中函数 `addMember` 的装饰器 `['member', 'add']`，此函数将会被执行：
+
+<CodeBlock code={mappedApplicationCode} filename="src/app.module.ts" lang="ts" />
+<Callout locale="zh-cn" title="并非所有概念都对应输入片段">
+
+`@FuncModule()` 和 `@Service()` 负责组织应用代码，不对应任何 CLI token。命令、处理器和输入描述用户如何调用应用；模块与服务描述应用内部如何组织能力。
+
+</Callout>
+
+## 接下来读什么
+
+- [命令](/zh-cn/commands)：定义命令名、别名、默认处理器和处理器路径。
+- [字段选项](/zh-cn/options)：接收标志、值、重复值并执行校验。
+- [参数注入](/zh-cn/parameters)：读取位置输入、当前处理器和其他运行时上下文。
+- [深入了解运行时](/zh-cn/runtime)：查看模块解析、匹配优先级、实例创建和完整执行顺序。
+- [术语索引](/zh-cn/glossary)：查询本文概念的精确定义。
+
+</DocsLayout>

@@ -1,0 +1,43 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+type CalloutVariant = 'caution' | 'decision' | 'note' | 'tip'
+
+interface Props {
+  locale?: Locale
+  title?: string
+  variant?: CalloutVariant
+}
+
+const { locale = defaultLocale, title, variant = 'note' } = Astro.props
+const labels: Record<Locale, Record<CalloutVariant, string>> = {
+  en: {
+    caution: 'Caution',
+    decision: 'Design decision',
+    note: 'Note',
+    tip: 'Tip',
+  },
+  'zh-cn': {
+    caution: '注意',
+    decision: '设计选择',
+    note: '说明',
+    tip: '提示',
+  },
+}
+const icons: Record<CalloutVariant, string> = {
+  caution: '!',
+  decision: '◇',
+  note: 'i',
+  tip: '✦',
+}
+---
+
+<aside class="docs-callout" data-variant={variant}>
+  <span aria-hidden="true" class="docs-callout-icon">{icons[variant]}</span>
+  <div class="min-w-0 flex-1">
+    <p class="docs-callout-title">{title ?? labels[locale][variant]}</p>
+    <div class="docs-callout-content">
+      <slot />
+    </div>
+  </div>
+</aside>

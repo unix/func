@@ -1,0 +1,138 @@
+---
+import Button from '@/components/ui/button.astro'
+import { defaultLocale, getNavGroups, type DocPage, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+  page: DocPage
+}
+
+const { locale = defaultLocale, page } = Astro.props
+const navGroups = getNavGroups(locale)
+const menuId = `docs-mobile-menu-${locale}`
+const menuLabel = locale === 'zh-cn' ? '文档导航' : 'Documentation navigation'
+const triggerLabel =
+  locale === 'zh-cn' ? '打开文档导航' : 'Open documentation navigation'
+---
+
+<div class="relative h-8 md:hidden" data-docs-mobile-menu>
+  <Button
+    aria-controls={menuId}
+    aria-expanded="false"
+    aria-label={triggerLabel}
+    class="cursor-pointer"
+    data-docs-mobile-menu-button
+    size="icon-lg"
+    title={triggerLabel}
+    type="button"
+    variant="ghost">
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M4 7H20M4 12H20M4 17H20"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-width="1.5"></path>
+    </svg>
+  </Button>
+
+  <div
+    class="absolute top-full left-0 z-40 mt-4 max-h-[calc(100svh-5rem)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-lg border bg-popover p-2 text-popover-foreground shadow-lg"
+    data-docs-mobile-menu-content
+    hidden
+    id={menuId}>
+    <nav aria-label={menuLabel} class="flex flex-col gap-4">
+      {
+        navGroups.map((group, groupIndex) => (
+          <div>
+            {group.label && (
+              <p
+                class="mb-1.5 flex h-6 items-center px-2 font-mono text-[0.6875rem] font-semibold tracking-[0.14em] text-muted-foreground/70 uppercase"
+                id={`docs-mobile-nav-group-${groupIndex}`}>
+                {group.label}
+              </p>
+            )}
+            <ul
+              aria-labelledby={
+                group.label ? `docs-mobile-nav-group-${groupIndex}` : undefined
+              }
+              class="flex flex-col gap-1">
+              {group.items.map(item => (
+                <li>
+                  <a
+                    aria-current={item.id === page ? 'page' : undefined}
+                    class="docs-nav-link inline-flex w-full items-center rounded-md px-2 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                    href={item.href}>
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </nav>
+  </div>
+</div>
+
+<script>
+  const closeDocsMobileMenus = () => {
+    document
+      .querySelectorAll<HTMLElement>('[data-docs-mobile-menu]')
+      .forEach(menu => {
+        const button = menu.querySelector<HTMLButtonElement>(
+          '[data-docs-mobile-menu-button]',
+        )
+        const content = menu.querySelector<HTMLElement>(
+          '[data-docs-mobile-menu-content]',
+        )
+        if (!button || !content) return
+
+        button.setAttribute('aria-expanded', 'false')
+        content.hidden = true
+      })
+  }
+
+  document.addEventListener('click', event => {
+    if (!(event.target instanceof Element)) return
+
+    const button = event.target.closest<HTMLButtonElement>(
+      '[data-docs-mobile-menu-button]',
+    )
+    if (button) {
+      const menu = button.closest<HTMLElement>('[data-docs-mobile-menu]')
+      const content = menu?.querySelector<HTMLElement>(
+        '[data-docs-mobile-menu-content]',
+      )
+      if (!content) return
+
+      const willOpen = content.hidden
+      closeDocsMobileMenus()
+      content.hidden = !willOpen
+      button.setAttribute('aria-expanded', String(willOpen))
+      return
+    }
+
+    if (event.target.closest('[data-docs-mobile-menu-content]')) {
+      closeDocsMobileMenus()
+      return
+    }
+
+    closeDocsMobileMenus()
+  })
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return
+
+    const openButton = document.querySelector<HTMLButtonElement>(
+      '[data-docs-mobile-menu-button][aria-expanded="true"]',
+    )
+    closeDocsMobileMenus()
+    openButton?.focus()
+  })
+  document.addEventListener('astro:page-load', closeDocsMobileMenus)
+  window.addEventListener('resize', closeDocsMobileMenus)
+</script>

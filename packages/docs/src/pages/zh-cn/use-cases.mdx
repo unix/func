@@ -1,0 +1,213 @@
+---
+title: 使用案例
+description: 了解常见 CLI 需求在 func 中的实现方式。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import CodeBlock from '@/components/CodeBlock.astro'
+import TerminalDemo from '@/components/TerminalDemo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const statusCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'status',",
+  "  description: 'Print service status',",
+  '})',
+  'export class StatusCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('All systems operational')",
+  '  }',
+  '}',
+].join('\n')
+
+export const domainAddCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'domain',",
+  "  description: 'Manage custom domains',",
+  '})',
+  'export class DomainCommand {',
+  "  @Handler({ path: ['add'] })",
+  '  add() {',
+  "    console.log('Adding domain')",
+  '  }',
+  '}',
+].join('\n')
+
+export const registerCode = [
+  "import { Command, Flag, Handler, Required, Value } from 'func'",
+  '',
+  '@Command({',
+  "  name: 'register',",
+  "  description: 'Register a domain and optional checks',",
+  '})',
+  'export class RegisterCommand {',
+  "  @Flag({ description: 'Create an issue after registration' })",
+  '  issue = false',
+  '',
+  "  @Flag({ description: 'Run DNS checks' })",
+  '  dns = false',
+  '',
+  '  @Required()',
+  '  @Value({ type: String })',
+  '  domain?: string',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.domain, {',
+  '      issue: this.issue,',
+  '      dns: this.dns,',
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const userSearchCode = [
+  "import { Args, CommandMissing, Flag, FuncArgs, Handler } from 'func'",
+  '',
+  '@CommandMissing()',
+  'export class UserSearchFallback {',
+  "  @Flag({ description: 'Include profile details' })",
+  '  includeProfile = false',
+  '',
+  "  @Flag({ description: 'Only return verified users' })",
+  '  verified = false',
+  '',
+  '  @Handler()',
+  '  async search(@Args() args: FuncArgs) {',
+  '    const [username, ...aliases] = args.inputs',
+  "    console.log('Searching user:', {",
+  '      username,',
+  '      aliases,',
+  '      includeProfile: this.includeProfile,',
+  '      verified: this.verified,',
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const scaleCode = [
+  "import { ArrayValue, Command, Enum, Handler } from 'func'",
+  '',
+  "const MACHINES = ['1x-1024m', '1x-2048m', '2x-1024m', '2x-2048m']",
+  '',
+  '@Command({',
+  "  name: 'scale',",
+  "  description: 'Scale machines',",
+  '})',
+  'export class ScaleCommand {',
+  '  @Enum(MACHINES)',
+  "  @ArrayValue({ name: 'machine' })",
+  '  machines: string[] = []',
+  '',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('Scaling to:', this.machines)",
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="use-cases">
+
+本页以具体的用户命令为例，介绍相应的 `func` 写法。 下面的示例都假设可执行命令名是 `ship`。
+
+## 静态命令
+
+<TerminalDemo
+  command="ship status"
+  demo="use-cases"
+  locale="zh-cn"
+  rows={2}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+假设用户需要查看 SaaS 服务状态，例如 API、数据库和后台任务是否可用。 `status` 是固定的顶层命令，可以定义为普通 `@Command`， 并添加默认 `@Handler`。帮助信息和后续新增的选项都属于该命令。
+
+<CodeBlock code={statusCode} filename="src/commands/status.command.ts" lang="ts" />
+
+## 命令和路径
+
+<TerminalDemo
+  command="ship domain add"
+  demo="use-cases"
+  locale="zh-cn"
+  rows={2}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+域名管理功能包含一个固定的“添加”动作。`domain` 作为顶层命令， `add` 作为该命令下的处理器路径，使用 `@Handler({ path: ['add'] })` 定义即可，无需在处理器中手动解析输入。
+
+<CodeBlock
+  code={domainAddCode}
+  filename="src/commands/domain.command.ts"
+  lang="ts"
+/>
+
+## 命令、开关和值
+
+<TerminalDemo
+  command="ship register --issue --dns --domain google.com"
+  demo="use-cases"
+  locale="zh-cn"
+  rows={6}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+注册域名时，用户还可以选择是否创建 issue、是否执行 DNS 检查。 `register` 是顶层命令，两个布尔开关使用 `@Flag` 声明， 域名使用必填的 `@Value` 声明。`func` 会在 handler 执行前完成解析、赋值和校验。
+
+<CodeBlock
+  code={registerCode}
+  filename="src/commands/register.command.ts"
+  lang="ts"
+/>
+
+## 兜底搜索输入
+
+<TerminalDemo
+  command="ship alice ally ali --includeProfile --verified"
+  demo="use-cases"
+  locale="zh-cn"
+  rows={10}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+这个搜索命令接受用户名和多个别名，还可以选择包含资料详情，或只返回已验证用户。 第一个 token 是搜索条件，不是固定命令名，因此可以使用 `@CommandMissing` 处理，并将返回内容的要求声明为布尔 flag。
+
+<CodeBlock
+  code={userSearchCode}
+  filename="src/commands/user-search.command.ts"
+  lang="ts"
+/>
+
+## 重复值和枚举限制
+
+<TerminalDemo
+  command="ship scale --machine 2x-1024m --machine 1x-2048m"
+  demo="use-cases"
+  locale="zh-cn"
+  rows={6}
+  sourceUrl="/demos/use-cases.ts"
+/>
+
+假设一次缩放操作可以指定多种机器规格，且每个规格都必须在系统支持的列表中。 `scale` 是顶层命令，`--machine` 可以重复传入。使用 `@ArrayValue` 收集多个值，并用 `@Enum` 拒绝不受支持的机器规格。
+
+<CodeBlock code={scaleCode} filename="src/commands/scale.command.ts" lang="ts" />
+
+## 实现命令前的检查项
+
+- 写下完整的调用示例，并区分固定语法和用户数据。
+- 具名命令只用于固定的顶层单词，不要把任意用户数据当成命令。
+- 固定的嵌套单词使用处理器路径，可变的位置数据使用 `@Args().inputs`。
+- 带类型、默认值、别名、描述或校验的具名数据使用字段选项。
+- 一次调用只匹配一个命令作用域，多步骤业务可通过注入服务组织。
+- 测试常用输入，以及每个对外别名、路径和校验规则。
+
+多种写法都可行时，应避免将无效输入误判为有效命令。详细规则见 [命令](/zh-cn/commands)和[字段选项](/zh-cn/options)。
+
+</DocsLayout>

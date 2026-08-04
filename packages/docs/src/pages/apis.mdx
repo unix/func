@@ -1,0 +1,123 @@
+---
+title: API Reference
+description: Reference the current func decorators, runtime types, module APIs, and funcgo commands.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const apiExampleCode = [
+  "import { Command, Handler, Required, Value } from 'func'",
+  '',
+  "@Command({ name: 'deploy' })",
+  'export class DeployCommand {',
+  '  @Required()',
+  '  @Value()',
+  '  env?: string',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(`Deploying to ${this.env}`)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="apis">
+  <Callout title="Use this page for exact contracts" variant="note">
+
+Start with [Commands](/commands) or [Core Concepts](/concepts) when choosing a model. Return here for decorator parameters, runtime types, configuration keys, and supported tool flags.
+
+  </Callout>
+  <CodeBlock code={apiExampleCode} filename="src/commands/deploy.command.ts" lang="ts" />
+
+| API family                    | Returns              | Failure contract                                                           |
+| ----------------------------- | -------------------- | -------------------------------------------------------------------------- |
+| Command and module decorators | `ClassDecorator`     | Invalid definitions are F_SYSTEM errors and stop dispatch.                 |
+| Handler and catch decorators  | `MethodDecorator`    | Invalid targets or incompatible parameters are F_SYSTEM errors.            |
+| Field option decorators       | `PropertyDecorator`  | Invalid definitions are F_SYSTEM; invalid user values are F_RUNTIME_PRINT. |
+| Runtime injection decorators  | `ParameterDecorator` | Unsupported injection positions are F_SYSTEM errors.                       |
+| run(input, options?)          | `Promise<void>`      | Routes runtime failures through local and global handlers.                 |
+| createApp(input, options?)    | `Container`          | Definition validation occurs when the container resolves and runs.         |
+
+Use this page when you already know which func concept you need and want its exact signature. For behavior and design guidance, see [Core Concepts](/concepts), [Field Options](/options), [Parameters](/parameters), and [Errors](/errors) for behavior details.
+
+## Commands
+
+| Signature                                  | Structure                                                                                                               | Description                                                                                                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@Command(params: CommandParams)`          | `CommandParams = { name: string, description?: string, alias?: string }`                                                | Register a named command. The name or alias is matched against the first input token.                                                                |
+| `@Handler(params?: HandlerParams)`         | `HandlerParams = { flag?: string, alias?: string, description?: string, path?: string[] }`                              | Register a default handler, flag handler, or path handler. path cannot be combined with flag or alias.                                               |
+| `@SubOptions(params: Array<OptionParams>)` | `OptionParams = { name: string, type?: Boolean \| String \| Number \| [String], description?: string, alias?: string }` | Add parse-only options for the current command scope. Field options are preferred for values read from the command instance.                         |
+| `@CommandMissing()`                        | `-`                                                                                                                     | Register a fallback command for bare input whose first token is not a known command. It can define handlers and field options like a normal command. |
+| `@CommandMajor()`                          | `-`                                                                                                                     | Register the major command for empty invocation and top-level options.                                                                               |
+| `@Catch()`                                 | `-`                                                                                                                     | Register a local command error method. Normal completion consumes the failure before global error handlers.                                          |
+| `@CatchAll() / @CommandError()`            | `-`                                                                                                                     | Register a global error handler class. CommandError is an alias for CatchAll.                                                                        |
+
+## Field Options and Validators
+
+| Signature              | Structure                                                                                                                              | Description                                                                             |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `@Flag(params?)`       | `params = { name?: string, alias?: string, description?: string }`                                                                     | Declare a boolean option assigned to the decorated property.                            |
+| `@Value(params?)`      | `params = { name?: string, alias?: string, description?: string, type?: Boolean \| String \| Number \| [String], required?: boolean }` | Declare a scalar value option. The type is inferred from design metadata when possible. |
+| `@ArrayValue(params?)` | `params = { name?: string, alias?: string, description?: string }`                                                                     | Declare a repeated string option assigned as a string array.                            |
+| `@Required()`          | `-`                                                                                                                                    | Require the option to be provided explicitly or have a defined value.                   |
+| `@Enum(values)`        | `values = Array<boolean \| string \| number>`                                                                                          | Validate that a scalar value, or every array item, is one of the allowed values.        |
+| `@DependsOn(options)`  | `options = string[]`                                                                                                                   | Require other options when this option is explicitly provided.                          |
+| `@Exclusive(options)`  | `options = string[]`                                                                                                                   | Reject combinations where this option and one of the listed options are both explicit.  |
+| `@ValueValidate(fn)`   | `fn(value, options) => boolean \| string \| void`                                                                                      | Run a custom validator. Return false or a string to create a validation error.          |
+
+## Context Injection
+
+| Signature      | Description                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| `@Args()`      | Inject FuncArgs: command metadata, selected handler, inputs, path, normalized option, and native parse data. |
+| `@Regs()`      | Inject CommandRegistry for registered command metadata.                                                      |
+| `@Exception()` | Inject FuncException into local catch methods and global error handlers.                                     |
+
+## Application
+
+| Signature                    | Structure                                                                          | Description                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `@FuncModule(params)`        | `params = { commands?: Class[], imports?: FuncModuleInput[], services?: Class[] }` | Create an application or feature module.                                              |
+| `@Service()`                 | `-`                                                                                | Mark a service class that can be injected into commands or other registered services. |
+| `run(input, options?)`       | `options = { argv?: string[], services?: Class[] }`                                | Create an app and execute it.                                                         |
+| `createApp(input, options?)` | `options = { argv?: string[], services?: Class[] }`                                | Create the low-level Container without running it.                                    |
+
+## Runtime Types
+
+| Signature         | Structure                                                                              | Description                                                |
+| ----------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `FuncArgs`        | `{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }` | Normalized runtime context injected by Args.               |
+| `FuncException`   | `code, details, error, level, message, type, preventDefaultPrint()`                    | Wrapper around FuncError used by catch and error handlers. |
+| `CommandRegistry` | `{ commands: RegisterCommandParams[] }`                                                | Read-only registry context injected by Regs.               |
+
+## Support
+
+`funcgo` provides the standard development and build commands for `func` projects. The full workflow is documented in [Tooling](/tooling).
+
+| Signature                   | Structure                                                                                           | Description                                                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `funcgo setup`              | `--fix?`                                                                                            | Inspect package.json and suggest missing func.entry, func.outDir, bin, dev script, and build script configuration.            |
+| `funcgo dev`                | `-f, --file <entry>; -- <args>`                                                                     | Run the project entry with a local TypeScript runtime and pass arguments through to the command.                              |
+| `funcgo build`              | `-f, --file <entry>; -o, --out <dir>; -e, --external <package>; -w, --watch; --watch-path <target>` | Bundle the project entry, create executable bin.js, and optionally rebuild when files, directories, or positive globs change. |
+| `funcgo --help / --version` | `-h; -v`                                                                                            | Print funcgo command discovery or the installed funcgo version.                                                               |
+
+## Configuration
+
+  <Callout title="setup --fix changes package.json" variant="caution">
+
+Review the read-only `funcgo setup` output first in existing projects, especially when generic `dev` or `build` scripts already exist.
+
+  </Callout>
+
+| Signature                  | Description                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `package.json#func.entry`  | Default TypeScript entry file used by funcgo dev and funcgo build when --file is not provided. |
+| `package.json#func.outDir` | Default build output directory used by funcgo build when --out is not provided.                |
+| `package.json#bin`         | Map the installed executable name to the generated bin.js inside func.outDir.                  |
+
+</DocsLayout>

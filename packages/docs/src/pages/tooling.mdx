@@ -1,0 +1,121 @@
+---
+title: Tooling
+description: Configure, run, bundle, and continuously rebuild func projects with funcgo.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const installCommands = {
+  npm: 'npm install --save-dev funcgo',
+  yarn: 'yarn add --dev funcgo',
+  pnpm: 'pnpm add --save-dev funcgo',
+  bun: 'bun add --dev funcgo',
+}
+
+export const setupCode = `funcgo setup
+funcgo setup --fix`
+
+export const devCode = `funcgo dev -- greet --name Ada
+funcgo dev -f src/cli/index.ts -- --help`
+
+export const buildCode = `funcgo build
+funcgo build -f src/cli/index.ts -o dist/cli
+funcgo build -e react -e ink`
+
+export const watchCode = `funcgo build --watch
+funcgo build --watch --watch-path 'src/**/*.ts' --watch-path config.json`
+
+export const packageConfigCode = `{
+  "scripts": {
+    "dev": "funcgo dev --",
+    "build": "funcgo build"
+  },
+  "func": {
+    "entry": "src/index.ts",
+    "outDir": "dist"
+  },
+  "bin": {
+    "ship": "./dist/bin.js"
+  }
+}`
+
+<DocsLayout frontmatter={frontmatter} page="tooling">
+
+`func` is the command runtime; `funcgo` is its project tool. It does three jobs: inspect package configuration, execute a TypeScript entry for local development, and bundle that entry into an executable production directory. It does not decide your command model or generate application help.
+
+  <Callout title="Development-only tooling" variant="note">
+
+`funcgo` is scaffolding and build tooling, so it is not included in the final bundle. Its relationship to `func` is similar to Vite's relationship to React.
+
+  </Callout>
+
+Projects created automatically from the default template already include `funcgo`. For any other project, install it as a development dependency before using the commands on this page:
+
+<CodeBlock
+  code={installCommands.npm}
+  lang="shell"
+  packageManagerCommands={installCommands}
+/>
+
+Use the package scripts for the normal path, and invoke `funcgo` directly when you need a custom file, output, external dependency, or watch target.
+
+## Inspect configuration with setup
+
+<Callout title="Read-only by default" variant="note">
+
+`funcgo setup` only reports recommendations. Adding `--fix` authorizes it to update package configuration and conventional script names.
+
+</Callout>
+
+`funcgo setup` reads the current `package.json` and prints missing or differing recommendations. Without `--fix`, it makes no changes.
+
+<CodeBlock code={setupCode} lang="shell" />
+
+`--fix` can write `func.entry`, `func.outDir`, a `bin` mapping, and the conventional `dev` and `build` scripts. Use it for a new CLI package. In an existing application package, review the suggestions first because those generic script names may already belong to the host application.
+
+Setup detects `src/index.ts` or `index.ts` when present. If it cannot find an entry, it recommends `src/index.ts`; create that file before expecting dev or build to work.
+
+## Run TypeScript once with dev
+
+`funcgo dev` starts Node.js with a local TypeScript runtime and executes the resolved entry. Everything after `--` is passed unchanged as the CLI's argument array.
+
+<CodeBlock code={devCode} lang="shell" />
+
+The `-f`/`--file` option chooses a different entry without changing package configuration. `dev` runs once and exits; it does not watch source files. Repeat the command while editing, or use build watch with a globally linked executable as described in the [Quick Start](/guide).
+
+## Create a production bundle
+
+`funcgo build` bundles the resolved entry and its reachable dependencies, writes `index.js` to the output directory, and creates an executable `bin.js` that loads it.
+
+<CodeBlock code={buildCode} lang="shell" />
+
+Use `-f`/`--file` for a custom entry and `-o`/`--out` for an isolated output. Each `-e`/`--external` leaves one package outside the bundle. An external package must still be available to users at runtime, so keep it in package dependencies and include it in the distribution plan.
+
+## Rebuild when inputs change
+
+`--watch` keeps the build process open. It performs an initial bundle, then rebuilds after matching file changes. By default it watches `src/**/*.ts`.
+
+<CodeBlock code={watchCode} lang="shell" />
+
+Repeat `--watch-path` for every additional file, directory, or positive glob. A custom watch path replaces the default set, so include the TypeScript glob explicitly when adding a configuration file. `--watch-path` requires `--watch`. Negative globs are not supported, and the output directory, `node_modules`, and `.git` are ignored to prevent rebuild loops.
+
+## Understand resolution order
+
+| Setting       | Highest to lowest priority                                         |
+| ------------- | ------------------------------------------------------------------ |
+| Entry file    | `--file / -f → package.json#func.entry → src/index.ts → index.ts`  |
+| Build output  | `--out / -o → package.json#func.outDir → dist`                     |
+| Watch targets | `Every --watch-path → src/**/*.ts when no custom path is supplied` |
+
+Command-line overrides are useful for experiments and secondary entries. Store the normal package contract in `package.json` so local development, CI, global linking, and publishing agree:
+
+<CodeBlock code={packageConfigCode} filename="package.json" lang="json" />
+
+The `bin` key is the command users type; its value must point to the generated `bin.js` inside the chosen output directory. See the [API Reference](/apis) for the compact option list.
+
+</DocsLayout>

@@ -1,9 +1,15 @@
 ---
+import DocsMobileMenu from '@/components/DocsMobileMenu.astro'
+import FuncMark from '@/components/FuncMark.astro'
+import FuncWordmark from '@/components/FuncWordmark.astro'
+import ThemeToggle from '@/components/ThemeToggle.astro'
+import Button from '@/components/ui/button.astro'
 import {
   defaultLocale,
   getLanguageSwitch,
   getLocalePath,
-  getSiteTitle,
+  getSiteSlogan,
+  siteName,
   type DocPage,
   type Locale,
 } from '@/lib/docs'
@@ -15,38 +21,491 @@ interface Props {
 
 const { locale = defaultLocale, page = '/' } = Astro.props
 const languageSwitch = getLanguageSwitch(page, locale)
-const siteTitle = getSiteTitle(locale)
+const siteSlogan = getSiteSlogan(locale)
+const persistKey = `docs-header-${locale}`
+const backToTopLabel = locale === 'zh-cn' ? '返回顶部' : 'Back to top'
+const sloganText = `/ ${siteSlogan}`
+const sloganCharacters = Array.from(sloganText)
 ---
 
 <header
-  class="flex w-full items-center justify-between gap-4 border-b border-border pb-6">
-  <a
-    class="min-w-0 break-words text-sm font-semibold tracking-wide text-foreground"
-    href={getLocalePath('/', locale)}>
-    {siteTitle}
-  </a>
-  <div class="flex shrink-0 items-center gap-1">
-    <a
-      class="inline-flex h-8 items-center rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-      href={languageSwitch.href}>
-      {languageSwitch.label}
-    </a>
-    <a
-      aria-label="Open FUNC on GitHub"
-      class="inline-flex size-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-      href="https://github.com/unix/func"
-      rel="noreferrer"
-      target="_blank">
-      <svg
+  class="docs-header relative z-30 h-16 w-full"
+  data-collapsed="false"
+  data-docs-header
+  data-identity-ready="false"
+  transition:persist={persistKey}>
+  <div
+    aria-hidden="true"
+    class="docs-header-mobile-mask pointer-events-none fixed inset-x-0 top-0 z-20 h-16 bg-background md:hidden">
+  </div>
+  <div
+    aria-hidden="true"
+    class="docs-header-mask pointer-events-none hidden md:block">
+  </div>
+  <div
+    class="pointer-events-none fixed inset-x-0 top-0 z-30 mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8"
+    data-docs-header-viewport>
+    <div class="pointer-events-auto flex min-w-0 items-center gap-1">
+      <DocsMobileMenu locale={locale} page={page} />
+      <div
+        class="docs-header-brand relative isolate flex min-w-0 items-center rounded-md px-2 md:-ml-2">
+        <a
+          aria-label={siteName}
+          class="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          href={getLocalePath('/', locale)}>
+          <span aria-hidden="true" class="docs-header-identity">
+            <FuncMark class="docs-header-mark size-6 text-primary" />
+            <FuncWordmark class="docs-header-wordmark h-3.5 w-auto text-primary" />
+          </span>
+        </a>
+        <span
+          aria-label={sloganText}
+          class="docs-header-slogan hidden min-w-0 items-center overflow-hidden pl-2.5 text-xs whitespace-nowrap text-muted-foreground sm:flex">
+          {
+            sloganCharacters.map((character, index) => (
+              <span
+                aria-hidden="true"
+                class="docs-header-slogan-character"
+                style={`--slogan-character-index:${index};--slogan-character-count:${sloganCharacters.length}`}>
+                {character === ' ' ? '\u00a0' : character}
+              </span>
+            ))
+          }
+        </span>
+      </div>
+    </div>
+
+    <div
+      class="docs-header-action-slot pointer-events-auto relative h-8 shrink-0"
+      data-button-status="idle"
+      data-back-to-top-hover-zone>
+      <div
+        aria-hidden="false"
+        class="docs-header-actions flex items-center gap-1"
+        data-docs-header-actions>
+        <a
+          class="inline-flex h-8 items-center rounded-md px-2.5 font-mono text-xs text-muted-foreground outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          data-language-switch
+          data-target-locale={languageSwitch.locale}
+          href={languageSwitch.href}>
+          {languageSwitch.label}
+        </a>
+        <ThemeToggle locale={locale} />
+        <a
+          aria-label="Open FUNC on GitHub"
+          class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          href="https://github.com/unix/func"
+          rel="noreferrer"
+          target="_blank">
+          <svg
+            aria-hidden="true"
+            class="size-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M9.94118 17.8796C9.94118 17.5162 10.0494 17.2003 10.2238 16.915C10.3434 16.7192 10.2615 16.4414 10.0453 16.3801C8.25526 15.8719 7 15.0547 7 12.3443C7 11.6397 7.22356 10.9772 7.61654 10.4006C7.71414 10.2573 7.76181 10.1922 7.77491 10.1208C7.78806 10.049 7.76638 9.97088 7.72543 9.80094C7.58167 9.20442 7.57017 8.57599 7.73081 7.98978C7.78361 7.79709 7.8968 7.6847 8.10166 7.7064C8.3674 7.73454 8.82753 7.86036 9.50999 8.30066C9.77813 8.47365 9.9122 8.56015 10.0303 8.5795C10.1484 8.59885 10.3062 8.55832 10.622 8.47727C11.0537 8.36642 11.4986 8.30692 12 8.30692C12.5014 8.30692 12.9463 8.36642 13.378 8.47726C13.6938 8.55832 13.8516 8.59885 13.9697 8.5795C14.0878 8.56015 14.2219 8.47366 14.49 8.30066C15.1725 7.86037 15.6326 7.73454 15.8983 7.7064C16.1032 7.6847 16.2164 7.79709 16.2692 7.98978C16.4298 8.57599 16.4183 9.20441 16.2746 9.80093C16.2336 9.97087 16.2119 10.049 16.2251 10.1208C16.2382 10.1922 16.2859 10.2573 16.3834 10.4005C16.7764 10.9771 17 11.6397 17 12.3443C17 15.0547 15.7447 15.8719 13.9547 16.3801C13.7385 16.4414 13.6566 16.7192 13.7762 16.915C13.9506 17.2003 14.0588 17.5162 14.0588 17.8796V22.6507C19.011 21.6902 22.75 17.3306 22.75 12.0977C22.75 6.1606 17.9371 1.34766 12 1.34766C6.06294 1.34766 1.25 6.1606 1.25 12.0977C1.25 17.3306 4.98901 21.6902 9.94118 22.6507V19.851C9.88484 19.8444 9.81816 19.8347 9.74225 19.8202C9.52615 19.7792 9.23571 19.7005 8.89714 19.5503C8.21489 19.2478 7.36263 18.6661 6.53685 17.5655C6.28826 17.2342 6.35533 16.7641 6.68665 16.5155C7.01798 16.2669 7.48809 16.334 7.73668 16.6653C8.4109 17.5639 9.06058 17.9819 9.50527 18.1791C9.6822 18.2576 9.83089 18.303 9.94118 18.3292V17.8796Z"
+              fill="currentColor"></path>
+          </svg>
+        </a>
+      </div>
+
+      <Button
         aria-hidden="true"
-        class="size-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M9.94118 17.8796C9.94118 17.5162 10.0494 17.2003 10.2238 16.915C10.3434 16.7192 10.2615 16.4414 10.0453 16.3801C8.25526 15.8719 7 15.0547 7 12.3443C7 11.6397 7.22356 10.9772 7.61654 10.4006C7.71414 10.2573 7.76181 10.1922 7.77491 10.1208C7.78806 10.049 7.76638 9.97088 7.72543 9.80094C7.58167 9.20442 7.57017 8.57599 7.73081 7.98978C7.78361 7.79709 7.8968 7.6847 8.10166 7.7064C8.3674 7.73454 8.82753 7.86036 9.50999 8.30066C9.77813 8.47365 9.9122 8.56015 10.0303 8.5795C10.1484 8.59885 10.3062 8.55832 10.622 8.47727C11.0537 8.36642 11.4986 8.30692 12 8.30692C12.5014 8.30692 12.9463 8.36642 13.378 8.47726C13.6938 8.55832 13.8516 8.59885 13.9697 8.5795C14.0878 8.56015 14.2219 8.47366 14.49 8.30066C15.1725 7.86037 15.6326 7.73454 15.8983 7.7064C16.1032 7.6847 16.2164 7.79709 16.2692 7.98978C16.4298 8.57599 16.4183 9.20441 16.2746 9.80093C16.2336 9.97087 16.2119 10.049 16.2251 10.1208C16.2382 10.1922 16.2859 10.2573 16.3834 10.4005C16.7764 10.9771 17 11.6397 17 12.3443C17 15.0547 15.7447 15.8719 13.9547 16.3801C13.7385 16.4414 13.6566 16.7192 13.7762 16.915C13.9506 17.2003 14.0588 17.5162 14.0588 17.8796V22.6507C19.011 21.6902 22.75 17.3306 22.75 12.0977C22.75 6.1606 17.9371 1.34766 12 1.34766C6.06294 1.34766 1.25 6.1606 1.25 12.0977C1.25 17.3306 4.98901 21.6902 9.94118 22.6507V19.851C9.88484 19.8444 9.81816 19.8347 9.74225 19.8202C9.52615 19.7792 9.23571 19.7005 8.89714 19.5503C8.21489 19.2478 7.36263 18.6661 6.53685 17.5655C6.28826 17.2342 6.35533 16.7641 6.68665 16.5155C7.01798 16.2669 7.48809 16.334 7.73668 16.6653C8.4109 17.5639 9.06058 17.9819 9.50527 18.1791C9.6822 18.2576 9.83089 18.303 9.94118 18.3292V17.8796Z"
-          fill="currentColor"></path>
-      </svg>
-    </a>
+        aria-label={backToTopLabel}
+        class="docs-header-back-to-top cursor-pointer select-none"
+        data-back-to-top
+        data-loading="false"
+        size="icon-lg"
+        tabindex={-1}
+        title={backToTopLabel}
+        type="button"
+        variant="ghost">
+        <svg
+          aria-hidden="true"
+          fill="none"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M12 19V5M12 5L6.5 10.5M12 5L17.5 10.5"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"></path>
+        </svg>
+      </Button>
+    </div>
   </div>
 </header>
+
+<style>
+  .docs-header-identity {
+    position: relative;
+    display: block;
+    width: 2.566rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  :global(.docs-header-mark) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: block;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+
+  :global(.docs-header-wordmark) {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    display: block;
+    opacity: 1;
+    transform: translateY(calc(-50% - 0.0625rem));
+  }
+
+  .docs-header[data-identity-ready='true'] :global(.docs-header-mark) {
+    transition: opacity 180ms ease-out;
+  }
+
+  .docs-header[data-identity-ready='true'] :global(.docs-header-wordmark) {
+    transition:
+      opacity 180ms ease-out,
+      transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .docs-header-mask {
+    position: fixed;
+    z-index: 20;
+    inset: 0 0 auto;
+    height: 4rem;
+    background: color-mix(in oklch, var(--background) 68%, transparent);
+    opacity: 1;
+    backdrop-filter: blur(0.75rem);
+    transform: translateY(0);
+    transition:
+      opacity 440ms linear,
+      transform 440ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+  }
+
+  .docs-header-brand::before {
+    position: absolute;
+    z-index: -1;
+    inset: -0.25rem;
+    border-radius: 0.5rem;
+    background: color-mix(in oklch, var(--background) 88%, transparent);
+    opacity: 0;
+    backdrop-filter: blur(0.5rem);
+    content: '';
+    transition: opacity 240ms ease-out;
+  }
+
+  .docs-header-slogan {
+    max-width: 16rem;
+    transition: max-width 440ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .docs-header-slogan-character {
+    display: inline-block;
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0) scale(1);
+    transition:
+      opacity 180ms ease-out,
+      filter 260ms ease-out,
+      transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: calc(var(--slogan-character-index) * 8ms);
+  }
+
+  .docs-header-action-slot {
+    width: max-content;
+  }
+
+  .docs-header-action-slot[data-button-status='loading'] {
+    cursor: wait;
+  }
+
+  .docs-header-action-slot[data-button-status='disabled'] {
+    cursor: not-allowed;
+  }
+
+  .docs-header-actions {
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+      opacity 180ms ease-out,
+      transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  :global(.docs-header-back-to-top) {
+    position: absolute;
+    top: 0;
+    right: 0;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(-0.75rem);
+    transition:
+      background-color 150ms ease-out,
+      color 150ms ease-out,
+      opacity 180ms ease-out,
+      transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  :global(.docs-header-back-to-top[data-loading='true'] svg) {
+    animation: docs-header-scroll-up 700ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  .docs-header[data-collapsed='true'] .docs-header-brand::before {
+    opacity: 1;
+  }
+
+  .docs-header[data-collapsed='true'] .docs-header-mask {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  .docs-header[data-collapsed='true'] :global(.docs-header-mark) {
+    opacity: 1;
+  }
+
+  .docs-header[data-collapsed='true'] :global(.docs-header-wordmark) {
+    opacity: 0;
+    transform: translate(-0.125rem, calc(-50% - 0.0625rem));
+  }
+
+  .docs-header[data-collapsed='true'] .docs-header-slogan {
+    max-width: 0;
+  }
+
+  .docs-header[data-collapsed='true'] .docs-header-slogan-character {
+    opacity: 0;
+    filter: blur(0.1rem);
+    transform: translateX(-0.35rem) scale(0.96);
+    transition-delay: calc(
+      (var(--slogan-character-count) - var(--slogan-character-index)) * 8ms
+    );
+  }
+
+  .docs-header[data-collapsed='true'] .docs-header-actions {
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(0.75rem);
+  }
+
+  .docs-header[data-collapsed='true'] :global(.docs-header-back-to-top) {
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  @media (max-width: 47.999rem) {
+    .docs-header[data-collapsed='true'] :global(.docs-header-mark) {
+      opacity: 0;
+    }
+
+    .docs-header[data-collapsed='true'] :global(.docs-header-wordmark) {
+      opacity: 1;
+      transform: translateY(calc(-50% - 0.0625rem));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .docs-header-mask,
+    .docs-header-brand::before,
+    .docs-header-identity,
+    .docs-header-slogan,
+    .docs-header-slogan-character,
+    .docs-header-actions,
+    :global(.docs-header-mark),
+    :global(.docs-header-wordmark),
+    :global(.docs-header-back-to-top) {
+      transition-delay: 0ms;
+      transition-duration: 0ms;
+    }
+
+    :global(.docs-header-back-to-top[data-loading='true'] svg) {
+      animation: none;
+    }
+  }
+
+  @keyframes docs-header-scroll-up {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: translateY(0.125rem);
+    }
+
+    50% {
+      opacity: 1;
+      transform: translateY(-0.125rem);
+    }
+  }
+</style>
+
+<script>
+  const normalizedPath = (path: string) => {
+    if (path === '/') return path
+
+    return path.replace(/\/$/, '')
+  }
+
+  const languagePath = (path: string, targetLocale: string) => {
+    const currentPath = normalizedPath(path)
+    const basePath = currentPath.startsWith('/zh-cn')
+      ? currentPath.slice('/zh-cn'.length) || '/'
+      : currentPath
+
+    if (targetLocale === 'zh-cn') {
+      return basePath === '/' ? '/zh-cn' : `/zh-cn${basePath}`
+    }
+
+    return basePath
+  }
+
+  const syncLanguageSwitch = () => {
+    document
+      .querySelectorAll<HTMLAnchorElement>('[data-language-switch]')
+      .forEach(link => {
+        const targetLocale = link.dataset.targetLocale
+        if (!targetLocale) return
+
+        link.href = languagePath(window.location.pathname, targetLocale)
+      })
+  }
+
+  const heldDocsHeaders = new WeakSet<HTMLElement>()
+  const scrollingDocsHeaders = new WeakSet<HTMLElement>()
+
+  const canHoldDocsHeader = () =>
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  const shouldCollapseForScroll = () => window.scrollY >= 250
+
+  const syncDocsHeader = () => {
+    const canHold = canHoldDocsHeader()
+
+    document.querySelectorAll<HTMLElement>('[data-docs-header]').forEach(header => {
+      if (!canHold) heldDocsHeaders.delete(header)
+
+      if (scrollingDocsHeaders.has(header) && window.scrollY <= 0) {
+        scrollingDocsHeaders.delete(header)
+      }
+
+      const isHeld = heldDocsHeaders.has(header)
+      const isScrolling = scrollingDocsHeaders.has(header)
+      const shouldCollapse = shouldCollapseForScroll()
+      const isCollapsed = isHeld || shouldCollapse
+      header.dataset.collapsed = isCollapsed.toString()
+
+      const actions = header.querySelector<HTMLElement>('[data-docs-header-actions]')
+      if (actions) {
+        actions.inert = isCollapsed
+        actions.setAttribute('aria-hidden', isCollapsed.toString())
+      }
+
+      const backToTop = header.querySelector<HTMLButtonElement>('[data-back-to-top]')
+      if (!backToTop) return
+
+      const isUnavailable = isScrolling || (isHeld && !shouldCollapse)
+      backToTop.disabled = isUnavailable
+      backToTop.dataset.loading = isScrolling.toString()
+      const hoverZone = header.querySelector<HTMLElement>(
+        '[data-back-to-top-hover-zone]',
+      )
+      if (hoverZone) {
+        hoverZone.dataset.buttonStatus = isScrolling
+          ? 'loading'
+          : isUnavailable
+            ? 'disabled'
+            : 'idle'
+      }
+      backToTop.tabIndex = isCollapsed ? 0 : -1
+      backToTop.setAttribute('aria-hidden', (!isCollapsed).toString())
+      backToTop.toggleAttribute('aria-busy', isScrolling)
+    })
+  }
+
+  const enableDocsHeaderIdentityTransitions = () => {
+    window.requestAnimationFrame(() => {
+      document
+        .querySelectorAll<HTMLElement>('[data-docs-header]')
+        .forEach(header => {
+          header.dataset.identityReady = 'true'
+        })
+    })
+  }
+
+  const releaseHeldHeader = (hoverZone: HTMLElement) => {
+    const header = hoverZone.closest<HTMLElement>('[data-docs-header]')
+    if (!header) return
+
+    heldDocsHeaders.delete(header)
+    syncDocsHeader()
+  }
+
+  const releaseUnhoveredHeaders = () => {
+    let released = false
+
+    document.querySelectorAll<HTMLElement>('[data-docs-header]').forEach(header => {
+      if (!heldDocsHeaders.has(header)) return
+
+      const hoverZone = header.querySelector<HTMLElement>(
+        '[data-back-to-top-hover-zone]',
+      )
+      if (hoverZone?.matches(':hover')) return
+
+      heldDocsHeaders.delete(header)
+      released = true
+    })
+
+    if (released) syncDocsHeader()
+  }
+
+  const bindHeaderControls = () => {
+    document
+      .querySelectorAll<HTMLElement>('[data-back-to-top-hover-zone]')
+      .forEach(hoverZone => {
+        hoverZone.onpointerleave = () => releaseHeldHeader(hoverZone)
+        hoverZone.onpointercancel = () => releaseHeldHeader(hoverZone)
+      })
+  }
+
+  const scrollToTop = () => {
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+    window.scrollTo({ behavior: reduceMotion ? 'auto' : 'smooth', top: 0 })
+  }
+
+  document.addEventListener('click', event => {
+    if (!(event.target instanceof Element)) return
+    const button = event.target.closest<HTMLButtonElement>('[data-back-to-top]')
+    if (!button) return
+
+    const header = button.closest<HTMLElement>('[data-docs-header]')
+    if (header) {
+      if (canHoldDocsHeader() && (button.matches(':hover') || event.detail > 0)) {
+        heldDocsHeaders.add(header)
+      }
+      scrollingDocsHeaders.add(header)
+      syncDocsHeader()
+    }
+
+    scrollToTop()
+    window.requestAnimationFrame(syncDocsHeader)
+  })
+  document.addEventListener('pointermove', releaseUnhoveredHeaders)
+  window.addEventListener('scroll', syncDocsHeader, { passive: true })
+  window.addEventListener('resize', syncDocsHeader)
+  document.addEventListener('astro:page-load', () => {
+    syncLanguageSwitch()
+    bindHeaderControls()
+    syncDocsHeader()
+    enableDocsHeaderIdentityTransitions()
+  })
+  syncLanguageSwitch()
+  bindHeaderControls()
+  syncDocsHeader()
+  enableDocsHeaderIdentityTransitions()
+</script>

@@ -1,0 +1,162 @@
+---
+title: Parameters
+description: Inject normalized arguments, command registries, exceptions, and registered services.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const argsCode = [
+  "import { Args, Command, FuncArgs, Handler } from 'func'",
+  '',
+  "@Command({ name: 'config' })",
+  'export class ConfigCommand {',
+  "  @Handler({ path: ['profile', 'set'] })",
+  '  setProfile(@Args() args: FuncArgs) {',
+  "    console.log(args.path) // ['profile', 'set']",
+  '    console.log(args.inputs) // positional input after the path',
+  "    console.log(args.command?.name) // 'config'",
+  "    console.log(args.handler?.methodName) // 'setProfile'",
+  '  }',
+  '}',
+].join('\n')
+
+export const fieldsCode = [
+  "import { Args, Command, FuncArgs, Handler, Value } from 'func'",
+  '',
+  "@Command({ name: 'serve' })",
+  'export class ServeCommand {',
+  '  @Value()',
+  '  port: number = 3000',
+  '',
+  '  @Handler()',
+  '  run(@Args() args: FuncArgs) {',
+  '    console.log(this.port) // preferred for declared fields',
+  '    console.log(args.option.port) // same normalized value',
+  '  }',
+  '}',
+].join('\n')
+
+export const regsCode = [
+  "import { CommandMajor, CommandRegistry, Handler, Regs } from 'func'",
+  '',
+  '@CommandMajor()',
+  'export class MajorCommand {',
+  "  @Handler({ flag: 'help', alias: 'h' })",
+  '  help(@Regs() registry: CommandRegistry) {',
+  '    registry.commands.forEach((command) => {',
+  "      const alias = command.alias ? `, ${command.alias}` : ''",
+  "      console.log(`${command.name}${alias} ${command.description || ''}`)",
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const exceptionCode = [
+  "import { Catch, Command, Exception, FuncException, Handler } from 'func'",
+  '',
+  "@Command({ name: 'publish' })",
+  'export class PublishCommand {',
+  '  @Catch()',
+  '  onError(@Exception() exception: FuncException) {',
+  '    console.error(`publish failed: ${exception.message}`)',
+  '  }',
+  '',
+  '  @Handler()',
+  '  run() {',
+  "    throw new Error('registry unavailable')",
+  '  }',
+  '}',
+].join('\n')
+
+export const constructorCode = [
+  "import { Args, Command, FuncArgs, Handler, Service } from 'func'",
+  '',
+  '@Service()',
+  'export class ProjectService {',
+  '  find(name: string) {',
+  '    return { name }',
+  '  }',
+  '}',
+  '',
+  "@Command({ name: 'inspect' })",
+  'export class InspectCommand {',
+  '  constructor(',
+  '    private project: ProjectService,',
+  '    @Args() private args: FuncArgs,',
+  '  ) {}',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.project.find(this.args.inputs[0]))',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="parameters">
+
+Parameters are the explicit way to ask func for execution context or registered collaborators. Use `@Args()`, `@Regs()`, and `@Exception()` for framework-owned values. A parameter without one of those decorators is resolved by its emitted TypeScript type as a service, provided that service is registered; otherwise its value is `undefined`.
+
+Context decorators work on command constructors and handler methods. Request a value at method level when one handler needs it, or at constructor level when several methods share it.
+
+## Read the current invocation with Args
+
+`@Args()` injects one `FuncArgs` object after command and handler selection. It is useful for positional input, selected metadata, and advanced parser interoperability.
+
+<CodeBlock code={argsCode} filename="src/commands/config.command.ts" lang="ts" />
+
+For `ship config profile set work alice`, the path is `['profile', 'set']` and the remaining inputs are `['work', 'alice']`. func does not assign semantic names to positional values; your handler decides what each position means and validates missing or extra input when necessary.
+
+| Field     | What it contains                                                                            |
+| --------- | ------------------------------------------------------------------------------------------- |
+| `command` | Metadata for the selected named @Command; undefined for major and missing scopes.           |
+| `handler` | Metadata for the selected method, including methodName, path, flag, alias, and description. |
+| `inputs`  | Remaining positional tokens after the command name and selected handler path are removed.   |
+| `path`    | The selected handler path, or an empty array for default and flag handlers.                 |
+| `option`  | Normalized long-name option values, including defaults assigned to field options.           |
+| `native`  | The underlying parser result, including its \_ positional array and hyphenated keys.        |
+
+### Prefer fields for declared options
+
+`args.option` exposes all normalized values, including parse-only sub-options. For a known `@Flag`, `@Value`, or `@ArrayValue`, reading `this.field` is clearer and retains the TypeScript property type.
+
+<CodeBlock code={fieldsCode} filename="src/commands/serve.command.ts" lang="ts" />
+
+Use `native` only when adapting code that specifically expects the underlying parser's result shape. New command logic should use fields, `inputs`, and `option` instead.
+
+## Build discovery output with Regs
+
+`@Regs()` injects `CommandRegistry`. Its `commands` array contains metadata for registered named commands, including descriptions, aliases, handlers, field options, and sub-options. Major, missing, and error-handler classes are not part of this named command list.
+
+<CodeBlock code={regsCode} filename="src/commands/major.command.ts" lang="ts" />
+
+func provides the registry rather than imposing a help-screen design. This lets your CLI control grouping, translations, examples, and formatting while keeping command names and descriptions sourced from their declarations.
+
+## Inspect a failure with Exception
+
+`@Exception()` is valid in a local `@Catch()` method or a global error-handler constructor. It injects `FuncException`, which exposes `code`, `level`, `type`, `message`, `details`, the normalized `error`, and `preventDefaultPrint()`.
+
+<CodeBlock
+  code={exceptionCode}
+  filename="src/commands/publish.command.ts"
+  lang="ts"
+/>
+
+Do not inject `@Exception()` into an ordinary handler: there is no current failure there. Error flow and default printing are covered in [Error Handling](/errors).
+
+## Combine context and service injection
+
+Service parameters do not use a parameter decorator. Their class type is the injection token, and the service must appear in the resolved module's `services` list. Context and services can be mixed in the same constructor:
+
+<CodeBlock
+  code={constructorCode}
+  filename="src/commands/inspect.command.ts"
+  lang="ts"
+/>
+
+If a service resolves as `undefined`, confirm that it is registered and that decorator metadata is enabled in `tsconfig.json`. Keep `@Args()` on the parameter because interfaces such as `FuncArgs` do not exist as runtime class tokens.
+
+</DocsLayout>

@@ -1,0 +1,165 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+}
+
+const { locale = defaultLocale } = Astro.props
+const labels =
+  locale === 'zh-cn'
+    ? {
+        caption:
+          'func 通过合理的工程组织方式、完善的类型验证、通用校验与规则让维护难度保持平稳；仅依靠参数解析器和本地组织时，命令、规则和依赖越多，维护难度上升得越快。',
+        description:
+          '随着兼容环境、输入输出、字段验证等逻辑加入，可维护性会迅速下降',
+        func: 'func',
+        maintainability: '可维护性',
+        parser: '参数解析器',
+        stages: ['1 个命令', '多个命令', '多个环境', '字段验证', '参数规则'],
+        title: 'CLI 复杂度对可维护性的影响',
+        xAxis: '项目复杂度 →',
+        yAxis: ['容易维护', '难维护'],
+      }
+    : {
+        caption:
+          'This chart compares how two approaches scale as a project grows: func keeps maintenance manageable through clear responsibility boundaries, while relying on an argument parser and local structure becomes harder to maintain as commands, rules, and dependencies accumulate.',
+        description:
+          'The same structure applies from the first command; as commands, rules, and dependencies accumulate, responsibilities remain clear.',
+        func: 'func',
+        maintainability: 'Maintainability',
+        parser: 'argument parser + local structure',
+        stages: [
+          '1 command',
+          'many commands',
+          'shared services',
+          'cross-field rules',
+          'tests & release',
+        ],
+        title: 'Clear boundaries from the first command',
+        xAxis: 'project complexity →',
+        yAxis: ['easy to maintain', 'hard to maintain'],
+      }
+---
+
+<figure class="my-8 overflow-hidden rounded-lg border bg-card" data-minimap-ignore>
+  <figcaption
+    class="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+    <span class="min-w-0">
+      <span class="block text-sm font-medium text-foreground">{labels.title}</span>
+      <span class="mt-1 block text-xs leading-5 text-muted-foreground">
+        {labels.description}
+      </span>
+    </span>
+    <span
+      class="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[0.6875rem] text-muted-foreground">
+      <span class="inline-flex items-center gap-1.5">
+        <span class="h-0.5 w-4 bg-violet-500"></span>
+        {labels.func}
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <span class="w-4 border-t border-dashed border-muted-foreground"></span>
+        {labels.parser}
+      </span>
+    </span>
+  </figcaption>
+
+  <div class="p-2 sm:p-4">
+    <svg
+      aria-label={`${labels.title}。${labels.caption}`}
+      class="h-auto w-full"
+      role="img"
+      viewBox="0 0 680 310"
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="maintainability-gap" x1="0" x2="0" y1="0" y2="1">
+          <stop
+            class="text-violet-500"
+            offset="0"
+            stop-color="currentColor"
+            stop-opacity="0.16"></stop>
+          <stop
+            class="text-violet-500"
+            offset="1"
+            stop-color="currentColor"
+            stop-opacity="0.02"></stop>
+        </linearGradient>
+      </defs>
+
+      <g class="stroke-border/70" fill="none" stroke-width="1">
+        <path d="M78 34V238H632"></path>
+        <path d="M78 85H632"></path>
+        <path d="M78 136H632"></path>
+        <path d="M78 187H632"></path>
+      </g>
+
+      <path
+        d="M90 73C168 74 219 77 285 82C361 87 427 91 490 95C548 98 588 100 614 102L614 224C572 215 528 201 490 184C418 151 355 123 285 104C216 86 155 78 90 73Z"
+        fill="url(#maintainability-gap)">
+      </path>
+
+      <path
+        class="stroke-violet-500"
+        d="M90 73C168 74 219 77 285 82C361 87 427 91 490 95C548 98 588 100 614 102"
+        fill="none"
+        stroke-linecap="round"
+        stroke-width="3">
+      </path>
+      <path
+        class="stroke-muted-foreground"
+        d="M90 73C155 78 216 86 285 104C355 123 418 151 490 184C528 201 572 215 614 224"
+        fill="none"
+        stroke-dasharray="6 5"
+        stroke-linecap="round"
+        stroke-width="2">
+      </path>
+
+      <g class="fill-card stroke-violet-500" stroke-width="2">
+        <circle cx="90" cy="73" r="4"></circle>
+        <circle cx="220" cy="78" r="4"></circle>
+        <circle cx="350" cy="87" r="4"></circle>
+        <circle cx="490" cy="95" r="4"></circle>
+        <circle cx="614" cy="102" r="4"></circle>
+      </g>
+      <g class="fill-card stroke-muted-foreground" stroke-width="1.5">
+        <circle cx="90" cy="73" r="3"></circle>
+        <circle cx="220" cy="87" r="3"></circle>
+        <circle cx="350" cy="121" r="3"></circle>
+        <circle cx="490" cy="184" r="3"></circle>
+        <circle cx="614" cy="224" r="3"></circle>
+      </g>
+
+      <g class="fill-muted-foreground font-mono text-[11px]">
+        <text x="78" y="20">{labels.maintainability}</text>
+        <text x="64" y="77" text-anchor="end">{labels.yAxis[0]}</text>
+        <text x="64" y="232" text-anchor="end">{labels.yAxis[1]}</text>
+        {
+          labels.stages.map((stage, index) => (
+            <text x={90 + index * 131} y="262" text-anchor="middle">
+              {stage}
+            </text>
+          ))
+        }
+        <text x="632" y="292" text-anchor="end">{labels.xAxis}</text>
+      </g>
+
+      <g class="font-mono text-[11px] font-semibold">
+        <text
+          class="fill-violet-600 dark:fill-violet-300"
+          x="606"
+          y="91"
+          text-anchor="end">
+          {labels.func}
+        </text>
+        <text class="fill-muted-foreground" x="606" y="232" text-anchor="end">
+          {labels.parser}
+        </text>
+      </g>
+    </svg>
+  </div>
+
+  <div
+    class="border-t bg-muted/20 px-4 py-3 text-xs leading-5 text-muted-foreground">
+    {labels.caption}
+  </div>
+</figure>

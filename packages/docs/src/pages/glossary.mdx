@@ -1,0 +1,50 @@
+---
+title: Glossary
+description: Look up CLI input, func model, and runtime terminology without mixing their layers.
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import DocsLayout from '@/layouts/docs.astro'
+
+<DocsLayout frontmatter={frontmatter} page="glossary">
+
+These terms belong to different layers and are not interchangeable. Start with [Core Concepts](/concepts) when learning to define a command, and use this page only when you need a precise lookup.
+
+## Ordinary CLI input terms
+
+| Term               | Meaning                                                                                                            | Location or API                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `Invocation`       | One complete execution from starting the executable until it exits, such as ship project --help.                   | `complete argv`                       |
+| `Executable`       | The program name a user enters, such as ship. package.json#bin normally points it to a built file.                 | `package.json#bin`                    |
+| `Token`            | One ordered piece of command-line input before modeling, such as project, --role, or owner.                        | `process.argv`                        |
+| `Option`           | A general CLI term for --name, -n, and associated values; func divides these into field options and handler flags. | `@Flag / @Value / @Handler({ flag })` |
+| `Positional input` | Data identified by its position rather than an option name, such as alice.                                         | `@Args().inputs`                      |
+
+## Concepts that define a func CLI
+
+| Term              | Meaning                                                                                      | API                            |
+| ----------------- | -------------------------------------------------------------------------------------------- | ------------------------------ |
+| `Named command`   | The command class selected when the first bare token matches its name or alias.              | `@Command()`                   |
+| `Major command`   | Owns invocations without a named command, including executable-only and option-first input.  | `@CommandMajor()`              |
+| `Missing command` | An optional fallback class for an unmatched first positional token.                          | `@CommandMissing()`            |
+| `Handler`         | A method that performs an action inside a command class; one invocation selects one handler. | `@Handler()`                   |
+| `Default handler` | Runs when no handler path or handler flag matches. A command class may define at most one.   | `@Handler()`                   |
+| `Handler path`    | One or more fixed positional tokens that select a handler; the longest matching path wins.   | `@Handler({ path })`           |
+| `Handler flag`    | An option such as --help that switches execution to another mutually exclusive handler.      | `@Handler({ flag, alias })`    |
+| `Field option`    | A flag, scalar value, or repeated value parsed and assigned to a command instance property.  | `@Flag / @Value / @ArrayValue` |
+| `Input`           | Positional tokens left after removing the named command and selected handler path.           | `FuncArgs.inputs`              |
+
+## Runtime and application-structure terms
+
+| Term            | Meaning                                                                                                     | API                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `Command scope` | The one decorated class selected for an invocation: major, named, or missing.                               | `CommandMajor / Command / CommandMissing` |
+| `Registry`      | Read-only metadata for registered named commands, most often used to generate help.                         | `@Regs() / CommandRegistry`               |
+| `Module`        | An application boundary that organizes commands, services, and imported modules; it is not a command.       | `@FuncModule()`                           |
+| `Service`       | A reusable class registered by a module and injected by constructor type for domain or infrastructure work. | `@Service()`                              |
+
+See [Runtime](/runtime) for how these definitions select a class, method, and dependencies, or [API Reference](/apis) for every decorator parameter.
+
+</DocsLayout>

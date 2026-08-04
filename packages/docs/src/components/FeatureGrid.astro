@@ -1,0 +1,36 @@
+---
+interface FeatureItem {
+  description: string
+  href: string
+  label: string
+  title: string
+}
+
+interface Props {
+  items: FeatureItem[]
+}
+
+const { items } = Astro.props
+---
+
+<div class="docs-feature-grid" data-minimap-ignore>
+  {
+    items.map((item, index) => (
+      <a class="docs-feature-card group" href={item.href}>
+        <span aria-hidden="true" class="docs-feature-index">
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <h3>{item.title}</h3>
+        <p>{item.description}</p>
+        <span class="docs-feature-link">
+          {item.label}
+          <span
+            aria-hidden="true"
+            class="transition-transform group-hover:translate-x-0.5">
+            →
+          </span>
+        </span>
+      </a>
+    ))
+  }
+</div>

@@ -1,0 +1,96 @@
+---
+title: 介绍
+description: 使用 func 构建兼顾开发体验、可维护性、运行性能和产物体积的 TypeScript CLI。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import CliStructureComparison from '@/components/CliStructureComparison.astro'
+import ComplexityCurve from '@/components/ComplexityCurve.astro'
+import DecisionTable from '@/components/DecisionTable.astro'
+import FrameworkTradeoffPlot from '@/components/FrameworkTradeoffPlot.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const approachChoices = [
+  {
+    choice: '性能',
+    when: 'func 通过反射将所有命令预先注册，保持静态执行，低复杂度',
+    example: '✅',
+  },
+  {
+    choice: '体积',
+    example: '✅',
+  },
+  {
+    choice: '开发者体验',
+    when: '完全类型支持与提示，科学的项目设计与脚手架支持',
+    example: '✅',
+  },
+]
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="/">
+
+`func` 是一个面向 TypeScript 的轻量 CLI 应用框架。它使用类和装饰器声明命令、输入和校验规则，提供命令分发、错误边界、服务注入以及多种类型安全功能，提供从本地开发到生产构建完整流程的解决方案。
+
+你可以随时从单命令工具、单文件等小工具起步开发，在命令和业务规则增加后，再按需拆分处理器、服务和模块，全程使用同一套输入模型、运行时和构建流程。 因为 `func` 在确保开发者体验、可维护性、可扩展性的同时，也仍旧保持高性能与低打包体积，无论项目大小都适合使用。
+
+## 为什么需要 func？
+
+命令行项目的复杂度通常上升很快，而且稍加拓展就会难以理解和维护，项目很容易陷入无限的 “打补丁” 与冗余的防守性编程里——一个输入需要同时定义名称、类型、默认值、校验规则和错误提示；
+不同命令可能需要共享文件读写、网络请求和通用业务规则；发布后还要保证已有调用方式的兼容性。
+
+如果把这些职责都塞在参数解析和命令回调里，哪怕只是改一个选项，都会同时牵动解析、校验、执行和错误处理逻辑。随着功能增加，每次修改需要梳理和验证的代码范围会越来越大。
+
+<ComplexityCurve locale="zh-cn" />
+
+`func` 为常见 CLI 功能提供了预制能力，并且要求这些处理器功能都必须严格遵循 TypeScript 类型，这允许工程可承载更多、更复杂的业务模块，
+你的每次修改只设计核心业务代码，不需要入侵框架，甚至完全不必理解工作原理。
+
+## 综合考量
+
+<FrameworkTradeoffPlot locale="zh-cn" />
+
+在当前基准工作负载中 (benchmarks 为基准的示例项目)，`func` 的平均冷启动时间为 41.31 ms，原始产物为 65.73 KiB：启动性能与 Commander 和 cac 处于同一水准，体积明显小于 yargs 和 oclif，整体处于性能与体积的第一梯队。同一份报告的开发体验和可维护性代理评估中， `func` 分别得到 86 分和 83 分，均为本次对比中的最高分。
+
+<DecisionTable items={approachChoices} locale="zh-cn">
+  {'func 框架自身'}
+  <a href="https://github.com/unix/func/blob/main/examples/popular/archived.tar.gz">
+    {'体积低'}
+  </a>
+  {'，且内置验证、组合、常见解析器'}
+</DecisionTable>
+
+以下两段代码实现相同的输入规则。`func` 将类型、默认值和校验放在对应字段上，处理器接收的是已经完成转换和校验的输入。
+
+### 同一个命令对比
+
+相同的输入规则实现 `artifact inspect` 命令：必填引用、平台枚举、数字重试次数和 JSON 标志。行数不含 import 与共享业务函数。
+
+<CliStructureComparison locale="zh-cn" />
+
+代码行数不是评价框架的标准。这里仅表明 `func` 在保持高性能、轻量级的同时，使用更加清晰、现代化、友好的工程方案，使项目始终保持生命力，
+让人类可以一眼看懂随时可拓展维护。
+
+## Agent 适配
+
+除上述之外，`func` 也有非常优秀的 Agent 适配能力。
+
+`func` 以类型安全为核心，通过明确严谨的接口固定了命令、输入、校验、处理器和服务之间的边界。
+这使得 **Agent 可以根据项目规则生成安全可靠、稳定合理、符合架构设计的项目代码，如果必要，你甚至可以不参与编写代码，仅提供业务逻辑引导就能完成高质量的终端工具**。
+
+与此同时，`func` 还提供了完整的测试支持与 Agent 兼容。Agent 还可以从用户视角运行命令，检查退出行为与稳定输出，添加符合预期的自动化验收测试用例，
+进一步在自动化中保障业务安全和项目质量。
+
+请打开 [Agent 指引](/zh-cn/guide/agent-setup) 。你可以选择适合当前阶段的任务，让 Agent 创建项目、优化结构或补充 CLI 行为测试。
+
+## 接下来从哪里开始
+
+按你的当前目标选择文档入口：
+
+- 第一次使用 func： [创建项目并运行第一个命令](/zh-cn/guide)。
+- 理解 func 的运行模型： [理解命令、处理器、输入和服务之间的关系](/zh-cn/concepts)。
+- 接入已有项目： [安装核心包并配置应用入口](/zh-cn/guide/existing-project)。
+- 查找具体能力： 进入[命令](/zh-cn/commands)、[字段选项](/zh-cn/options)、[参数](/zh-cn/parameters)或[错误处理](/zh-cn/errors)文档。
+
+</DocsLayout>

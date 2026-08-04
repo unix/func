@@ -1,0 +1,123 @@
+---
+title: API 参考
+description: 查阅当前 func 装饰器、运行时类型、模块 API 和 funcgo 命令。
+authors:
+  - Witt
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/Callout.astro'
+import CodeBlock from '@/components/CodeBlock.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const apiExampleCode = [
+  "import { Command, Handler, Required, Value } from 'func'",
+  '',
+  "@Command({ name: 'deploy' })",
+  'export class DeployCommand {',
+  '  @Required()',
+  '  @Value()',
+  '  env?: string',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(`Deploying to ${this.env}`)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="apis">
+  <Callout locale="zh-cn" title="查阅完整 API 定义" variant="note">
+
+选择模型时先阅读[命令](/zh-cn/commands)或 [核心概念](/zh-cn/concepts)；需要装饰器参数、运行时类型、配置键和工具选项时， 可以查阅本页。
+
+  </Callout>
+  <CodeBlock code={apiExampleCode} filename="src/commands/deploy.command.ts" lang="ts" />
+
+| API 类别                   | 返回                 | 失败契约                                                |
+| -------------------------- | -------------------- | ------------------------------------------------------- |
+| 命令与模块装饰器           | `ClassDecorator`     | 无效定义属于 F_SYSTEM 错误，并会阻止分发。              |
+| 处理器与 catch 装饰器      | `MethodDecorator`    | 无效目标或互斥参数属于 F_SYSTEM 错误。                  |
+| 字段选项装饰器             | `PropertyDecorator`  | 无效定义属于 F_SYSTEM；无效用户值属于 F_RUNTIME_PRINT。 |
+| 运行时注入装饰器           | `ParameterDecorator` | 不支持的注入位置属于 F_SYSTEM 错误。                    |
+| run(input, options?)       | `Promise<void>`      | 运行时失败会进入局部和全局错误处理流程。                |
+| createApp(input, options?) | `Container`          | 容器解析并运行时会验证应用定义。                        |
+
+本页用于查询 API 签名和参数。行为说明和设计建议见 [核心概念](/zh-cn/concepts)、 [字段选项](/zh-cn/options)、[参数注入](/zh-cn/parameters) 和 [错误处理](/zh-cn/errors)。
+
+## 命令
+
+| 签名                                       | 结构                                                                                                                    | 描述                                                                                         |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `@Command(params: CommandParams)`          | `CommandParams = { name: string, description?: string, alias?: string }`                                                | 注册具名命令。name 或 alias 会与第一个输入 token 匹配。                                      |
+| `@Handler(params?: HandlerParams)`         | `HandlerParams = { flag?: string, alias?: string, description?: string, path?: string[] }`                              | 注册默认处理器、标志处理器或路径处理器。path 不能与 flag 或 alias 同时使用。                 |
+| `@SubOptions(params: Array<OptionParams>)` | `OptionParams = { name: string, type?: Boolean \| String \| Number \| [String], description?: string, alias?: string }` | 为当前命令作用域添加仅用于解析的选项。需要从命令实例读取值时，优先使用字段选项。             |
+| `@CommandMissing()`                        | `-`                                                                                                                     | 注册用于处理未知首个裸输入的 fallback command。它可以像普通命令一样定义 handler 和字段选项。 |
+| `@CommandMajor()`                          | `-`                                                                                                                     | 注册空调用和顶层选项使用的主命令。                                                           |
+| `@Catch()`                                 | `-`                                                                                                                     | 注册局部命令错误方法。方法正常结束后，错误不再传递给全局处理器。                             |
+| `@CatchAll() / @CommandError()`            | `-`                                                                                                                     | 注册全局错误处理器类。CommandError 是 CatchAll 的别名。                                      |
+
+## 字段选项和校验器
+
+| 签名                   | 结构                                                                                                                                   | 描述                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `@Flag(params?)`       | `params = { name?: string, alias?: string, description?: string }`                                                                     | 声明一个赋值给被装饰属性的布尔选项。                        |
+| `@Value(params?)`      | `params = { name?: string, alias?: string, description?: string, type?: Boolean \| String \| Number \| [String], required?: boolean }` | 声明标量值选项。能从 design metadata 推断类型时会自动推断。 |
+| `@ArrayValue(params?)` | `params = { name?: string, alias?: string, description?: string }`                                                                     | 声明重复字符串选项，并以字符串数组赋给属性。                |
+| `@Required()`          | `-`                                                                                                                                    | 要求选项被显式提供，或已经定义默认值。                      |
+| `@Enum(values)`        | `values = Array<boolean \| string \| number>`                                                                                          | 校验标量值或数组中的每一项是否位于允许列表中。              |
+| `@DependsOn(options)`  | `options = string[]`                                                                                                                   | 当此选项被显式提供时，要求同时提供其他选项。                |
+| `@Exclusive(options)`  | `options = string[]`                                                                                                                   | 拒绝此选项与列表中的任一选项同时显式出现。                  |
+| `@ValueValidate(fn)`   | `fn(value, options) => boolean \| string \| void`                                                                                      | 运行自定义校验器。返回 false 或字符串会创建校验错误。       |
+
+## 上下文注入
+
+| 签名           | 描述                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------- |
+| `@Args()`      | 注入 FuncArgs：命令元数据、选中的处理器、inputs、path、归一化 option 和原生解析数据。 |
+| `@Regs()`      | 注入 CommandRegistry，用于读取已注册命令元数据。                                      |
+| `@Exception()` | 向局部 catch 方法和全局错误处理器注入 FuncException。                                 |
+
+## 应用
+
+| 签名                         | 结构                                                                               | 描述                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `@FuncModule(params)`        | `params = { commands?: Class[], imports?: FuncModuleInput[], services?: Class[] }` | 创建应用模块或功能模块。                           |
+| `@Service()`                 | `-`                                                                                | 标记一个可被注入到命令或其他已注册服务中的服务类。 |
+| `run(input, options?)`       | `options = { argv?: string[], services?: Class[] }`                                | 创建应用并执行。                                   |
+| `createApp(input, options?)` | `options = { argv?: string[], services?: Class[] }`                                | 创建底层 Container，但不运行它。                   |
+
+## 运行时类型
+
+| 签名              | 结构                                                                                   | 描述                                          |
+| ----------------- | -------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `FuncArgs`        | `{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }` | 由 Args 注入的归一化运行时上下文。            |
+| `FuncException`   | `code, details, error, level, message, type, preventDefaultPrint()`                    | catch 和错误处理器使用的 FuncError 包装对象。 |
+| `CommandRegistry` | `{ commands: RegisterCommandParams[] }`                                                | 由 Regs 注入的只读注册表上下文。              |
+
+## 支持命令
+
+`funcgo` 为 `func` 项目提供开发和构建命令。完整用法见 [工具链](/zh-cn/tooling)。
+
+| 签名                        | 结构                                                                                                | 描述                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `funcgo setup`              | `--fix?`                                                                                            | 检查 package.json，并建议缺失的 func.entry、func.outDir、bin、dev script 和 build script 配置。 |
+| `funcgo dev`                | `-f, --file <entry>; -- <args>`                                                                     | 通过本地 TypeScript 运行时执行项目入口，并把参数透传给命令。                                    |
+| `funcgo build`              | `-f, --file <entry>; -o, --out <dir>; -e, --external <package>; -w, --watch; --watch-path <target>` | 打包项目入口、创建可执行 bin.js，并可在文件、目录或正向 glob 变化时重新构建。                   |
+| `funcgo --help / --version` | `-h; -v`                                                                                            | 输出 funcgo 命令说明或当前安装版本。                                                            |
+
+## 配置
+
+  <Callout locale="zh-cn" title="setup --fix 会修改 package.json" variant="caution">
+
+已有项目应在修改前检查 `funcgo setup` 的只读输出，尤其要确认通用的 `dev` 或 `build` scripts 没有被宿主应用占用。
+
+  </Callout>
+
+| 签名                       | 描述                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `package.json#func.entry`  | funcgo dev 和 funcgo build 在未提供 --file 时使用的默认 TypeScript 入口文件。 |
+| `package.json#func.outDir` | funcgo build 在未提供 --out 时使用的默认构建输出目录。                        |
+| `package.json#bin`         | 把安装后的可执行命令名映射到 func.outDir 中生成的 bin.js。                    |
+
+</DocsLayout>

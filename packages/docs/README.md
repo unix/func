@@ -13,6 +13,6 @@ pnpm deploy
 pnpm format
 ```
 
-The project uses Astro, TypeScript, Tailwind CSS v4, shadcn with baseUI, and the
-`@unix/prettier` shared rules. Deployment uses Cloudflare Workers Static
-Assets via Wrangler.
+The project uses Astro components, TypeScript, Tailwind CSS v4, and the
+`@unix/prettier` shared rules. Deployment uses Cloudflare Workers Static Assets
+via Wrangler.
