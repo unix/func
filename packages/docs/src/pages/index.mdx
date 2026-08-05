@@ -15,7 +15,7 @@ import DocsLayout from '@/layouts/docs.astro'
 export const approachChoices = [
   {
     choice: 'Performance',
-    when: 'func pre-registers every command through reflection, preserving static execution with low complexity.',
+    when: 'func registers every command in advance through reflection, keeping execution static and complexity low.',
     example: '✅',
   },
   {
@@ -31,9 +31,10 @@ export const approachChoices = [
 
 <DocsLayout frontmatter={frontmatter} page="/">
 
-`func` is a lightweight CLI application framework for TypeScript. It uses classes and decorators to declare commands, input, and validation rules, while providing command dispatch, error boundaries, service injection, a variety of type-safe features, and a complete workflow from local development to production builds.
+`func` is a lightweight CLI application framework for TypeScript. It uses classes and decorators to declare commands, and provides input definition and validation, command dispatch, error boundaries, service injection, and a range of type-safety features. It is a complete solution for terminal projects, covering the entire workflow from local development to production builds.
 
-You can start at any time with a small tool—a single command in a single file—and introduce handlers, services, and modules only as commands and business rules grow. The same input model, runtime, and build workflow apply throughout. Because `func` preserves performance and a small bundle while delivering developer experience, maintainability, and extensibility, it is suitable for projects of any size.
+You can start small at any time—with a single-command tool or a single-file project—and split out handlers, services, and modules only as commands and business rules grow. The same input model, runtime, and build workflow stay with you throughout, keeping development efficient and predictable.
+Because `func` delivers a strong developer experience, maintainability, and extensibility while remaining fast and producing small bundles, it is a good fit at every stage of your project.
 
 ## Why func?
 
@@ -43,13 +44,13 @@ If all these responsibilities are packed into argument parsing and command callb
 
 <ComplexityCurve />
 
-`func` provides ready-made capabilities for common CLI requirements and requires their handlers to strictly follow TypeScript types. This lets an application support more—and more complex—business modules. Each change can focus on core business code without invading the framework or even requiring you to understand its internals.
+`func` provides ready-made capabilities for common CLI requirements and requires every handler to strictly follow TypeScript types. This allows a project to support more—and more complex—business modules. Each change concerns only core business code without intruding on the framework; you do not even need to understand how it works internally.
 
 ## Overall considerations
 
 <FrameworkTradeoffPlot />
 
-In the current benchmark workload (the sample project used by `benchmarks`), `func` has a mean cold start of 41.31 ms and a raw artifact size of 65.73 KiB. Its startup performance is on par with Commander and cac, while its artifact is substantially smaller than those produced by yargs and oclif—placing it in the first tier for both performance and size. In the same report's proxy evaluation of developer experience and maintainability, `func` scores 86 and 83 respectively, the highest scores in this comparison.
+In the current benchmark workload (the sample project used by `benchmarks`), `func` has a mean cold start of 41.31 ms and a raw artifact size of 65.73 KiB. Its startup performance is on par with Commander and cac, while its artifact is substantially smaller than those produced by yargs and oclif—placing it in the top tier for both performance and size. In the same report's proxy evaluation of developer experience and maintainability, `func` scores 86 and 83 respectively, the highest scores in this comparison.
 
 <DecisionTable items={approachChoices}>
   {'The func framework itself '}
@@ -67,15 +68,16 @@ The same input rules implement the `artifact inspect` command: a required refere
 
 <CliStructureComparison />
 
-Lines of code are not a measure of framework quality. These examples simply show that `func` combines high performance and a lightweight footprint with a clearer, modern, and approachable engineering model—keeping a project healthy, easy to understand at a glance, and ready to extend and maintain.
+Lines of code are not a criterion for evaluating a framework. These examples simply show that `func` remains fast and lightweight while using clearer, more modern, and developer-friendly engineering practices. This keeps a project healthy, easy to understand at a glance, and ready to extend or maintain at any time.
 
 ## Agent support
 
 Beyond the benefits above, `func` also provides excellent support for agents.
 
-Type safety is central to `func`. Clear, rigorous interfaces establish the boundaries between commands, input, validation, handlers, and services. This allows an agent to follow project rules and generate safe, reliable code that stays consistent with the architecture. When appropriate, you may not need to write code yourself at all—guiding the business logic can be enough to produce a high-quality terminal tool.
+Type safety is central to `func`. Clear, rigorous interfaces establish firm boundaries between commands, input, validation, handlers, and services.
+**This allows an agent to follow project rules and generate safe, reliable, stable, and well-structured code that conforms to the architecture. When necessary, you may not need to write code yourself at all—guiding the business logic can be enough to produce a high-quality terminal tool.**
 
-At the same time, `func` provides complete testing support designed to work well with agents. An agent can run commands from a user's perspective, verify exit behavior and stable output, and add automated acceptance tests for expected behavior—protecting business logic and project quality through automation.
+At the same time, `func` provides complete testing support and agent compatibility. An agent can run commands from a user's perspective, verify exit behavior and stable output, and add automated acceptance tests for expected behavior—further safeguarding business logic and project quality through automation.
 
 Open the [Agent guide](/guide/agent-setup). Choose a task that fits the project's current stage, then let an agent create the project, improve its structure, or add CLI behavior tests.
 
