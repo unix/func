@@ -22,6 +22,7 @@
     "@fontsource-variable/inter": "^5.2.8",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.1.6",
+    "astro-join-line": "^0.1.0",
     "astro-no-image-endpoint": "^0.1.0",
     "shiki": "^4.4.1",
     "tailwindcss": "^4.3.3"

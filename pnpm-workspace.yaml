@@ -17,3 +17,4 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@unix/prettier@0.1.0'
+  - astro-join-line@0.1.0

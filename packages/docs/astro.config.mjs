@@ -4,7 +4,8 @@ import { unified } from '@astrojs/markdown-remark'
 import mdx from '@astrojs/mdx'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
-import { joinLine, remarkJoinLine } from './src/lib/astroJoinLine.mjs'
+import joinLine from 'astro-join-line'
+import remarkJoinLine from 'astro-join-line/remark'
 import { noImageEndpoint } from 'astro-no-image-endpoint/cloudflare'
 
 // https://astro.build/config
