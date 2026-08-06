@@ -1038,7 +1038,7 @@ const labels =
       setTerminalDemoState(root, elements, 'running')
 
       const worker = new Worker(
-        new URL('../demos/terminal-demo.worker.ts', import.meta.url),
+        new URL('../../demos/terminal-demo.worker.ts', import.meta.url),
         { type: 'module' },
       )
       const active: ActiveTerminalDemo = { timeout: 0, worker }
