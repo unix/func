@@ -1,4 +1,5 @@
 ---
+import GeistLatin from '@/components/GeistLatin.astro'
 import { siteName, siteUrl, type Locale } from '@/lib/docs'
 import { ClientRouter } from 'astro:transitions'
 import globalStylesheet from '../styles/global.css?url'
@@ -48,6 +49,7 @@ const documentTitle = `${title} | ${siteName}`
     <meta property="og:image" content={ogImageUrl} />
     <meta property="twitter:image" content={ogImageUrl} />
     <link rel="icon" type="image/png" sizes="512x512" href="/logo-dark@2x.png" />
+    <GeistLatin />
     <link rel="stylesheet" href={globalStylesheet} />
     <title>{documentTitle}</title>
     <ClientRouter fallback="swap" />
