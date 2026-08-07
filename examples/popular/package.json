@@ -6,25 +6,31 @@
   "license": "MIT",
   "scripts": {
     "dev": "funcgo dev --",
-    "build": "funcgo build"
+    "build": "funcgo build",
+    "test": "npm run build && vitest run",
+    "format": "prettier --write ."
   },
   "files": [
-    "dist",
-    "README.md"
+    "src",
+    "README.md",
+    "tsconfig.json",
+    ".gitignore"
   ],
   "func": {
     "entry": "src/index.ts",
     "outDir": "dist"
   },
+  "bin": {
+    "popular": "./dist/bin.js"
+  },
   "dependencies": {
     "func": "latest"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
-    "funcgo": "latest",
-    "typescript": "^7.0.2"
-  },
-  "bin": {
-    "popular": "./dist/bin.js"
+    "@types/node": "^26.1.2",
+    "funcgo": "^1.0.0",
+    "prettier": "^3.9.6",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vitest": "^4.1.10"
   }
 }

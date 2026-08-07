@@ -1,7 +1,9 @@
 import { ArrayValue, CommandMajor, Enum, Flag, Handler, Regs, Value } from 'func'
 import type { CommandRegistry } from 'func'
-import { config } from '../config'
-import { ProjectService } from '../services/project.service'
+import pkg from '../../package.json'
+import { appName } from '../config'
+
+const runtimeModes = ['dev', 'prod']
 
 @CommandMajor()
 export class Major {
@@ -9,13 +11,13 @@ export class Major {
     alias: 'j',
     description: 'print JSON output',
   })
-  json = false
+  json: boolean = false
 
-  @Enum(config.runtime.modes)
+  @Enum(runtimeModes)
   @Value({
     description: 'runtime mode',
   })
-  mode: string = config.runtime.defaultMode
+  mode: string = 'dev'
 
   @ArrayValue({
     name: 'tag',
@@ -23,12 +25,10 @@ export class Major {
   })
   tags: string[] = []
 
-  constructor(private project: ProjectService) {}
-
   @Handler()
   run() {
     const data = {
-      message: `Welcome to ${this.project.name()}`,
+      message: `Welcome to ${appName}`,
       mode: this.mode,
       tags: this.tags,
     }
@@ -47,11 +47,11 @@ export class Major {
 
   @Handler({ flag: 'help', alias: 'h', description: 'print help' })
   help(@Regs() regs: CommandRegistry) {
-    console.log(config.package.name)
+    console.log(appName)
     console.log('')
     console.log('Usage:')
-    console.log(`  ${config.package.name} [options]`)
-    console.log(`  ${config.package.name} <command> [options]`)
+    console.log(`  ${appName} [options]`)
+    console.log(`  ${appName} <command> [options]`)
     console.log('')
     console.log('Commands:')
 
@@ -66,15 +66,13 @@ export class Major {
     console.log('  -h, --help       print help')
     console.log('  -v, --version    print version')
     console.log('  -j, --json       print JSON output')
-    console.log(
-      `      --mode       runtime mode: ${config.runtime.modes.join(', ')}`,
-    )
+    console.log(`      --mode       runtime mode: ${runtimeModes.join(', ')}`)
     console.log('      --tag        add an output tag')
   }
 
   @Handler({ flag: 'version', alias: 'v', description: 'print version' })
   version() {
-    console.log(config.package.version)
+    console.log(pkg.version)
   }
 
   private commandLine(name: string, alias?: string): string {

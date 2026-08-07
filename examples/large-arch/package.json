@@ -20,7 +20,7 @@
     "func": "latest"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^26.1.2",
     "funcgo": "latest",
     "typescript": "^7.0.2"
   },
