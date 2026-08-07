@@ -1,8 +1,13 @@
 import { describe, expect, test } from 'vitest'
+import { spawnSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { buildWithNcc, parseBuildArgs } from '../src/actions/build'
+import {
+  buildWithNcc,
+  buildWithRolldown,
+  parseBuildArgs,
+} from '../src/actions/build'
 
 describe('parseBuildArgs', () => {
   test('parses file, out, and repeated externals', () => {
@@ -79,6 +84,57 @@ describe('parseBuildArgs', () => {
         "#!/usr/bin/env node\nrequire('./index.js')\n",
       )
       expect(fs.statSync(bin).mode & 0o111).toBeGreaterThan(0)
+    } finally {
+      fs.rmSync(tempDir, { force: true, recursive: true })
+    }
+  })
+
+  test('bundles with Rolldown and writes bin file', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'funcgo-rolldown-build-'))
+
+    try {
+      const output = path.join(tempDir, 'dist')
+      const entry = path.join(tempDir, 'index.ts')
+      const tsconfig = path.join(tempDir, 'tsconfig.json')
+      fs.writeFileSync(
+        entry,
+        [
+          'const property = (): PropertyDecorator => () => undefined',
+          'class Example {',
+          '  @property()',
+          '  value = "ok"',
+          '}',
+          'console.log(new Example().value)',
+        ].join('\n'),
+      )
+      fs.writeFileSync(
+        tsconfig,
+        JSON.stringify({
+          compilerOptions: {
+            emitDecoratorMetadata: true,
+            experimentalDecorators: true,
+            target: 'ES2022',
+          },
+        }),
+      )
+
+      await buildWithRolldown({
+        entry,
+        external: [],
+        output,
+      })
+
+      const bundle = path.join(output, 'index.js')
+      const bin = path.join(output, 'bin.js')
+      expect(fs.existsSync(bundle)).toBe(true)
+      expect(fs.existsSync(bin)).toBe(true)
+      expect(fs.readFileSync(bin, 'utf-8')).toBe(
+        "#!/usr/bin/env node\nrequire('./index.js')\n",
+      )
+      expect(fs.statSync(bin).mode & 0o111).toBeGreaterThan(0)
+      const result = spawnSync(process.execPath, [bin], { encoding: 'utf-8' })
+      expect(result.status).toBe(0)
+      expect(result.stdout).toBe('ok\n')
     } finally {
       fs.rmSync(tempDir, { force: true, recursive: true })
     }

@@ -15,6 +15,34 @@ export interface BuildArgs {
 }
 
 export const build = async (argv: string[]): Promise<void> => {
+  await runBuild(argv, buildWithRolldown)
+}
+
+export const buildNcc = async (argv: string[]): Promise<void> => {
+  const ncc = process.execPath
+  const nccArgs = [resolveNccCli()]
+
+  await runBuild(argv, options =>
+    buildWithNcc({
+      ...options,
+      ncc,
+      nccArgs,
+    }),
+  )
+}
+
+interface ProjectBuildOptions {
+  entry: string
+  external: string[]
+  output: string
+}
+
+type ProjectBuild = (options: ProjectBuildOptions) => Promise<void>
+
+const runBuild = async (
+  argv: string[],
+  projectBuild: ProjectBuild,
+): Promise<void> => {
   const args = parseBuildArgs(argv)
 
   const pkg = readPackage()
@@ -27,12 +55,10 @@ export const build = async (argv: string[]): Promise<void> => {
   const buildOptions = {
     entry,
     external: args.external,
-    ncc: process.execPath,
-    nccArgs: [resolveNccCli()],
     output,
   }
   if (!args.watch) {
-    await buildWithNcc(buildOptions)
+    await projectBuild(buildOptions)
     return
   }
 
@@ -48,7 +74,7 @@ export const build = async (argv: string[]): Promise<void> => {
       build: async () => {
         if (!initialBuild) spinner.newline()
         initialBuild = false
-        await buildWithNcc(buildOptions)
+        await projectBuild(buildOptions)
       },
       cwd,
       onBuildError: printError,
@@ -61,6 +87,36 @@ export const build = async (argv: string[]): Promise<void> => {
   } finally {
     process.off('SIGINT', stopWatching)
     process.off('SIGTERM', stopWatching)
+  }
+}
+
+export const buildWithRolldown = async (
+  options: ProjectBuildOptions,
+): Promise<void> => {
+  const startedAt = performance.now()
+  spinner.start('Bundling...')
+  try {
+    const { build: bundle } = await import('rolldown')
+    await bundle({
+      input: options.entry,
+      external: options.external,
+      platform: 'node',
+      tsconfig: resolveTsconfig(options.entry),
+      transform: {
+        target: 'node20.19',
+      },
+      output: {
+        codeSplitting: false,
+        file: path.join(options.output, 'index.js'),
+        format: 'cjs',
+        minify: true,
+      },
+    })
+    writeBin(options.output)
+    spinner.succeed(`Bundled in ${formatDuration(performance.now() - startedAt)}`)
+  } catch (error) {
+    spinner.fail('Build failed')
+    throw error
   }
 }
 
@@ -96,12 +152,9 @@ export const parseBuildArgs = (argv: string[]): BuildArgs => {
   return result
 }
 
-interface BuildWithNccOptions {
-  entry: string
-  external: string[]
+interface BuildWithNccOptions extends ProjectBuildOptions {
   ncc: string
   nccArgs?: string[]
-  output: string
 }
 
 export const buildWithNcc = async (options: BuildWithNccOptions): Promise<void> => {
@@ -123,9 +176,7 @@ export const buildWithNcc = async (options: BuildWithNccOptions): Promise<void> 
       ],
       { cwd },
     )
-    const bin = path.join(options.output, 'bin.js')
-    const content = "#!/usr/bin/env node\nrequire('./index.js')\n"
-    fs.writeFileSync(bin, content, { mode: 0o755 })
+    writeBin(options.output)
     spinner.succeed(`Bundled in ${formatDuration(performance.now() - startedAt)}`)
   } catch (error) {
     spinner.fail('Build failed')
@@ -135,6 +186,26 @@ export const buildWithNcc = async (options: BuildWithNccOptions): Promise<void> 
 
 const resolveNccCli = (): string => {
   return require.resolve('@vercel/ncc/dist/ncc/cli.js')
+}
+
+const resolveTsconfig = (entry: string): string | true => {
+  let directory = path.dirname(entry)
+
+  while (true) {
+    const tsconfig = path.join(directory, 'tsconfig.json')
+    if (fs.existsSync(tsconfig)) return tsconfig
+
+    const parent = path.dirname(directory)
+    if (parent === directory) return true
+
+    directory = parent
+  }
+}
+
+const writeBin = (output: string): void => {
+  const bin = path.join(output, 'bin.js')
+  const content = "#!/usr/bin/env node\nrequire('./index.js')\n"
+  fs.writeFileSync(bin, content, { mode: 0o755 })
 }
 
 const printError = (error: unknown): void => {
