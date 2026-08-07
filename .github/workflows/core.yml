@@ -1,13 +1,6 @@
 name: Core
 
 on:
-  push:
-    paths:
-      - .github/workflows/core.yml
-      - package.json
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
-      - packages/core/**
   pull_request:
     paths:
       - .github/workflows/core.yml
@@ -36,4 +29,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Run core end-to-end tests
+        working-directory: packages/core
         run: pnpm test:e2e
