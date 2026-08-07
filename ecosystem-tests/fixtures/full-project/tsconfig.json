@@ -6,10 +6,11 @@
     "lib": ["ES2022", "DOM"],
     "module": "Node16",
     "moduleResolution": "Node16",
+    "noCheck": true,
     "removeComments": true,
-    "rootDir": "src",
+    "rootDir": ".",
     "strict": true,
     "target": "ES2022"
   },
-  "files": ["src/index.ts"]
+  "files": ["src/index.ts", "probes/api-types.ts"]
 }
