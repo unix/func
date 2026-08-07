@@ -3,7 +3,7 @@ title: 介绍
 description: 使用 func 构建兼顾开发体验、可维护性、运行性能和产物体积的 TypeScript CLI。
 authors:
   - Witt
-lastModified: '2026-08-04'
+lastModified: '2026-08-07'
 ---
 
 import CliStructureComparison from '@/components/diagrams/cli-structure-comparison.astro'
@@ -52,7 +52,7 @@ export const approachChoices = [
 
 <FrameworkTradeoffPlot locale="zh-cn" />
 
-在当前基准工作负载中 (benchmarks 为基准的示例项目)，`func` 的平均冷启动时间为 41.31 ms，原始产物为 65.73 KiB：启动性能与 Commander 和 cac 处于同一水准，体积明显小于 yargs 和 oclif，整体处于性能与体积的第一梯队。同一份报告的开发体验和可维护性代理评估中， `func` 分别得到 86 分和 83 分，均为本次对比中的最高分。
+在当前基准工作负载中 (benchmarks 为基准的示例项目)，`func` 的平均冷启动时间为 40.13 ms，原始产物为 45.02 KiB：启动性能与 Commander 和 cac 处于同一水准，体积明显小于 yargs 和 oclif，整体处于性能与体积的第一梯队。同一份报告的开发体验和可维护性代理评估中， `func` 分别得到 86 分和 83 分，均为本次对比中的最高分。
 
 <DecisionTable items={approachChoices} locale="zh-cn">
   {'func 框架自身'}

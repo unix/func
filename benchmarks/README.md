@@ -83,11 +83,11 @@ The report generated on the recorded Apple M1 Max / Node 24.15 environment produ
 
 | Framework   | Raw bundle |       Gzip | Adapter non-blank lines | Mean fresh process | Versus func |
 | ----------- | ---------: | ---------: | ----------------------: | -----------------: | ----------: |
-| func        |  65.73 KiB |  16.85 KiB |                     366 |           41.31 ms |       1.00× |
-| commander   |  44.91 KiB |  13.31 KiB |                     367 |           41.00 ms |       0.99× |
-| yargs       | 115.02 KiB |  35.85 KiB |                     330 |           69.96 ms |       1.69× |
-| @oclif/core | 330.25 KiB | 102.94 KiB |                     279 |           68.98 ms |       1.67× |
-| cac         |  17.05 KiB |   6.32 KiB |                     335 |           37.03 ms |       0.90× |
+| func        |  45.02 KiB |  13.38 KiB |                     366 |           40.13 ms |       1.00× |
+| commander   |  44.91 KiB |  13.31 KiB |                     367 |           42.00 ms |       1.05× |
+| yargs       | 115.12 KiB |  35.88 KiB |                     330 |           71.67 ms |       1.79× |
+| @oclif/core | 331.31 KiB | 103.22 KiB |                     279 |           70.84 ms |       1.77× |
+| cac         |  17.05 KiB |   6.32 KiB |                     335 |           38.80 ms |       0.97× |
 
 The authoring evaluation for the same adapters is:
 
@@ -100,11 +100,11 @@ The authoring evaluation for the same adapters is:
 | cac         |       33 |                    28 |
 
 In this snapshot, `cac` has the smallest and fastest artifact but requires local
-implementations for most validation relationships. `func` and `commander` have
-nearly identical fresh-process timing; `func` exposes more of the tested policy as
-declarative framework capabilities. `yargs` and `@oclif/core` carry noticeably more
-startup cost, while oclif's command-class API produces the shortest adapter here.
-These are workload-specific trade-offs, not a single overall winner.
+implementations for most validation relationships. `func` is 107 raw bytes larger
+than `commander` and starts about 1.9 ms faster while exposing more of the tested
+policy as declarative framework capabilities. `yargs` and `@oclif/core` carry
+noticeably more startup cost, while oclif's command-class API produces the shortest
+adapter here. These are workload-specific trade-offs, not a single overall winner.
 
 See `report.json` for the capability contract and mechanism matrix, per-scenario
 min/median/mean/p95/max/deviation, source and compression sizes, relative deltas,

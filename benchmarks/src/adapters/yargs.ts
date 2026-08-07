@@ -50,8 +50,8 @@ const releaseBuilder = (command: Argv) =>
     .option('canary-percent', { type: 'number' })
     .option('tag', { array: true, default: [], type: 'string' })
     .option('set', { array: true, default: [], type: 'string' })
-    .option('dry-run', { default: false, type: 'boolean' })
-    .option('confirm', { default: false, type: 'boolean' })
+    .option('dry-run', { type: 'boolean' })
+    .option('confirm', { type: 'boolean' })
     .option('approval', { type: 'string' })
     .option('json', { default: false, type: 'boolean' })
     .conflicts('confirm', 'dry-run')
@@ -193,8 +193,8 @@ const releaseCommand: CommandModule<{}, ReleaseArguments> = {
           settings: assignments(argv.set, 'set', /^[A-Z][A-Z0-9_]{0,39}$/, 12),
         },
         safeguards: {
-          dryRun: argv.dryRun,
-          confirmed: argv.confirm,
+          dryRun: Boolean(argv.dryRun),
+          confirmed: Boolean(argv.confirm),
           approval: argv.approval ?? null,
         },
       },

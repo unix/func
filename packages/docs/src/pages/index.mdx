@@ -3,7 +3,7 @@ title: Introduction
 description: Build TypeScript CLIs with func that balance developer experience, maintainability, runtime performance, and artifact size.
 authors:
   - Witt
-lastModified: '2026-08-04'
+lastModified: '2026-08-07'
 ---
 
 import CliStructureComparison from '@/components/diagrams/cli-structure-comparison.astro'
@@ -50,7 +50,7 @@ If all these responsibilities are packed into argument parsing and command callb
 
 <FrameworkTradeoffPlot />
 
-In the current benchmark workload (the sample project used by `benchmarks`), `func` has a mean cold start of 41.31 ms and a raw artifact size of 65.73 KiB. Its startup performance is on par with Commander and cac, while its artifact is substantially smaller than those produced by yargs and oclif—placing it in the top tier for both performance and size. In the same report's proxy evaluation of developer experience and maintainability, `func` scores 86 and 83 respectively, the highest scores in this comparison.
+In the current benchmark workload (the sample project used by `benchmarks`), `func` has a mean cold start of 40.13 ms and a raw artifact size of 45.02 KiB. Its startup performance is on par with Commander and cac, while its artifact is substantially smaller than those produced by yargs and oclif—placing it in the top tier for both performance and size. In the same report's proxy evaluation of developer experience and maintainability, `func` scores 86 and 83 respectively, the highest scores in this comparison.
 
 <DecisionTable items={approachChoices}>
   {'The func framework itself '}
