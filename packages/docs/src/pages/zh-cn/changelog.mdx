@@ -1,18 +1,19 @@
 ---
 title: 更新日志
-description: 了解 func 2.x 各版本变更，以及 1.0.0 奠定的基础能力。
+description: 记录 func 各版本的功能更新、问题修复与维护变更。
 authors:
   - Witt
 lastModified: '2026-08-07'
 ---
 
 import Changelog from '@/components/content/changelog.astro'
+import { Content as ChangelogContent } from '@/content/changelog/zh-cn.mdx'
 import DocsLayout from '@/layouts/docs.astro'
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="changelog">
 
-查看 func 2.x 各个版本引入的变更。每个版本都可直接跳转到准备相关源码变更的提交。
-
-<Changelog locale="zh-cn" />
+<Changelog locale="zh-cn">
+  <ChangelogContent />
+</Changelog>
 
 </DocsLayout>

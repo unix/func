@@ -546,7 +546,7 @@
   }
 
   .changelog {
-    @apply mt-10 max-w-2xl space-y-10;
+    @apply mt-12 w-full space-y-14;
   }
 
   .changelog-section {
@@ -554,19 +554,31 @@
   }
 
   .prose-static .changelog-series-title {
-    @apply mt-0 mb-4 font-mono text-lg leading-7 font-semibold tracking-tight text-foreground;
+    @apply mt-0 mb-7 font-mono text-xs leading-5 font-semibold tracking-[0.14em] text-foreground uppercase;
   }
 
   .changelog-list {
-    @apply overflow-hidden rounded-lg border bg-card;
+    @apply space-y-10;
   }
 
   .changelog-release {
-    @apply border-b px-4 py-4 transition-colors last:border-b-0 hover:bg-muted/50 sm:px-5;
+    @apply grid grid-cols-[0.5rem_minmax(0,1fr)] gap-x-4;
+  }
+
+  .changelog-marker {
+    @apply mt-2 block size-2 rounded-full bg-border;
+  }
+
+  .changelog-release[data-latest='true'] .changelog-marker {
+    @apply bg-violet-500;
+  }
+
+  .changelog-release-content {
+    @apply min-w-0;
   }
 
   .changelog-release-header {
-    @apply flex flex-wrap items-center justify-between gap-x-4 gap-y-2;
+    @apply flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4;
   }
 
   .changelog-release-heading {
@@ -574,23 +586,31 @@
   }
 
   .prose-static .changelog-release-heading h3 {
-    @apply m-0 font-mono text-sm leading-6 font-semibold tracking-normal;
+    @apply m-0 font-mono text-base leading-6 font-semibold tracking-tight;
   }
 
   .prose-static .changelog-release-heading h3 a {
-    @apply inline-flex rounded-md bg-blue-500/10 px-2 py-0.5 text-blue-700 no-underline outline-none transition-[color,box-shadow] hover:text-blue-600 focus-visible:ring-2 focus-visible:ring-ring dark:text-blue-400 dark:hover:text-blue-300;
+    @apply text-foreground no-underline outline-none transition-colors hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-ring dark:hover:text-violet-300;
+  }
+
+  .prose-static
+    .changelog-release[data-latest='true']
+    .changelog-release-heading
+    h3
+    a {
+    @apply text-violet-700 dark:text-violet-300;
   }
 
   .prose-static .changelog-commit {
-    @apply rounded-sm font-mono text-xs text-muted-foreground no-underline outline-none transition-[color,box-shadow] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring;
+    @apply font-mono text-xs text-muted-foreground/70 no-underline outline-none transition-colors hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-ring dark:hover:text-violet-300;
   }
 
   .changelog-badge {
-    @apply inline-flex items-center rounded-md px-2 py-0.5 text-xs leading-5 font-medium;
+    @apply inline-flex items-center font-mono text-xs leading-5 font-medium;
   }
 
   .changelog-badge-latest {
-    @apply bg-emerald-500/10 text-emerald-700 dark:text-emerald-400;
+    @apply text-violet-700 dark:text-violet-300;
   }
 
   .changelog-release time {
@@ -598,15 +618,36 @@
   }
 
   .prose-static .changelog-release ul {
-    @apply my-3 ml-4 space-y-1.5 text-sm leading-6 text-muted-foreground;
+    @apply mt-3 mb-0 ml-0 list-none space-y-2 text-sm leading-6 text-muted-foreground;
   }
 
   .prose-static .changelog-release li {
-    @apply pl-1;
+    @apply relative pl-4;
   }
 
-  .prose-static .changelog-legacy {
-    @apply my-0 rounded-lg border bg-card p-4 text-sm leading-6 text-muted-foreground sm:p-5;
+  .prose-static .changelog-release li::before {
+    @apply absolute top-[0.6875rem] left-0 size-1 rounded-full bg-border;
+    content: '';
+  }
+
+  .prose-static .changelog-release[data-latest='true'] li::before {
+    @apply bg-violet-500/60;
+  }
+
+  .prose-static .changelog-release li strong {
+    @apply font-semibold text-foreground;
+  }
+
+  .prose-static .changelog-release li u {
+    @apply decoration-violet-500/60 underline-offset-4;
+  }
+
+  .changelog-legacy {
+    @apply grid grid-cols-[0.5rem_minmax(0,1fr)] gap-x-4;
+  }
+
+  .prose-static .changelog-legacy p {
+    @apply my-0 text-sm leading-6 text-muted-foreground;
   }
 
   .prose-static :where(h1, h2, p, li, td, th, a, blockquote) {

@@ -1,0 +1,62 @@
+---
+import type { ChangelogRelease } from '@/lib/changelog'
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props extends ChangelogRelease {
+  locale?: Locale
+}
+
+const { commit, date, latest = false, locale = defaultLocale, version } = Astro.props
+const labels =
+  locale === 'zh-cn'
+    ? {
+        commit: '查看提交',
+        latest: '当前版本',
+        published: '发布于',
+      }
+    : {
+        commit: 'View commit',
+        latest: 'Latest',
+        published: 'Published',
+      }
+const versionId = `v-${version.replaceAll('.', '-')}`
+const shortCommit = commit.slice(0, 6)
+---
+
+<article
+  class="changelog-release"
+  aria-labelledby={versionId}
+  data-latest={latest ? 'true' : undefined}>
+  <span class="changelog-marker" aria-hidden="true"></span>
+
+  <div class="changelog-release-content">
+    <header class="changelog-release-header">
+      <div class="changelog-release-heading">
+        <h3 id={versionId}>
+          <a href={`#${versionId}`}>v{version}</a>
+        </h3>
+        <a
+          aria-label={`${labels.commit} ${commit}`}
+          class="changelog-commit"
+          href={`https://github.com/unix/func/commit/${commit}`}
+          rel="noopener noreferrer"
+          target="_blank">
+          {shortCommit}
+        </a>
+        {
+          latest && (
+            <span class="changelog-badge changelog-badge-latest">
+              {labels.latest}
+            </span>
+          )
+        }
+      </div>
+      <time datetime={date}>
+        <span class="sr-only">{labels.published} </span>
+        {date}
+      </time>
+    </header>
+
+    <slot />
+  </div>
+</article>

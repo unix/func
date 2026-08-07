@@ -1,0 +1,61 @@
+import ChangelogRelease from '@/components/content/changelog-release.astro'
+import { changelogReleases } from '@/lib/changelog'
+
+<ChangelogRelease {...changelogReleases['2.3.0']}>
+
+- Publish separate `CommonJS` and `ESM` bundles with conditional package exports and a shared declaration entry.
+- Update `funcgo` to 1.0, use Rolldown as the default build tool, and retain `build-ncc` as the legacy build option.
+- Add end-to-end coverage for both `import` and `require` consumers.
+- Declare `Node.js 20.12` or newer as the supported runtime.
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.2.2']}>
+
+- Streamline the build output.
+- Run the test suite as part of the package build. The published package is reduced from 161 files in 2.2.1 to <a href="https://pkg0.witt.im/?q=func&type=npm&version=2.2.2" rel="noopener noreferrer" target="_blank">61</a> files.
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.2.1']}>
+
+- Refresh the core build and test toolchain, including TypeScript 7, Vitest 4, Vite 8, and related dependencies.
+- Refresh package metadata and the README without changing the runtime API.
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.2.0']}>
+
+- Allow missing-command classes to use method-based handlers, including async execution, field options, services, and local catches.
+- Add a stable reason field to errors raised when a value type cannot be inferred.
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.1.1']}>
+
+- Move the workspace to pnpm 11 and switch the shared formatter package to @unix/prettier.
+- Maintenance-only release with no runtime behavior change.
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.1.0']}>
+
+- Introduce the module-based command runtime with FuncModule, services, method handlers, local catches, field options, and constraints.
+- Add explicit application creation and run APIs, registration validation, and TypeScript 6 support.
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.0.1']}>
+
+- Correct decorator factory declarations to return the standard ClassDecorator type.
+- Remove unnecessary constructor returns from the emitted decorator implementations.
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.0.0']}>
+
+- Rework command validation and parsing with stricter duplicate, type, required-value, array, and unknown-option checks.
+- Add structured system, runtime, input, and deprecation errors with stable codes and details.
+- Move the core package into the pnpm workspace and migrate its test suite to Vitest.
+
+</ChangelogRelease>
