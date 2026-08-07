@@ -1,6 +1,7 @@
 {
   "name": "funcgo-manual-build",
   "private": true,
+  "license": "MIT",
   "func": {
     "entry": "src/index.ts",
     "outDir": "dist"
