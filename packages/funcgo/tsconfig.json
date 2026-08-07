@@ -1,17 +1,15 @@
 {
   "compilerOptions": {
-    "moduleResolution": "node",
-    "module": "commonjs",
+    "moduleResolution": "node16",
+    "module": "node16",
     "target": "esnext",
     "lib": ["esnext"],
     "types": ["node"],
-    "ignoreDeprecations": "6.0",
     "outDir": "dist",
     "rootDir": "src",
     "esModuleInterop": true,
     "removeComments": true,
     "declaration": true,
-    "baseUrl": ".",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },

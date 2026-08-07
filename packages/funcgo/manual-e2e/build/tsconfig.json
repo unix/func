@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "node16",
+    "moduleResolution": "node16",
     "rootDir": "src",
     "strict": true,
     "target": "es2022"

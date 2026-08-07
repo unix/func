@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
-    "moduleResolution": "node",
-    "module": "commonjs",
+    "moduleResolution": "node16",
+    "module": "node16",
     "target": "esnext",
     "rootDir": ".",
     "lib": ["esnext"],
     "types": ["node"],
-    "ignoreDeprecations": "6.0",
     "esModuleInterop": true,
     "removeComments": true,
     "resolveJsonModule": true,

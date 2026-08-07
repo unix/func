@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
-    "moduleResolution": "node",
-    "module": "commonjs",
+    "moduleResolution": "node16",
+    "module": "node16",
     "target": "esnext",
     "lib": ["es2015", "es2017"],
     "types": ["node"],
-    "ignoreDeprecations": "6.0",
     "esModuleInterop": true,
     "removeComments": true,
     "resolveJsonModule": true,

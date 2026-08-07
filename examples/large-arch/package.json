@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/node": "^25.9.1",
     "funcgo": "latest",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "bin": {
     "large-arch": "./dist/bin.js"
