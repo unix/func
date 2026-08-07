@@ -5,11 +5,15 @@ import { rewriteDownloadedTemplate } from './rewrite'
 import { FUNC_TEMPLATE_URL, downloadTemplate } from './template'
 import { Loading, PromptSession, color } from './ui'
 
-export const createProject = async (): Promise<void> => {
+export const createProject = async (requestedName?: string): Promise<void> => {
   const cwd = process.cwd()
   const prompt = new PromptSession()
   const loading = new Loading()
-  const name = await promptProjectName(prompt)
+  const name =
+    requestedName === undefined
+      ? await promptProjectName(prompt)
+      : requestedName.trim()
+  assertProjectName(name)
   const targetDir = path.resolve(cwd, name)
   let createdTarget = false
 

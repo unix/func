@@ -1,18 +1,18 @@
 {
   "name": "create-func",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "main": "dist/index.js",
   "license": "MIT",
   "bin": {
     "create-func": "./dist/index.js"
   },
   "scripts": {
-    "build": "pnpm clean && ncc build src/bin.ts -o dist --minify && pnpm chmod-bin",
-    "clean": "node -e \"require('fs').rmSync('dist', { force: true, recursive: true })\"",
+    "build": "pnpm clean && tsc --outDir .build --declaration false && ncc build .build/bin.js -o dist --minify && pnpm chmod-bin && pnpm clean:build",
+    "clean": "node -e \"for (const path of ['.build', 'dist']) require('node:fs').rmSync(path, { force: true, recursive: true })\"",
+    "clean:build": "node -e \"require('node:fs').rmSync('.build', { force: true, recursive: true })\"",
     "chmod-bin": "node -e \"require('fs').chmodSync('dist/index.js', 0o755)\"",
-    "dev": "ts-node src/bin.ts",
     "test": "vitest run",
-    "test:file": "vitest run",
+    "test:e2e": "pnpm build && tsc -p e2e/tsconfig.json && vitest run --config vitest.e2e.config.mts",
     "release": "pnpm build && pnpm publish --access public --no-git-checks",
     "format": "prettier --write ."
   },
@@ -29,20 +29,18 @@
   "prettier": "@unix/prettier",
   "dependencies": {
     "args": "^5.0.3",
-    "tar": "^7.5.15"
+    "tar": "^7.5.22"
   },
   "devDependencies": {
-    "@swc/core": "^1.15.40",
+    "@swc/core": "^1.15.47",
     "@types/args": "^5.0.4",
     "@types/node": "^26.1.2",
-    "@typescript/native": "npm:typescript@^7.0.2",
     "@unix/prettier": "^0.1.0",
     "@vercel/ncc": "^0.44.1",
-    "prettier": "^3.8.3",
-    "ts-node": "^10.9.2",
-    "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "unplugin-swc": "^1.5.9",
+    "prettier": "^3.9.6",
+    "typescript": "^7.0.2",
+    "unplugin-swc": "^1.5.10",
     "vite": "^8.2.0",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.10"
   }
 }
