@@ -8,6 +8,7 @@
     "benchmarks:test": "pnpm --filter func-cli-benchmarks test",
     "test": "pnpm --filter func test",
     "test:e2e": "pnpm --filter func test:e2e",
+    "test:ecosystem": "npm --prefix ecosystem-tests test",
     "build": "pnpm --filter func build",
     "docs": "pnpm --filter func docs",
     "docs:dev": "pnpm --filter docs dev",

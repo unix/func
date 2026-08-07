@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "lib": ["ES2022", "DOM"],
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "removeComments": true,
+    "rootDir": "src",
+    "strict": true,
+    "target": "ES2022"
+  },
+  "files": ["src/index.ts"]
+}
