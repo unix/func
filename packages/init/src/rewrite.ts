@@ -2,12 +2,14 @@ import fs from 'fs'
 import path from 'path'
 
 const PROJECT_PACKAGE_FILES = ['dist', 'package.json', 'README.md', 'tsconfig.json']
+const APP_CONFIG_PATH = ['src', 'config.ts']
 
 export const rewriteDownloadedTemplate = (
   targetDir: string,
   packageName: string,
 ): void => {
   updatePackageMetadata(targetDir, packageName)
+  updateAppName(targetDir, packageName)
   restoreGitignore(targetDir)
 }
 
@@ -31,6 +33,20 @@ const updatePackageMetadata = (targetDir: string, packageName: string): void => 
   }
 
   fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`)
+}
+
+const updateAppName = (targetDir: string, packageName: string): void => {
+  const configPath = path.join(targetDir, ...APP_CONFIG_PATH)
+  if (!fs.existsSync(configPath)) return
+
+  const source = fs.readFileSync(configPath, 'utf-8')
+  const output = source.replace(
+    /^export const appName = .*$/m,
+    `export const appName = '${packageName}'`,
+  )
+  if (source === output) return
+
+  fs.writeFileSync(configPath, output)
 }
 
 const resolveBinEntry = (bin: unknown): string | undefined => {

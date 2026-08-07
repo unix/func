@@ -3,7 +3,7 @@ title: Add func to an Existing Project
 description: Add an isolated func CLI entry to an existing TypeScript project without replacing its current runtime or build flow.
 authors:
   - Witt
-lastModified: '2026-08-04'
+lastModified: '2026-08-07'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -21,8 +21,7 @@ export const separateTree = `.
         +-- dist            independent bundle output`
 
 export const createCode = `cd tools
-npm init func
-# Enter "admin-cli" at the project-name prompt
+npm init func@latest admin-cli
 
 cd admin-cli
 npm install
@@ -93,7 +92,7 @@ We recommend creating a new directory with its own `package.json`. The CLI can i
 
 This boundary prevents command files and CLI-only dependencies from being discovered by an application bundler that scans the host package. It also lets you publish, version, test, or remove the CLI independently. In a monorepo, add the new directory to the existing workspace configuration instead of installing it into the application package.
 
-The creator accepts a plain directory name interactively. Enter the parent directory first, then create the CLI package inside it:
+Pass the directory name to the creator from its parent directory. The following command creates the CLI package as `tools/admin-cli`:
 
 <CodeBlock code={createCode} lang="shell" />
 

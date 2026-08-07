@@ -3,7 +3,7 @@ title: Work with func using an Agent
 description: Learn when to ask an agent to create a func project, improve its structure, or add tests, then start directly from your repository.
 authors:
   - Witt
-lastModified: '2026-08-04'
+lastModified: '2026-08-07'
 ---
 
 import AgentTask from '@/components/content/agent-task.astro'
@@ -12,7 +12,7 @@ import DocsLayout from '@/layouts/docs.astro'
 
 export const createPrompt = `Before making changes, read https://func.witt.im/setup.txt and follow every project instruction in the current repository.
 
-Create a func CLI project named func-example in the current repository. Inspect the repository structure, package manager, and workspace conventions first, then choose a project boundary that will not interfere with the existing application. Set up any missing Node.js or package-manager environment yourself when permissions allow, and preserve the repository's existing instructions and conventions.
+Create a func CLI project named func-example in the current repository. Inspect the repository structure, package manager, and workspace conventions first, then choose a project boundary that will not interfere with the existing application. Invoke the creator with func-example as its positional project-name argument. Set up any missing Node.js or package-manager environment yourself when permissions allow, and preserve the repository's existing instructions and conventions.
 
 After creation, install dependencies, read the generated source, and run the CLI help handler through its package script. Do not add custom behavior beyond the generated example. Finish by reporting the files you created or changed, the project boundary you chose, and the verification you actually ran with its result.`
 
@@ -46,7 +46,7 @@ This workflow is for developers using func for the first time and teams that wan
 ### What the agent does
 
 - Reads repository instructions and checks the package manager and directory boundary.
-- Creates a project with the fixed name `func-example` and installs its dependencies.
+- Passes the fixed project name `func-example` to the creator and installs its dependencies.
 - Reads the generated source and runs the help handler to verify the CLI.
 
 ### Expected result

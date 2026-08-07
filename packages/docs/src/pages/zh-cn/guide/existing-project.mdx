@@ -3,7 +3,7 @@ title: 已有项目如何接入
 description: 在不替换现有运行时和构建流程的前提下，为 TypeScript 项目添加独立的 func CLI 入口。
 authors:
   - Witt
-lastModified: '2026-08-04'
+lastModified: '2026-08-07'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -21,8 +21,7 @@ export const separateTree = `.
         +-- dist            独立 bundle 输出`
 
 export const createCode = `cd tools
-npm init func
-# 在项目名提示中输入 "admin-cli"
+npm init func@latest admin-cli
 
 cd admin-cli
 npm install
@@ -93,7 +92,7 @@ export const packageConfigCode = `{
 
 独立目录可以避免宿主 package 的应用 bundler 将命令文件和 CLI 专用依赖混入产物， CLI 也可以单独发布、设置版本、测试或移除。在 monorepo 中，应把新目录加入已有 workspace 配置，而不是把它安装进应用 package。
 
-创建器会交互式询问目录名。在父目录中运行以下命令即可创建 CLI package：
+在父目录中将目录名直接传给创建器。以下命令会在 `tools/admin-cli` 创建 CLI package：
 
 <CodeBlock code={createCode} lang="shell" />
 

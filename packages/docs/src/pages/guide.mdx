@@ -3,7 +3,7 @@ title: Quick Start
 description: Create, develop, and bundle a func CLI project with the default TypeScript template.
 authors:
   - Witt
-lastModified: '2026-08-04'
+lastModified: '2026-08-07'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -32,10 +32,10 @@ export const projectTree = `.
 +-- README.md`
 
 export const createCommands = {
-  npm: 'npm init func',
-  yarn: 'yarn create func',
-  pnpm: 'pnpm create func',
-  bun: 'bun create func',
+  npm: 'npm init func@latest ship',
+  yarn: 'yarn create func ship',
+  pnpm: 'pnpm create func ship',
+  bun: 'bun create func ship',
 }
 
 export const installCommands = {
@@ -202,7 +202,7 @@ You will create a TypeScript project, run its generated CLI, add a `status` comm
   Install <a href="https://nodejs.org/en/download">Node.js 20.12 or newer</a> first.
 </span>
 
-The creator asks for a project name, creates a new directory, and copies the TypeScript template into it. It will not overwrite an existing directory. If you use an agent to create it automatically, follow the [agent setup guide](/guide/agent-setup).
+The command passes `ship` as the project name. The creator makes a new directory with that name and copies the TypeScript template into it. It will not overwrite an existing directory. If you use an agent to create it automatically, follow the [agent setup guide](/guide/agent-setup).
 
     <CodeBlock
       code={createCommands.npm}

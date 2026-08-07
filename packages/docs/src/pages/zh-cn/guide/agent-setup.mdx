@@ -3,7 +3,7 @@ title: 使用 Agent 操作 func
 description: 了解何时让 Agent 创建 func 项目、优化项目结构或补充测试，再从当前仓库直接开始操作。
 authors:
   - Witt
-lastModified: '2026-08-04'
+lastModified: '2026-08-07'
 ---
 
 import AgentTask from '@/components/content/agent-task.astro'
@@ -12,7 +12,7 @@ import DocsLayout from '@/layouts/docs.astro'
 
 export const createPrompt = `开始操作前，先阅读 https://func.witt.im/setup.txt，并遵循当前仓库中的所有项目指引。
 
-请在当前仓库中创建一个名为 func-example 的 func CLI 项目。检查仓库结构、包管理器和 workspace 约定，将新项目放在不会干扰现有应用的目录中。权限允许时，自行准备缺失的 Node.js 或包管理器环境；保留仓库已有指令和规范。
+请在当前仓库中创建一个名为 func-example 的 func CLI 项目。检查仓库结构、包管理器和 workspace 约定，将新项目放在不会干扰现有应用的目录中。调用创建器时，将 func-example 作为项目名位置参数传入。权限允许时，自行准备缺失的 Node.js 或包管理器环境；保留仓库已有指令和规范。
 
 创建后安装依赖，阅读生成的源码，并通过 package script 运行 CLI 的帮助处理器。不要添加示例之外的自定义功能。最后说明创建或修改了哪些文件、为什么选择当前目录，以及实际执行的验证和结果。`
 
@@ -46,7 +46,7 @@ export const testPrompt = `开始操作前，先阅读 https://func.witt.im/rule
 ### Agent 执行的操作
 
 - 读取仓库指引，检查包管理器和目录结构。
-- 创建固定名为 `func-example` 的项目，并安装所需依赖。
+- 将固定项目名 `func-example` 传给创建器，并安装所需依赖。
 - 阅读生成源码并运行帮助处理器，确认 CLI 可以工作。
 
 ### 完成后的项目
