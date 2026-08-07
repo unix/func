@@ -1,0 +1,85 @@
+---
+import { changelogReleases } from '@/lib/changelog'
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+}
+
+const { locale = defaultLocale } = Astro.props
+const labels =
+  locale === 'zh-cn'
+    ? {
+        commit: '查看提交',
+        latest: '当前版本',
+        published: '发布于',
+        series: '系列',
+      }
+    : {
+        commit: 'View commit',
+        latest: 'Latest',
+        published: 'Published',
+        series: 'series',
+      }
+const legacySummary =
+  locale === 'zh-cn'
+    ? 'func 1.0.0 发布于 2019-06-13，奠定了框架的基础能力：使用装饰器定义命令，并提供选项解析、命令分发、元数据注册和服务注入。'
+    : 'func 1.0.0 was released on 2019-06-13 and established the framework’s foundations: decorator-based command definitions, option parsing, command dispatch, metadata registration, and service injection.'
+---
+
+<div class="changelog">
+  <section class="changelog-section" aria-labelledby="series-2">
+    <h2 class="changelog-series-title" id="series-2">
+      2.x {labels.series}
+    </h2>
+
+    <div class="changelog-list" data-minimap-ignore>
+      {
+        changelogReleases.map(release => {
+          const versionId = `v-${release.version.replaceAll('.', '-')}`
+          const shortCommit = release.commit.slice(0, 6)
+
+          return (
+            <article class="changelog-release" aria-labelledby={versionId}>
+              <header class="changelog-release-header">
+                <div class="changelog-release-heading">
+                  <h3 id={versionId}>
+                    <a href={`#${versionId}`}>v{release.version}</a>
+                  </h3>
+                  <a
+                    aria-label={`${labels.commit} ${release.commit}`}
+                    class="changelog-commit"
+                    href={`https://github.com/unix/func/commit/${release.commit}`}>
+                    {shortCommit}
+                  </a>
+                  {release.latest && (
+                    <span class="changelog-badge changelog-badge-latest">
+                      {labels.latest}
+                    </span>
+                  )}
+                </div>
+                <time datetime={release.date}>
+                  <span class="sr-only">{labels.published} </span>
+                  {release.date}
+                </time>
+              </header>
+
+              <ul>
+                {release.notes[locale].map(note => (
+                  <li>{note}</li>
+                ))}
+              </ul>
+            </article>
+          )
+        })
+      }
+    </div>
+  </section>
+
+  <section class="changelog-section" aria-labelledby="series-1">
+    <h2 class="changelog-series-title" id="series-1">
+      1.x {labels.series}
+    </h2>
+    <p class="changelog-legacy">{legacySummary}</p>
+  </section>
+</div>

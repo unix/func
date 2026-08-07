@@ -13,6 +13,7 @@ export type DocPage =
   | 'errors'
   | 'apis'
   | 'glossary'
+  | 'changelog'
 
 export type Locale = 'en' | 'zh-cn'
 
@@ -49,6 +50,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     errors: 'Errors',
     apis: 'API Reference',
     glossary: 'Glossary',
+    changelog: 'Changelog',
   },
   'zh-cn': {
     '/': '介绍',
@@ -65,6 +67,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     errors: '错误处理',
     apis: 'API 参考',
     glossary: '术语索引',
+    changelog: '更新日志',
   },
 }
 
@@ -87,7 +90,10 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
         'runtime',
       ],
     },
-    { label: 'Reference', pages: ['glossary', 'apis', 'use-cases'] },
+    {
+      label: 'Reference',
+      pages: ['glossary', 'apis', 'use-cases', 'changelog'],
+    },
   ],
   'zh-cn': [
     { pages: ['/'] },
@@ -107,7 +113,10 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
         'runtime',
       ],
     },
-    { label: '参考资料', pages: ['glossary', 'apis', 'use-cases'] },
+    {
+      label: '参考资料',
+      pages: ['glossary', 'apis', 'use-cases', 'changelog'],
+    },
   ],
 }
 
