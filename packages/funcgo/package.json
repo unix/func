@@ -1,6 +1,6 @@
 {
   "name": "funcgo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
@@ -39,13 +39,12 @@
     "picomatch": "^4.0.5",
     "rolldown": "^1.2.3",
     "ts-node": "^10.9.2",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
     "@swc/core": "^1.15.47",
     "@types/node": "^26.1.2",
     "@types/picomatch": "^4.0.3",
-    "@typescript/native": "npm:typescript@^7.0.2",
     "@unix/prettier": "^0.1.0",
     "prettier": "^3.9.6",
     "unplugin-swc": "^1.5.10",
