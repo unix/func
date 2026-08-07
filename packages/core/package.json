@@ -1,14 +1,30 @@
 {
   "name": "func",
-  "version": "2.2.1",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "version": "2.3.0",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20.12.0"
+  },
   "license": "MIT",
   "scripts": {
     "test": "vitest run",
+    "test:e2e": "pnpm build && tsc -p e2e/tsconfig.json && vitest run --config vitest.e2e.config.mts",
     "test:file": "vitest run",
-    "build": "tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "pnpm clean",
+    "build": "pnpm test && pnpm build:types && pnpm build:js",
+    "build:js": "rolldown -c rolldown.config.mjs",
+    "build:types": "tsc -p tsconfig.build.json",
     "release": "pnpm build && pnpm publish --access public --no-git-checks"
   },
   "files": [
@@ -30,6 +46,7 @@
     "@types/node": "^26.1.2",
     "@unix/prettier": "^0.1.0",
     "prettier": "^3.9.6",
+    "rolldown": "^1.2.3",
     "typescript": "^7.0.2",
     "unplugin-swc": "^1.5.10",
     "vite": "^8.2.0",

@@ -1,0 +1,13 @@
+{
+  "name": "func-core-e2e-cjs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "func": "file:./func.tgz"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.2",
+    "typescript": "7.0.2"
+  }
+}

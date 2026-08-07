@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strict": true
+    "strict": true,
+    "isolatedModules": true
   },
   "files": ["src/index.ts"],
   "exclude": ["node_modules", "dist"]
