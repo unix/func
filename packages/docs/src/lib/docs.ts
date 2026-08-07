@@ -9,6 +9,7 @@ export type DocPage =
   | 'options'
   | 'parameters'
   | 'tooling'
+  | 'ecosystem'
   | 'runtime'
   | 'errors'
   | 'apis'
@@ -46,6 +47,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     options: 'Field Options',
     parameters: 'Parameters',
     tooling: 'Tooling',
+    ecosystem: 'Ecosystem Guide',
     runtime: 'Runtime',
     errors: 'Errors',
     apis: 'API Reference',
@@ -63,6 +65,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     options: '字段选项',
     parameters: '参数注入',
     tooling: '工具链',
+    ecosystem: '生态选型',
     runtime: '深入了解运行时',
     errors: '错误处理',
     apis: 'API 参考',
@@ -92,7 +95,11 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     },
     {
       label: 'Reference',
-      pages: ['glossary', 'apis', 'use-cases', 'changelog'],
+      pages: ['glossary', 'apis', 'changelog'],
+    },
+    {
+      label: 'Further Reading',
+      pages: ['use-cases', 'ecosystem'],
     },
   ],
   'zh-cn': [
@@ -115,7 +122,11 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     },
     {
       label: '参考资料',
-      pages: ['glossary', 'apis', 'use-cases', 'changelog'],
+      pages: ['glossary', 'apis', 'changelog'],
+    },
+    {
+      label: '扩展阅读',
+      pages: ['use-cases', 'ecosystem'],
     },
   ],
 }

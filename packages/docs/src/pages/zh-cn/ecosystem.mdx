@@ -1,0 +1,77 @@
+---
+title: 生态选型
+description: 查找适合 Node.js CLI 的颜色、Prompt、任务输出、进度和终端界面功能包。
+authors:
+  - Witt
+lastModified: '2026-08-07'
+---
+
+import DocsLayout from '@/layouts/docs.astro'
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="ecosystem">
+
+`func` 负责命令模型、类型化输入和依赖注入，不限制 CLI 的呈现方式。下面按常见功能整理 Node.js CLI 生态中的第三方库，并说明各自更适合的场景，方便在默认推荐和其他可选方案之间比较。
+
+## 如何阅读对比数据
+
+下载量来自 npm 2026-07-31 至 2026-08-06 的统计，并使用 `M`（百万）和 `K`（千）缩写。它可以反映生态采用程度，但其中包含自动化安装和传递依赖安装，不能等同于真实用户数量，也不代表质量排名。
+
+Bundle 数据是在固定示例中使用 esbuild 打包为经过压缩和 Tree Shaking 的单文件 ESM CLI 后，相对基线增加的体积，并四舍五入到整数 KiB。__体积只是选型标准之一，不应作为唯一依据__。维护活跃度、Node.js 版本要求、ESM/CJS 兼容性、文档质量、API 设计、无障碍支持、测试体验，以及功能包是否符合 CLI 的交互模型都同样重要。对发布体积敏感时，还应使用项目的真实入口重新测量。
+
+## 文字颜色与样式
+
+Node.js 内置的 <a href="https://nodejs.org/api/util.html#utilstyletextformat-text-options" rel="noreferrer" target="_blank"><code>util.styleText</code></a> 无需安装依赖即可提供基础 ANSI 样式。需要统一 API、更丰富的颜色或更广的模块兼容性时，可以选择下面的第三方库。
+
+| 功能包                                                                                                              | 最近一周下载量 | 适合场景                                                           | 代表性 Bundle 增量 |
+| ------------------------------------------------------------------------------------------------------------------- | -------------: | ------------------------------------------------------------------ | -----------------: |
+| <a href="https://github.com/alexeyraspopov/picocolors" rel="noreferrer" target="_blank"><code>picocolors</code></a> |          ≈218M | 需要常用颜色和强调样式的小型 ESM/CJS API；普通输出的默认第三方选择 |              2 KiB |
+| <a href="https://github.com/webdiscus/ansis" rel="noreferrer" target="_blank"><code>ansis</code></a>                |         ≈44.5M | 同时需要 ESM/CJS、HEX/RGB、模板字符串和颜色自动降级                |              4 KiB |
+| <a href="https://github.com/chalk/chalk" rel="noreferrer" target="_blank"><code>chalk</code></a>                    |          ≈486M | 更看重成熟的链式 API、丰富颜色能力和广泛的生态认知                 |              8 KiB |
+| <a href="https://github.com/lukeed/kleur" rel="noreferrer" target="_blank"><code>kleur</code></a>                   |         ≈90.7M | 需要紧凑的链式 ESM/CJS API，或已有项目已经使用它                   |              2 KiB |
+
+新的 CLI 如果只需要常用颜色，可以从 `picocolors` 开始。既要高级颜色又要兼顾 ESM/CJS 时选择 `ansis`；更看重成熟 API 和现有集成时选择 `chalk`。
+
+## Prompt、Spinner 与任务流
+
+| 功能包                                                                                                                 | 最近一周下载量 | 适合场景                                                   | 代表性 Bundle 增量 |
+| ---------------------------------------------------------------------------------------------------------------------- | -------------: | ---------------------------------------------------------- | -----------------: |
+| <a href="https://github.com/bombshell-dev/clack" rel="noreferrer" target="_blank"><code>@clack/prompts</code></a>      |         ≈18.0M | 希望 Prompt、日志和 Spinner 风格统一的项目创建器与配置向导 |             17 KiB |
+| <a href="https://github.com/SBoudrias/Inquirer.js" rel="noreferrer" target="_blank"><code>@inquirer/prompts</code></a> |         ≈34.6M | 需要更多输入类型、模块化导入或自定义 Prompt                |             28 KiB |
+| <a href="https://github.com/listr2/listr2" rel="noreferrer" target="_blank"><code>listr2</code></a>                    |         ≈43.3M | 包含嵌套、并行、跳过或动态输出的多任务流程                 |             79 KiB |
+| <a href="https://github.com/sindresorhus/ora" rel="noreferrer" target="_blank"><code>ora</code></a>                    |         ≈83.5M | 需要明确成功、警告和失败状态的单个或少量异步操作           |             58 KiB |
+
+安装或配置向导可以优先使用 `@clack/prompts`；输入类型和扩展能力是主要要求时选择 `@inquirer/prompts`。`ora` 适合独立操作，多个任务需要同时保留并分别展示状态时，`listr2` 更合适。
+
+## 表格、进度与重点信息
+
+| 功能包                                                                                                            | 最近一周下载量 | 适合场景                                   | 代表性 Bundle 增量 |
+| ----------------------------------------------------------------------------------------------------------------- | -------------: | ------------------------------------------ | -----------------: |
+| <a href="https://github.com/cli-table/cli-table3" rel="noreferrer" target="_blank"><code>cli-table3</code></a>    |         ≈32.1M | 需要 ANSI 感知的对齐、换行、跨行或跨列表格 |             34 KiB |
+| <a href="https://github.com/npkgz/cli-progress" rel="noreferrer" target="_blank"><code>cli-progress</code></a>    |         ≈10.1M | 任务具有可测量总量，需要单个或多个进度条   |             24 KiB |
+| <a href="https://github.com/sindresorhus/boxen" rel="noreferrer" target="_blank"><code>boxen</code></a>           |         ≈27.7M | 带边框的通知、摘要和少量需要突出显示的信息 |             49 KiB |
+| <a href="https://github.com/sindresorhus/log-update" rel="noreferrer" target="_blank"><code>log-update</code></a> |         ≈43.9M | 需要原地刷新自定义多行输出的底层能力       |             34 KiB |
+
+报告型输出通常选择 `cli-table3`，能够用数字表示完成度的任务更适合 `cli-progress`。`boxen` 用于强调信息，不适合作为布局系统；现成 Spinner 或进度渲染器无法满足要求时，再使用 `log-update` 自行控制刷新。
+
+## 完整终端界面
+
+需要键盘导航、焦点管理、持续存在的多区域布局或全屏更新时，可以考虑 TUI 框架。只需要表格、Prompt 或单个 Spinner 时没有必要引入这一层。
+
+| 功能包                                                                                                           | 最近一周下载量 | 适合场景                                                    | 代表性 Bundle 增量 |
+| ---------------------------------------------------------------------------------------------------------------- | -------------: | ----------------------------------------------------------- | -----------------: |
+| <a href="https://github.com/vadimdemedes/ink" rel="noreferrer" target="_blank"><code>ink</code></a>              |          ≈5.7M | 希望使用组件、状态、Flexbox 风格布局和组件测试的 React 团队 |            362 KiB |
+| <a href="https://github.com/cronvel/terminal-kit" rel="noreferrer" target="_blank"><code>terminal-kit</code></a> |          ≈202K | 需要命令式键鼠、屏幕缓冲区、绘图和图片能力                  |   无可靠单文件结果 |
+| <a href="https://github.com/chjj/blessed" rel="noreferrer" target="_blank"><code>blessed</code></a>              |          ≈1.4M | 维护已经基于类 DOM Widget API 构建的终端应用                |            264 KiB |
+
+新的 React 终端应用可以优先考虑 Ink。Terminal Kit 提供了更广的底层终端能力，但动态资源会增加单文件发布的处理成本。Blessed 对已有应用仍有价值，新项目采用前应重点评估维护状态和兼容性。
+
+## 知名项目选用
+
+下面的项目展示了这些库在不同交互复杂度下的实际使用情况。它们可以作为实现参考，但知名项目的选择不等于对所有场景的推荐。
+
+| 功能包           | 采用项目                                                                                           | 资料                                                                                                                                                                                                                                                          |
+| ---------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@clack/prompts` | Vite 的 `create-vite`、OpenClaw、create-t3-app 和 OpenCode                                         | <a href="https://github.com/vitejs/vite/blob/main/packages/create-vite/src/index.ts" rel="noreferrer" target="_blank">Vite 源码</a>、<a href="https://github.com/openclaw/openclaw/blob/main/package.json" rel="noreferrer" target="_blank">OpenClaw 依赖</a> |
+| `ink`            | Claude Code、Gemini CLI、GitHub Copilot CLI、Cloudflare Wrangler、Prisma、Shopify CLI 和 Canva CLI | <a href="https://github.com/vadimdemedes/ink#whos-using-ink" rel="noreferrer" target="_blank">Ink 官方项目展示</a>                                                                                                                                            |
+
+</DocsLayout>

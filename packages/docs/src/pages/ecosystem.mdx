@@ -1,0 +1,77 @@
+---
+title: Ecosystem Guide
+description: Find popular Node.js packages for colors, prompts, task output, progress, and terminal interfaces.
+authors:
+  - Witt
+lastModified: '2026-08-07'
+---
+
+import DocsLayout from '@/layouts/docs.astro'
+
+<DocsLayout frontmatter={frontmatter} page="ecosystem">
+
+`func` handles the command model, typed input, and dependency injection without prescribing how a CLI should look. The packages below cover the presentation and interaction features commonly added around it. Each group includes a practical default and alternatives for projects with different compatibility or API requirements.
+
+## Reading the comparison
+
+The download column reports approximate npm downloads from 2026-07-31 through 2026-08-06, shortened with `M` (million) and `K` (thousand). It is useful as an adoption signal, but includes automated and transitive installs; it is not a count of active users or a quality ranking.
+
+The bundle column is a representative increase from a minified, tree-shaken, single-file ESM CLI measured with esbuild. Values are rounded to the nearest KiB. Bundle size is only one selection criterion. Also consider maintenance activity, supported Node.js versions, ESM/CJS compatibility, documentation, API design, accessibility, testability, and whether the library matches the interaction model of the CLI. Measure the real application entry before making a size-sensitive release decision.
+
+## Text colors and styles
+
+Node.js provides <a href="https://nodejs.org/api/util.html#utilstyletextformat-text-options" rel="noreferrer" target="_blank"><code>util.styleText</code></a> for basic ANSI styles without a dependency. The following packages are useful when a shared API, richer colors, or broader module compatibility matters.
+
+| Package                                                                                                             | Recent weekly downloads | Best suited for                                                                                               | Representative bundle increase |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------: | ------------------------------------------------------------------------------------------------------------- | -----------------------------: |
+| <a href="https://github.com/alexeyraspopov/picocolors" rel="noreferrer" target="_blank"><code>picocolors</code></a> |                   ≈218M | A small ESM/CJS API for common colors and emphasis; the default third-party choice for straightforward output |                          2 KiB |
+| <a href="https://github.com/webdiscus/ansis" rel="noreferrer" target="_blank"><code>ansis</code></a>                |                  ≈44.5M | ESM/CJS support together with HEX/RGB colors, templates, and automatic fallback                               |                          4 KiB |
+| <a href="https://github.com/chalk/chalk" rel="noreferrer" target="_blank"><code>chalk</code></a>                    |                   ≈486M | A mature chainable API, rich color support, and broad ecosystem familiarity                                   |                          8 KiB |
+| <a href="https://github.com/lukeed/kleur" rel="noreferrer" target="_blank"><code>kleur</code></a>                   |                  ≈90.7M | A compact chainable ESM/CJS API, especially when an existing project already uses it                          |                          2 KiB |
+
+Start with `picocolors` for a new CLI that only needs common colors. Choose `ansis` for richer colors without giving up ESM/CJS support, or `chalk` when its established API and integrations matter more than the additional size.
+
+## Prompts, spinners, and task flows
+
+| Package                                                                                                                | Recent weekly downloads | Best suited for                                                                                    | Representative bundle increase |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------: | -------------------------------------------------------------------------------------------------- | -----------------------------: |
+| <a href="https://github.com/bombshell-dev/clack" rel="noreferrer" target="_blank"><code>@clack/prompts</code></a>      |                  ≈18.0M | Project creators and setup wizards that benefit from consistent prompts, logs, and spinners        |                         17 KiB |
+| <a href="https://github.com/SBoudrias/Inquirer.js" rel="noreferrer" target="_blank"><code>@inquirer/prompts</code></a> |                  ≈34.6M | Broader input types, modular imports, and custom prompt development                                |                         28 KiB |
+| <a href="https://github.com/listr2/listr2" rel="noreferrer" target="_blank"><code>listr2</code></a>                    |                  ≈43.3M | Nested, concurrent, skippable, or dynamically updated groups of tasks                              |                         79 KiB |
+| <a href="https://github.com/sindresorhus/ora" rel="noreferrer" target="_blank"><code>ora</code></a>                    |                  ≈83.5M | One or a few standalone asynchronous operations with explicit success, warning, and failure states |                         58 KiB |
+
+Use `@clack/prompts` for a guided installation or configuration flow and `@inquirer/prompts` when the available prompt types or extension points are the deciding factor. `ora` fits an isolated operation; `listr2` becomes more useful when several tasks must remain visible and have independent states.
+
+## Tables, progress, and highlighted output
+
+| Package                                                                                                           | Recent weekly downloads | Best suited for                                                        | Representative bundle increase |
+| ----------------------------------------------------------------------------------------------------------------- | ----------------------: | ---------------------------------------------------------------------- | -----------------------------: |
+| <a href="https://github.com/cli-table/cli-table3" rel="noreferrer" target="_blank"><code>cli-table3</code></a>    |                  ≈32.1M | ANSI-aware tables with alignment, wrapping, or row and column spans    |                         34 KiB |
+| <a href="https://github.com/npkgz/cli-progress" rel="noreferrer" target="_blank"><code>cli-progress</code></a>    |                  ≈10.1M | One or several progress bars for work with a measurable total          |                         24 KiB |
+| <a href="https://github.com/sindresorhus/boxen" rel="noreferrer" target="_blank"><code>boxen</code></a>           |                  ≈27.7M | Bordered notices, summaries, and a small number of high-value messages |                         49 KiB |
+| <a href="https://github.com/sindresorhus/log-update" rel="noreferrer" target="_blank"><code>log-update</code></a> |                  ≈43.9M | A low-level primitive for redrawing custom multi-line output in place  |                         34 KiB |
+
+`cli-table3` is the general choice for report-style output, while `cli-progress` is more appropriate when completion can be expressed numerically. Choose `boxen` for emphasis rather than layout. Use `log-update` when a packaged spinner or progress renderer cannot express the required output.
+
+## Full terminal interfaces
+
+A TUI framework is appropriate when the application needs keyboard navigation, focus management, persistent multi-region layout, or full-screen updates. It is unnecessary for a table, prompt, or single spinner.
+
+| Package                                                                                                          | Recent weekly downloads | Best suited for                                                                      | Representative bundle increase |
+| ---------------------------------------------------------------------------------------------------------------- | ----------------------: | ------------------------------------------------------------------------------------ | -----------------------------: |
+| <a href="https://github.com/vadimdemedes/ink" rel="noreferrer" target="_blank"><code>ink</code></a>              |                   ≈5.7M | React teams that want components, state, Flexbox-style layout, and component testing |                        362 KiB |
+| <a href="https://github.com/cronvel/terminal-kit" rel="noreferrer" target="_blank"><code>terminal-kit</code></a> |                   ≈202K | Imperative keyboard, mouse, screen-buffer, drawing, and image features               | No reliable single-file result |
+| <a href="https://github.com/chjj/blessed" rel="noreferrer" target="_blank"><code>blessed</code></a>              |                   ≈1.4M | Maintaining widget-based terminal applications already built on its DOM-like API     |                        264 KiB |
+
+Ink is the clearest starting point for a new React-based terminal application. Terminal Kit exposes a wider set of low-level terminal capabilities, but its dynamic resources require extra care when producing a single-file executable. Blessed remains relevant to existing applications; evaluate its maintenance and compatibility carefully before adopting it for a new project.
+
+## Used by well-known projects
+
+These examples show how established projects use the same packages at different levels of interaction. They are references, not endorsements or substitutes for evaluating a library against the requirements of your own CLI.
+
+| Package          | Projects                                                                                             | Sources                                                                                                                                                                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@clack/prompts` | Vite's `create-vite`, OpenClaw, create-t3-app, and OpenCode                                          | <a href="https://github.com/vitejs/vite/blob/main/packages/create-vite/src/index.ts" rel="noreferrer" target="_blank">Vite source</a>, <a href="https://github.com/openclaw/openclaw/blob/main/package.json" rel="noreferrer" target="_blank">OpenClaw dependency</a> |
+| `ink`            | Claude Code, Gemini CLI, GitHub Copilot CLI, Cloudflare Wrangler, Prisma, Shopify CLI, and Canva CLI | <a href="https://github.com/vadimdemedes/ink#whos-using-ink" rel="noreferrer" target="_blank">Ink's official project showcase</a>                                                                                                                                     |
+
+</DocsLayout>
