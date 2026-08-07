@@ -7,16 +7,7 @@
     "benchmarks": "pnpm --filter func-cli-benchmarks report",
     "benchmarks:test": "pnpm --filter func-cli-benchmarks test",
     "test": "pnpm --filter func test",
-    "test:e2e": "pnpm --filter func test:e2e",
-    "test:ecosystem": "npm --prefix ecosystem-tests test",
-    "build": "pnpm --filter func build",
-    "docs": "pnpm --filter func docs",
-    "docs:dev": "pnpm --filter docs dev",
-    "docs:build": "pnpm --filter docs build",
-    "docs:preview": "pnpm --filter docs preview",
-    "docs:deploy": "pnpm --filter docs deploy",
-    "docs:deploy:dry-run": "pnpm --filter docs deploy:dry-run",
-    "release": "pnpm --filter func release"
+    "docs:dev": "pnpm --filter docs dev"
   },
   "repository": {
     "type": "git",
