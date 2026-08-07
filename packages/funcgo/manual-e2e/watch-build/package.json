@@ -2,6 +2,9 @@
   "name": "funcgo-manual-watch-build",
   "private": true,
   "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "func": {
     "entry": "src/index.ts",
     "outDir": "dist"

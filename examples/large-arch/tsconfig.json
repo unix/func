@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "moduleResolution": "node16",
-    "module": "node16",
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
     "target": "esnext",
     "rootDir": ".",
     "lib": ["esnext"],

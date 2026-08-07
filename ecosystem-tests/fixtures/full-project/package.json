@@ -2,5 +2,8 @@
   "name": "func-ecosystem-fixture",
   "version": "1.0.0",
   "private": true,
-  "type": "commonjs"
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24.0.0"
+  }
 }

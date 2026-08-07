@@ -4,6 +4,9 @@
   "private": true,
   "main": "dist/index.js",
   "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "dev": "funcgo dev --",
     "build": "funcgo build",
