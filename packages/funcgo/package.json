@@ -11,7 +11,8 @@
     "funcgo": "./dist/bin.js"
   },
   "scripts": {
-    "build": "pnpm clean && tsc && pnpm chmod-bin",
+    "prebuild": "pnpm clean",
+    "build": "tsc && pnpm chmod-bin",
     "clean": "node -e \"require('fs').rmSync('dist', { force: true, recursive: true })\"",
     "chmod-bin": "node -e \"require('fs').chmodSync('dist/bin.js', 0o755)\"",
     "test": "vitest run",
