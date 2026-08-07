@@ -1,9 +1,9 @@
 import { Service } from 'func'
-import { config } from '../config'
+import { appName } from '../config'
 
 @Service()
 export class ProjectService {
   name() {
-    return config.package.name
+    return appName
   }
 }

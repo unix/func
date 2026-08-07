@@ -1,6 +1,5 @@
 import { Args, Command, Flag, Handler, Value } from 'func'
 import type { FuncArgs } from 'func'
-import { config } from '../config'
 
 @Command({
   name: 'greet',
@@ -13,7 +12,7 @@ export class Greet {
     alias: 'n',
     description: 'name to greet',
   })
-  name = config.greeting.defaultName
+  name = 'friend'
 
   @Flag({
     alias: 'u',
