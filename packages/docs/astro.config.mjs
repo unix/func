@@ -17,11 +17,7 @@ export default defineConfig({
   prefetch: {
     defaultStrategy: 'viewport',
   },
-  session: {
-    driver: {
-      entrypoint: 'unstorage/drivers/null',
-    },
-  },
+  session: false,
   i18n: {
     locales: ['en', 'zh-cn'],
     defaultLocale: 'en',
