@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import { F_SYSTEM, Handler } from '../src'
+import { CommandMajor, Container, F_SYSTEM, Handler } from '../src'
 import { metadata } from '../src/utils/metadata'
 import { expect, test } from './_test'
 
@@ -12,7 +12,9 @@ test('should collect default and flag method handlers', () => {
     help() {}
   }
 
-  expect(Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, CommandHandler)).toEqual([
+  expect(
+    Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, CommandHandler),
+  ).toEqual([
     {
       methodName: 'run',
     },
@@ -33,7 +35,7 @@ test('should reject handler alias without a flag', () => {
     }
 
     return CommandHandler
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.MISSING_REQUIRED_PARAM }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.HANDLER_ALIAS_REQUIRES_FLAG }))
 })
 
 test('should reject path mixed with flag or alias', () => {
@@ -44,7 +46,7 @@ test('should reject path mixed with flag or alias', () => {
     }
 
     return CommandHandler
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.HANDLER_FLAG_PATH_CONFLICT }))
 
   expect(() => {
     class CommandHandler {
@@ -53,7 +55,7 @@ test('should reject path mixed with flag or alias', () => {
     }
 
     return CommandHandler
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.HANDLER_PATH_ALIAS_CONFLICT }))
 })
 
 test('should reject invalid handler targets and params', () => {
@@ -64,7 +66,9 @@ test('should reject invalid handler targets and params', () => {
     }
 
     return CommandHandler
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_TYPE }))
+  }).toThrow(
+    expect.objectContaining({ code: F_SYSTEM.INVALID_METHOD_DECORATOR_TARGET }),
+  )
 
   expect(() => {
     class CommandHandler {
@@ -73,7 +77,7 @@ test('should reject invalid handler targets and params', () => {
     }
 
     return CommandHandler
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_TOKEN }))
 
   expect(() => {
     class CommandHandler {
@@ -82,5 +86,20 @@ test('should reject invalid handler targets and params', () => {
     }
 
     return CommandHandler
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_OPTION_ALIAS }))
+})
+
+test('should reject multiple default handlers', () => {
+  @CommandMajor()
+  class Major {
+    @Handler()
+    first() {}
+
+    @Handler()
+    second() {}
+  }
+
+  expect(() => new Container([Major])).toThrow(
+    expect.objectContaining({ code: F_SYSTEM.MULTIPLE_DEFAULT_HANDLERS }),
+  )
 })

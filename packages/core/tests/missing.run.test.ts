@@ -143,6 +143,6 @@ test('should reject multiple missing handlers', () => {
   class SecondMissing {}
 
   expect(() => new Container([FirstMissing, SecondMissing])).toThrow(
-    expect.objectContaining({ code: F_SYSTEM.DUPLICATE_HANDLER }),
+    expect.objectContaining({ code: F_SYSTEM.MULTIPLE_MISSING_COMMANDS }),
   )
 })

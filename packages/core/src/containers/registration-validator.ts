@@ -62,7 +62,7 @@ export class RegistrationValidator {
     if (majors.length <= 1) return
 
     throw createSystemError(
-      F_SYSTEM.DUPLICATE_HANDLER,
+      F_SYSTEM.MULTIPLE_MAJOR_COMMANDS,
       errorTypes.REGISTRATION,
       `Only one major command can be registered: ${majors.map(item => item.name).join(', ')}.`,
       { scope: errorScopes.COMMAND, handlers: majors.map(item => item.name) },
@@ -74,7 +74,7 @@ export class RegistrationValidator {
     if (missing.length <= 1) return
 
     throw createSystemError(
-      F_SYSTEM.DUPLICATE_HANDLER,
+      F_SYSTEM.MULTIPLE_MISSING_COMMANDS,
       errorTypes.REGISTRATION,
       `Only one missing command can be registered: ${missing.map(item => item.name).join(', ')}.`,
       { scope: errorScopes.COMMAND, handlers: missing.map(item => item.name) },
@@ -95,7 +95,7 @@ export class RegistrationValidator {
         if (!item.token) return
         if (tokens[item.token]) {
           throw createSystemError(
-            F_SYSTEM.DUPLICATE_HANDLER,
+            F_SYSTEM.DUPLICATE_COMMAND_TOKEN,
             errorTypes.REGISTRATION,
             `Duplicate ${scope} token "${item.token}" found in "${tokens[item.token]}" and "${handler.name}".`,
             {
@@ -139,7 +139,7 @@ export class RegistrationValidator {
       if (!token) return
       if (tokens[token]) {
         throw createSystemError(
-          F_SYSTEM.DUPLICATE_HANDLER,
+          F_SYSTEM.DUPLICATE_OPTION_TOKEN,
           errorTypes.REGISTRATION,
           `Duplicate option token "${token}" found in "${handler.name}".`,
           {
@@ -182,7 +182,7 @@ export class RegistrationValidator {
     methodHandlers.forEach(data => {
       if (data.flag && data.path) {
         throw createSystemError(
-          F_SYSTEM.INVALID_PARAM_VALUE,
+          F_SYSTEM.HANDLER_FLAG_PATH_CONFLICT,
           errorTypes.REGISTRATION,
           `Handler "${data.methodName}" in "${handler.name}" cannot define both flag and path.`,
           { handler: handler.name, method: data.methodName },
@@ -201,7 +201,7 @@ export class RegistrationValidator {
 
         if (defaultHandler) {
           throw createSystemError(
-            F_SYSTEM.DUPLICATE_HANDLER,
+            F_SYSTEM.MULTIPLE_DEFAULT_HANDLERS,
             errorTypes.REGISTRATION,
             `Command "${handler.name}" must define only one default @Handler method.`,
             { handler: handler.name, methods: [defaultHandler, data.methodName] },

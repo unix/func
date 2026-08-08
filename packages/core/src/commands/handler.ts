@@ -1,13 +1,6 @@
 import 'reflect-metadata'
-import {
-  HandlerDecoratorParams,
-  HandlerParams,
-} from '../interfaces'
-import {
-  F_SYSTEM,
-  createSystemError,
-  errorTypes,
-} from '../errors'
+import { HandlerDecoratorParams, HandlerParams } from '../interfaces'
+import { F_SYSTEM, createSystemError, errorTypes } from '../errors'
 import * as validator from '../utils/validator'
 import { metadata } from '../utils/metadata'
 
@@ -16,7 +9,7 @@ export const Handler =
   (target, propertyKey) => {
     if (typeof target === 'function' || typeof propertyKey !== 'string') {
       throw createSystemError(
-        F_SYSTEM.INVALID_PARAM_TYPE,
+        F_SYSTEM.INVALID_METHOD_DECORATOR_TARGET,
         errorTypes.DEFINITION,
         `Handler "${String(propertyKey)}" must decorate an instance method.`,
         { method: String(propertyKey) },
@@ -25,7 +18,7 @@ export const Handler =
 
     if (params.path && params.alias) {
       throw createSystemError(
-        F_SYSTEM.INVALID_PARAM_VALUE,
+        F_SYSTEM.HANDLER_PATH_ALIAS_CONFLICT,
         errorTypes.DEFINITION,
         'Handler path does not support alias.',
         { alias: params.alias, path: params.path },
@@ -33,7 +26,7 @@ export const Handler =
     }
     if (params.flag && params.path) {
       throw createSystemError(
-        F_SYSTEM.INVALID_PARAM_VALUE,
+        F_SYSTEM.HANDLER_FLAG_PATH_CONFLICT,
         errorTypes.DEFINITION,
         'Handler flag and path cannot be used together.',
         { flag: params.flag, path: params.path },
@@ -41,7 +34,7 @@ export const Handler =
     }
     if (!params.flag && params.alias) {
       throw createSystemError(
-        F_SYSTEM.MISSING_REQUIRED_PARAM,
+        F_SYSTEM.HANDLER_ALIAS_REQUIRES_FLAG,
         errorTypes.DEFINITION,
         'Handler alias requires a flag.',
         { key: 'flag', alias: params.alias },
@@ -57,7 +50,8 @@ export const Handler =
     validator.optionAlias(params.alias, 'alias')
 
     const handlers: HandlerParams[] =
-      Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, target.constructor) || []
+      Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, target.constructor) ||
+      []
     Reflect.defineMetadata(
       metadata.METHOD_HANDLER_IDENTIFIER,
       handlers.concat([

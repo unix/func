@@ -1,12 +1,5 @@
 import 'reflect-metadata'
-import {
-  ArrayValue,
-  F_SYSTEM,
-  Flag,
-  Required,
-  Value,
-  ValueValidate,
-} from '../src'
+import { ArrayValue, F_SYSTEM, Flag, Required, Value, ValueValidate } from '../src'
 import { metadata } from '../src/utils/metadata'
 import { expect, test } from './_test'
 
@@ -77,7 +70,9 @@ test('should reject invalid field targets and invalid option params', () => {
     }
 
     return StaticOptions
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_TYPE }))
+  }).toThrow(
+    expect.objectContaining({ code: F_SYSTEM.INVALID_FIELD_DECORATOR_TARGET }),
+  )
 
   expect(() => {
     class InvalidNameOptions {
@@ -86,7 +81,7 @@ test('should reject invalid field targets and invalid option params', () => {
     }
 
     return InvalidNameOptions
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_TOKEN }))
 
   expect(() => {
     class InvalidAliasOptions {
@@ -95,7 +90,7 @@ test('should reject invalid field targets and invalid option params', () => {
     }
 
     return InvalidAliasOptions
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_OPTION_ALIAS }))
 })
 
 test('should require explicit type when value type cannot be inferred', () => {
@@ -106,13 +101,16 @@ test('should require explicit type when value type cannot be inferred', () => {
     }
 
     return Options
-  }).toThrow(expect.objectContaining({
-    code: F_SYSTEM.INVALID_PARAM_TYPE,
-    details: expect.objectContaining({
-      property: 'when',
-      reason: 'cannot-infer-value-type',
+  }).toThrow(
+    expect.objectContaining({
+      code: F_SYSTEM.CANNOT_INFER_VALUE_TYPE,
+      details: expect.objectContaining({
+        className: 'Options',
+        property: 'when',
+        reason: 'cannot-infer-value-type',
+      }),
     }),
-  }))
+  )
 })
 
 test('should mark existing and future field options as required', () => {

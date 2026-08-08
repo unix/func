@@ -294,7 +294,7 @@ export class Container {
     }
 
     throw createSystemError(
-      F_SYSTEM.MISSING_HANDLER,
+      F_SYSTEM.NO_MATCHING_HANDLER,
       errorTypes.REGISTRATION,
       `Command "${handler.name}" does not have a matching @Handler method.`,
       { handler: handler.name },

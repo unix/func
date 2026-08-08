@@ -30,20 +30,19 @@ test('should reject invalid sub-options params', () => {
     class InvalidOptionsCommand {}
 
     return InvalidOptionsCommand
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_TYPE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.EXPECTED_ARRAY_PARAM }))
 
   expect(() => {
     @SubOptions([{ name: '-dry-run' }])
     class InvalidNameCommand {}
 
     return InvalidNameCommand
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_TOKEN }))
 
   expect(() => {
     @SubOptions([{ name: 'dry-run', alias: 'dry' }])
     class InvalidAliasCommand {}
 
     return InvalidAliasCommand
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_PARAM_VALUE }))
+  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_OPTION_ALIAS }))
 })
-

@@ -1,14 +1,6 @@
-export const F_SYSTEM = {
-  DUPLICATE_HANDLER: 'F_SYSTEM_DUPLICATE_HANDLER',
-  INVALID_PARAM_TYPE: 'F_SYSTEM_INVALID_PARAM_TYPE',
-  INVALID_PARAM_VALUE: 'F_SYSTEM_INVALID_PARAM_VALUE',
-  MISSING_PROVIDER: 'F_SYSTEM_MISSING_PROVIDER',
-  MISSING_HANDLER: 'F_SYSTEM_MISSING_HANDLER',
-  MISSING_PARAM_TYPES: 'F_SYSTEM_MISSING_PARAM_TYPES',
-  MISSING_REQUIRED_PARAM: 'F_SYSTEM_MISSING_REQUIRED_PARAM',
-  UNKNOWN_HANDLER: 'F_SYSTEM_UNKNOWN_HANDLER',
-  UNSUPPORTED_ARRAY_TYPE: 'F_SYSTEM_UNSUPPORTED_ARRAY_TYPE',
-} as const
+import { F_SYSTEM as sharedSystemErrors } from '@func/shared/system-errors'
+
+export const F_SYSTEM = sharedSystemErrors
 
 export const F_RUNTIME = {
   HANDLER_ERROR: 'F_RUNTIME_HANDLER_ERROR',
@@ -89,7 +81,8 @@ export class FuncError extends Error {
   }
 }
 
-export const isFuncError = (error: unknown): error is FuncError => error instanceof FuncError
+export const isFuncError = (error: unknown): error is FuncError =>
+  error instanceof FuncError
 
 export const createSystemError = (
   code: FuncErrorCode,
@@ -156,7 +149,10 @@ export const handleSystemError = (error: FuncError): never => {
   throw error
 }
 
-export const handleRuntimePrintError = (error: FuncError, printPrevented: boolean) => {
+export const handleRuntimePrintError = (
+  error: FuncError,
+  printPrevented: boolean,
+) => {
   if (printPrevented) return
 
   console.error(error.message)

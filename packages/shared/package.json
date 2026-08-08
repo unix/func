@@ -1,0 +1,11 @@
+{
+  "name": "@func/shared",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./system-errors": "./src/system-errors.ts"
+  },
+  "sideEffects": false
+}

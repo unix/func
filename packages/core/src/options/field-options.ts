@@ -6,11 +6,7 @@ import {
   OptionType,
   ValueDecoratorParams,
 } from '../interfaces'
-import {
-  F_SYSTEM,
-  createSystemError,
-  errorTypes,
-} from '../errors'
+import { F_SYSTEM, createSystemError, errorTypes } from '../errors'
 import * as validator from '../utils/validator'
 import { metadata } from '../utils/metadata'
 
@@ -25,14 +21,21 @@ const fieldOptionFactory =
     }
 
     const key = propertyKey as string
-    const name = Object.prototype.hasOwnProperty.call(params, 'name') ? params.name || '' : key
+    const name = Object.prototype.hasOwnProperty.call(params, 'name')
+      ? params.name || ''
+      : key
     validator.optionName(name, 'name')
     validator.optionAlias(params.alias, 'alias')
 
     const type = resolveType(kind, params, target, key)
     const requiredKeys: string[] =
-      Reflect.getMetadata(metadata.REQUIRED_FIELD_IDENTIFIER, target.constructor) || []
-    const constraints = Reflect.getMetadata(metadata.FIELD_CONSTRAINT_IDENTIFIER, target.constructor) || {}
+      Reflect.getMetadata(metadata.REQUIRED_FIELD_IDENTIFIER, target.constructor) ||
+      []
+    const constraints =
+      Reflect.getMetadata(
+        metadata.FIELD_CONSTRAINT_IDENTIFIER,
+        target.constructor,
+      ) || {}
     const nextOption: FieldOptionParams = Object.assign(
       {},
       {
@@ -45,7 +48,8 @@ const fieldOptionFactory =
       params,
       constraints[key] || {},
     )
-    const options = Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, target.constructor) || []
+    const options =
+      Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, target.constructor) || []
     Reflect.defineMetadata(
       metadata.FIELD_OPTION_IDENTIFIER,
       options.concat([nextOption]),
@@ -66,13 +70,15 @@ const resolveType = (
   if (explicitType) return explicitType
 
   const designType = Reflect.getMetadata(metadata.DESIGN_TYPE, target, propertyKey)
-  if (designType === String || designType === Number || designType === Boolean) return designType
+  if (designType === String || designType === Number || designType === Boolean)
+    return designType
 
   throw createSystemError(
-    F_SYSTEM.INVALID_PARAM_TYPE,
+    F_SYSTEM.CANNOT_INFER_VALUE_TYPE,
     errorTypes.DEFINITION,
     `Cannot infer value type for "${propertyKey}". Please pass type explicitly.`,
     {
+      className: target.constructor.name,
       property: propertyKey,
       reason: 'cannot-infer-value-type',
     },
@@ -81,7 +87,7 @@ const resolveType = (
 
 const throwInvalidFieldTarget = (propertyKey: string | symbol): never => {
   throw createSystemError(
-    F_SYSTEM.INVALID_PARAM_TYPE,
+    F_SYSTEM.INVALID_FIELD_DECORATOR_TARGET,
     errorTypes.DEFINITION,
     `Field option "${String(propertyKey)}" must decorate an instance property.`,
     { property: String(propertyKey) },
@@ -94,5 +100,6 @@ export const Flag = (params: FieldOptionDecoratorParams = {}): PropertyDecorator
 export const Value = (params: ValueDecoratorParams = {}): PropertyDecorator =>
   fieldOptionFactory('value', params)
 
-export const ArrayValue = (params: FieldOptionDecoratorParams = {}): PropertyDecorator =>
-  fieldOptionFactory('array', params)
+export const ArrayValue = (
+  params: FieldOptionDecoratorParams = {},
+): PropertyDecorator => fieldOptionFactory('array', params)
