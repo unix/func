@@ -13,6 +13,7 @@
     "preview": "astro preview",
     "release": "pnpm build && wrangler deploy",
     "astro": "astro",
+    "test": "node --test tests/*.test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
