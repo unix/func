@@ -1,0 +1,43 @@
+---
+code: F_SYSTEM_MISSING_HANDLER
+title: 缺少命令处理器
+description: 命令没有定义任何 @Handler 方法。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, FuncModule, run } from 'func'",
+  '',
+  "@Command({ name: 'build' })",
+  'class BuildCommand {}',
+  '',
+  '@FuncModule({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+export const fixCode = [
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+].join('\n')
+
+## 复现
+
+已注册的命令必须至少定义一个 `@Handler()` 方法：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+func 没有在选中的命令上找到处理器元数据。命令已有处理器但当前调用无法选中任何一个时，会改用 `F_SYSTEM_NO_MATCHING_HANDLER`。
+
+## 如何修复
+
+添加一个由 `@Handler()` 装饰的实例方法：
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

@@ -1,0 +1,56 @@
+---
+code: F_SYSTEM_MULTIPLE_MAJOR_COMMANDS
+title: 存在多个主命令
+description: 应用把多个命令注册为根命令。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Container, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class FirstMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@CommandMajor()',
+  'class SecondMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([FirstMajor, SecondMajor])',
+].join('\n')
+
+export const fixCode = [
+  "import { Command, CommandMajor, Container, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class FirstMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  "@Command({ name: 'second' })",
+  'class SecondCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([FirstMajor, SecondCommand])',
+].join('\n')
+
+## 复现
+
+不以命令名称开头的调用只能由一个命令接管：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 如何修复
+
+只保留一个主命令，并为另一个命令注册名称：
+
+<CodeBlock code={fixCode} filename="src/app.module.ts" lang="ts" />

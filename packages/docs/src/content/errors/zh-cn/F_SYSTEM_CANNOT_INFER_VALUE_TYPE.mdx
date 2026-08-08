@@ -1,0 +1,38 @@
+---
+code: F_SYSTEM_CANNOT_INFER_VALUE_TYPE
+title: 无法推断值类型
+description: '@Value 属性没有受支持的运行时类型，也没有显式声明解析类型。'
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Value } from 'func'",
+  '',
+  'class Options {',
+  '  @Value()',
+  '  when: Date = new Date()',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class Options {',
+  '  @Value({ type: String })',
+  "  when = ''",
+  '}',
+].join('\n')
+
+## 复现
+
+`@Value()` 只能推断受支持的基础运行时类型：
+
+<CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
+
+## 如何修复
+
+显式传入受支持的解析类型，并保持属性类型与它兼容：
+
+<CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />
+
+可使用 `String`、`Number` 或 `Boolean`；重复字符串应使用 `@ArrayValue()`。

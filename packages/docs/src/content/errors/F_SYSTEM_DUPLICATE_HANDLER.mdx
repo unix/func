@@ -1,0 +1,53 @@
+---
+code: F_SYSTEM_DUPLICATE_HANDLER
+title: Duplicate handler registration
+description: Two command definitions claim a handler role or token that must be unique within the same application scope.
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, FuncModule, Handler, run } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class FirstMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@CommandMajor()',
+  'class SecondMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@FuncModule({ commands: [FirstMajor, SecondMajor] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+Current versions keep this code for compatibility but emit `F_SYSTEM_MULTIPLE_MAJOR_COMMANDS`, `F_SYSTEM_MULTIPLE_MISSING_COMMANDS`, `F_SYSTEM_DUPLICATE_COMMAND_TOKEN`, `F_SYSTEM_DUPLICATE_OPTION_TOKEN`, or `F_SYSTEM_MULTIPLE_DEFAULT_HANDLERS` for the corresponding invariant.
+
+## Reproduction
+
+Registering more than one major command is one way to trigger this error:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## What this error means
+
+func found more than one owner for something that must be unique. The same code is also used when:
+
+- multiple missing-command handlers are registered;
+- command names or aliases collide;
+- field options, sub-options, or handler flags reuse an option token;
+- a command declares more than one default `@Handler()` method.
+
+The error `details` normally includes the conflicting `handlers`, `methods`, or `token`.
+
+## How to fix it
+
+Keep one major and one missing-command handler at most. Give every command and option a unique name and alias, and keep only one handler without a `flag` or `path` in each command. If the error includes a token, search for that exact token across field options, `@SubOptions()`, and method handlers.

@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_INVALID_FIELD_DECORATOR_TARGET
+title: Invalid field decorator target
+description: A field option or validator decorator is attached to something other than an instance property.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Flag } from 'func'",
+  '',
+  'class Options {',
+  '  @Flag()',
+  '  static verbose = false',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class Options {',
+  '  @Flag()',
+  '  verbose = false',
+  '}',
+].join('\n')
+
+## Reproduction
+
+Field decorators cannot collect values into static properties:
+
+<CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
+
+## How to fix it
+
+Move the decorator and value to an instance property:
+
+<CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />

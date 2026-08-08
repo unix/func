@@ -1,0 +1,37 @@
+---
+code: F_SYSTEM_MISSING_REQUIRED_PARAM
+title: 缺少必要的装饰器参数
+description: 命令或选项声明缺少必要名称或其他独立值。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command } from 'func'",
+  '',
+  "@Command({ name: '' })",
+  'class HelpCommand {}',
+].join('\n')
+
+export const fixCode = ["@Command({ name: 'help' })", 'class HelpCommand {}'].join(
+  '\n',
+)
+
+## 复现
+
+必要的命令名称为空：
+
+<CodeBlock code={reproductionCode} filename="src/help.command.ts" lang="ts" />
+
+## 这个错误是什么
+
+装饰器无法根据已提供的参数生成完整的命令元数据。错误中的 `details.key` 会指出缺失的独立值；在上例中，该值为 `name`。
+
+## 如何修复
+
+补充缺少的参数：
+
+<CodeBlock code={fixCode} filename="src/help.command.ts" lang="ts" />
+
+命令和选项名称必须是非空字符串。处理器 alias 缺少 flag 时会使用更具体的 `F_SYSTEM_HANDLER_ALIAS_REQUIRES_FLAG` 错误码。

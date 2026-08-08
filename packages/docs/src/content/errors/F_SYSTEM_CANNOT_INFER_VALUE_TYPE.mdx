@@ -1,0 +1,38 @@
+---
+code: F_SYSTEM_CANNOT_INFER_VALUE_TYPE
+title: Cannot infer value type
+description: A @Value property has no supported runtime type and does not declare one explicitly.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Value } from 'func'",
+  '',
+  'class Options {',
+  '  @Value()',
+  '  when: Date = new Date()',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class Options {',
+  '  @Value({ type: String })',
+  "  when = ''",
+  '}',
+].join('\n')
+
+## Reproduction
+
+`@Value()` can infer only the supported primitive runtime types:
+
+<CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
+
+## How to fix it
+
+Pass a supported parser type explicitly and keep the property type compatible:
+
+<CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />
+
+Use `String`, `Number`, or `Boolean`. For repeated strings, use `@ArrayValue()`.

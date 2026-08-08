@@ -1,0 +1,53 @@
+---
+code: F_SYSTEM_DUPLICATE_HANDLER
+title: 处理器注册重复
+description: 两个命令定义占用了同一应用作用域内必须唯一的处理器角色或 token。
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, FuncModule, Handler, run } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class FirstMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@CommandMajor()',
+  'class SecondMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@FuncModule({ commands: [FirstMajor, SecondMajor] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+当前版本为兼容保留此错误码，但会根据具体约束输出 `F_SYSTEM_MULTIPLE_MAJOR_COMMANDS`、`F_SYSTEM_MULTIPLE_MISSING_COMMANDS`、`F_SYSTEM_DUPLICATE_COMMAND_TOKEN`、`F_SYSTEM_DUPLICATE_OPTION_TOKEN` 或 `F_SYSTEM_MULTIPLE_DEFAULT_HANDLERS`。
+
+## 复现
+
+注册多个主命令是触发这个错误的一种方式：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+func 发现多个定义同时占用了一个必须唯一的角色。以下情况也会使用同一个错误码：
+
+- 注册了多个缺省命令处理器；
+- 命令名称或别名冲突；
+- 字段选项、子选项或处理器 flag 重用了同一个选项 token；
+- 一个命令声明了多个没有 `flag` 或 `path` 的默认 `@Handler()` 方法。
+
+错误的 `details` 通常会包含发生冲突的 `handlers`、`methods` 或 `token`。
+
+## 如何修复
+
+最多保留一个主命令和一个缺省命令处理器。为每个命令及选项使用唯一的名称和别名，并确保每个命令最多只有一个没有 `flag` 或 `path` 的处理器。如果错误包含 token，请在字段选项、`@SubOptions()` 和方法处理器中搜索该 token。

@@ -1,0 +1,74 @@
+---
+import DocsFooter from '@/components/layouts/docs-footer.astro'
+import DocsHeader from '@/components/layouts/docs-header.astro'
+import DocsMinimap from '@/components/layouts/docs-minimap.astro'
+import DocsSidebar from '@/components/layouts/docs-sidebar.astro'
+import DocsTitleMeta from '@/components/layouts/docs-title-meta.astro'
+import DocsToolbar from '@/components/layouts/docs-toolbar.astro'
+import type { SystemErrorFrontmatter } from '@/lib/system-errors'
+import { defaultLocale, type Locale } from '@/lib/docs'
+import Layout from '@/layouts/main.astro'
+
+interface Props {
+  frontmatter: SystemErrorFrontmatter
+  locale?: Locale
+}
+
+const { frontmatter, locale = defaultLocale } = Astro.props
+const { code, description, lastModified, title } = frontmatter
+const localePath = locale === defaultLocale ? '' : `${locale}/`
+const markdownPath = `/${localePath}errors/${code}.md`
+const editUrl = `https://github.com/unix/func/edit/main/packages/docs/src/content/errors/${localePath}${code}.mdx`
+const errorIndexPath = locale === defaultLocale ? '/errors' : `/${locale}/errors`
+const errorIndexLabel = locale === 'zh-cn' ? '← 错误索引' : '← Errors'
+const languageSwitchHref =
+  locale === defaultLocale ? `/zh-cn/errors/${code}` : `/errors/${code}`
+---
+
+<Layout title={title} description={description} locale={locale}>
+  <div class="mx-auto min-h-screen w-full max-w-7xl bg-background">
+    <DocsHeader
+      languageSwitchHref={languageSwitchHref}
+      locale={locale}
+      page="errors"
+    />
+
+    <main
+      class="grid min-h-[calc(100svh-4rem)] min-w-0 px-4 sm:px-6 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-x-8 lg:px-8 xl:grid-cols-[11rem_minmax(0,1fr)_11rem] xl:gap-x-10">
+      <DocsSidebar locale={locale} page="errors" />
+
+      <div class="min-w-0">
+        <div
+          class="mx-auto w-full max-w-3xl pt-6 pb-8 md:pt-8 md:pb-12 lg:pt-10 lg:pb-16">
+          <div class="mb-10">
+            <a
+              class="mb-5 inline-flex rounded-sm font-mono text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              href={errorIndexPath}>
+              {errorIndexLabel}
+            </a>
+            <p class="mb-3 font-mono text-xs text-violet-700 dark:text-violet-300">
+              {code}
+            </p>
+            <h1 class="docs-title">{title}</h1>
+            <div class="docs-description">
+              <p>{description}</p>
+            </div>
+            <div
+              class="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+              <DocsTitleMeta lastModified={lastModified} locale={locale} />
+              <DocsToolbar markdownPath={markdownPath} locale={locale} />
+            </div>
+          </div>
+
+          <article class="prose-static min-w-0" data-doc-content>
+            <slot />
+          </article>
+
+          <DocsFooter editUrl={editUrl} locale={locale} />
+        </div>
+      </div>
+
+      <DocsMinimap locale={locale} />
+    </main>
+  </div>
+</Layout>

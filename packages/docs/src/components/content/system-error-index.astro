@@ -1,0 +1,102 @@
+---
+import { getSystemErrorPages } from '@/lib/system-errors'
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+}
+
+const { locale = defaultLocale } = Astro.props
+const pages = getSystemErrorPages(locale)
+const currentPages = pages.filter(page => !page.frontmatter.legacy)
+const legacyPages = pages.filter(page => page.frontmatter.legacy)
+const labels =
+  locale === 'zh-cn'
+    ? {
+        count: (count: number) => `${count} 个错误码`,
+        current: '2.x 当前版本',
+        currentDescription: '当前版本可能输出的系统错误',
+        legacy: '1.x 版本',
+        legacyDescription: '为旧版本和已有链接保留的错误码',
+      }
+    : {
+        count: (count: number) => `${count} codes`,
+        current: '2.x Current',
+        currentDescription: 'System errors emitted by current func versions',
+        legacy: '1.x',
+        legacyDescription: 'Codes retained for older versions and existing links',
+      }
+const groups = [
+  {
+    description: labels.currentDescription,
+    label: labels.current,
+    pages: currentPages,
+  },
+  {
+    description: labels.legacyDescription,
+    label: labels.legacy,
+    pages: legacyPages,
+  },
+].filter(group => group.pages.length)
+const errorPath = locale === 'zh-cn' ? '/zh-cn/errors' : '/errors'
+---
+
+<div class="mt-10 grid gap-10">
+  {
+    groups.map((group, groupIndex) => (
+      <section aria-labelledby={`system-error-group-${groupIndex}`} class="m-0">
+        <div class="flex items-end justify-between gap-4 border-b border-border pb-3">
+          <div class="min-w-0">
+            <h2
+              class="m-0 text-sm leading-5 font-medium tracking-normal"
+              id={`system-error-group-${groupIndex}`}>
+              {group.label}
+            </h2>
+            <p class="mt-0.5 mb-0 text-xs leading-5 text-muted-foreground">
+              {group.description}
+            </p>
+          </div>
+          <span class="shrink-0 font-mono text-[0.6875rem] text-muted-foreground">
+            {labels.count(group.pages.length)}
+          </span>
+        </div>
+
+        <ul class="m-0 list-none p-0" data-minimap-ignore>
+          {group.pages.map(page => (
+            <li class="m-0 border-b border-border">
+              <a
+                class="group -mx-2 grid grid-cols-[minmax(0,1fr)_1rem] items-start gap-x-4 gap-y-2 px-2 py-4 text-foreground no-underline outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[minmax(13rem,0.8fr)_minmax(0,1.2fr)_1rem] sm:gap-x-6"
+                href={`${errorPath}/${page.code}`}>
+                <code class="col-span-2 bg-transparent p-0 font-mono text-xs leading-5 font-medium break-all text-muted-foreground sm:col-span-1">
+                  {page.code}
+                </code>
+                <div class="min-w-0">
+                  <h3 class="m-0 text-sm leading-5 font-medium tracking-normal">
+                    {page.frontmatter.title}
+                  </h3>
+                  <p class="mt-1 mb-0 text-sm leading-5 text-muted-foreground">
+                    {page.frontmatter.description}
+                  </p>
+                </div>
+                <svg
+                  aria-hidden="true"
+                  class="mt-0.5 size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  fill="none"
+                  viewBox="0 0 16 16"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M3.5 8h9m-3.25-3.25L12.5 8l-3.25 3.25"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.25"
+                  />
+                </svg>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</div>

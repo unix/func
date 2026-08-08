@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_HANDLER_FLAG_PATH_CONFLICT
+title: Handler flag conflicts with path
+description: A @Handler tries to select the same method by both an option flag and a positional path.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class ProjectCommand {',
+  "  @Handler({ flag: 'list', path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class ProjectCommand {',
+  "  @Handler({ path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+## Reproduction
+
+A handler must use exactly one selection mode:
+
+<CodeBlock code={reproductionCode} filename="src/project.command.ts" lang="ts" />
+
+## How to fix it
+
+Keep either `flag` or `path`:
+
+<CodeBlock code={fixCode} filename="src/project.command.ts" lang="ts" />

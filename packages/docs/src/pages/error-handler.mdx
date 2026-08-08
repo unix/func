@@ -1,0 +1,138 @@
+---
+title: Error Handling
+description: Handle definition, runtime, and printable input errors with local catches and global handlers.
+lastModified: '2026-08-04'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import TerminalDemo from '@/components/demos/terminal-demo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const localCatchCode = [
+  "import { Catch, Command, Exception, FuncException, Handler } from 'func'",
+  '',
+  "@Command({ name: 'publish' })",
+  'export class PublishCommand {',
+  '  @Catch()',
+  '  onError(@Exception() exception: FuncException) {',
+  '    console.error(`Publish failed: ${exception.message}`)',
+  '  }',
+  '',
+  '  @Handler()',
+  '  async run() {',
+  "    throw new Error('Registry is unavailable')",
+  '  }',
+  '}',
+].join('\n')
+
+export const globalCatchCode = [
+  "import { CatchAll, Exception, FuncException } from 'func'",
+  '',
+  '@CatchAll()',
+  'export class ErrorHandler {',
+  '  constructor(@Exception() exception: FuncException) {',
+  "    if (exception.level === 'runtime-print') {",
+  '      console.error(`Invalid input: ${exception.message}`)',
+  '      exception.preventDefaultPrint()',
+  '      return',
+  '    }',
+  '',
+  '    console.error(`Unexpected error: ${exception.message}`)',
+  '  }',
+  '}',
+].join('\n')
+
+export const moduleCode = [
+  "import { FuncModule } from 'func'",
+  "import { ErrorHandler } from './commands/error.command'",
+  "import { PublishCommand } from './commands/publish.command'",
+  '',
+  '@FuncModule({',
+  '  commands: [PublishCommand, ErrorHandler],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const throwInputErrorCode = [
+  "import { F_RUNTIME_PRINT, createRuntimePrintError, errorTypes } from 'func'",
+  '',
+  "throw createRuntimePrintError(F_RUNTIME_PRINT.VALIDATION, errorTypes.INPUT, 'Token is required.', { option: 'token' })",
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="error-handler">
+
+Error handling starts by deciding who can act on the failure. A duplicate command name is a development defect and should stop startup. A network failure belongs to the application and may need command context. An invalid option belongs to the CLI user and normally needs one concise stderr message.
+
+func preserves that distinction with error families and a fixed routing order. You can rely on the default input message, add a command-local catch, or register a global formatter without surrounding every handler with `try/catch`.
+
+## Error families
+
+| Family            | Who should fix it         | Examples                                                                                    | Routing                                                                                  |
+| ----------------- | ------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `F_SYSTEM`        | Developer                 | Duplicate tokens, missing handlers, invalid decorator targets, or unsupported option types. | Thrown immediately and never delivered to local or global user handlers.                 |
+| `F_RUNTIME`       | Application or dependency | A handler throws, a service request fails, or business code rejects an operation.           | A local catch may consume it; otherwise registered global handlers receive it.           |
+| `F_RUNTIME_PRINT` | CLI user input            | Unknown option, parse failure, conflicting handler flags, or failed validation.             | Uses the same handler flow, then prints its message to stderr unless prevented globally. |
+
+## Fix system errors instead of formatting them
+
+<Callout title="System errors are definition defects" variant="caution">
+
+They bypass local and global user handlers intentionally. Treat them as failed development checks, not as recoverable user input.
+
+</Callout>
+
+System errors mean the application graph or decorator declarations are invalid: duplicate command and option tokens, multiple major or missing scopes, unsupported option types, missing handlers, or invalid decorator parameters. They are thrown before user error handlers and should fail development checks. Do not convert them into a friendly “try again” message; correct the definition.
+
+When funcgo prints an `F_SYSTEM_*` tracking link, open its code-specific reproduction and fix in the [error index](/errors).
+
+## Consume one command's failures locally
+
+`@Catch()` decorates a method on the same command class. It receives non-system failures raised while func assigns and validates that command's fields or runs its handler.
+
+<CodeBlock
+  code={localCatchCode}
+  filename="src/commands/publish.command.ts"
+  lang="ts"
+/>
+<TerminalDemo
+  command="ship publish"
+  demo="errors-local-catch"
+  rows={2}
+  sourceUrl="/demos/errors-local-catch.ts"
+/>
+
+When the local catch finishes normally, the failure is considered handled: global handlers do not run and func does not perform later default printing. The local method must therefore print, recover, or record everything required for that failure. If the local catch itself throws, the new failure continues to global handling.
+
+Use a local catch only when command context changes the response—for example, cleaning up a partial publish or adding the target registry name. Repeated formatting policy belongs in one global handler.
+
+## Apply one global policy
+
+`@CatchAll()` registers an error-handler class. `@CommandError()` is an equivalent name kept for compatibility. Register the class in the module's `commands` list even though users cannot select it as a command.
+
+<CodeBlock
+  code={globalCatchCode}
+  filename="src/commands/error.command.ts"
+  lang="ts"
+/>
+<CodeBlock code={moduleCode} filename="src/app.module.ts" lang="ts" />
+
+Ordinary thrown values and native `Error` instances are normalized as `F_RUNTIME` handler errors before they arrive. The `FuncException` wrapper exposes a stable message and classification while retaining the normalized error and details for logging.
+
+## Avoid duplicate input-error output
+
+`F_RUNTIME_PRINT` errors carry a message that func prints to stderr after global handlers run. If a global handler prints its own version, call `preventDefaultPrint()` on the injected exception as shown above. If the default message is already sufficient, do nothing and let func print it once.
+
+Built-in parsing and field validation create runtime-print errors automatically. Use `createRuntimePrintError()` when business code detects another user-correctable input problem and should enter the same output policy:
+
+<CodeBlock code={throwInputErrorCode} lang="ts" />
+
+## Choose the smallest handling layer
+
+- Use no custom handler when func's input message is enough.
+- Use `@Catch()` when one command needs recovery or command-specific context.
+- Use `@CatchAll()` for consistent prefixes, structured logs, translation, or telemetry.
+- Write normal command results to stdout and failure messages to stderr.
+- Never include tokens, passwords, or full credential-bearing requests in user output or logs.
+
+</DocsLayout>

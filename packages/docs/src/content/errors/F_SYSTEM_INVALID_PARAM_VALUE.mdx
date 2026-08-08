@@ -1,0 +1,50 @@
+---
+code: F_SYSTEM_INVALID_PARAM_VALUE
+title: Invalid decorator parameter value
+description: A decorator parameter has the correct general type but violates a func naming or handler-shape rule.
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class ProjectCommand {',
+  "  @Handler({ flag: 'list', path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class ProjectCommand {',
+  "  @Handler({ path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+Current versions keep this code for compatibility but emit `F_SYSTEM_INVALID_TOKEN`, `F_SYSTEM_INVALID_OPTION_ALIAS`, `F_SYSTEM_HANDLER_FLAG_PATH_CONFLICT`, or `F_SYSTEM_HANDLER_PATH_ALIAS_CONFLICT` for the corresponding invariant.
+
+## Reproduction
+
+Handler flags and paths select handlers in different ways and cannot be combined:
+
+<CodeBlock code={reproductionCode} filename="src/project.command.ts" lang="ts" />
+
+## What this error means
+
+The supplied value conflicts with another parameter or cannot form a valid CLI token. Common causes are:
+
+- combining handler `flag` with `path`;
+- combining handler `path` with `alias`;
+- using an alias longer than one character;
+- using a name that starts with `-`, contains whitespace, or is otherwise empty.
+
+The message and `details` identify the rejected key and value.
+
+## How to fix it
+
+Choose either a path handler or a flag handler. Use names without leading hyphens or whitespace, and keep aliases to one character:
+
+<CodeBlock code={fixCode} filename="src/project.command.ts" lang="ts" />

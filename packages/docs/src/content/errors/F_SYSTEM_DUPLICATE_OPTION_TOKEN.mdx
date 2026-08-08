@@ -1,0 +1,54 @@
+---
+code: F_SYSTEM_DUPLICATE_OPTION_TOKEN
+title: Duplicate option token
+description: Multiple fields, sub-options, handler flags, or handler paths claim the same token in one command.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Container, Flag, Handler, Value } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class BuildCommand {',
+  "  @Flag({ name: 'config' })",
+  '  useConfig = false',
+  '',
+  "  @Value({ name: 'config' })",
+  "  config = ''",
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([BuildCommand])',
+].join('\n')
+
+export const fixCode = [
+  '@CommandMajor()',
+  'class BuildCommand {',
+  "  @Flag({ name: 'use-config' })",
+  '  useConfig = false',
+  '',
+  "  @Value({ name: 'config' })",
+  "  config = ''",
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([BuildCommand])',
+].join('\n')
+
+## Reproduction
+
+All option names, aliases, handler flags, and handler paths must be unique within a command:
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## How to fix it
+
+Rename one conflicting token or remove the duplicate declaration:
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

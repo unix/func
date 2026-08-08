@@ -1,0 +1,26 @@
+---
+import SystemErrorLayout from '@/layouts/system-error.astro'
+import { getSystemErrorPage, getSystemErrorPages } from '@/lib/system-errors'
+import type { GetStaticPaths } from 'astro'
+
+interface Props {
+  code: string
+}
+
+export const getStaticPaths = (() => {
+  return getSystemErrorPages().map(page => ({
+    params: { errorCode: page.code },
+    props: { code: page.code },
+  }))
+}) satisfies GetStaticPaths
+
+const { code } = Astro.props
+const page = getSystemErrorPage(code)
+if (!page) throw new Error(`Unknown system error code: ${code}`)
+
+const { Content, frontmatter } = page
+---
+
+<SystemErrorLayout frontmatter={frontmatter}>
+  <Content />
+</SystemErrorLayout>

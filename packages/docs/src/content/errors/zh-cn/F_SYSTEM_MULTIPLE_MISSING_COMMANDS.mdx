@@ -1,0 +1,39 @@
+---
+code: F_SYSTEM_MULTIPLE_MISSING_COMMANDS
+title: 存在多个缺失命令处理器
+description: 应用为未知命令名称注册了多个回退处理器。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMissing, Container } from 'func'",
+  '',
+  '@CommandMissing()',
+  'class FirstMissing {}',
+  '',
+  '@CommandMissing()',
+  'class SecondMissing {}',
+  '',
+  'new Container([FirstMissing, SecondMissing])',
+].join('\n')
+
+export const fixCode = [
+  '@CommandMissing()',
+  'class MissingCommand {}',
+  '',
+  'new Container([MissingCommand])',
+].join('\n')
+
+## 复现
+
+func 无法在多个未知命令回退处理器之间做出选择：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 如何修复
+
+只注册一个缺失命令，并把回退行为集中在其中：
+
+<CodeBlock code={fixCode} filename="src/app.module.ts" lang="ts" />

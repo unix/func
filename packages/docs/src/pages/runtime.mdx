@@ -107,7 +107,7 @@ Duplicate tokens, missing handlers, and invalid command shapes found during asse
 
 Scope selection, option parsing, handler dispatch, and command construction happen outside the local-catch boundary; input or construction failures there enter application-level error handling. Field injection, validation, parameter preparation, and handler invocation already have a command instance, so they enter that command's local catch first and reach application-level routing only when unhandled.
 
-A system error always indicates a framework declaration or registration defect and is rethrown. Runtime errors may reach local or global handling. Runtime-print errors also carry func's default stderr output. See [Error Handling](/errors) for the complete levels and print controls.
+A system error always indicates a framework declaration or registration defect and is rethrown. Runtime errors may reach local or global handling. Runtime-print errors also carry func's default stderr output. See [Error Handling](/error-handler) for the complete levels and print controls.
 
 ### Q&A
 

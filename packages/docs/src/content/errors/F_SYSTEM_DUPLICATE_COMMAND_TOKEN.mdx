@@ -1,0 +1,54 @@
+---
+code: F_SYSTEM_DUPLICATE_COMMAND_TOKEN
+title: Duplicate command token
+description: Two registered commands use the same name or alias.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Container, Handler } from 'func'",
+  '',
+  "@Command({ name: 'build' })",
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  "@Command({ name: 'build' })",
+  'class RebuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([BuildCommand, RebuildCommand])',
+].join('\n')
+
+export const fixCode = [
+  "@Command({ name: 'build' })",
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  "@Command({ name: 'rebuild' })",
+  'class RebuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([BuildCommand, RebuildCommand])',
+].join('\n')
+
+## Reproduction
+
+Command names and aliases share one application-wide namespace:
+
+<CodeBlock code={reproductionCode} filename="src/commands.ts" lang="ts" />
+
+## How to fix it
+
+Give every command name and alias a unique token:
+
+<CodeBlock code={fixCode} filename="src/commands.ts" lang="ts" />

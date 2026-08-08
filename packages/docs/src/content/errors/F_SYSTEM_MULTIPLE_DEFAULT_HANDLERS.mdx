@@ -1,0 +1,48 @@
+---
+code: F_SYSTEM_MULTIPLE_DEFAULT_HANDLERS
+title: Multiple default handlers
+description: One command declares more than one @Handler without a flag or path.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Container, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class BuildCommand {',
+  '  @Handler()',
+  '  build() {}',
+  '',
+  '  @Handler()',
+  '  rebuild() {}',
+  '}',
+  '',
+  'new Container([BuildCommand])',
+].join('\n')
+
+export const fixCode = [
+  '@CommandMajor()',
+  'class BuildCommand {',
+  '  @Handler()',
+  '  build() {}',
+  '',
+  "  @Handler({ flag: 'rebuild' })",
+  '  rebuild() {}',
+  '}',
+  '',
+  'new Container([BuildCommand])',
+].join('\n')
+
+## Reproduction
+
+func cannot choose between multiple fallback methods:
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## How to fix it
+
+Keep one default handler and give every additional handler a flag or path:
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

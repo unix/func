@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_INVALID_METHOD_DECORATOR_TARGET
+title: Invalid method decorator target
+description: '@Handler or @Catch is attached to something other than an instance method.'
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class BuildCommand {',
+  '  @Handler()',
+  '  static run() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+].join('\n')
+
+## Reproduction
+
+Method decorators need an instance so func can inject dependencies and invoke the method:
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## How to fix it
+
+Use an instance method:
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

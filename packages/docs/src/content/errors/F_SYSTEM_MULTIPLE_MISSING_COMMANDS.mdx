@@ -1,0 +1,39 @@
+---
+code: F_SYSTEM_MULTIPLE_MISSING_COMMANDS
+title: Multiple missing commands
+description: The application registers more than one fallback for unknown command names.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMissing, Container } from 'func'",
+  '',
+  '@CommandMissing()',
+  'class FirstMissing {}',
+  '',
+  '@CommandMissing()',
+  'class SecondMissing {}',
+  '',
+  'new Container([FirstMissing, SecondMissing])',
+].join('\n')
+
+export const fixCode = [
+  '@CommandMissing()',
+  'class MissingCommand {}',
+  '',
+  'new Container([MissingCommand])',
+].join('\n')
+
+## Reproduction
+
+func cannot choose between multiple unknown-command fallbacks:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## How to fix it
+
+Register exactly one missing command and consolidate the fallback behavior there:
+
+<CodeBlock code={fixCode} filename="src/app.module.ts" lang="ts" />

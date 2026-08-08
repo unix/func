@@ -1,0 +1,43 @@
+---
+code: F_SYSTEM_MISSING_HANDLER
+title: Missing command handler
+description: A command does not define any @Handler method.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, FuncModule, run } from 'func'",
+  '',
+  "@Command({ name: 'build' })",
+  'class BuildCommand {}',
+  '',
+  '@FuncModule({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+export const fixCode = [
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+].join('\n')
+
+## Reproduction
+
+A registered command must define at least one `@Handler()` method:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## What this error means
+
+func found no handler metadata on the selected command. A command that has handlers but cannot select one for the current invocation uses `F_SYSTEM_NO_MATCHING_HANDLER` instead.
+
+## How to fix it
+
+Add an instance method decorated with `@Handler()`:
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

@@ -1,0 +1,54 @@
+---
+code: F_SYSTEM_DUPLICATE_COMMAND_TOKEN
+title: 命令 token 重复
+description: 两个已注册命令使用了相同的名称或 alias。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Container, Handler } from 'func'",
+  '',
+  "@Command({ name: 'build' })",
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  "@Command({ name: 'build' })",
+  'class RebuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([BuildCommand, RebuildCommand])',
+].join('\n')
+
+export const fixCode = [
+  "@Command({ name: 'build' })",
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  "@Command({ name: 'rebuild' })",
+  'class RebuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([BuildCommand, RebuildCommand])',
+].join('\n')
+
+## 复现
+
+命令名称和 alias 共用一个应用级命名空间：
+
+<CodeBlock code={reproductionCode} filename="src/commands.ts" lang="ts" />
+
+## 如何修复
+
+确保每个命令名称和 alias 都是唯一的：
+
+<CodeBlock code={fixCode} filename="src/commands.ts" lang="ts" />

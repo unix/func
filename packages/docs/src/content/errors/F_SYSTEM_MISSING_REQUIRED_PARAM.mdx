@@ -1,0 +1,37 @@
+---
+code: F_SYSTEM_MISSING_REQUIRED_PARAM
+title: Missing required decorator parameter
+description: A command or option declaration omits a required name or another standalone value.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command } from 'func'",
+  '',
+  "@Command({ name: '' })",
+  'class HelpCommand {}',
+].join('\n')
+
+export const fixCode = ["@Command({ name: 'help' })", 'class HelpCommand {}'].join(
+  '\n',
+)
+
+## Reproduction
+
+A required command name is empty:
+
+<CodeBlock code={reproductionCode} filename="src/help.command.ts" lang="ts" />
+
+## What this error means
+
+A decorator cannot produce complete command metadata from the supplied parameters. The error `details.key` identifies the missing standalone value; for the example above it is `name`.
+
+## How to fix it
+
+Supply the missing parameter:
+
+<CodeBlock code={fixCode} filename="src/help.command.ts" lang="ts" />
+
+Command and option names must be non-empty strings. A handler alias without a flag uses the more specific `F_SYSTEM_HANDLER_ALIAS_REQUIRES_FLAG` code.

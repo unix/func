@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_HANDLER_PATH_ALIAS_CONFLICT
+title: Handler path does not support alias
+description: A path-selected @Handler also declares an alias, which is only valid for handler flags.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class ProjectCommand {',
+  "  @Handler({ path: ['project', 'list'], alias: 'l' })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class ProjectCommand {',
+  "  @Handler({ path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+## Reproduction
+
+Aliases abbreviate option flags and cannot abbreviate positional paths:
+
+<CodeBlock code={reproductionCode} filename="src/project.command.ts" lang="ts" />
+
+## How to fix it
+
+Remove the alias, or replace the path with a flag and keep the alias:
+
+<CodeBlock code={fixCode} filename="src/project.command.ts" lang="ts" />

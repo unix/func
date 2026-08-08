@@ -101,7 +101,7 @@ path、handler option、default 的先后顺序是 func 的运行时契约，不
 
 作用域选择、option 解析、处理器分派以及命令构造发生在局部 catch 之外；这些阶段的输入错误或构造错误进入应用级错误处理。字段注入、校验、参数准备和处理器调用已经拥有命令实例，因此会先进入当前命令的局部 catch，未处理的失败再进入应用级路由。
 
-system error 始终表示框架声明或注册缺陷，会直接抛出。runtime error 可以交给局部或全局处理；runtime-print error 还带有 func 的默认 stderr 输出。完整错误等级与打印控制见 [错误处理](/zh-cn/errors)。
+system error 始终表示框架声明或注册缺陷，会直接抛出。runtime error 可以交给局部或全局处理；runtime-print error 还带有 func 的默认 stderr 输出。完整错误等级与打印控制见 [错误处理](/zh-cn/error-handler)。
 
 ### Q&A
 

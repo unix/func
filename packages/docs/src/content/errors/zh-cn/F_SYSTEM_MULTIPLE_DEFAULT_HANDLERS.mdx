@@ -1,0 +1,48 @@
+---
+code: F_SYSTEM_MULTIPLE_DEFAULT_HANDLERS
+title: 存在多个默认处理器
+description: 同一命令声明了多个不带 flag 或 path 的 @Handler。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Container, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class BuildCommand {',
+  '  @Handler()',
+  '  build() {}',
+  '',
+  '  @Handler()',
+  '  rebuild() {}',
+  '}',
+  '',
+  'new Container([BuildCommand])',
+].join('\n')
+
+export const fixCode = [
+  '@CommandMajor()',
+  'class BuildCommand {',
+  '  @Handler()',
+  '  build() {}',
+  '',
+  "  @Handler({ flag: 'rebuild' })",
+  '  rebuild() {}',
+  '}',
+  '',
+  'new Container([BuildCommand])',
+].join('\n')
+
+## 复现
+
+func 无法在多个回退方法之间做出选择：
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## 如何修复
+
+只保留一个默认处理器，并为其他处理器添加 flag 或 path：
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

@@ -77,5 +77,6 @@ Reference documentation:
 - https://func.witt.im/concepts.md
 - https://func.witt.im/options.md
 - https://func.witt.im/parameters.md
+- https://func.witt.im/error-handler.md
 - https://func.witt.im/errors.md
 - https://func.witt.im/tooling.md

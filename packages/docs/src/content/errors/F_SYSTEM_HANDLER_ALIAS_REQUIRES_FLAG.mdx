@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_HANDLER_ALIAS_REQUIRES_FLAG
+title: Handler alias requires a flag
+description: A @Handler declares an alias without declaring the flag that alias should abbreviate.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class HelpCommand {',
+  "  @Handler({ alias: 'h' })",
+  '  help() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class HelpCommand {',
+  "  @Handler({ flag: 'help', alias: 'h' })",
+  '  help() {}',
+  '}',
+].join('\n')
+
+## Reproduction
+
+An alias has no long-form handler flag to reference:
+
+<CodeBlock code={reproductionCode} filename="src/help.command.ts" lang="ts" />
+
+## How to fix it
+
+Add the flag or remove the alias:
+
+<CodeBlock code={fixCode} filename="src/help.command.ts" lang="ts" />

@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_INVALID_FIELD_DECORATOR_TARGET
+title: 字段装饰器目标无效
+description: 字段选项或字段校验装饰器被用于实例属性以外的目标。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Flag } from 'func'",
+  '',
+  'class Options {',
+  '  @Flag()',
+  '  static verbose = false',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class Options {',
+  '  @Flag()',
+  '  verbose = false',
+  '}',
+].join('\n')
+
+## 复现
+
+字段装饰器不能把值收集到静态属性中：
+
+<CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
+
+## 如何修复
+
+把装饰器和值移到实例属性：
+
+<CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />

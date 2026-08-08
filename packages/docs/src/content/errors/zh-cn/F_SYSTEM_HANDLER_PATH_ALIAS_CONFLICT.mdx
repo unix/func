@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_HANDLER_PATH_ALIAS_CONFLICT
+title: 处理器 path 不支持 alias
+description: 通过 path 选择的 @Handler 同时声明了仅适用于 flag 的 alias。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class ProjectCommand {',
+  "  @Handler({ path: ['project', 'list'], alias: 'l' })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class ProjectCommand {',
+  "  @Handler({ path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+## 复现
+
+alias 用于缩写选项 flag，不能缩写位置 path：
+
+<CodeBlock code={reproductionCode} filename="src/project.command.ts" lang="ts" />
+
+## 如何修复
+
+删除 alias，或者改用 flag 并保留 alias：
+
+<CodeBlock code={fixCode} filename="src/project.command.ts" lang="ts" />

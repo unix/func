@@ -1,0 +1,32 @@
+---
+code: F_SYSTEM_EXPECTED_ARRAY_PARAM
+title: 参数应为数组
+description: path、SubOptions、Enum、DependsOn 或 Exclusive 等装饰器参数不是数组。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { SubOptions } from 'func'",
+  '',
+  "@SubOptions({ name: 'verbose' } as any)",
+  'class BuildCommand {}',
+].join('\n')
+
+export const fixCode = [
+  "@SubOptions([{ name: 'verbose' }])",
+  'class BuildCommand {}',
+].join('\n')
+
+## 复现
+
+接收列表的装饰器即使只有一个元素也需要数组：
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## 如何修复
+
+把传入的元素包裹在数组中：
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

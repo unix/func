@@ -1,0 +1,55 @@
+---
+code: F_SYSTEM_MISSING_PARAM_TYPES
+title: Missing parameter type metadata
+description: An older func runtime could not inspect constructor parameter types required for injection.
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, FuncModule, Handler, run } from 'func'",
+  '',
+  'class ProjectService {}',
+  '',
+  "@Command({ name: 'inspect' })",
+  'class InspectCommand {',
+  '  constructor(private project: ProjectService) {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@FuncModule({ commands: [InspectCommand] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+export const tsconfigCode = [
+  '{',
+  '  "compilerOptions": {',
+  '    "emitDecoratorMetadata": true,',
+  '    "experimentalDecorators": true',
+  '  }',
+  '}',
+].join('\n')
+
+## Reproduction
+
+Older func runtimes emitted this code when a constructor had parameters but TypeScript did not emit decorator metadata:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## What this error means
+
+Dependency injection relies on runtime parameter metadata. The JavaScript output did not contain enough information to identify the requested service. Current func versions keep this code for compatibility with older releases.
+
+## How to fix it
+
+Enable both decorator options in the TypeScript configuration used by the build:
+
+<CodeBlock code={tsconfigCode} filename="tsconfig.json" lang="json" />
+
+Ensure the class has a func decorator, register injected services in `FuncModule.services`, and confirm that `funcgo` is reading the intended `tsconfig.json`.

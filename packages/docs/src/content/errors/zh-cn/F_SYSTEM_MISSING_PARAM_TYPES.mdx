@@ -1,0 +1,55 @@
+---
+code: F_SYSTEM_MISSING_PARAM_TYPES
+title: 缺少参数类型元数据
+description: 较旧版本的 func 运行时无法读取依赖注入所需的构造函数参数类型。
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, FuncModule, Handler, run } from 'func'",
+  '',
+  'class ProjectService {}',
+  '',
+  "@Command({ name: 'inspect' })",
+  'class InspectCommand {',
+  '  constructor(private project: ProjectService) {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@FuncModule({ commands: [InspectCommand] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+export const tsconfigCode = [
+  '{',
+  '  "compilerOptions": {',
+  '    "emitDecoratorMetadata": true,',
+  '    "experimentalDecorators": true',
+  '  }',
+  '}',
+].join('\n')
+
+## 复现
+
+旧版 func 在构造函数带参数、但 TypeScript 没有输出装饰器元数据时会产生这个错误码：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+依赖注入依赖运行时参数元数据，但生成的 JavaScript 没有包含足够的信息来识别所请求的服务。当前 func 版本保留这个错误码是为了兼容旧版本。
+
+## 如何修复
+
+在实际构建使用的 TypeScript 配置中启用以下两个装饰器选项：
+
+<CodeBlock code={tsconfigCode} filename="tsconfig.json" lang="json" />
+
+确保目标类带有 func 装饰器，把注入的服务注册到 `FuncModule.services`，并确认 `funcgo` 读取的是预期的 `tsconfig.json`。

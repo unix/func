@@ -15,12 +15,16 @@ import {
 } from '@/lib/docs'
 
 interface Props {
+  languageSwitchHref?: string
   locale?: Locale
   page?: DocPage
 }
 
-const { locale = defaultLocale, page = '/' } = Astro.props
+const { languageSwitchHref, locale = defaultLocale, page = '/' } = Astro.props
 const languageSwitch = getLanguageSwitch(page, locale)
+if (languageSwitchHref) {
+  languageSwitch.href = languageSwitchHref
+}
 const siteSlogan = getSiteSlogan(locale)
 const persistKey = `docs-header-${locale}`
 const backToTopLabel = locale === 'zh-cn' ? '返回顶部' : 'Back to top'

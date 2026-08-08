@@ -11,6 +11,7 @@ export type DocPage =
   | 'tooling'
   | 'ecosystem'
   | 'runtime'
+  | 'error-handler'
   | 'errors'
   | 'apis'
   | 'glossary'
@@ -48,6 +49,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     tooling: 'Tooling',
     ecosystem: 'Ecosystem Guide',
     runtime: 'Runtime',
+    'error-handler': 'Error Handling',
     errors: 'Errors',
     apis: 'API Reference',
     glossary: 'Glossary',
@@ -66,7 +68,8 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     tooling: '工具链',
     ecosystem: '生态选型',
     runtime: '深入了解运行时',
-    errors: '错误处理',
+    'error-handler': '错误处理',
+    errors: '错误索引',
     apis: 'API 参考',
     glossary: '术语索引',
     changelog: '更新日志',
@@ -87,14 +90,14 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
         'commands',
         'options',
         'parameters',
-        'errors',
+        'error-handler',
         'tooling',
         'runtime',
       ],
     },
     {
       label: 'Reference',
-      pages: ['glossary', 'apis', 'changelog'],
+      pages: ['errors', 'glossary', 'apis', 'changelog'],
     },
     {
       label: 'Further Reading',
@@ -114,14 +117,14 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
         'commands',
         'options',
         'parameters',
-        'errors',
+        'error-handler',
         'tooling',
         'runtime',
       ],
     },
     {
       label: '参考资料',
-      pages: ['glossary', 'apis', 'changelog'],
+      pages: ['errors', 'glossary', 'apis', 'changelog'],
     },
     {
       label: '扩展阅读',

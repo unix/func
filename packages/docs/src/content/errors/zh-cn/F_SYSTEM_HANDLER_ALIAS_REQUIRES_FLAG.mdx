@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_HANDLER_ALIAS_REQUIRES_FLAG
+title: 处理器 alias 需要 flag
+description: '@Handler 声明了 alias，却没有声明该 alias 所缩写的 flag。'
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class HelpCommand {',
+  "  @Handler({ alias: 'h' })",
+  '  help() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class HelpCommand {',
+  "  @Handler({ flag: 'help', alias: 'h' })",
+  '  help() {}',
+  '}',
+].join('\n')
+
+## 复现
+
+alias 没有可引用的长格式处理器 flag：
+
+<CodeBlock code={reproductionCode} filename="src/help.command.ts" lang="ts" />
+
+## 如何修复
+
+添加 flag，或删除 alias：
+
+<CodeBlock code={fixCode} filename="src/help.command.ts" lang="ts" />

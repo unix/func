@@ -1,0 +1,54 @@
+---
+code: F_SYSTEM_DUPLICATE_OPTION_TOKEN
+title: 选项 token 重复
+description: 同一命令中的字段、子选项、处理器 flag 或处理器 path 占用了相同 token。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Container, Flag, Handler, Value } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class BuildCommand {',
+  "  @Flag({ name: 'config' })",
+  '  useConfig = false',
+  '',
+  "  @Value({ name: 'config' })",
+  "  config = ''",
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([BuildCommand])',
+].join('\n')
+
+export const fixCode = [
+  '@CommandMajor()',
+  'class BuildCommand {',
+  "  @Flag({ name: 'use-config' })",
+  '  useConfig = false',
+  '',
+  "  @Value({ name: 'config' })",
+  "  config = ''",
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([BuildCommand])',
+].join('\n')
+
+## 复现
+
+同一命令中的选项名称、alias、处理器 flag 和处理器 path 必须保持唯一：
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## 如何修复
+
+重命名其中一个冲突 token，或删除重复声明：
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

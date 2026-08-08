@@ -1,0 +1,31 @@
+---
+code: F_SYSTEM_INVALID_TOKEN
+title: Invalid command or option token
+description: A command, option, alias, flag, or path token is empty, starts with a hyphen, or contains whitespace.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command } from 'func'",
+  '',
+  "@Command({ name: '-build' })",
+  'class BuildCommand {}',
+].join('\n')
+
+export const fixCode = ["@Command({ name: 'build' })", 'class BuildCommand {}'].join(
+  '\n',
+)
+
+## Reproduction
+
+Decorator tokens describe the logical name, so they must not include CLI hyphens or whitespace:
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## How to fix it
+
+Pass the token without leading hyphens and use one non-whitespace segment:
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

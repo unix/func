@@ -1,0 +1,47 @@
+---
+code: F_SYSTEM_INVALID_PARAM_TYPE
+title: 装饰器参数类型无效
+description: 装饰器目标或参数不符合 func 所要求的运行时结构。
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Value } from 'func'",
+  '',
+  'class Options {',
+  '  @Value()',
+  '  when: Date = new Date()',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class Options {',
+  '  @Value({ type: String })',
+  '  when!: string',
+  '}',
+].join('\n')
+
+当前版本为兼容保留此错误码，但会根据具体约束输出 `F_SYSTEM_CANNOT_INFER_VALUE_TYPE`、`F_SYSTEM_INVALID_METHOD_DECORATOR_TARGET`、`F_SYSTEM_INVALID_FIELD_DECORATOR_TARGET` 或 `F_SYSTEM_EXPECTED_ARRAY_PARAM`。
+
+## 复现
+
+常见情况是 func 无法推断 `@Value()` 字段的运行时类型：
+
+<CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
+
+## 这个错误是什么
+
+func 收到了结构类型不符合要求的值。这个错误码覆盖多种定义错误，包括无法推断 `@Value()` 类型、把字段或方法装饰器放在静态成员上，以及向要求数组的 `path`、`enum` 或 `SubOptions` 传入非数组值。
+
+发生类型推断错误时，`details.reason` 为 `cannot-infer-value-type`，`details.property` 会指出对应字段。
+
+## 如何修复
+
+无法推断类型时，请显式提供受支持的运行时解析器：
+
+<CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />
+
+请将 `@Handler()` 和 `@Catch()` 放在实例方法上，将字段装饰器放在实例属性上，并向要求数组的 API 传入数组。受支持的值解析器为 `String`、`Number`、`Boolean` 和 `[String]`。

@@ -1,0 +1,47 @@
+---
+code: F_SYSTEM_UNSUPPORTED_ARRAY_TYPE
+title: 不支持的 Array 选项类型
+description: 选项使用了通用 Array 构造函数，而不是 func 支持的重复字符串解析器。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, FuncModule, Handler, SubOptions, run } from 'func'",
+  '',
+  '@CommandMajor()',
+  "@SubOptions([{ name: 'tag', type: Array }])",
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@FuncModule({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+export const fixCode = [
+  "@SubOptions([{ name: 'tag', type: [String] }])",
+  'class BuildCommand {}',
+].join('\n')
+
+## 复现
+
+通用 `Array` 构造函数没有描述数组元素的解析器：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+func 需要为每个重复值确定具体的解析器。单独使用 `Array` 无法识别元素类型，因此参数解析开始前，注册流程就会停止。错误中的 `details.option` 和 `details.handler` 会指出对应声明。
+
+## 如何修复
+
+重复字符串选项应使用 `[String]`：
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />
+
+对于类字段，优先使用 `@ArrayValue()`，它会自动提供受支持的解析器。

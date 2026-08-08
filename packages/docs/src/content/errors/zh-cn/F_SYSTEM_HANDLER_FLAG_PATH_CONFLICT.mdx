@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_HANDLER_FLAG_PATH_CONFLICT
+title: 处理器 flag 与 path 冲突
+description: 同一个 @Handler 同时尝试通过选项 flag 和位置 path 选择方法。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class ProjectCommand {',
+  "  @Handler({ flag: 'list', path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class ProjectCommand {',
+  "  @Handler({ path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+## 复现
+
+一个处理器只能使用一种选择方式：
+
+<CodeBlock code={reproductionCode} filename="src/project.command.ts" lang="ts" />
+
+## 如何修复
+
+只保留 `flag` 或 `path`：
+
+<CodeBlock code={fixCode} filename="src/project.command.ts" lang="ts" />

@@ -37,6 +37,7 @@ const persistKey = `docs-sidebar-${locale}`
                 <a
                   aria-current={item.id === page ? 'page' : undefined}
                   class="docs-nav-link inline-flex w-full shrink-0 items-center rounded-md px-2 py-1.5 text-sm whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                  data-doc-page={item.id}
                   href={item.href}>
                   {item.label}
                 </a>
@@ -60,7 +61,10 @@ const persistKey = `docs-sidebar-${locale}`
     const currentPath = normalizedPath(window.location.pathname)
 
     document.querySelectorAll<HTMLAnchorElement>('.docs-nav-link').forEach(link => {
-      const isCurrent = normalizedPath(new URL(link.href).pathname) === currentPath
+      const linkPath = normalizedPath(new URL(link.href).pathname)
+      const isErrorDetail =
+        link.dataset.docPage === 'errors' && currentPath.startsWith(`${linkPath}/`)
+      const isCurrent = linkPath === currentPath || isErrorDetail
 
       if (isCurrent) {
         link.setAttribute('aria-current', 'page')

@@ -1,0 +1,33 @@
+---
+code: F_SYSTEM_UNKNOWN_HANDLER
+title: 注册了未知处理器
+description: 应用中注册的类不包含任何 func 命令或错误处理器元数据。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { FuncModule, run } from 'func'",
+  '',
+  'class PlainClass {}',
+  '',
+  '@FuncModule({ commands: [PlainClass] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+## 复现
+
+普通类不能直接放入 `FuncModule.commands`：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+注册列表中包含 func 无法归类的类：它既不是具名命令、主命令或缺省命令处理器，也不是全局错误处理器。`details.handlers` 数组会包含所有校验失败的类名。
+
+## 如何修复
+
+为每个已注册命令类添加适当的 func 装饰器，例如 `@Command()`、`@CommandMajor()`、`@CommandMissing()` 或 `@CatchAll()`。如果这个类是可复用依赖而不是命令，请用 `@Service()` 标记它，并将其移入 `FuncModule.services`。

@@ -1,0 +1,50 @@
+---
+code: F_SYSTEM_INVALID_PARAM_VALUE
+title: 装饰器参数值无效
+description: 装饰器参数的基本类型正确，但违反了 func 的命名或处理器结构约束。
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class ProjectCommand {',
+  "  @Handler({ flag: 'list', path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class ProjectCommand {',
+  "  @Handler({ path: ['project', 'list'] })",
+  '  list() {}',
+  '}',
+].join('\n')
+
+当前版本为兼容保留此错误码，但会根据具体约束输出 `F_SYSTEM_INVALID_TOKEN`、`F_SYSTEM_INVALID_OPTION_ALIAS`、`F_SYSTEM_HANDLER_FLAG_PATH_CONFLICT` 或 `F_SYSTEM_HANDLER_PATH_ALIAS_CONFLICT`。
+
+## 复现
+
+处理器的 flag 和 path 使用不同的选择方式，不能同时存在：
+
+<CodeBlock code={reproductionCode} filename="src/project.command.ts" lang="ts" />
+
+## 这个错误是什么
+
+传入值与另一个参数冲突，或无法形成有效的 CLI token。常见原因包括：
+
+- 同时使用处理器的 `flag` 和 `path`；
+- 同时使用处理器的 `path` 和 `alias`；
+- alias 超过一个字符；
+- 名称以 `-` 开头、包含空白字符或为空。
+
+错误消息和 `details` 会指出被拒绝的键和值。
+
+## 如何修复
+
+在 path 处理器和 flag 处理器中选择一种。名称不要带前导连字符或空白，alias 只能使用一个字符：
+
+<CodeBlock code={fixCode} filename="src/project.command.ts" lang="ts" />

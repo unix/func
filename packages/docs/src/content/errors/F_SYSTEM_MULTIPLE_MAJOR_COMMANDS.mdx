@@ -1,0 +1,56 @@
+---
+code: F_SYSTEM_MULTIPLE_MAJOR_COMMANDS
+title: Multiple major commands
+description: The application registers more than one command as its root command.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Container, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class FirstMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@CommandMajor()',
+  'class SecondMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([FirstMajor, SecondMajor])',
+].join('\n')
+
+export const fixCode = [
+  "import { Command, CommandMajor, Container, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class FirstMajor {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  "@Command({ name: 'second' })",
+  'class SecondCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([FirstMajor, SecondCommand])',
+].join('\n')
+
+## Reproduction
+
+Only one command can own invocations that do not start with a command name:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## How to fix it
+
+Keep one major command and register the other with a name:
+
+<CodeBlock code={fixCode} filename="src/app.module.ts" lang="ts" />

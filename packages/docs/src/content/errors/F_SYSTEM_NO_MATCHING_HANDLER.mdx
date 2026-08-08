@@ -1,0 +1,44 @@
+---
+code: F_SYSTEM_NO_MATCHING_HANDLER
+title: No matching handler
+description: A command has handlers, but the current invocation matches no path or flag and no default handler exists.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Container, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class RootCommand {',
+  "  @Handler({ flag: 'help' })",
+  '  help() {}',
+  '}',
+  '',
+  'new Container([RootCommand], { argv: [] }).run()',
+].join('\n')
+
+export const fixCode = [
+  'class RootCommand {',
+  "  @Handler({ flag: 'help' })",
+  '  help() {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([RootCommand], { argv: [] }).run()',
+].join('\n')
+
+## Reproduction
+
+Invoking this major command without `--help` leaves no method to run:
+
+<CodeBlock code={reproductionCode} filename="src/root.command.ts" lang="ts" />
+
+## How to fix it
+
+Add one default handler, or ensure every valid invocation selects a declared flag or path:
+
+<CodeBlock code={fixCode} filename="src/root.command.ts" lang="ts" />

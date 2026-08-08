@@ -1,0 +1,47 @@
+---
+code: F_SYSTEM_UNSUPPORTED_ARRAY_TYPE
+title: Unsupported Array option type
+description: An option uses the generic Array constructor instead of the supported repeated-string parser.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, FuncModule, Handler, SubOptions, run } from 'func'",
+  '',
+  '@CommandMajor()',
+  "@SubOptions([{ name: 'tag', type: Array }])",
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@FuncModule({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+export const fixCode = [
+  "@SubOptions([{ name: 'tag', type: [String] }])",
+  'class BuildCommand {}',
+].join('\n')
+
+## Reproduction
+
+The generic `Array` constructor does not describe the element parser:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## What this error means
+
+func needs a concrete parser for every repeated value. `Array` alone does not identify the element type, so registration stops before parsing arguments. The error `details.option` and `details.handler` identify the declaration.
+
+## How to fix it
+
+Use `[String]` for a repeated string option:
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />
+
+For class fields, prefer `@ArrayValue()`, which supplies the supported parser automatically.

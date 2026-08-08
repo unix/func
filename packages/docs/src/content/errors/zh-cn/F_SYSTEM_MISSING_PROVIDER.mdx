@@ -1,0 +1,59 @@
+---
+code: F_SYSTEM_MISSING_PROVIDER
+title: 缺少注入 provider
+description: 较旧版本的 func 运行时无法为构造函数参数找到 provider。
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, FuncModule, Handler, run } from 'func'",
+  '',
+  'class RegistryClient {}',
+  '',
+  "@Command({ name: 'publish' })",
+  'class PublishCommand {',
+  '  constructor(private registry: RegistryClient) {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@FuncModule({ commands: [PublishCommand] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+export const fixCode = [
+  "import { FuncModule, Service } from 'func'",
+  '',
+  '@Service()',
+  'class RegistryClient {}',
+  '',
+  '@FuncModule({',
+  '  commands: [PublishCommand],',
+  '  services: [RegistryClient],',
+  '})',
+  'class AppModule {}',
+].join('\n')
+
+## 复现
+
+旧版 func 在构造函数请求了未注册的 provider 时会产生这个错误码：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+运行时元数据指出构造函数需要一个依赖，但应用中没有对应的 provider。当前 func 版本会把未注册的服务参数解析为 `undefined`；这个错误码仅为兼容旧版本而保留。
+
+## 如何修复
+
+将依赖标记为服务，并在最终解析到的模块中注册它：
+
+<CodeBlock code={fixCode} filename="src/app.module.ts" lang="ts" />
+
+如果错误来自旧版 func，请在确认依赖注入行为与应用兼容后升级 func。

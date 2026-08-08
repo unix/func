@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_INVALID_METHOD_DECORATOR_TARGET
+title: 方法装饰器目标无效
+description: '@Handler 或 @Catch 被用于实例方法以外的目标。'
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler } from 'func'",
+  '',
+  'class BuildCommand {',
+  '  @Handler()',
+  '  static run() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+].join('\n')
+
+## 复现
+
+方法装饰器需要实例，以便 func 注入依赖并调用方法：
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## 如何修复
+
+改用实例方法：
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

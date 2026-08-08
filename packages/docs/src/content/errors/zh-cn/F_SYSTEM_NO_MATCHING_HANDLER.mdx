@@ -1,0 +1,44 @@
+---
+code: F_SYSTEM_NO_MATCHING_HANDLER
+title: 没有匹配的处理器
+description: 命令存在处理器，但当前调用没有匹配任何 path 或 flag，也不存在默认处理器。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Container, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class RootCommand {',
+  "  @Handler({ flag: 'help' })",
+  '  help() {}',
+  '}',
+  '',
+  'new Container([RootCommand], { argv: [] }).run()',
+].join('\n')
+
+export const fixCode = [
+  'class RootCommand {',
+  "  @Handler({ flag: 'help' })",
+  '  help() {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'new Container([RootCommand], { argv: [] }).run()',
+].join('\n')
+
+## 复现
+
+不带 `--help` 调用这个主命令时，没有可执行的方法：
+
+<CodeBlock code={reproductionCode} filename="src/root.command.ts" lang="ts" />
+
+## 如何修复
+
+添加一个默认处理器，或确保每种合法调用都能选择已声明的 flag 或 path：
+
+<CodeBlock code={fixCode} filename="src/root.command.ts" lang="ts" />

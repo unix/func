@@ -1,0 +1,47 @@
+---
+code: F_SYSTEM_INVALID_PARAM_TYPE
+title: Invalid decorator parameter type
+description: A decorator target or parameter does not have the runtime shape required by func.
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Value } from 'func'",
+  '',
+  'class Options {',
+  '  @Value()',
+  '  when: Date = new Date()',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class Options {',
+  '  @Value({ type: String })',
+  '  when!: string',
+  '}',
+].join('\n')
+
+Current versions keep this code for compatibility but emit `F_SYSTEM_CANNOT_INFER_VALUE_TYPE`, `F_SYSTEM_INVALID_METHOD_DECORATOR_TARGET`, `F_SYSTEM_INVALID_FIELD_DECORATOR_TARGET`, or `F_SYSTEM_EXPECTED_ARRAY_PARAM` for the corresponding invariant.
+
+## Reproduction
+
+A common case is a `@Value()` field whose runtime type cannot be inferred:
+
+<CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
+
+## What this error means
+
+func received a value of the wrong structural type. This code covers several definition failures, including an unsupported inferred `@Value()` type, a field or method decorator placed on a static member, and an option such as `path`, `enum`, or `SubOptions` that should be an array.
+
+For type-inference failures, `details.reason` is `cannot-infer-value-type` and `details.property` identifies the field.
+
+## How to fix it
+
+Provide a supported runtime parser explicitly when inference is unavailable:
+
+<CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />
+
+Keep `@Handler()` and `@Catch()` on instance methods, keep field decorators on instance properties, and pass arrays to APIs that require arrays. Supported value parsers are `String`, `Number`, `Boolean`, and `[String]`.

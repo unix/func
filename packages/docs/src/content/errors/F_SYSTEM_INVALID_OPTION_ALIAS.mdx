@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_INVALID_OPTION_ALIAS
+title: Invalid option alias
+description: A command, field option, sub-option, or handler flag uses an alias longer than one character.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Flag } from 'func'",
+  '',
+  'class Options {',
+  "  @Flag({ alias: 'vv' })",
+  '  verbose = false',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class Options {',
+  "  @Flag({ alias: 'v' })",
+  '  verbose = false',
+  '}',
+].join('\n')
+
+## Reproduction
+
+Aliases represent short options and must contain exactly one character:
+
+<CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
+
+## How to fix it
+
+Use one character or remove the alias:
+
+<CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />

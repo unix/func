@@ -1,0 +1,31 @@
+---
+code: F_SYSTEM_INVALID_TOKEN
+title: 命令或选项 token 无效
+description: 命令、选项、alias、flag 或 path token 为空、以连字符开头，或包含空白。
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command } from 'func'",
+  '',
+  "@Command({ name: '-build' })",
+  'class BuildCommand {}',
+].join('\n')
+
+export const fixCode = ["@Command({ name: 'build' })", 'class BuildCommand {}'].join(
+  '\n',
+)
+
+## 复现
+
+装饰器 token 描述逻辑名称，因此不能包含 CLI 连字符前缀或空白：
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## 如何修复
+
+去掉开头的连字符，并使用单个不含空白的名称片段：
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

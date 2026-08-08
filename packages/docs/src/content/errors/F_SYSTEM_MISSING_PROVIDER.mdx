@@ -1,0 +1,59 @@
+---
+code: F_SYSTEM_MISSING_PROVIDER
+title: Missing injection provider
+description: An older func runtime could not find a provider for a constructor parameter.
+legacy: true
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, FuncModule, Handler, run } from 'func'",
+  '',
+  'class RegistryClient {}',
+  '',
+  "@Command({ name: 'publish' })",
+  'class PublishCommand {',
+  '  constructor(private registry: RegistryClient) {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@FuncModule({ commands: [PublishCommand] })',
+  'class AppModule {}',
+  '',
+  'run(AppModule)',
+].join('\n')
+
+export const fixCode = [
+  "import { FuncModule, Service } from 'func'",
+  '',
+  '@Service()',
+  'class RegistryClient {}',
+  '',
+  '@FuncModule({',
+  '  commands: [PublishCommand],',
+  '  services: [RegistryClient],',
+  '})',
+  'class AppModule {}',
+].join('\n')
+
+## Reproduction
+
+This code was emitted by older func runtimes when a constructor requested an unregistered provider:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## What this error means
+
+The runtime metadata named a constructor dependency, but that provider was not available to the application. Current func versions resolve unregistered service parameters as `undefined`; the code remains public for compatibility with older versions.
+
+## How to fix it
+
+Mark the dependency as a service and register it in the resolved module:
+
+<CodeBlock code={fixCode} filename="src/app.module.ts" lang="ts" />
+
+If the error comes from an old func release, update func after confirming its injection behavior is compatible with your application.
