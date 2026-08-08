@@ -11,6 +11,7 @@ export class Greet {
     name: 'name',
     alias: 'n',
     description: 'name to greet',
+    type: String,
   })
   name = 'friend'
 

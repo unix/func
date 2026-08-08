@@ -17,6 +17,7 @@ export class Major {
   @Enum(runtimeModes)
   @Value({
     description: 'runtime mode',
+    type: String,
   })
   mode = 'dev'
 
