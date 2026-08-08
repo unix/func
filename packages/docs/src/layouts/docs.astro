@@ -22,12 +22,12 @@ interface Props {
 }
 
 const { frontmatter, locale = defaultLocale, page } = Astro.props
-const { authors, description, lastModified, title } = frontmatter
+const { description, lastModified, title } = frontmatter
 const markdownPath = getMarkdownPath(page, locale)
 const editUrl = getEditUrl(page, locale)
 ---
 
-<Layout authors={authors} title={title} description={description} locale={locale}>
+<Layout title={title} description={description} locale={locale}>
   <div class="mx-auto min-h-screen w-full max-w-7xl bg-background">
     <DocsHeader locale={locale} page={page} />
 

@@ -5,13 +5,12 @@ import { ClientRouter } from 'astro:transitions'
 import globalStylesheet from '../styles/global.css?url'
 
 interface Props {
-  authors: string[]
   description: string
   locale?: Locale
   title: string
 }
 
-const { authors, description, locale = 'en', title } = Astro.props
+const { description, locale = 'en', title } = Astro.props
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString()
 const ogImageUrl = new URL('/og.png', siteUrl).toString()
 const documentTitle = `${title} | ${siteName}`
@@ -39,7 +38,7 @@ const documentTitle = `${title} | ${siteName}`
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    {authors.map(author => <meta name="author" content={author} />)}
+    <meta name="author" content="Witt" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <meta property="og:title" content={title} />

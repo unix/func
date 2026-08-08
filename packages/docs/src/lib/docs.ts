@@ -19,7 +19,6 @@ export type DocPage =
 export type Locale = 'en' | 'zh-cn'
 
 export interface DocFrontmatter {
-  authors: string[]
   description: string
   lastModified: string
   title: string
