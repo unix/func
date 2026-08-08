@@ -1,13 +1,10 @@
 import type arg from 'arg'
-import {
+import type {
   FieldOptionParams,
   UserOption,
+  UserOptionEnumValue,
 } from '../interfaces'
-import {
-  F_RUNTIME_PRINT,
-  createRuntimePrintError,
-  errorTypes,
-} from '../errors'
+import { F_RUNTIME_PRINT, createRuntimePrintError, errorTypes } from '../errors'
 
 export class ConstraintValidator {
   constructor(
@@ -27,17 +24,17 @@ export class ConstraintValidator {
   private explicitNames(): Set<string> {
     return new Set(
       this.fieldOptions
-        .filter(data => Object.prototype.hasOwnProperty.call(this.args, `--${data.name}`))
+        .filter(data =>
+          Object.prototype.hasOwnProperty.call(this.args, `--${data.name}`),
+        )
         .map(data => data.name),
     )
   }
 
   private validateDependsOn(data: FieldOptionParams) {
-    if (!data.dependsOn || !data.dependsOn.length) return
-
+    if (!data.dependsOn?.length) return
     const explicit = this.explicitNames()
     if (!explicit.has(data.name)) return
-
     const missing = data.dependsOn.filter(item => !explicit.has(item))
     if (!missing.length) return
 
@@ -50,29 +47,28 @@ export class ConstraintValidator {
   }
 
   private validateEnum(data: FieldOptionParams) {
-    if (!data.enum || !data.enum.length) return
-
+    const enumValues = data.enum
+    if (!enumValues?.length) return
     const value = this.option[data.name]
     if (value === undefined) return
-
     const values = Array.isArray(value) ? value : [value]
-    const invalid = values.filter(item => !data.enum!.includes(item as any))
+    const invalid = values.filter(
+      item => !enumValues.includes(item as UserOptionEnumValue),
+    )
     if (!invalid.length) return
 
     throw createRuntimePrintError(
       F_RUNTIME_PRINT.VALIDATION,
       errorTypes.INPUT,
-      `Option "--${data.name}" must be one of: ${data.enum.join(', ')}.`,
-      { option: data.name, enum: data.enum, invalid },
+      `Option "--${data.name}" must be one of: ${enumValues.join(', ')}.`,
+      { option: data.name, enum: enumValues, invalid },
     )
   }
 
   private validateExclusive(data: FieldOptionParams) {
-    if (!data.exclusive || !data.exclusive.length) return
-
+    if (!data.exclusive?.length) return
     const explicit = this.explicitNames()
     if (!explicit.has(data.name)) return
-
     const conflicts = data.exclusive.filter(item => explicit.has(item))
     if (!conflicts.length) return
 

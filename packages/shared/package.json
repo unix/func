@@ -7,5 +7,18 @@
   "exports": {
     "./system-errors": "./src/system-errors.ts"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "scripts": {
+    "lint": "eslint .",
+    "prettier": "prettier --write . --ignore-path ../../.prettierignore"
+  },
+  "prettier": "@unix/prettier",
+  "devDependencies": {
+    "@unix/eslint": "^1.3.0",
+    "@unix/prettier": "^0.1.0",
+    "eslint": "^10.8.1",
+    "globals": "^17.9.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3"
+  }
 }

@@ -10,14 +10,17 @@ export enum injectTokens {
 const injectToken =
   (token: injectTokens): ParameterDecorator =>
   (target, propertyKey, parameterIndex) => {
-    const metadataTarget = propertyKey ? target : target as Function
+    const metadataTarget = propertyKey ? target : (target as Function)
     const tokens = propertyKey
-      ? Reflect.getMetadata(
-        metadata.PARAM_INJECT_TOKEN_IDENTIFIER,
-        metadataTarget,
-        propertyKey,
-      ) || {}
-      : Reflect.getMetadata(metadata.PARAM_INJECT_TOKEN_IDENTIFIER, metadataTarget) || {}
+      ? (Reflect.getMetadata(
+          metadata.PARAM_INJECT_TOKEN_IDENTIFIER,
+          metadataTarget,
+          propertyKey,
+        ) ?? {})
+      : (Reflect.getMetadata(
+          metadata.PARAM_INJECT_TOKEN_IDENTIFIER,
+          metadataTarget,
+        ) ?? {})
 
     if (propertyKey) {
       Reflect.defineMetadata(
@@ -38,6 +41,7 @@ const injectToken =
 
 export const Args = (): ParameterDecorator => injectToken(injectTokens.ARGS)
 
-export const Exception = (): ParameterDecorator => injectToken(injectTokens.EXCEPTION)
+export const Exception = (): ParameterDecorator =>
+  injectToken(injectTokens.EXCEPTION)
 
 export const Regs = (): ParameterDecorator => injectToken(injectTokens.REGS)

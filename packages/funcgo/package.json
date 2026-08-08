@@ -19,7 +19,9 @@
     "test:manual:build": "cd manual-e2e/build && ts-node --project ../../tsconfig.json ../../src/bin.ts build",
     "test:manual:watch": "cd manual-e2e/watch-build && ts-node --project ../../tsconfig.json ../../src/bin.ts build --watch",
     "release": "pnpm build && pnpm publish --access public --no-git-checks",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "prettier": "prettier --write . --ignore-path ../../.prettierignore"
   },
   "files": [
     "dist",
@@ -46,7 +48,10 @@
     "@swc/core": "^1.15.47",
     "@types/node": "^26.1.2",
     "@types/picomatch": "^4.0.3",
+    "@unix/eslint": "^1.3.0",
     "@unix/prettier": "^0.1.0",
+    "eslint": "^10.8.1",
+    "globals": "^17.9.0",
     "prettier": "^3.9.6",
     "unplugin-swc": "^1.5.10",
     "vite": "^8.2.0",

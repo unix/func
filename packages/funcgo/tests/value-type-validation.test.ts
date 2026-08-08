@@ -39,17 +39,17 @@ describe('Value type build validation', () => {
       )
       writeTsconfig(tempDir)
 
-      const error = await buildWithRolldown({
+      const result = await buildWithRolldown({
         entry,
         external: ['func'],
         output,
       }).then(
         () => undefined,
-        error => error,
+        (caught: unknown) => caught,
       )
 
-      expect(error).toBeInstanceOf(Error)
-      const message = (error as Error).message
+      expect(result).toBeInstanceOf(Error)
+      const message = (result as Error).message
       expect(message).toContain(
         'Cannot automatically infer runtime types for 3 @Value properties',
       )
@@ -59,7 +59,7 @@ describe('Value type build validation', () => {
       expect(message).toContain('src/index.ts:6:3')
       expect(message).toContain("6 |   name = 'friend'")
       expect(message).toContain('@Value({ type: String })')
-      expect(errorTrackingUrl(error)).toBe(
+      expect(errorTrackingUrl(result)).toBe(
         'https://f.witt.im/CANNOT_INFER_VALUE_TYPE',
       )
       expect(fs.existsSync(path.join(output, 'bin.js'))).toBe(false)
@@ -92,17 +92,17 @@ describe('Value type build validation', () => {
       )
       writeTsconfig(tempDir)
 
-      const error = await buildWithRolldown({
+      const result = await buildWithRolldown({
         entry,
         external: ['func'],
         output,
       }).then(
         () => undefined,
-        error => error,
+        (caught: unknown) => caught,
       )
 
-      expect(error).toBeInstanceOf(Error)
-      const message = (error as Error).message
+      expect(result).toBeInstanceOf(Error)
+      const message = (result as Error).message
       expect(message).toContain(
         'Cannot automatically infer the runtime type for "Greeting.name".',
       )

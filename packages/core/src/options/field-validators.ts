@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import {
+import type {
   FieldOptionParams,
   UserOptionEnumValue,
   ValueValidator,
@@ -29,21 +29,24 @@ export const Required = (): PropertyDecorator => (target, propertyKey) => {
   }
 
   const key = propertyKey as string
-  const requiredKeys: string[] =
-    Reflect.getMetadata(metadata.REQUIRED_FIELD_IDENTIFIER, target.constructor) || []
+  const requiredKeys = (Reflect.getMetadata(
+    metadata.REQUIRED_FIELD_IDENTIFIER,
+    target.constructor,
+  ) ?? []) as string[]
   Reflect.defineMetadata(
     metadata.REQUIRED_FIELD_IDENTIFIER,
     requiredKeys.includes(key) ? requiredKeys : requiredKeys.concat([key]),
     target.constructor,
   )
 
-  const options =
-    Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, target.constructor) || []
+  const options = (Reflect.getMetadata(
+    metadata.FIELD_OPTION_IDENTIFIER,
+    target.constructor,
+  ) ?? []) as FieldOptionParams[]
   Reflect.defineMetadata(
     metadata.FIELD_OPTION_IDENTIFIER,
     options.map((item: FieldOptionParams) => {
       if (item.propertyKey !== key) return item
-
       return Object.assign({}, item, { required: true })
     }),
     target.constructor,
@@ -81,13 +84,14 @@ export const ValueValidate =
     }
 
     const key = propertyKey as string
-    const validators =
-      Reflect.getMetadata(metadata.VALUE_VALIDATOR_IDENTIFIER, target.constructor) ||
-      {}
+    const validators = (Reflect.getMetadata(
+      metadata.VALUE_VALIDATOR_IDENTIFIER,
+      target.constructor,
+    ) ?? {}) as Partial<Record<string, ValueValidator[]>>
     Reflect.defineMetadata(
       metadata.VALUE_VALIDATOR_IDENTIFIER,
       Object.assign({}, validators, {
-        [key]: (validators[key] || []).concat([fn]),
+        [key]: (validators[key] ?? []).concat([fn]),
       }),
       target.constructor,
     )
@@ -103,23 +107,25 @@ const defineFieldConstraint = (
   }
 
   const key = propertyKey as string
-  const constraints: Record<string, FieldConstraintParams> =
-    Reflect.getMetadata(metadata.FIELD_CONSTRAINT_IDENTIFIER, target.constructor) ||
-    {}
-  const nextParams = Object.assign({}, constraints[key] || {}, params)
+  const constraints = (Reflect.getMetadata(
+    metadata.FIELD_CONSTRAINT_IDENTIFIER,
+    target.constructor,
+  ) ?? {}) as Partial<Record<string, FieldConstraintParams>>
+  const nextParams = Object.assign({}, constraints[key] ?? {}, params)
   Reflect.defineMetadata(
     metadata.FIELD_CONSTRAINT_IDENTIFIER,
     Object.assign({}, constraints, { [key]: nextParams }),
     target.constructor,
   )
 
-  const options =
-    Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, target.constructor) || []
+  const options = (Reflect.getMetadata(
+    metadata.FIELD_OPTION_IDENTIFIER,
+    target.constructor,
+  ) ?? []) as FieldOptionParams[]
   Reflect.defineMetadata(
     metadata.FIELD_OPTION_IDENTIFIER,
     options.map((item: FieldOptionParams) => {
       if (item.propertyKey !== key) return item
-
       return Object.assign({}, item, nextParams)
     }),
     target.constructor,

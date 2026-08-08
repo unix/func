@@ -2,21 +2,9 @@
 import type { HTMLAttributes } from 'astro/types'
 
 type ButtonSize =
-  | 'default'
-  | 'xs'
-  | 'sm'
-  | 'lg'
-  | 'icon'
-  | 'icon-xs'
-  | 'icon-sm'
-  | 'icon-lg'
+  'default' | 'xs' | 'sm' | 'lg' | 'icon' | 'icon-xs' | 'icon-sm' | 'icon-lg'
 type ButtonVariant =
-  | 'default'
-  | 'outline'
-  | 'secondary'
-  | 'ghost'
-  | 'destructive'
-  | 'link'
+  'default' | 'outline' | 'secondary' | 'ghost' | 'destructive' | 'link'
 
 interface Props extends Omit<HTMLAttributes<'button'>, 'class'> {
   class?: string

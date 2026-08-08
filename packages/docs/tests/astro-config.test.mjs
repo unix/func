@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 
 test('pre-bundles the Cloudflare passthrough image service for SSR', async () => {
   process.env.WRANGLER_WRITE_LOGS = '0'
-
   const { getViteConfig } = await import('astro/config')
   const root = fileURLToPath(new URL('../', import.meta.url))
   const createConfig = getViteConfig(

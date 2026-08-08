@@ -55,7 +55,6 @@ test.sequential(
     class AppModule {}
 
     await run(AppModule, { argv: ['react', 'router', '--json'] })
-
     expect(completed).toBe(true)
   },
 )
@@ -97,7 +96,6 @@ test.sequential('should select missing flag handlers', async () => {
   }
 
   await run({ commands: [Missing] }, { argv: ['react', '-h'] })
-
   expect(selected).toBe('help')
 })
 

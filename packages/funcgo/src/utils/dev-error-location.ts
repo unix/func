@@ -28,7 +28,6 @@ export const resolveErrorLocation = (
 ): ErrorLocation | undefined => {
   const stack = errorStack(error)
   if (!stack) return undefined
-
   const cwd = path.resolve(options.cwd)
   const frames = stack
     .split('\n')
@@ -56,14 +55,12 @@ export const resolveErrorLocation = (
 const errorStack = (error: unknown): string | undefined => {
   if (typeof error !== 'object' || error === null) return undefined
   if (!('stack' in error) || typeof error.stack !== 'string') return undefined
-
   return error.stack
 }
 
 const parseStackFrame = (line: string, index: number): StackFrame | undefined => {
   const trimmed = line.trim()
   if (!trimmed.startsWith('at ')) return undefined
-
   let location = trimmed.slice(3)
   const openingParenthesis = location.lastIndexOf('(')
   if (openingParenthesis >= 0 && location.endsWith(')')) {
@@ -72,9 +69,8 @@ const parseStackFrame = (line: string, index: number): StackFrame | undefined =>
     location = location.replace(/^async\s+/, '')
   }
 
-  const match = location.match(/^(.*):(\d+):(\d+)$/)
+  const match = /^(.*):(\d+):(\d+)$/.exec(location)
   if (!match) return undefined
-
   const file = resolveStackFile(match[1])
   if (!file) return undefined
 
@@ -96,7 +92,6 @@ const resolveStackFile = (file: string): string | undefined => {
     }
   }
   if (!path.isAbsolute(file)) return undefined
-
   return path.normalize(file)
 }
 
@@ -104,7 +99,6 @@ const isProjectFrame = (file: string, cwd: string): boolean => {
   const relative = path.relative(cwd, file)
   if (!relative || relative === '..') return false
   if (relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return false
-
   return !relative.split(path.sep).includes('node_modules')
 }
 
@@ -122,7 +116,6 @@ const scoreFrame = (frame: StackFrame, property?: string): number => {
   if (frame.sourceLine) score += 10
   if (property && containsProperty(frame.sourceLine, property)) score += 100
   if (STACK_HELPER.test(frame.raw)) score -= 50
-
   return score
 }
 
@@ -131,7 +124,6 @@ const containsProperty = (
   property: string,
 ): boolean => {
   if (!sourceLine) return false
-
   return new RegExp(`\\b${escapeRegExp(property)}\\b`).test(sourceLine)
 }
 

@@ -84,7 +84,10 @@ export interface FuncArgs {
 }
 
 export type ValueValidatorResult = boolean | string | void | undefined
-export type ValueValidator = (value: UserOptionValue, options: UserOption) => ValueValidatorResult
+export type ValueValidator = (
+  value: UserOptionValue,
+  options: UserOption,
+) => ValueValidatorResult
 
 export interface RegisterCommandParams extends CommandParams {
   fieldOptions?: FieldOptionParams[]

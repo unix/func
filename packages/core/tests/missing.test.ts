@@ -7,6 +7,7 @@ test('should mark a class as missing command handler', () => {
   @CommandMissing()
   class MissingHandler {}
 
-  expect(Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, MissingHandler)).toBe(handlers.MISSING)
+  expect(Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, MissingHandler)).toBe(
+    handlers.MISSING,
+  )
 })
-

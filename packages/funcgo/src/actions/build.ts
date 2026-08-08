@@ -46,13 +46,12 @@ const runBuild = async (
   projectBuild: ProjectBuild,
 ): Promise<void> => {
   const args = parseBuildArgs(argv)
-
   const pkg = readPackage()
   const entry = resolveEntry(args.file)
   if (!entry) {
     throw new Error(`About. Not found entry. Run "funcgo setup" for suggestions.`)
   }
-  const output = path.resolve(cwd, args.out || pkg.func?.outDir || 'dist')
+  const output = path.resolve(cwd, args.out ?? pkg.func?.outDir ?? 'dist')
 
   const buildOptions = {
     entry,
@@ -68,7 +67,6 @@ const runBuild = async (
   const stopWatching = (): void => controller.abort()
   process.once('SIGINT', stopWatching)
   process.once('SIGTERM', stopWatching)
-
   let initialBuild = true
 
   try {
@@ -144,9 +142,9 @@ export const parseBuildArgs = (argv: string[]): BuildArgs => {
   const result = {
     file: args['--file'],
     out: args['--out'],
-    external: args['--external'] || [],
+    external: args['--external'] ?? [],
     watch: Boolean(args['--watch']),
-    watchPaths: args['--watch-path'] || [],
+    watchPaths: args['--watch-path'] ?? [],
   }
   if (result.watchPaths.length && !result.watch) {
     throw new Error(`Option "--watch-path" requires "--watch".`)
@@ -169,7 +167,7 @@ export const buildWithNcc = async (options: BuildWithNccOptions): Promise<void> 
     await run(
       options.ncc,
       [
-        ...(options.nccArgs || []),
+        ...(options.nccArgs ?? []),
         '-m',
         'build',
         options.entry,
@@ -194,13 +192,11 @@ const resolveNccCli = (): string => {
 const resolveTsconfig = (entry: string): string | true => {
   let directory = path.dirname(entry)
 
-  while (true) {
+  for (;;) {
     const tsconfig = path.join(directory, 'tsconfig.json')
     if (fs.existsSync(tsconfig)) return tsconfig
-
     const parent = path.dirname(directory)
     if (parent === directory) return true
-
     directory = parent
   }
 }
@@ -218,6 +214,5 @@ const printError = (error: unknown): void => {
 
 const formatDuration = (milliseconds: number): string => {
   if (milliseconds < 1000) return `${Math.round(milliseconds)}ms`
-
   return `${(milliseconds / 1000).toFixed(2)}s`
 }

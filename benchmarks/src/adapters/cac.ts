@@ -244,13 +244,11 @@ const runSafely = (action: () => void): void => {
 
 const required = (value: unknown, label: string): string => {
   if (typeof value === 'string' && value) return value
-
   throw new Error(`${label} is required.`)
 }
 
 const oneOf = (value: unknown, values: string[], label: string): string => {
   if (typeof value === 'string' && values.includes(value)) return value
-
   throw new Error(`${label} must be one of: ${values.join(', ')}.`)
 }
 
@@ -274,20 +272,17 @@ const optionalInteger = (
   maximum: number,
 ): number | undefined => {
   if (value === undefined) return undefined
-
   return integer(value, label, minimum, maximum)
 }
 
 const list = (value: unknown): string[] => {
   if (value === undefined) return []
   if (Array.isArray(value)) return value.map(String)
-
   return [String(value)]
 }
 
 const slug = (value: string, label: string): string => {
   if (/^[a-z][a-z0-9-]{1,39}$/.test(value)) return value
-
   throw new Error(`${label} must be a lowercase slug between 2 and 40 characters.`)
 }
 

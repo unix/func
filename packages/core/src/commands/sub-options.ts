@@ -1,6 +1,6 @@
 import 'reflect-metadata'
 import * as validator from '../utils/validator'
-import { OptionParams } from '../interfaces'
+import type { OptionParams } from '../interfaces'
 import { metadata } from '../utils/metadata'
 
 export const SubOptions =

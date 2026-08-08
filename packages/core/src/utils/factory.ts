@@ -1,7 +1,7 @@
-import arg from 'arg'
+import type arg from 'arg'
 import * as filter from './filter'
 import { metadata } from './metadata'
-import {
+import type {
   CommandClass,
   FuncArgs,
   HandlerParams,
@@ -11,10 +11,8 @@ import {
 import { ServiceInjector } from '../application/injector'
 import type { ServiceClass } from '../application/interfaces'
 import { injectTokens } from '../injection'
-import {
-  FuncException,
-  CommandRegistry,
-} from '../context'
+import { CommandRegistry } from '../context'
+import type { FuncException } from '../context'
 
 export interface FactoryParams {
   args: arg.Result<any>
@@ -34,31 +32,30 @@ export class Factory {
     this.injector = new ServiceInjector(params.services)
   }
 
-  getServiceParams(target: Function, error?: Error | FuncException): any[] {
+  getServiceParams(target: Function, error?: FuncException): any[] {
     return this.resolveServiceParams(target, undefined, error, [])
   }
 
   getMethodServiceParams(
     instance: object,
     methodName: string,
-    error?: Error | FuncException,
+    error?: FuncException,
   ): any[] {
-    const target = Object.getPrototypeOf(instance)
-
+    const target = Object.getPrototypeOf(instance) as object
     return this.resolveServiceParams(target, methodName, error, [])
   }
 
   private resolveServiceParams(
     target: Object | Function,
     propertyKey?: string,
-    error?: Error | FuncException,
+    error?: FuncException,
     serviceStack: ServiceClass[] = [],
   ): any[] {
     const injectedTokens = this.injectedTokens(target, propertyKey)
     const paramTypes = this.paramTypes(target, propertyKey)
     const args = this.params.args
     const option = this.params.nativeOption
-    const inputs = this.params.inputs || args._
+    const inputs = this.params.inputs ?? args._
     const length = Math.max(
       paramTypes.length,
       0,
@@ -68,7 +65,6 @@ export class Factory {
     return Array.from({ length }).map((_, index) => {
       const token = injectedTokens[index]
       if (token) return this.resolveInjectedToken(token, inputs, option, args, error)
-
       return this.resolveService(paramTypes[index], error, serviceStack)
     })
   }
@@ -76,16 +72,17 @@ export class Factory {
   private injectedTokens(
     target: Object | Function,
     propertyKey?: string,
-  ): Record<number, injectTokens> {
+  ): Partial<Record<number, injectTokens>> {
     if (propertyKey) {
-      return Reflect.getMetadata(
+      return (Reflect.getMetadata(
         metadata.PARAM_INJECT_TOKEN_IDENTIFIER,
         target,
         propertyKey,
-      ) || {}
+      ) ?? {}) as Partial<Record<number, injectTokens>>
     }
 
-    return Reflect.getMetadata(metadata.PARAM_INJECT_TOKEN_IDENTIFIER, target) || {}
+    return (Reflect.getMetadata(metadata.PARAM_INJECT_TOKEN_IDENTIFIER, target) ??
+      {}) as Partial<Record<number, injectTokens>>
   }
 
   private paramTypes(
@@ -93,25 +90,26 @@ export class Factory {
     propertyKey?: string,
   ): ServiceClass[] {
     if (propertyKey) {
-      return Reflect.getMetadata(metadata.DESIGN_PARAM_TYPES, target, propertyKey) || []
+      return (Reflect.getMetadata(
+        metadata.DESIGN_PARAM_TYPES,
+        target,
+        propertyKey,
+      ) ?? []) as ServiceClass[]
     }
 
-    return Reflect.getMetadata(metadata.DESIGN_PARAM_TYPES, target) || []
+    return (Reflect.getMetadata(metadata.DESIGN_PARAM_TYPES, target) ??
+      []) as ServiceClass[]
   }
 
   private resolveService(
     target: ServiceClass | undefined,
-    error?: Error | FuncException,
+    error?: FuncException,
     serviceStack: ServiceClass[] = [],
-  ) {
+  ): object | undefined {
     return this.injector.resolve(
       target,
-      (service, nextStack) => this.resolveServiceParams(
-        service,
-        undefined,
-        error,
-        nextStack,
-      ),
+      (service, nextStack) =>
+        this.resolveServiceParams(service, undefined, error, nextStack),
       serviceStack,
     )
   }
@@ -121,8 +119,8 @@ export class Factory {
     inputs: string[],
     option: UserOption,
     args: arg.Result<any>,
-    error?: Error | FuncException,
-  ) {
+    error?: FuncException,
+  ): CommandRegistry | FuncArgs | FuncException | undefined {
     if (token === injectTokens.ARGS) {
       return {
         command: this.params.command,
@@ -130,21 +128,12 @@ export class Factory {
         inputs,
         native: args,
         option,
-        path: this.params.path || [],
+        path: this.params.path ?? [],
       } as FuncArgs
     }
 
-    if (token === injectTokens.EXCEPTION) {
-      if (error instanceof FuncException) return error
-      return new FuncException(error as any)
-    }
-
-    if (token === injectTokens.REGS) {
-      const commands = filter.commandsToDatas(this.params.commands)
-
-      return new CommandRegistry(commands)
-    }
-
-    return undefined
+    if (token === injectTokens.EXCEPTION) return error
+    const commands = filter.commandsToDatas(this.params.commands)
+    return new CommandRegistry(commands)
   }
 }

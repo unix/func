@@ -27,5 +27,4 @@ export interface TerminalDemoCompleteMessage {
 }
 
 export type TerminalDemoWorkerMessage =
-  | TerminalDemoCompleteMessage
-  | TerminalDemoOutputMessage
+  TerminalDemoCompleteMessage | TerminalDemoOutputMessage

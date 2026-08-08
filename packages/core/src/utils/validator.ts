@@ -29,7 +29,6 @@ export const optionName = (value: string, key: string) => {
 export const optionAlias = (value: string | undefined, key: string) => {
   if (!value) return
   token(value, key)
-
   if (value.length === 1) return
 
   throw createSystemError(

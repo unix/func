@@ -64,17 +64,17 @@ export interface FuncErrorParams {
 }
 
 export class FuncError extends Error {
-  public cause?: Error
-  public code: FuncErrorCode
-  public details: FuncErrorDetails
-  public level: errorLevels
-  public type: errorTypes
+  cause?: Error
+  code: FuncErrorCode
+  details: FuncErrorDetails
+  level: errorLevels
+  type: errorTypes
 
   constructor(params: FuncErrorParams) {
     super(params.message)
     this.name = 'FuncError'
     this.code = params.code
-    this.details = params.details || {}
+    this.details = params.details ?? {}
     this.level = params.level
     this.type = params.type
     this.cause = params.cause
@@ -154,7 +154,6 @@ export const handleRuntimePrintError = (
   printPrevented: boolean,
 ) => {
   if (printPrevented) return
-
   console.error(error.message)
 }
 

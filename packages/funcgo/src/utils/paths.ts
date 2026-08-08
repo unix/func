@@ -11,12 +11,12 @@ export interface FuncConfig {
 }
 
 export interface ProjectPackage {
+  [key: string]: unknown
   name?: string
   bin?: string | Record<string, string>
   scripts?: Record<string, string>
   packageManager?: string
   func?: FuncConfig
-  [key: string]: unknown
 }
 
 export const defaultEntries = [
@@ -25,23 +25,18 @@ export const defaultEntries = [
 ]
 
 export const resolveEntry = (file?: string): string | undefined => {
-  if (file) {
-    return path.resolve(cwd, file)
-  }
-
+  if (file) return path.resolve(cwd, file)
   const pkg = readPackage()
   if (pkg.func?.entry) {
     const entry = path.resolve(cwd, pkg.func.entry)
-    if (fs.existsSync(entry)) {
-      return entry
-    }
+    if (fs.existsSync(entry)) return entry
   }
 
   return defaultEntries.find(item => fs.existsSync(item))
 }
 
 export const readPackage = (): ProjectPackage => {
-  return JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+  return JSON.parse(fs.readFileSync(packagePath, 'utf-8')) as ProjectPackage
 }
 
 export const writePackage = (pkg: ProjectPackage): void => {
@@ -53,22 +48,13 @@ export const packagePathFromCwd = (target: string): string => {
 }
 
 export const defaultBinName = (pkg: ProjectPackage): string | undefined => {
-  if (!pkg.name) {
-    return undefined
-  }
-
+  if (!pkg.name) return undefined
   const parts = pkg.name.split('/')
   return parts[parts.length - 1]
 }
 
 export const firstBinName = (pkg: ProjectPackage): string | undefined => {
-  if (typeof pkg.bin === 'string') {
-    return defaultBinName(pkg)
-  }
-
-  if (pkg.bin) {
-    return Object.keys(pkg.bin)[0]
-  }
-
+  if (typeof pkg.bin === 'string') return defaultBinName(pkg)
+  if (pkg.bin) return Object.keys(pkg.bin)[0]
   return defaultBinName(pkg)
 }

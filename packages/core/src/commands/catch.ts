@@ -17,7 +17,7 @@ export const Catch = (): MethodDecorator => (target, propertyKey) => {
   }
 
   const catches: CatchParams[] =
-    Reflect.getMetadata(metadata.METHOD_CATCH_IDENTIFIER, target.constructor) || []
+    Reflect.getMetadata(metadata.METHOD_CATCH_IDENTIFIER, target.constructor) ?? []
   Reflect.defineMetadata(
     metadata.METHOD_CATCH_IDENTIFIER,
     catches.concat([{ methodName: propertyKey }]),

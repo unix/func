@@ -54,8 +54,8 @@ export const formatCannotInferValueTypeError = (
   const className =
     typeof details.className === 'string' ? details.className : undefined
   const subject = className ? `${className}.${property}` : property
-  const cwd = options.cwd || process.cwd()
-  const stream = options.stream || process.stderr
+  const cwd = options.cwd ?? process.cwd()
+  const stream = options.stream ?? process.stderr
   const location = resolveErrorLocation(error, { cwd, property })
   const locationContext = formatLocationContext(location, cwd, property, stream)
 
@@ -82,7 +82,6 @@ const formatLocationContext = (
   stream: StyleStream,
 ): string[] => {
   if (!location) return []
-
   const relativeFile = path.relative(cwd, location.file).replace(/\\/g, '/')
   const codeFrame = formatCodeFrame(location, { highlight: property, stream })
   const context = [
@@ -90,6 +89,5 @@ const formatLocationContext = (
     `  ${style.accent(`${relativeFile}:${location.line}:${location.column}`, stream)}`,
   ]
   if (codeFrame) context.push('', codeFrame)
-
   return context
 }

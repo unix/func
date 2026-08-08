@@ -17,8 +17,8 @@ export class PromptSession {
   private output: NodeJS.WriteStream
 
   constructor(options: PromptSessionOptions = {}) {
-    this.input = options.input || process.stdin
-    this.output = options.output || process.stdout
+    this.input = options.input ?? process.stdin
+    this.output = options.output ?? process.stdout
   }
 
   async text(message: string): Promise<string> {
@@ -71,7 +71,6 @@ export class Loading {
 
   succeed(): void {
     if (!this.currentText) return
-
     const text = this.currentText
     this.stopTimer()
 
@@ -85,7 +84,6 @@ export class Loading {
 
   fail(): void {
     if (!this.currentText) return
-
     const text = this.currentText
     this.stopTimer()
 
@@ -108,7 +106,6 @@ export class Loading {
 
   private render(): void {
     if (!this.currentText || !this.isInteractive()) return
-
     this.clearCurrentLine()
     this.stream.write(`> ${frames[this.frameIndex]} ${this.currentText}`)
     this.frameIndex = (this.frameIndex + 1) % frames.length
@@ -116,7 +113,6 @@ export class Loading {
 
   private stopTimer(): void {
     if (!this.timer) return
-
     clearInterval(this.timer)
     this.timer = undefined
   }

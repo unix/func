@@ -24,7 +24,6 @@ class AnswerPrompt extends PromptSession {
   async text(): Promise<string> {
     const answer = this.answers[this.calls] || ''
     this.calls += 1
-
     return answer
   }
 
@@ -36,7 +35,6 @@ class AnswerPrompt extends PromptSession {
 describe('promptProjectName', () => {
   test('keeps asking until project name is entered', async () => {
     const prompt = new AnswerPrompt(['', '   ', 'demo'])
-
     await expect(promptProjectName(prompt)).resolves.toBe('demo')
     expect(prompt.calls).toBe(3)
     expect(prompt.messages).toHaveLength(2)
@@ -88,7 +86,6 @@ describe('rewriteDownloadedTemplate', () => {
         "export const appName = 'func-template'\n",
       )
       fs.writeFileSync(path.join(tempDir, '.npmignore'), 'dist\n')
-
       rewriteDownloadedTemplate(tempDir, 'my-app')
 
       expect(

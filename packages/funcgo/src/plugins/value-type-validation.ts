@@ -70,7 +70,6 @@ export const valueTypeValidationPlugin = (
     },
     buildEnd(error) {
       if (error || !diagnostics.size) return
-
       const sorted = [...diagnostics.values()].sort(compareDiagnostics)
       const first = sorted[0]
       const message = formatDiagnostics(sorted, options.cwd)
@@ -93,13 +92,11 @@ export const valueTypeValidationPlugin = (
 
 const sourceFilePath = (id: string): string | undefined => {
   if (id.startsWith('\0')) return undefined
-
   const file = id.split('?', 1)[0]
   const normalized = file.replace(/\\/g, '/')
   if (!SOURCE_EXTENSION.test(normalized)) return undefined
   if (DECLARATION_EXTENSION.test(normalized)) return undefined
   if (normalized.split('/').includes('node_modules')) return undefined
-
   return file
 }
 
@@ -113,7 +110,6 @@ const validateSource = (code: string, file: string): ValueTypeDiagnostic[] => {
   )
   const bindings = valueBindings(sourceFile)
   if (!bindings.identifiers.size && !bindings.namespaces.size) return []
-
   const diagnostics: ValueTypeDiagnostic[] = []
   const visit = (node: ts.Node): void => {
     if (ts.isPropertyDeclaration(node)) {
@@ -125,7 +121,6 @@ const validateSource = (code: string, file: string): ValueTypeDiagnostic[] => {
     ts.forEachChild(node, visit)
   }
   visit(sourceFile)
-
   return diagnostics
 }
 
@@ -142,7 +137,6 @@ const valueBindings = (sourceFile: ts.SourceFile): ValueBindings => {
     if (!ts.isImportDeclaration(statement)) return
     if (!ts.isStringLiteral(statement.moduleSpecifier)) return
     if (statement.moduleSpecifier.text !== FUNC_MODULE) return
-
     const clause = statement.importClause
     if (!clause || clause.isTypeOnly || !clause.namedBindings) return
     if (ts.isNamespaceImport(clause.namedBindings)) {
@@ -152,8 +146,7 @@ const valueBindings = (sourceFile: ts.SourceFile): ValueBindings => {
 
     clause.namedBindings.elements.forEach(element => {
       if (element.isTypeOnly) return
-
-      const imported = element.propertyName?.text || element.name.text
+      const imported = element.propertyName?.text ?? element.name.text
       if (imported === 'Value') identifiers.add(element.name.text)
     })
   })
@@ -166,21 +159,18 @@ const validateProperty = (
   sourceFile: ts.SourceFile,
   bindings: ValueBindings,
 ): ValueTypeDiagnostic[] => {
-  const decorators = ts.getDecorators(property) || []
+  const decorators = ts.getDecorators(property) ?? []
   const valueDecorators = decorators
     .map(decorator => valueDecoratorCall(decorator, bindings))
     .filter((call): call is ts.CallExpression => Boolean(call))
   if (!valueDecorators.length) return []
-
   const typeStatus = runtimeTypeStatus(property.type)
   const hasInvalidDecorator = valueDecorators.some(call => {
     return decoratorTypeStatus(call) === 'missing' && typeStatus === 'unsupported'
   })
   if (!hasInvalidDecorator) return []
-
   const propertyName = staticPropertyName(property.name)
   if (!propertyName) return []
-
   const position = property.name.getStart(sourceFile)
   const location = sourceFile.getLineAndCharacterOfPosition(position)
 
@@ -202,24 +192,20 @@ const valueDecoratorCall = (
   bindings: ValueBindings,
 ): ts.CallExpression | undefined => {
   if (!ts.isCallExpression(decorator.expression)) return undefined
-
   const callee = decorator.expression.expression
-  if (ts.isIdentifier(callee) && bindings.identifiers.has(callee.text)) {
+  if (ts.isIdentifier(callee) && bindings.identifiers.has(callee.text))
     return decorator.expression
-  }
   if (!ts.isPropertyAccessExpression(callee)) return undefined
   if (!ts.isIdentifier(callee.expression)) return undefined
   if (!bindings.namespaces.has(callee.expression.text)) return undefined
   if (callee.name.text !== 'Value') return undefined
-
   return decorator.expression
 }
 
 const decoratorTypeStatus = (call: ts.CallExpression): DecoratorTypeStatus => {
-  const params = call.arguments[0]
+  const params = call.arguments.at(0)
   if (!params) return 'missing'
   if (!ts.isObjectLiteralExpression(params)) return 'unknown'
-
   let lastSpread = -1
   let lastType = -1
   let status: DecoratorTypeStatus = 'missing'
@@ -229,13 +215,11 @@ const decoratorTypeStatus = (call: ts.CallExpression): DecoratorTypeStatus => {
       lastSpread = index
       return
     }
-    if (!property.name || staticPropertyName(property.name) !== 'type') return
-
+    if (staticPropertyName(property.name) !== 'type') return
     lastType = index
     status = explicitTypeStatus(property)
   })
   if (lastSpread > lastType) return 'unknown'
-
   return lastType >= 0 ? status : lastSpread >= 0 ? 'unknown' : 'missing'
 }
 
@@ -243,12 +227,10 @@ const explicitTypeStatus = (
   property: ts.ObjectLiteralElementLike,
 ): DecoratorTypeStatus => {
   if (!ts.isPropertyAssignment(property)) return 'present'
-
   const value = property.initializer
   if (value.kind === ts.SyntaxKind.NullKeyword) return 'missing'
   if (ts.isIdentifier(value) && value.text === 'undefined') return 'missing'
   if (ts.isVoidExpression(value)) return 'missing'
-
   return 'present'
 }
 
@@ -259,7 +241,6 @@ const runtimeTypeStatus = (type: ts.TypeNode | undefined): RuntimeTypeStatus => 
   if (ts.isLiteralTypeNode(type)) return literalTypeStatus(type)
   if (ts.isTypeReferenceNode(type)) return typeReferenceStatus(type)
   if (isUnsupportedType(type)) return 'unsupported'
-
   return 'unknown'
 }
 
@@ -273,9 +254,7 @@ const isSupportedPrimitive = (type: ts.TypeNode): boolean => {
 
 const literalTypeStatus = (type: ts.LiteralTypeNode): RuntimeTypeStatus => {
   const literal = type.literal
-  if (ts.isStringLiteral(literal) || ts.isNumericLiteral(literal)) {
-    return 'supported'
-  }
+  if (ts.isStringLiteral(literal) || ts.isNumericLiteral(literal)) return 'supported'
   if (
     literal.kind === ts.SyntaxKind.TrueKeyword ||
     literal.kind === ts.SyntaxKind.FalseKeyword
@@ -322,7 +301,6 @@ const staticPropertyName = (name: ts.PropertyName): string | undefined => {
   }
   if (!ts.isComputedPropertyName(name)) return undefined
   if (!ts.isStringLiteral(name.expression)) return undefined
-
   return name.expression.text
 }
 
@@ -332,7 +310,6 @@ const compareDiagnostics = (
 ): number => {
   const file = left.file.localeCompare(right.file)
   if (file) return file
-
   return left.position - right.position
 }
 
@@ -381,7 +358,6 @@ const formatDiagnostic = (
   ]
   if (codeFrame) result.push('', codeFrame)
   if (index < total - 1) result.push('')
-
   if (total === 1) return result
   if (index > 0) return result
 

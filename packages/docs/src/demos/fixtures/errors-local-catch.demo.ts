@@ -1,11 +1,5 @@
-import {
-  Catch,
-  Command,
-  Exception,
-  FuncException,
-  FuncModule,
-  Handler,
-} from '../../../../core/src'
+import type { FuncException } from '../../../../core/src'
+import { Catch, Command, Exception, FuncModule, Handler } from '../../../../core/src'
 
 @Command({ name: 'publish' })
 class PublishCommand {

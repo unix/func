@@ -7,5 +7,6 @@
     "rootDir": "..",
     "types": ["node"]
   },
-  "files": ["core.e2e.test.ts"]
+  "files": ["core.e2e.test.ts"],
+  "include": ["shared/src/**/*.ts"]
 }

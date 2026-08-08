@@ -30,7 +30,6 @@ describe('npm package tarball', () => {
       const sourceDir = path.join(tempDir, 'package')
       const tarball = path.join(tempDir, 'func-template-1.0.0.tgz')
       const destination = path.join(tempDir, 'destination')
-
       fs.mkdirSync(sourceDir)
       fs.mkdirSync(destination)
       fs.writeFileSync(

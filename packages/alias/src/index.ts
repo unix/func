@@ -57,10 +57,8 @@ const redirectResponse = (code: SystemErrorCode): Response => {
 
 const responseForRequest = (request: Request, alias: string): Response => {
   if (request.method !== 'GET') return notFoundResponse()
-
   const code = systemErrorByAlias.get(alias)
   if (!code) return notFoundResponse()
-
   return redirectResponse(code)
 }
 
@@ -73,10 +71,8 @@ export const handleRequest = async (
   const key = cacheKey(request, alias)
   const cachedResponse = await cache.match(key)
   if (cachedResponse) return cachedResponse
-
   const response = responseForRequest(request, alias)
   ctx.waitUntil(cache.put(key, response.clone()))
-
   return response
 }
 

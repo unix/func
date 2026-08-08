@@ -34,7 +34,6 @@ test.sequential(
     }
 
     await runContainer(['', '', name], [BuildCommand])
-
     expect(invoked).toBe(true)
   },
 )
@@ -83,7 +82,6 @@ test.sequential('should select a handler by flag', async ({ runContainer }) => {
   }
 
   await runContainer(['', '', '-h'], [Major])
-
   expect(selected).toBe('help')
 })
 
@@ -222,7 +220,6 @@ test.sequential('should support async handlers', async ({ runContainer }) => {
   }
 
   await runContainer(['', ''], [Major])
-
   expect(invoked).toBe(true)
 })
 

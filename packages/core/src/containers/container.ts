@@ -1,7 +1,7 @@
 import arg from 'arg'
 import { Factory } from '../utils/factory'
 import * as filter from '../utils/filter'
-import {
+import type {
   CommandClass,
   FieldOptionParams,
   HandlerParams,
@@ -32,7 +32,7 @@ import { RegistrationValidator } from './registration-validator'
 
 export type ContainerParams = Array<new (...args: any[]) => any>
 export interface ContainerData {
-  [key: string]: ContainerParams
+  [key: string]: ContainerParams | undefined
 }
 
 export interface ContainerOptions {
@@ -58,9 +58,9 @@ export class Container {
   datas: ContainerData
 
   constructor(params: ContainerParams, options: ContainerOptions = {}) {
-    this.argv = options.argv || process.argv.slice(2)
+    this.argv = options.argv ?? process.argv.slice(2)
     this.registry = new HandlerRegistry(params)
-    this.services = options.services || []
+    this.services = options.services ?? []
     this.datas = this.registry.datas
     new RegistrationValidator(this.registry).validate()
   }
@@ -87,7 +87,6 @@ export class Container {
     const spec = this.optionSpec(scope.handler)
     const args = this.parse(spec)
     this.throwUnknownOptions(args, scope.kind === handlers.COMMAND)
-
     const nativeOption = this.nativeOption(spec, args)
     const commandData = this.commandData(scope.handler)
     const baseInputs = scope.kind === handlers.COMMAND ? args._.slice(1) : args._
@@ -130,7 +129,6 @@ export class Container {
         factory,
       )
       if (caught) return
-
       throw error
     }
   }
@@ -140,9 +138,8 @@ export class Container {
     if (command) return { handler: command, kind: handlers.COMMAND }
 
     if (this.argv[0] && !this.argv[0].startsWith('-')) {
-      const missing = this.registry.missing()[0]
+      const missing = this.registry.missing().at(0)
       if (missing) return { handler: missing, kind: handlers.MISSING }
-
       return undefined
     }
 
@@ -225,10 +222,12 @@ export class Container {
   }
 
   private validateFieldValues(handler: CommandClass, nativeOption: UserOption) {
-    const validators: Record<string, ValueValidator[]> =
-      Reflect.getMetadata(metadata.VALUE_VALIDATOR_IDENTIFIER, handler) || {}
+    const validators = (Reflect.getMetadata(
+      metadata.VALUE_VALIDATOR_IDENTIFIER,
+      handler,
+    ) ?? {}) as Partial<Record<string, ValueValidator[]>>
     this.fieldOptions(handler).forEach(data => {
-      const fns = validators[data.propertyKey] || []
+      const fns = validators[data.propertyKey] ?? []
       fns.forEach(fn => {
         try {
           const result = fn(nativeOption[data.name], nativeOption)
@@ -268,7 +267,6 @@ export class Container {
 
     const matchedHandlers = methodHandlers.filter(data => {
       if (!data.flag) return false
-
       return Object.prototype.hasOwnProperty.call(args, `--${data.flag}`)
     })
 
@@ -284,7 +282,7 @@ export class Container {
     }
 
     const selectedHandler =
-      matchedHandlers[0] || methodHandlers.find(data => !data.flag)
+      matchedHandlers.at(0) ?? methodHandlers.find(data => !data.flag)
     if (selectedHandler) {
       return {
         data: selectedHandler,
@@ -306,7 +304,7 @@ export class Container {
     const handlerOptions = this.methodHandlers(handler)
       .filter(item => item.flag)
       .map<OptionParams>(item => ({
-        name: item.flag || '',
+        name: item.flag ?? '',
         alias: item.alias,
         description: item.description,
         type: Boolean,
@@ -322,49 +320,54 @@ export class Container {
   }
 
   private fieldOptions(handler: CommandClass): FieldOptionParams[] {
-    return Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, handler) || []
+    return (Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, handler) ??
+      []) as FieldOptionParams[]
   }
 
   private commandData(handler: CommandClass): RegisterCommandParams | undefined {
-    return Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, handler)
+    return Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, handler) as
+      RegisterCommandParams | undefined
   }
 
   private methodHandlers(handler: CommandClass): HandlerParams[] {
-    return Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, handler) || []
+    return (Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, handler) ??
+      []) as HandlerParams[]
   }
 
   private selectPathHandler(
-    handlers: HandlerParams[],
+    candidateHandlers: HandlerParams[],
     inputs: string[],
   ): SelectedHandler | undefined {
-    const matched = handlers
-      .filter(data => data.path && data.path.length)
-      .filter(data => data.path!.every((item, index) => inputs[index] === item))
-      .sort((a, b) => b.path!.length - a.path!.length)[0]
+    const matched = candidateHandlers
+      .filter((data): data is HandlerParams & { path: string[] } =>
+        Boolean(data.path?.length),
+      )
+      .filter(data => data.path.every((item, index) => inputs[index] === item))
+      .sort((a, b) => b.path.length - a.path.length)
+      .at(0)
     if (!matched) return undefined
 
     return {
       data: matched,
-      inputs: inputs.slice(matched.path!.length),
-      path: matched.path || [],
+      inputs: inputs.slice(matched.path.length),
+      path: matched.path,
     }
   }
 
   private subOptions(handler: CommandClass): OptionParams[] {
-    return Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, handler) || []
+    return (Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, handler) ??
+      []) as OptionParams[]
   }
 
   private findCommand(): CommandClass | undefined {
     const first = this.argv[0]
     if (!first || first.startsWith('-')) return undefined
-
     return this.registry.findCommand(first)
   }
 
   private throwUnknownOptions(args: arg.Result<any>, hasCommand: boolean) {
     const options = args._.filter((input, index) => {
       if (hasCommand && index === 0) return false
-
       return input.startsWith('-') && input !== '-'
     })
     if (!options.length) return
@@ -421,7 +424,7 @@ export class Container {
     if (funcError.level === errorLevels.SYSTEM) return false
 
     const catches: CatchParams[] =
-      Reflect.getMetadata(metadata.METHOD_CATCH_IDENTIFIER, handler) || []
+      Reflect.getMetadata(metadata.METHOD_CATCH_IDENTIFIER, handler) ?? []
     if (!catches.length) return false
 
     await catches.reduce(async (promise, data) => {

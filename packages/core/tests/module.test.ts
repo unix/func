@@ -27,7 +27,6 @@ test.sequential('should run commands from a FuncModule', async () => {
   class AppModule {}
 
   await run(AppModule, { argv: [name] })
-
   expect(invoked).toBe(true)
 })
 
@@ -43,99 +42,107 @@ test.sequential('should run commands from a plain app config', async () => {
   }
 
   await run({ commands: [Major] }, { argv: [] })
-
   expect(invoked).toBe(true)
 })
 
-test.sequential('should create a low-level container from a FuncModule', async () => {
-  @CommandMajor()
-  class Major {
-    @Handler()
-    run() {}
-  }
-
-  @FuncModule({
-    commands: [Major],
-  })
-  class AppModule {}
-
-  expect(createApp(AppModule)).toEqual(expect.objectContaining({ run: expect.any(Function) }))
-})
-
-test.sequential('should inject services registered by a feature module', async () => {
-  let message = ''
-  const name = random()
-
-  @Service()
-  class FeatureService {
-    text() {
-      return 'feature-service'
+test.sequential(
+  'should create a low-level container from a FuncModule',
+  async () => {
+    @CommandMajor()
+    class Major {
+      @Handler()
+      run() {}
     }
-  }
 
-  @Command({ name })
-  class FeatureCommand {
-    constructor(private service: FeatureService) {}
+    @FuncModule({
+      commands: [Major],
+    })
+    class AppModule {}
 
-    @Handler()
-    run() {
-      message = this.service.text()
+    expect(createApp(AppModule)).toEqual(
+      expect.objectContaining({ run: expect.any(Function) }),
+    )
+  },
+)
+
+test.sequential(
+  'should inject services registered by a feature module',
+  async () => {
+    let message = ''
+    const name = random()
+
+    @Service()
+    class FeatureService {
+      text() {
+        return 'feature-service'
+      }
     }
-  }
 
-  @FuncModule({
-    commands: [FeatureCommand],
-    services: [FeatureService],
-  })
-  class FeatureModule {}
+    @Command({ name })
+    class FeatureCommand {
+      constructor(private service: FeatureService) {}
 
-  @FuncModule({
-    imports: [FeatureModule],
-  })
-  class AppModule {}
-
-  await run(AppModule, { argv: [name] })
-
-  expect(message).toBe('feature-service')
-})
-
-test.sequential('should inject dependencies between registered services', async () => {
-  let invoked = false
-  const name = random()
-
-  @Service()
-  class ProjectService {
-    name() {
-      return name
+      @Handler()
+      run() {
+        message = this.service.text()
+      }
     }
-  }
 
-  @Service()
-  class FeatureService {
-    constructor(private project: ProjectService) {}
+    @FuncModule({
+      commands: [FeatureCommand],
+      services: [FeatureService],
+    })
+    class FeatureModule {}
 
-    matches(input: string) {
-      return this.project.name() === input
+    @FuncModule({
+      imports: [FeatureModule],
+    })
+    class AppModule {}
+
+    await run(AppModule, { argv: [name] })
+    expect(message).toBe('feature-service')
+  },
+)
+
+test.sequential(
+  'should inject dependencies between registered services',
+  async () => {
+    let invoked = false
+    const name = random()
+
+    @Service()
+    class ProjectService {
+      name() {
+        return name
+      }
     }
-  }
 
-  @Command({ name })
-  class FeatureCommand {
-    constructor(private service: FeatureService) {}
+    @Service()
+    class FeatureService {
+      constructor(private project: ProjectService) {}
 
-    @Handler()
-    run() {
-      invoked = this.service.matches(name)
+      matches(input: string) {
+        return this.project.name() === input
+      }
     }
-  }
 
-  @FuncModule({
-    commands: [FeatureCommand],
-    services: [ProjectService, FeatureService],
-  })
-  class AppModule {}
+    @Command({ name })
+    class FeatureCommand {
+      constructor(private service: FeatureService) {}
 
-  await run(AppModule, { argv: [name] })
+      @Handler()
+      run() {
+        invoked = this.service.matches(name)
+      }
+    }
 
-  expect(invoked).toBe(true)
-})
+    @FuncModule({
+      commands: [FeatureCommand],
+      services: [ProjectService, FeatureService],
+    })
+    class AppModule {}
+
+    await run(AppModule, { argv: [name] })
+    expect(invoked).toBe(true)
+  },
+)

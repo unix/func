@@ -19,7 +19,6 @@ const exitWithError = (error: unknown): never => {
 
   const trackingHint = errorTrackingHint(error)
   if (!trackingHint) throw error
-
   console.error(error)
   console.error('')
   console.error(trackingHint)

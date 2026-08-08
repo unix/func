@@ -1,1 +1,14 @@
+**/node_modules/
+**/.pnpm-store/
+**/dist/
+**/build/
+**/.build/
+**/.vercel/
 **/.wrangler/
+**/.astro/
+**/.github/
+**/coverage/
+**/.cache/
+**/tmp/
+**/.tmp/
+**/temp/

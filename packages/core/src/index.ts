@@ -11,11 +11,7 @@ export {
   SubOptions,
 } from './commands'
 
-export {
-  Args,
-  Exception,
-  Regs,
-} from './injection'
+export { Args, Exception, Regs } from './injection'
 
 export {
   ArrayValue,
@@ -28,12 +24,7 @@ export {
   ValueValidate,
 } from './options'
 
-export {
-  FuncModule,
-  Service,
-  createApp,
-  run,
-} from './application'
+export { FuncModule, Service, createApp, run } from './application'
 
 export type { FuncArgs } from './interfaces'
 

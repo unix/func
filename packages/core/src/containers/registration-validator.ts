@@ -13,7 +13,7 @@ import {
 } from '../errors'
 import { metadata } from '../utils/metadata'
 import type { ContainerParams } from './container'
-import { HandlerRegistry } from './handler-registry'
+import type { HandlerRegistry } from './handler-registry'
 
 export class RegistrationValidator {
   constructor(private registry: HandlerRegistry) {}
@@ -114,11 +114,11 @@ export class RegistrationValidator {
 
   private validateCommandShape(handler: CommandClass) {
     const fieldOptions: FieldOptionParams[] =
-      Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, handler) || []
+      Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, handler) ?? []
     const subOptions: OptionParams[] =
-      Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, handler) || []
+      Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, handler) ?? []
     const methodHandlers: HandlerParams[] =
-      Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, handler) || []
+      Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, handler) ?? []
 
     if (!methodHandlers.length) {
       throw createSystemError(
@@ -190,7 +190,7 @@ export class RegistrationValidator {
       }
 
       if (!data.flag) {
-        if (data.path && data.path.length) {
+        if (data.path?.length) {
           registerToken(
             data.path.join(' '),
             data.methodName,
@@ -233,6 +233,7 @@ export class RegistrationValidator {
   }
 
   private methodHandlers(handler: CommandClass): HandlerParams[] {
-    return Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, handler) || []
+    return (Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, handler) ??
+      []) as HandlerParams[]
   }
 }

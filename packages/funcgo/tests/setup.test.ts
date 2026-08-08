@@ -8,7 +8,6 @@ describe('collectSetupSuggestions', () => {
       name: '@unix/demo',
     }
     const suggestions = collectSetupSuggestions(pkg, 'src/index.ts')
-
     suggestions.forEach(suggestion => suggestion.apply(pkg))
 
     expect(suggestions.map(item => item.message)).toEqual([
@@ -59,7 +58,6 @@ describe('collectSetupSuggestions', () => {
       },
     }
     const suggestions = collectSetupSuggestions(pkg, 'src/index.ts')
-
     suggestions.forEach(suggestion => suggestion.apply(pkg))
 
     expect(suggestions.map(item => item.message)).toEqual([

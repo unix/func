@@ -51,37 +51,38 @@ export const resolveWatchTargets = (
 ): WatchTarget[] => {
   const paths = watchPaths.length ? watchPaths : [DEFAULT_WATCH_PATTERN]
   const targets = paths.map(item => resolveWatchTarget(item, options.cwd))
-
   return mergeWatchTargets(targets)
 }
 
 export const watchBuild = async (options: WatchBuildOptions): Promise<void> => {
   if (options.signal.aborted) return
-
-  const subscribe = options.subscribe || parcelWatcher.subscribe
+  const subscribe = options.subscribe ?? parcelWatcher.subscribe
   const subscriptions: WatchSubscription[] = []
   const debounceMs = Math.max(0, options.debounceMs ?? DEFAULT_BUILD_DEBOUNCE_MS)
   let activeBuild: Promise<void> | undefined
   let debounceTimer: ReturnType<typeof setTimeout> | undefined
-  let pendingBuild = false
-  let stopped = false
+  const state = {
+    pendingBuild: false,
+    stopped: false,
+  }
+  const shouldBuildAgain = (): boolean => state.pendingBuild && !state.stopped
 
   const scheduleBuild = (): Promise<void> => {
-    if (stopped) return Promise.resolve()
+    if (state.stopped) return Promise.resolve()
     if (activeBuild) {
-      pendingBuild = true
+      state.pendingBuild = true
       return activeBuild
     }
 
     activeBuild = (async () => {
       do {
-        pendingBuild = false
+        state.pendingBuild = false
         try {
           await options.build()
         } catch (error) {
           if (!options.signal.aborted) options.onBuildError(error)
         }
-      } while (pendingBuild && !stopped)
+      } while (shouldBuildAgain())
     })().finally(() => {
       activeBuild = undefined
     })
@@ -90,7 +91,7 @@ export const watchBuild = async (options: WatchBuildOptions): Promise<void> => {
   }
 
   const scheduleDebouncedBuild = (): void => {
-    if (stopped) return
+    if (state.stopped) return
     if (debounceTimer) clearTimeout(debounceTimer)
 
     debounceTimer = setTimeout(() => {
@@ -135,7 +136,7 @@ export const watchBuild = async (options: WatchBuildOptions): Promise<void> => {
     options.onReady?.()
     await waitForAbort(options.signal)
   } finally {
-    stopped = true
+    state.stopped = true
     if (debounceTimer) clearTimeout(debounceTimer)
     await Promise.all(
       subscriptions.map(async subscription => {

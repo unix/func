@@ -19,7 +19,6 @@ export const start = (text: string): void => {
 
 export const succeed = (text: string): void => {
   if (!active) return
-
   writeLine(`  ${style.success('✓')} ${style.success(text)}`)
   active = false
 }
@@ -38,7 +37,6 @@ export const info = (text: string, detail?: string): void => {
   writeLine()
   writeLine(`  ${style.accent('●')} ${style.heading(text)}`)
   if (!detail) return
-
   writeLine(`    ${style.dim(detail)}`)
 }
 
@@ -48,7 +46,6 @@ export const error = (text: string, detail?: string): void => {
     errorOutput,
   )
   if (!detail) return
-
   writeLine(`    ${style.danger(detail, errorOutput)}`, errorOutput)
 }
 

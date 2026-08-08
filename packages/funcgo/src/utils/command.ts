@@ -16,11 +16,11 @@ export interface CommandFailureParams {
 }
 
 export class CommandFailureError extends Error {
-  public args: string[]
-  public code: number | null
-  public command: string
-  public signal: NodeJS.Signals | null
-  public silent: boolean
+  args: string[]
+  code: number | null
+  command: string
+  signal: NodeJS.Signals | null
+  silent: boolean
 
   constructor(params: CommandFailureParams) {
     super(`Command failed: ${params.command} ${params.args.join(' ')}`.trim())
@@ -33,7 +33,9 @@ export class CommandFailureError extends Error {
   }
 }
 
-export const isCommandFailureError = (error: unknown): error is CommandFailureError => {
+export const isCommandFailureError = (
+  error: unknown,
+): error is CommandFailureError => {
   return error instanceof CommandFailureError
 }
 
@@ -45,8 +47,8 @@ export const run = (
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
-      shell: options.shell || process.platform === 'win32',
-      stdio: options.stdio || 'inherit',
+      shell: options.shell ?? process.platform === 'win32',
+      stdio: options.stdio ?? 'inherit',
     })
 
     child.on('error', reject)
@@ -56,13 +58,15 @@ export const run = (
         return
       }
 
-      reject(new CommandFailureError({
-        args,
-        code,
-        command,
-        signal,
-        silent: options.silentFailure || false,
-      }))
+      reject(
+        new CommandFailureError({
+          args,
+          code,
+          command,
+          signal,
+          silent: options.silentFailure ?? false,
+        }),
+      )
     })
   })
 }

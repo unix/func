@@ -20,7 +20,8 @@ const formatValue = (value: unknown) => {
   if (value instanceof Error) return value.message
 
   try {
-    return JSON.stringify(value, null, 2) ?? String(value)
+    const formatted = JSON.stringify(value, null, 2) as string | undefined
+    return formatted ?? String(value)
   } catch {
     return String(value)
   }
@@ -35,26 +36,23 @@ const writeOutput = (stream: TerminalDemoStream, values: unknown[]) => {
 }
 
 workerScope.addEventListener('message', async event => {
-  if (event.data.type !== 'run') return
-
   const originalConsole = {
     error: console.error,
     log: console.log,
     warn: console.warn,
   }
-  let hasErrorOutput = false
-
+  const state = { hasErrorOutput: false }
   console.log = (...values: unknown[]) => writeOutput('stdout', values)
   console.warn = (...values: unknown[]) => writeOutput('stderr', values)
   console.error = (...values: unknown[]) => {
-    hasErrorOutput = true
+    state.hasErrorOutput = true
     writeOutput('stderr', values)
   }
 
   try {
     await runTerminalDemo(event.data.demoId, event.data.command)
     workerScope.postMessage({
-      status: hasErrorOutput ? 'error' : 'success',
+      status: state.hasErrorOutput ? 'error' : 'success',
       type: 'complete',
     })
   } catch (error) {

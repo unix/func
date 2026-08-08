@@ -264,7 +264,6 @@ describe.each(projects)('$label consumer', project => {
   test('exposes the complete public runtime API', () => {
     const probe = runProject(project, [], 'exports-probe.js')
     const result = JSON.parse(probe.stdout) as ExportProbe
-
     expect(result.runtimeApis).toEqual(runtimeApis)
     expect(result.callableApis).toEqual(callableApis)
   })
@@ -359,7 +358,6 @@ describe.each(projects)('$label consumer', project => {
     ])
     const help = runProject(project, ['-h'])
     const asyncHandler = runProject(project, ['async'])
-
     expect(greet.stdout.trim()).toBe('HELLO, FUNC!')
     expect(JSON.parse(major.stdout)).toEqual({
       dryRun: true,
@@ -390,7 +388,6 @@ describe.each(projects)('$label consumer', project => {
       '--json',
     ])
     const global = runProject(project, ['--unknown'])
-
     expect(missing.stderr.trim()).toBe('missing:unknown')
     expect(required.stderr).toContain('local:F_RUNTIME_PRINT_VALIDATION')
     expect(required.stderr).toContain('Option "--target" is required.')

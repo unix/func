@@ -7,7 +7,6 @@ const REDIRECT_CACHE_CONTROL = 'public, max-age=604800'
 
 const requestKey = (request: RequestInfo | URL): string => {
   if (request instanceof Request) return request.url
-
   return request.toString()
 }
 
@@ -53,7 +52,6 @@ const executeRequest = async (
   const request = new Request(`https://f.witt.im${path}`, init)
   const response = await handleRequest(request, cache, ctx)
   await flush()
-
   return { cache, response }
 }
 
@@ -62,7 +60,6 @@ describe('alias worker', () => {
     for (const code of systemErrorCodes) {
       const alias = code.replace('F_SYSTEM_', '').toLowerCase()
       const { response } = await executeRequest(`/${alias}`)
-
       expect(response.status).toBe(308)
       expect(response.headers.get('location')).toBe(
         `https://func.witt.im/errors/${code}`,
@@ -91,7 +88,6 @@ describe('alias worker', () => {
 
   test('returns and caches a 404 for an unknown GET request for 24 hours', async () => {
     const { cache, response } = await executeRequest('/unknown_error')
-
     expect(response.status).toBe(404)
     expect(await response.text()).toBe('Not Found')
     expect(response.headers.get('cache-control')).toBe(NOT_FOUND_CACHE_CONTROL)
@@ -112,7 +108,6 @@ describe('alias worker', () => {
 
   test('does not accept the common system error prefix in the alias', async () => {
     const { response } = await executeRequest('/F_SYSTEM_EXPECTED_ARRAY_PARAM')
-
     expect(response.status).toBe(404)
   })
 })

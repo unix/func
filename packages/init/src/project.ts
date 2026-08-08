@@ -28,11 +28,9 @@ export const createProject = async (requestedName?: string): Promise<void> => {
     loading.start(`Downloading ${FUNC_TEMPLATE_URL}`)
     await downloadTemplate(extractedDir)
     loading.succeed()
-
     fs.mkdirSync(targetDir, { recursive: false })
     createdTarget = true
     copyDirectory(extractedDir, targetDir)
-
     const packageName = packageNameFromProjectName(name)
     rewriteDownloadedTemplate(targetDir, packageName)
     prompt.writeLine('')
@@ -65,7 +63,7 @@ export const packageNameFromProjectName = (name: string): string => {
 }
 
 export const promptProjectName = async (prompt: PromptSession): Promise<string> => {
-  while (true) {
+  for (;;) {
     const name = (await prompt.text('Project name')).trim()
 
     try {

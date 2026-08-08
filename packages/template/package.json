@@ -10,7 +10,8 @@
     "dev": "funcgo dev --",
     "build": "funcgo build",
     "test": "pnpm build && vitest run",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prettier": "prettier --write . --ignore-path ../../.prettierignore"
   },
   "files": [
     "src",
@@ -23,6 +24,7 @@
     "entry": "src/index.ts",
     "outDir": "dist"
   },
+  "prettier": "@unix/prettier",
   "bin": {
     "template": "./dist/bin.js"
   },
@@ -31,6 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
+    "@unix/prettier": "^0.1.0",
     "funcgo": "latest",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",

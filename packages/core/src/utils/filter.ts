@@ -1,32 +1,44 @@
 import type arg from 'arg'
-import {
+import type {
   CommandClass,
   FieldOptionParams,
   HandlerParams,
   OptionParams,
+  RegisterCommandParams,
 } from '../interfaces'
 import { metadata } from './metadata'
 
 export type OptionKeyValue = arg.Spec
 
-export const commandsToDatas = (commands: CommandClass[] = []) => {
-  return commands.map(fn =>
-    Object.assign({}, Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, fn), {
-      fieldOptions: (Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, fn) || []).map(
-        (item: FieldOptionParams) => Object.assign({}, item),
-      ),
-      handlers: (Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, fn) || []).map(
-        (item: HandlerParams) => Object.assign({}, item),
-      ),
-      subOptions: (Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, fn) || []).map(
-        (item: OptionParams) => Object.assign({}, item),
-      ),
-    }),
-  )
+export const commandsToDatas = (
+  commands: CommandClass[] = [],
+): RegisterCommandParams[] => {
+  return commands.map(fn => {
+    const command = Reflect.getMetadata(
+      metadata.COMMAND_IDENTIFIER,
+      fn,
+    ) as RegisterCommandParams
+    const fieldOptions = (Reflect.getMetadata(
+      metadata.FIELD_OPTION_IDENTIFIER,
+      fn,
+    ) ?? []) as FieldOptionParams[]
+    const methodHandlers = (Reflect.getMetadata(
+      metadata.METHOD_HANDLER_IDENTIFIER,
+      fn,
+    ) ?? []) as HandlerParams[]
+    const subOptions = (Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, fn) ??
+      []) as OptionParams[]
+
+    return Object.assign({}, command, {
+      fieldOptions: fieldOptions.map(item => Object.assign({}, item)),
+      handlers: methodHandlers.map(item => Object.assign({}, item)),
+      subOptions: subOptions.map(item => Object.assign({}, item)),
+    })
+  })
 }
 
 export const optionsToKeyValue = (params: OptionParams[] = []): OptionKeyValue => {
-  if (!params || !params.length) return {}
+  if (!params.length) return {}
   return params.reduce((pre, current) => {
     const name = `--${current.name}`
     const alias = current.alias ? { [`-${current.alias}`]: name } : {}

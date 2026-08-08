@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import {
+import type {
   FieldOptionDecoratorParams,
   FieldOptionKind,
   FieldOptionParams,
@@ -22,20 +22,19 @@ const fieldOptionFactory =
 
     const key = propertyKey as string
     const name = Object.prototype.hasOwnProperty.call(params, 'name')
-      ? params.name || ''
+      ? (params.name ?? '')
       : key
     validator.optionName(name, 'name')
     validator.optionAlias(params.alias, 'alias')
-
     const type = resolveType(kind, params, target, key)
-    const requiredKeys: string[] =
-      Reflect.getMetadata(metadata.REQUIRED_FIELD_IDENTIFIER, target.constructor) ||
-      []
-    const constraints =
-      Reflect.getMetadata(
-        metadata.FIELD_CONSTRAINT_IDENTIFIER,
-        target.constructor,
-      ) || {}
+    const requiredKeys = (Reflect.getMetadata(
+      metadata.REQUIRED_FIELD_IDENTIFIER,
+      target.constructor,
+    ) ?? []) as string[]
+    const constraints = (Reflect.getMetadata(
+      metadata.FIELD_CONSTRAINT_IDENTIFIER,
+      target.constructor,
+    ) ?? {}) as Partial<Record<string, Partial<FieldOptionParams>>>
     const nextOption: FieldOptionParams = Object.assign(
       {},
       {
@@ -46,10 +45,12 @@ const fieldOptionFactory =
         type,
       },
       params,
-      constraints[key] || {},
+      constraints[key] ?? {},
     )
-    const options =
-      Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, target.constructor) || []
+    const options = (Reflect.getMetadata(
+      metadata.FIELD_OPTION_IDENTIFIER,
+      target.constructor,
+    ) ?? []) as FieldOptionParams[]
     Reflect.defineMetadata(
       metadata.FIELD_OPTION_IDENTIFIER,
       options.concat([nextOption]),
@@ -65,11 +66,13 @@ const resolveType = (
 ): OptionType => {
   if (kind === 'flag') return Boolean
   if (kind === 'array') return [String]
-
   const explicitType = (params as ValueDecoratorParams).type
   if (explicitType) return explicitType
-
-  const designType = Reflect.getMetadata(metadata.DESIGN_TYPE, target, propertyKey)
+  const designType = Reflect.getMetadata(
+    metadata.DESIGN_TYPE,
+    target,
+    propertyKey,
+  ) as OptionType | undefined
   if (designType === String || designType === Number || designType === Boolean)
     return designType
 

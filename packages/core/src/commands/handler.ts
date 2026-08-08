@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import { HandlerDecoratorParams, HandlerParams } from '../interfaces'
+import type { HandlerDecoratorParams, HandlerParams } from '../interfaces'
 import { F_SYSTEM, createSystemError, errorTypes } from '../errors'
 import * as validator from '../utils/validator'
 import { metadata } from '../utils/metadata'
@@ -45,12 +45,12 @@ export const Handler =
       params.path.forEach(item => validator.commandName(item, 'path'))
     }
     if (Object.prototype.hasOwnProperty.call(params, 'flag')) {
-      validator.optionName(params.flag || '', 'flag')
+      validator.optionName(params.flag ?? '', 'flag')
     }
     validator.optionAlias(params.alias, 'alias')
 
     const handlers: HandlerParams[] =
-      Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, target.constructor) ||
+      Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, target.constructor) ??
       []
     Reflect.defineMetadata(
       metadata.METHOD_HANDLER_IDENTIFIER,

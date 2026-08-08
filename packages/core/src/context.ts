@@ -1,34 +1,29 @@
-import { RegisterCommandParams } from './interfaces'
-import type {
-  FuncError,
-  FuncErrorCode,
-  errorLevels,
-  errorTypes,
-} from './errors'
+import type { RegisterCommandParams } from './interfaces'
+import type { FuncError, FuncErrorCode, errorLevels, errorTypes } from './errors'
 
 export class FuncException {
   private defaultPrintPrevented = false
 
-  constructor(private _error: FuncError) {}
+  constructor(private funcError: FuncError) {}
 
   get code(): FuncErrorCode {
-    return this._error.code
+    return this.funcError.code
   }
 
   get details(): any {
-    return this._error.details
+    return this.funcError.details
   }
 
   get error(): FuncError {
-    return this._error
+    return this.funcError
   }
 
   get level(): errorLevels {
-    return this._error.level
+    return this.funcError.level
   }
 
   get message(): string {
-    return this._error.message
+    return this.funcError.message
   }
 
   get printPrevented(): boolean {
@@ -36,7 +31,7 @@ export class FuncException {
   }
 
   get type(): errorTypes {
-    return this._error.type
+    return this.funcError.type
   }
 
   preventDefaultPrint() {
@@ -45,11 +40,9 @@ export class FuncException {
 }
 
 export class CommandRegistry {
-  constructor(
-    private _commands: RegisterCommandParams[] = [],
-  ) {}
+  constructor(private registeredCommands: RegisterCommandParams[] = []) {}
 
   get commands(): RegisterCommandParams[] {
-    return this._commands
+    return this.registeredCommands
   }
 }

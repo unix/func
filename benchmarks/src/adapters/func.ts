@@ -113,7 +113,7 @@ class ReleaseCommand extends FuncCommand {
   private execute(action: 'plan' | 'apply', inputs: string[]): void {
     const service = slug(required(inputs[0], 'service'), 'service')
     const components = uniqueSlugs(inputs.slice(1), 'components', 8)
-    if (this.environment === 'production' && !this.artifact!.includes('@sha256:')) {
+    if (this.environment === 'production' && !this.artifact?.includes('@sha256:')) {
       throw new Error('production releases require an artifact sha256 digest.')
     }
     if (this.strategy === 'canary' && this.canaryPercent === undefined) {
@@ -317,7 +317,6 @@ const validateInteger = (
 ): true | string => {
   const parsed = Number(value)
   if (Number.isInteger(parsed) && parsed >= minimum && parsed <= maximum) return true
-
   return `${label} must be an integer between ${minimum} and ${maximum}.`
 }
 
@@ -328,25 +327,21 @@ const validateOptionalInteger = (
   maximum: number,
 ): true | string => {
   if (value === undefined) return true
-
   return validateInteger(value, label, minimum, maximum)
 }
 
 const required = (value: string | undefined, label: string): string => {
   if (value) return value
-
   throw new Error(`${label} is required.`)
 }
 
 const oneOf = (value: string, values: string[], label: string): string => {
   if (values.includes(value)) return value
-
   throw new Error(`${label} must be one of: ${values.join(', ')}.`)
 }
 
 const slug = (value: string, label: string): string => {
   if (/^[a-z][a-z0-9-]{1,39}$/.test(value)) return value
-
   throw new Error(`${label} must be a lowercase slug between 2 and 40 characters.`)
 }
 

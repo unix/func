@@ -17,7 +17,6 @@ describe('resolveWatchTargets', () => {
 
     try {
       const [target] = resolveWatchTargets([], { cwd: tempDir })
-
       expect(target.root).toBe(srcDir)
       expect(target.matches(path.join(srcDir, 'index.ts'))).toBe(true)
       expect(target.matches(path.join(srcDir, 'nested', 'command.ts'))).toBe(true)
@@ -56,7 +55,6 @@ describe('resolveWatchTargets', () => {
 
     try {
       const [target] = resolveWatchTargets(['config'], { cwd: tempDir })
-
       expect(target.matches(path.join(configDir, 'app.json'))).toBe(true)
       expect(target.matches(path.join(configDir, 'nested', 'app.yaml'))).toBe(true)
       expect(target.matches(path.join(tempDir, 'app.json'))).toBe(false)
@@ -140,10 +138,8 @@ describe('watchBuild', () => {
     harness.emit(null, [watchEvent('/project/src/index.js')])
     await Promise.resolve()
     expect(build).toHaveBeenCalledOnce()
-
     harness.emit(null, [watchEvent('/project/src/index.ts')])
     await vi.waitFor(() => expect(build).toHaveBeenCalledTimes(2))
-
     controller.abort()
     await running
     expect(harness.unsubscribe).toHaveBeenCalledOnce()
@@ -177,12 +173,10 @@ describe('watchBuild', () => {
     await vi.waitFor(() => expect(build).toHaveBeenCalledOnce())
     harness.emit(null, [watchEvent('/project/src/first.ts')])
     await vi.waitFor(() => expect(build).toHaveBeenCalledTimes(2))
-
     harness.emit(null, [watchEvent('/project/src/second.ts')])
     harness.emit(null, [watchEvent('/project/src/third.ts')])
     finishSecondBuild?.()
     await vi.waitFor(() => expect(build).toHaveBeenCalledTimes(3))
-
     controller.abort()
     await running
   })
@@ -210,7 +204,6 @@ describe('watchBuild', () => {
     await new Promise(resolve => setTimeout(resolve, 5))
     expect(build).toHaveBeenCalledOnce()
     await vi.waitFor(() => expect(build).toHaveBeenCalledTimes(2))
-
     controller.abort()
     await running
   })
@@ -234,10 +227,8 @@ describe('watchBuild', () => {
     await vi.waitFor(() => expect(build).toHaveBeenCalledOnce())
     const error = new Error('watch failed')
     harness.emit(error, [])
-
     expect(onWatchError).toHaveBeenCalledWith(error)
     expect(build).toHaveBeenCalledOnce()
-
     controller.abort()
     await running
   })
@@ -256,8 +247,7 @@ const createSubscribeHarness = (): SubscribeHarness => {
   const unsubscribe = vi.fn(async (): Promise<void> => {})
   const subscribe: WatchSubscribe = async (_directory, nextCallback, options) => {
     callback = nextCallback
-    ignore = options?.ignore || []
-
+    ignore = options?.ignore ?? []
     return { unsubscribe }
   }
 

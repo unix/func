@@ -25,7 +25,6 @@ describe('parseDevArgs', () => {
 
   test('treats positional arguments as user arguments without delimiter', () => {
     const args = parseDevArgs(['hello', 'world'])
-
     expect(args.userArgs).toEqual(['hello', 'world'])
   })
 })
@@ -123,7 +122,6 @@ describe('dev error formatting', () => {
       }
 
       const message = formatCannotInferValueTypeError(error, { cwd: tempDir })
-
       expect(message).toContain('"Greet.name"')
       expect(message).toContain('src/commands/greet.command.ts:5:3')
       expect(message).toContain(
@@ -145,7 +143,6 @@ describe('dev error formatting', () => {
     }
 
     const message = formatCannotInferValueTypeError(error, { cwd: process.cwd() })
-
     expect(message).toContain('"Greet.name"')
     expect(message).toContain('@Value({ type: String })')
   })

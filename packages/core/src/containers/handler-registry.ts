@@ -1,4 +1,4 @@
-import type { CommandClass } from '../interfaces'
+import type { CommandClass, RegisterCommandParams } from '../interfaces'
 import { handlers, metadata } from '../utils/metadata'
 import type { ContainerData, ContainerParams } from './container'
 
@@ -8,13 +8,14 @@ export class HandlerRegistry {
 
   constructor(params: ContainerParams) {
     params.forEach(handler => {
-      const type = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, handler)
+      const type = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, handler) as
+        handlers | undefined
       if (!type) {
         this.invalidHandlers = this.invalidHandlers.concat([handler])
         return
       }
 
-      this.datas[type] = (this.datas[type] || []).concat([handler])
+      this.datas[type] = (this.datas[type] ?? []).concat([handler])
     })
   }
 
@@ -27,7 +28,7 @@ export class HandlerRegistry {
   }
 
   major(): CommandClass | undefined {
-    return this.majors()[0]
+    return this.majors().at(0)
   }
 
   majors(): ContainerParams {
@@ -42,14 +43,14 @@ export class HandlerRegistry {
     if (!input || input.startsWith('-')) return undefined
 
     return this.commands().find(item => {
-      const data = Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, item)
+      const data = Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, item) as
+        RegisterCommandParams | undefined
       if (!data) return false
-
       return data.name === input || data.alias === input
     })
   }
 
   private handlers(kind: handlers): ContainerParams {
-    return this.datas[kind] || []
+    return this.datas[kind] ?? []
   }
 }

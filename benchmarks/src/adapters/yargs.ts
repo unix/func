@@ -166,7 +166,7 @@ const artifactBuilder = (command: Argv) =>
 
 type ArtifactArguments = InferBuilderArguments<typeof artifactBuilder>
 
-const releaseCommand: CommandModule<{}, ReleaseArguments> = {
+const releaseCommand: CommandModule<object, ReleaseArguments> = {
   aliases: ['r'],
   builder: releaseBuilder,
   command: 'release <action> <service> [components..]',
@@ -204,7 +204,7 @@ const releaseCommand: CommandModule<{}, ReleaseArguments> = {
   },
 }
 
-const configCommand: CommandModule<{}, ConfigArguments> = {
+const configCommand: CommandModule<object, ConfigArguments> = {
   aliases: ['c'],
   builder: configBuilder,
   command: 'config <action> <profile> [files..]',
@@ -229,7 +229,7 @@ const configCommand: CommandModule<{}, ConfigArguments> = {
   },
 }
 
-const artifactCommand: CommandModule<{}, ArtifactArguments> = {
+const artifactCommand: CommandModule<object, ArtifactArguments> = {
   aliases: ['a'],
   builder: artifactBuilder,
   command: 'artifact <action> <reference>',
@@ -265,7 +265,7 @@ const parser = yargs(hideBin(process.argv))
   .recommendCommands()
   .help()
   .exitProcess(false)
-  .fail((message, error) => {
+  .fail((message, error: Error | undefined) => {
     throw error ?? new Error(message)
   })
 
@@ -284,7 +284,6 @@ const integer = (
 
 const slug = (value: string, label: string): string => {
   if (/^[a-z][a-z0-9-]{1,39}$/.test(value)) return value
-
   throw new Error(`${label} must be a lowercase slug between 2 and 40 characters.`)
 }
 

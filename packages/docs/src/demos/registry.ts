@@ -38,26 +38,22 @@ const terminalDemoArgv = (command: string, executable: string) => {
   const argv = command.trim().split(/\s+/).filter(Boolean)
   const executableIndex = argv.indexOf(executable)
   if (executableIndex >= 0) return argv.slice(executableIndex + 1)
-
   const packageManager = argv[0]
   const usesRunSubcommand =
     (packageManager === 'bun' || packageManager === 'npm') && argv[1] === 'run'
   const scriptArguments = argv.slice(usesRunSubcommand ? 3 : 2)
   if (usesRunSubcommand || packageManager === 'pnpm' || packageManager === 'yarn') {
     if (scriptArguments[0] === '--') return scriptArguments.slice(1)
-
     return scriptArguments
   }
 
   const passthroughIndex = argv.indexOf('--')
   if (passthroughIndex >= 0) return argv.slice(passthroughIndex + 1)
-
   return argv
 }
 
 export const runTerminalDemo = async (demoId: TerminalDemoId, command: string) => {
   const demo = terminalDemos[demoId]
   const argv = terminalDemoArgv(command, demo.executable)
-
   await run(demo.input, { argv })
 }

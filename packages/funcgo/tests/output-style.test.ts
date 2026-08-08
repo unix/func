@@ -30,7 +30,6 @@ describe('output styles', () => {
 
   test('keeps help readable when terminal styles are removed', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-
     await main(['node', 'funcgo', '--help'])
 
     const output = stripVTControlCharacters(
@@ -43,9 +42,7 @@ describe('output styles', () => {
 
   test('keeps version output unstyled for scripts', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-
     await main(['node', 'funcgo', '--version'])
-
     const output = log.mock.calls.map(([value]) => String(value)).join('\n')
     expect(output).toMatch(/^\d+\.\d+\.\d+/)
     expect(stripVTControlCharacters(output)).toBe(output)

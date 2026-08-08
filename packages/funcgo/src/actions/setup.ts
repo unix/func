@@ -44,10 +44,7 @@ export const setup = async (argv: string[]): Promise<void> => {
     console.log(`${style.accent(`${index + 1}.`)} ${suggestion.message}`)
   })
 
-  if (!args.fix) {
-    return
-  }
-
+  if (!args.fix) return
   suggestions.forEach(suggestion => suggestion.apply(pkg))
   writePackage(pkg)
   console.log('')
@@ -76,8 +73,8 @@ export const collectSetupSuggestions = (
   entry: string | undefined = detectEntry(pkg),
 ): SetupSuggestion[] => {
   const suggestions: SetupSuggestion[] = []
-  const binName = firstBinName(pkg) || defaultBinName(pkg)
-  const outDir = pkg.func?.outDir || DEFAULT_OUT_DIR
+  const binName = firstBinName(pkg) ?? defaultBinName(pkg)
+  const outDir = pkg.func?.outDir ?? DEFAULT_OUT_DIR
   const bin = packageBinPath(outDir)
 
   if (!entry) {
@@ -159,41 +156,28 @@ export const collectSetupSuggestions = (
 
 const packageBinPath = (outDir: string): string => {
   const normalized = outDir.replace(/\\/g, '/').replace(/\/+$/, '')
-  if (normalized.startsWith('.') || normalized.startsWith('/')) {
+  if (normalized.startsWith('.') || normalized.startsWith('/'))
     return `${normalized}/bin.js`
-  }
-
   return `./${normalized}/bin.js`
 }
 
 const detectEntry = (pkg: ProjectPackage): string | undefined => {
   if (pkg.func?.entry) {
     const entry = path.resolve(cwd, pkg.func.entry)
-    if (fs.existsSync(entry)) {
-      return pkg.func.entry
-    }
+    if (fs.existsSync(entry)) return pkg.func.entry
   }
 
   const entry = defaultEntries.find(item => fs.existsSync(item))
-  if (!entry) {
-    return undefined
-  }
-
+  if (!entry) return undefined
   return packagePathFromCwd(entry)
 }
 
 const binValue = (pkg: ProjectPackage, name: string): string | undefined => {
-  if (typeof pkg.bin === 'string') {
-    return pkg.bin
-  }
-
+  if (typeof pkg.bin === 'string') return pkg.bin
   return pkg.bin?.[name]
 }
 
 const objectBin = (pkg: ProjectPackage): Record<string, string> => {
-  if (!pkg.bin || typeof pkg.bin === 'string') {
-    return {}
-  }
-
+  if (!pkg.bin || typeof pkg.bin === 'string') return {}
   return pkg.bin
 }

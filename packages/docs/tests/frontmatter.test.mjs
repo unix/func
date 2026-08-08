@@ -10,9 +10,7 @@ const sourceDirectory = fileURLToPath(new URL('../src/', import.meta.url))
 const getMarkdownFiles = directory =>
   readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const file = join(directory, entry.name)
-
     if (entry.isDirectory()) return getMarkdownFiles(file)
-
     return /\.mdx?$/.test(entry.name) ? [file] : []
   })
 
@@ -22,7 +20,6 @@ test('parses all Markdown frontmatter with Astro', () => {
     .flatMap(file => {
       try {
         parseFrontmatter(readFileSync(file, 'utf8'))
-
         return []
       } catch (error) {
         return [`${relative(sourceDirectory, file)}: ${String(error)}`]

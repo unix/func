@@ -49,7 +49,7 @@ const fetchUrl = (url: string): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     https
       .get(url, response => {
-        const statusCode = response.statusCode || 0
+        const statusCode = response.statusCode ?? 0
         const location = response.headers.location
         if (statusCode >= 300 && statusCode < 400 && location) {
           response.resume()

@@ -50,13 +50,11 @@ describe('built create-func package', () => {
   test('downloads, creates, and validates a real project', () => {
     const entry = join(initRoot, 'dist', 'index.js')
     expect(existsSync(entry)).toBe(true)
-
     const create = run(process.execPath, [entry, projectName], temporaryRoot)
     expect(create.stdout).toContain(`Created ${projectName}.`)
     expect(create.stdout).not.toContain('Project name:')
     expect(create.stderr).toContain('Downloading')
     expect(create.stderr).toContain('done')
-
     const packagePath = join(projectRoot, 'package.json')
     const pkg = JSON.parse(readFileSync(packagePath, 'utf8')) as ProjectPackage
     expect(pkg).toMatchObject({

@@ -319,7 +319,6 @@ const executeRelease = (
 
 const slug = (value: string, label: string): string => {
   if (/^[a-z][a-z0-9-]{1,39}$/.test(value)) return value
-
   throw new Error(`${label} must be a lowercase slug between 2 and 40 characters.`)
 }
 

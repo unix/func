@@ -45,7 +45,6 @@ const createSystemErrorPages = (
     }
   })
   pages.sort((left, right) => left.code.localeCompare(right.code))
-
   const documentedCodes = new Set(pages.map(page => page.code))
   const missingCodes = systemErrorCodes.filter(code => !documentedCodes.has(code))
   if (missingCodes.length) {

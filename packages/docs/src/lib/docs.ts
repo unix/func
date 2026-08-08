@@ -135,25 +135,21 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
 
 export const siteTitle = `${siteName} - ${siteSlogans[defaultLocale]}`
 
-export function getSiteTitle(locale: Locale = defaultLocale) {
+export const getSiteTitle = (locale: Locale = defaultLocale) => {
   return `${siteName} - ${siteSlogans[locale]}`
 }
 
-export function getSiteSlogan(locale: Locale = defaultLocale) {
+export const getSiteSlogan = (locale: Locale = defaultLocale) => {
   return siteSlogans[locale]
 }
 
-export function getLocalePath(page: DocPage, locale: Locale = defaultLocale) {
+export const getLocalePath = (page: DocPage, locale: Locale = defaultLocale) => {
   const path = page === '/' ? '/' : `/${page}`
-
-  if (locale === defaultLocale) {
-    return path
-  }
-
+  if (locale === defaultLocale) return path
   return page === '/' ? `/${locale}` : `/${locale}${path}`
 }
 
-export function getNavGroups(locale: Locale = defaultLocale) {
+export const getNavGroups = (locale: Locale = defaultLocale) => {
   return navGroups[locale].map(group => ({
     label: group.label,
     items: group.pages.map(id => ({
@@ -164,7 +160,7 @@ export function getNavGroups(locale: Locale = defaultLocale) {
   }))
 }
 
-export function getLanguageSwitch(page: DocPage, locale: Locale = defaultLocale) {
+export const getLanguageSwitch = (page: DocPage, locale: Locale = defaultLocale) => {
   const targetLocale: Locale = locale === defaultLocale ? 'zh-cn' : defaultLocale
 
   return {
@@ -174,15 +170,13 @@ export function getLanguageSwitch(page: DocPage, locale: Locale = defaultLocale)
   }
 }
 
-export function getMarkdownPath(page: DocPage, locale: Locale = defaultLocale) {
+export const getMarkdownPath = (page: DocPage, locale: Locale = defaultLocale) => {
   const slug = page === '/' ? 'index' : page
-
   return locale === defaultLocale ? `/${slug}.md` : `/${locale}/${slug}.md`
 }
 
-export function getEditUrl(page: DocPage, locale: Locale = defaultLocale) {
+export const getEditUrl = (page: DocPage, locale: Locale = defaultLocale) => {
   const slug = page === '/' ? 'index' : page
   const localePath = locale === defaultLocale ? '' : `${locale}/`
-
   return `https://github.com/unix/func/edit/main/packages/docs/src/pages/${localePath}${slug}.mdx`
 }

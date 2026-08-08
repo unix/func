@@ -17,7 +17,9 @@
     "test": "vitest run",
     "test:e2e": "pnpm build && tsc -p e2e/tsconfig.json && vitest run --config vitest.e2e.config.mts",
     "release": "pnpm build && pnpm publish --access public --no-git-checks",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "prettier": "prettier --write . --ignore-path ../../.prettierignore"
   },
   "files": [
     "dist",
@@ -36,12 +38,16 @@
   },
   "devDependencies": {
     "@swc/core": "^1.15.47",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@types/args": "^5.0.4",
     "@types/node": "^26.1.2",
+    "@unix/eslint": "^1.3.0",
     "@unix/prettier": "^0.1.0",
     "@vercel/ncc": "^0.44.1",
+    "eslint": "^10.8.1",
+    "globals": "^17.9.0",
     "prettier": "^3.9.6",
-    "typescript": "^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "unplugin-swc": "^1.5.10",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"

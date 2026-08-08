@@ -322,7 +322,6 @@ function runInvocation(framework, scenario) {
   })
   const elapsed = performance.now() - start
   if (result.error) throw result.error
-
   const succeeded = result.status === 0
   if (succeeded === scenario.expectSuccess) return elapsed
 
@@ -420,7 +419,6 @@ async function sourceSize(framework) {
 
 function percentile(sorted, value) {
   const index = Math.max(0, Math.ceil(sorted.length * value) - 1)
-
   return sorted[index]
 }
 
@@ -443,7 +441,6 @@ function ranked(values, select) {
 function positiveInteger(value, fallback) {
   const parsed = Number(value ?? fallback)
   if (Number.isInteger(parsed) && parsed > 0) return parsed
-
   throw new Error(`Expected a positive integer, received "${value}".`)
 }
 

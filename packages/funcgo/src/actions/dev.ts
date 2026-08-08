@@ -1,8 +1,5 @@
 import arg from 'arg'
-import {
-  isCommandFailureError,
-  run,
-} from '../utils/command'
+import { isCommandFailureError, run } from '../utils/command'
 import { cwd, resolveEntry } from '../utils/paths'
 
 interface DevArgs {
@@ -12,7 +9,6 @@ interface DevArgs {
 
 export const dev = async (argv: string[]): Promise<void> => {
   const args = parseDevArgs(argv)
-
   const entry = resolveEntry(args.file)
   if (!entry) {
     throw new Error(`About. Not found entry. Run "funcgo setup" for suggestions.`)
@@ -22,13 +18,17 @@ export const dev = async (argv: string[]): Promise<void> => {
   const devErrorHandler = resolveDevErrorHandler()
 
   try {
-    await run('node', ['-r', tsNodeRegister, '-r', devErrorHandler, entry, ...args.userArgs], {
-      cwd,
-      silentFailure: true,
-    })
+    await run(
+      'node',
+      ['-r', tsNodeRegister, '-r', devErrorHandler, entry, ...args.userArgs],
+      {
+        cwd,
+        silentFailure: true,
+      },
+    )
   } catch (error) {
     if (isCommandFailureError(error) && error.silent) {
-      process.exitCode = error.code || 1
+      process.exitCode = error.code ?? 1
       return
     }
 

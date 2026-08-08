@@ -6,8 +6,10 @@
   "scripts": {
     "benchmarks": "pnpm --filter func-cli-benchmarks report",
     "benchmarks:test": "pnpm --filter func-cli-benchmarks test",
-    "test": "pnpm --filter func test",
-    "docs:dev": "pnpm --filter docs dev"
+    "docs:dev": "pnpm --filter docs dev",
+    "lint": "eslint .",
+    "prettier": "prettier --write . --ignore-path .prettierignore",
+    "test": "pnpm --filter func test"
   },
   "repository": {
     "type": "git",
@@ -15,7 +17,11 @@
   },
   "prettier": "@unix/prettier",
   "devDependencies": {
+    "@unix/eslint": "^1.3.0",
     "@unix/prettier": "^0.1.0",
-    "prettier": "^3.8.3"
+    "eslint": "^10.8.1",
+    "globals": "^17.9.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3"
   }
 }
