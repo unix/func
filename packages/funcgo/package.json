@@ -1,6 +1,6 @@
 {
   "name": "funcgo",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
@@ -42,6 +42,7 @@
     "typescript": "^6.0.3"
   },
   "devDependencies": {
+    "@func/shared": "workspace:*",
     "@swc/core": "^1.15.47",
     "@types/node": "^26.1.2",
     "@types/picomatch": "^4.0.3",

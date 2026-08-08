@@ -1,8 +1,10 @@
 import fs from 'fs'
 import path from 'path'
 import arg from 'arg'
+import { valueTypeValidationPlugin } from '../plugins/value-type-validation'
 import { run } from '../utils/command'
 import { resolveWatchTargets, watchBuild } from '../utils/build-watch'
+import { withErrorTrackingUrl } from '../utils/error-tracking'
 import * as spinner from '../utils/spinner'
 import { cwd, readPackage, resolveEntry } from '../utils/paths'
 
@@ -101,6 +103,7 @@ export const buildWithRolldown = async (
       input: options.entry,
       external: options.external,
       platform: 'node',
+      plugins: [valueTypeValidationPlugin({ cwd })],
       tsconfig: resolveTsconfig(options.entry),
       transform: {
         target: 'node20.19',
@@ -209,7 +212,8 @@ const writeBin = (output: string): void => {
 }
 
 const printError = (error: unknown): void => {
-  spinner.detail(error instanceof Error ? error.message : String(error))
+  const message = error instanceof Error ? error.message : String(error)
+  spinner.detail(withErrorTrackingUrl(message, error))
 }
 
 const formatDuration = (milliseconds: number): string => {

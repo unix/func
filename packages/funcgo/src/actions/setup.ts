@@ -12,6 +12,7 @@ import {
   writePackage,
 } from '../utils/paths'
 import type { ProjectPackage } from '../utils/paths'
+import { style } from '../utils/style'
 
 const DEFAULT_OUT_DIR = 'dist'
 const DEFAULT_DEV_SCRIPT = 'funcgo dev --'
@@ -35,12 +36,12 @@ export const setup = async (argv: string[]): Promise<void> => {
   const pkg = readPackage()
   const suggestions = collectSetupSuggestions(pkg)
   if (!suggestions.length) {
-    console.log('No changes needed.')
+    console.log(style.success('No changes needed.'))
     return
   }
 
   suggestions.forEach((suggestion, index) => {
-    console.log(`${index + 1}. ${suggestion.message}`)
+    console.log(`${style.accent(`${index + 1}.`)} ${suggestion.message}`)
   })
 
   if (!args.fix) {
@@ -50,7 +51,9 @@ export const setup = async (argv: string[]): Promise<void> => {
   suggestions.forEach(suggestion => suggestion.apply(pkg))
   writePackage(pkg)
   console.log('')
-  console.log(`Updated ${packagePath}.`)
+  console.log(
+    `${style.success('Updated')} ${style.accent(packagePath)}${style.success('.')}`,
+  )
 }
 
 export const parseSetupArgs = (argv: string[]): SetupArgs => {
@@ -112,7 +115,8 @@ export const collectSetupSuggestions = (
 
   if (!binName) {
     suggestions.push({
-      message: 'Add package.json#name or package.json#bin before setup can infer a command name.',
+      message:
+        'Add package.json#name or package.json#bin before setup can infer a command name.',
       apply: () => {},
     })
   }

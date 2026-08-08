@@ -2,6 +2,7 @@ import arg from 'arg'
 import { build, buildNcc } from './actions/build'
 import { dev } from './actions/dev'
 import { setup } from './actions/setup'
+import { style } from './utils/style'
 
 const pkg = require('../package.json') as {
   name: string
@@ -92,23 +93,25 @@ export const main = async (argv: string[] = process.argv): Promise<void> => {
 }
 
 const printHelp = (): void => {
-  console.log(pkg.name.toUpperCase())
+  console.log(style.heading(pkg.name.toUpperCase()))
   console.log('')
 
   commands.forEach(command => {
-    console.log(`  ${command.name} <command>${showDesc(command.description)}`)
+    console.log(
+      `  ${style.accent(command.name)}${style.dim(' <command>')}${showDesc(command.description)}`,
+    )
   })
 
   console.log('')
 
   options.forEach(option => {
-    const alias = option.alias ? ` -${option.alias}` : ''
-    console.log(`  --${option.name}${alias} <option>${showDesc(option.description)}`)
+    const alias = option.alias ? style.dim(` -${option.alias}`) : ''
+    console.log(
+      `  ${style.accent(`--${option.name}`)}${alias}${style.dim(' <option>')}${showDesc(option.description)}`,
+    )
   })
 
   console.log('')
 }
 
-const showDesc = (desc: string): string => {
-  return desc ? ` --  ${desc}` : ''
-}
+const showDesc = (desc: string): string => (desc ? style.dim(` --  ${desc}`) : '')
