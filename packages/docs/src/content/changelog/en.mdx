@@ -1,6 +1,14 @@
 import ChangelogRelease from '@/components/content/changelog-release.astro'
 import { changelogReleases } from '@/lib/changelog'
 
+<ChangelogRelease {...changelogReleases['2.3.1']}>
+
+- Add more `F_SYSTEM_*` error codes to make errors easier to pinpoint.
+- Improve `funcgo` diagnostics with build-time value type validation, source locations, code frames, and links to the matching error reference.
+- Require `Node.js 24` or newer and adopt NodeNext module resolution across the workspace.
+
+</ChangelogRelease>
+
 <ChangelogRelease {...changelogReleases['2.3.0']}>
 
 - Publish separate `CommonJS` and `ESM` bundles with conditional package exports and a shared declaration entry.

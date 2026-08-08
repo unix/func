@@ -1,6 +1,14 @@
 import ChangelogRelease from '@/components/content/changelog-release.astro'
 import { changelogReleases } from '@/lib/changelog'
 
+<ChangelogRelease {...changelogReleases['2.3.1']} locale="zh-cn">
+
+- 追加了一些 `F_SYSTEM_*` 错误码，以便更加细致地定位错误。
+- 改进 `funcgo` 诊断能力，增加构建时值类型校验、源码位置、代码片段以及对应错误文档链接。
+- 要求使用 `Node.js 24` 及以上版本，并在工作区统一采用 NodeNext 模块解析。
+
+</ChangelogRelease>
+
 <ChangelogRelease {...changelogReleases['2.3.0']} locale="zh-cn">
 
 - 分别发布 `CommonJS` 和 `ESM` 产物，通过包条件导出提供统一的类型声明入口。
