@@ -197,6 +197,9 @@ importers:
       astro-no-image-endpoint:
         specifier: ^0.1.0
         version: 0.1.0(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))
+      astro-vite-cache-isolation:
+        specifier: ^0.1.0
+        version: 0.1.0(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))
       shiki:
         specifier: ^4.4.1
         version: 4.4.2
@@ -2367,6 +2370,12 @@ packages:
 
   astro-no-image-endpoint@0.1.0:
     resolution: {integrity: sha512-RFcZPwLHsYuPJFd1fwo509AekvRXVwqDCyjIQCRNF1zVp6KP9be0m8X7LgByGZwGtHBPuc7bzBpWIPwqf+poQw==}
+    engines: {node: '>=20.11.0'}
+    peerDependencies:
+      astro: '>=5.0.0 <8.0.0'
+
+  astro-vite-cache-isolation@0.1.0:
+    resolution: {integrity: sha512-nRAHgF0+7VTmZm7DolRPZTjcmiIt7yZY3iOAvp+6DuBPathj3KxCqCnkKzsAgsqiT1L0QWBxVCZaw/l1O6x5dw==}
     engines: {node: '>=20.11.0'}
     peerDependencies:
       astro: '>=5.0.0 <8.0.0'
@@ -5938,6 +5947,10 @@ snapshots:
       astro: 7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)
 
   astro-no-image-endpoint@0.1.0(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)):
+    dependencies:
+      astro: 7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)
+
+  astro-vite-cache-isolation@0.1.0(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)):
     dependencies:
       astro: 7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)
 

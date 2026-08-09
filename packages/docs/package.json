@@ -29,6 +29,7 @@
     "astro": "^7.2.0",
     "astro-join-line": "^0.1.0",
     "astro-no-image-endpoint": "^0.1.0",
+    "astro-vite-cache-isolation": "^0.1.0",
     "shiki": "^4.4.1",
     "tailwindcss": "^4.3.3"
   },
