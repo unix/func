@@ -1,7 +1,7 @@
-import { FuncModule } from 'func'
+import { Module } from 'func'
 import { Major } from './commands/major.command'
 
-@FuncModule({
+@Module({
   commands: [Major],
 })
 export class AppModule {}

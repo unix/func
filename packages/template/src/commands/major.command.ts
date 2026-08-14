@@ -1,5 +1,4 @@
-import { ArrayValue, CommandMajor, Enum, Flag, Handler, Regs, Value } from 'func'
-import type { CommandRegistry } from 'func'
+import { ArrayValue, CommandMajor, Context, Enum, Flag, Handler, Value } from 'func'
 import pkg from '../../package.json'
 import { appName } from '../config'
 import { ProjectService } from '../services/project.service'
@@ -27,7 +26,10 @@ export class Major {
   })
   tags: string[] = []
 
-  constructor(private project: ProjectService) {}
+  constructor(
+    private project: ProjectService,
+    private context: Context,
+  ) {}
 
   @Handler()
   run() {
@@ -50,7 +52,7 @@ export class Major {
   }
 
   @Handler({ flag: 'help', alias: 'h', description: 'print help' })
-  help(@Regs() regs: CommandRegistry) {
+  help() {
     console.log(appName)
     console.log('')
     console.log('Usage:')
@@ -59,9 +61,9 @@ export class Major {
     console.log('')
     console.log('Commands:')
 
-    regs.commands.forEach(command => {
+    this.context.commands.forEach(command => {
       console.log(
-        `  ${this.commandLine(command.name, command.alias)}${this.description(command.description)}`,
+        `  ${this.commandLine(command.path.join(' '), command.aliases)}${this.description(command.description)}`,
       )
     })
 
@@ -79,10 +81,10 @@ export class Major {
     console.log(pkg.version)
   }
 
-  private commandLine(name: string, alias?: string): string {
-    if (!alias) return name.padEnd(16)
+  private commandLine(name: string, aliases: readonly string[]): string {
+    if (!aliases.length) return name.padEnd(16)
 
-    return `${name}, ${alias}`.padEnd(16)
+    return [name, ...aliases].join(', ').padEnd(16)
   }
 
   private description(description?: string): string {

@@ -1,15 +1,17 @@
 import { Args, Command, Flag, Handler, Value } from 'func'
-import type { FuncArgs } from 'func'
+import type { Args as CommandArgs } from 'func'
 
 @Command({
-  name: 'greet',
+  path: 'greet',
   alias: 'g',
+  aliases: ['hello'],
   description: 'print a greeting',
 })
 export class Greet {
   @Value({
     name: 'name',
     alias: 'n',
+    aliases: ['N'],
     description: 'name to greet',
     type: String,
   })
@@ -17,12 +19,13 @@ export class Greet {
 
   @Flag({
     alias: 'u',
+    aliases: ['U'],
     description: 'print with uppercase letters',
   })
   upper = false
 
   @Handler()
-  run(@Args() args: FuncArgs) {
+  run(@Args() args: CommandArgs) {
     this.print(`Hello, ${this.name}!`)
 
     if (!args.inputs.length) return

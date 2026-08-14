@@ -1,6 +1,6 @@
-import { Service } from 'func'
+import { Injectable } from 'func'
 
-@Service()
+@Injectable()
 export class DeploymentsService {
   status(env: string) {
     return `${env} is healthy`

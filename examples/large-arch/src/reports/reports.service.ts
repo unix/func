@@ -1,6 +1,6 @@
-import { Service } from 'func'
+import { Injectable } from 'func'
 
-@Service()
+@Injectable()
 export class ReportsService {
   summary(period: string) {
     return `report summary for ${period}`

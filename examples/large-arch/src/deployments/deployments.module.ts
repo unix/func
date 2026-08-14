@@ -1,9 +1,9 @@
-import { FuncModule } from 'func'
+import { Module } from 'func'
 import { DeploymentsCommand } from './deployments.command'
 import { DeploymentsService } from './deployments.service'
 
-@FuncModule({
+@Module({
   commands: [DeploymentsCommand],
-  services: [DeploymentsService],
+  providers: [DeploymentsService],
 })
 export class DeploymentsModule {}

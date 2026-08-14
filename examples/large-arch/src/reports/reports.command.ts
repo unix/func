@@ -1,12 +1,8 @@
-import {
-  Command,
-  Handler,
-  Value,
-} from 'func'
+import { Command, Handler, Value } from 'func'
 import { ReportsService } from './reports.service'
 
 @Command({
-  name: 'reports',
+  path: 'reports',
   description: 'generate reports',
 })
 export class ReportsCommand {

@@ -1,7 +1,7 @@
-import { Service } from 'func'
+import { Injectable } from 'func'
 import { appName } from '../config'
 
-@Service()
+@Injectable()
 export class ProjectService {
   name() {
     return appName

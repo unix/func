@@ -1,13 +1,8 @@
-import {
-  Command,
-  Flag,
-  Handler,
-  Value,
-} from 'func'
+import { Command, Flag, Handler, Value } from 'func'
 import { DeploymentsService } from './deployments.service'
 
 @Command({
-  name: 'deployments',
+  path: 'deployments',
   alias: 'deploy',
   description: 'manage deployments',
 })

@@ -1,9 +1,9 @@
-import { FuncModule } from 'func'
+import { Module } from 'func'
 import { DeploymentsModule } from './deployments/deployments.module'
 import { ReportsModule } from './reports/reports.module'
 import { UsersModule } from './users/users.module'
 
-@FuncModule({
+@Module({
   imports: [
     UsersModule,
     ReportsModule,

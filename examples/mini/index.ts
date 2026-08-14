@@ -1,10 +1,6 @@
-import {
-  Command,
-  Handler,
-  run,
-} from 'func'
+import { Command, Module, Handler, run } from 'func'
 
-@Command({ name: 'ping' })
+@Command('ping')
 class Ping {
   @Handler()
   run() {
@@ -12,4 +8,7 @@ class Ping {
   }
 }
 
-run(Ping)
+@Module({ commands: [Ping] })
+class AppModule {}
+
+run(AppModule)
