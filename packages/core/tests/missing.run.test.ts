@@ -1,29 +1,25 @@
 import {
   Args,
-  Catch,
   CommandMissing,
-  Container,
-  Exception,
-  F_SYSTEM,
   Flag,
-  FuncArgs,
-  FuncException,
-  FuncModule,
+  Module,
   Handler,
-  Service,
+  Injectable,
+  createApp,
   run,
 } from '../src'
-import { expect, test } from './_test'
+import type { Args as ArgsValue, Exception, OnError } from '../src'
+import { SYSTEM, expect, systemErrorCode, test, testModule } from './_test'
 
 test.sequential(
-  'should run an async missing handler with options and services',
+  'should run an async missing handler with options and providers',
   async () => {
-    expect.assertions(5)
+    expect.assertions(4)
     let completed = false
 
-    @Service()
+    @Injectable()
     class SearchService {
-      query(inputs: string[]) {
+      query(inputs: readonly string[]) {
         return inputs.join(' ')
       }
     }
@@ -38,19 +34,18 @@ test.sequential(
       constructor(private search: SearchService) {}
 
       @Handler()
-      async run(@Args() args: FuncArgs) {
+      async run(@Args() args: ArgsValue) {
         await Promise.resolve()
         expect(this.search.query(args.inputs)).toBe('react router')
         expect(this.json).toBe(true)
-        expect(args.command).toBeUndefined()
-        expect(args.handler?.methodName).toBe('run')
+        expect(args.raw).toEqual(['react', 'router', '--json'])
         completed = true
       }
     }
 
-    @FuncModule({
+    @Module({
       commands: [Missing],
-      services: [SearchService],
+      providers: [SearchService],
     })
     class AppModule {}
 
@@ -65,9 +60,9 @@ test.sequential('should select missing path handlers', async () => {
   @CommandMissing()
   class Missing {
     @Handler({ path: ['search'] })
-    search(@Args() args: FuncArgs) {
+    search(@Args() args: ArgsValue) {
       expect(args.inputs).toEqual(['react'])
-      expect(args.path).toEqual(['search'])
+      expect(args.raw).toEqual(['search', 'react'])
     }
 
     @Handler()
@@ -76,7 +71,7 @@ test.sequential('should select missing path handlers', async () => {
     }
   }
 
-  await run({ commands: [Missing] }, { argv: ['search', 'react'] })
+  await run(testModule({ commands: [Missing] }), { argv: ['search', 'react'] })
 })
 
 test.sequential('should select missing flag handlers', async () => {
@@ -95,7 +90,7 @@ test.sequential('should select missing flag handlers', async () => {
     }
   }
 
-  await run({ commands: [Missing] }, { argv: ['react', '-h'] })
+  await run(testModule({ commands: [Missing] }), { argv: ['react', '-h'] })
   expect(selected).toBe('help')
 })
 
@@ -103,9 +98,8 @@ test.sequential('should catch missing handler exceptions locally', async () => {
   expect.assertions(1)
 
   @CommandMissing()
-  class Missing {
-    @Catch()
-    onError(@Exception() exception: FuncException) {
+  class Missing implements OnError {
+    onError(exception: Exception) {
       expect(exception.message).toBe('boom')
     }
 
@@ -115,22 +109,16 @@ test.sequential('should catch missing handler exceptions locally', async () => {
     }
   }
 
-  await run({ commands: [Missing] }, { argv: ['react'] })
+  await run(testModule({ commands: [Missing] }), { argv: ['react'] })
 })
 
-test('should preserve legacy constructor-only missing handlers', async ({
-  runContainer,
-}) => {
-  expect.assertions(1)
-
+test('should reject constructor-only missing handlers', () => {
   @CommandMissing()
-  class Missing {
-    constructor(@Args() args: FuncArgs) {
-      expect(args.inputs).toEqual(['react'])
-    }
-  }
+  class Missing {}
 
-  await runContainer(['', '', 'react'], [Missing])
+  expect(() => createApp(testModule({ commands: [Missing] }))).toThrow(
+    expect.objectContaining({ code: systemErrorCode(SYSTEM.MISSING_HANDLER) }),
+  )
 })
 
 test('should reject multiple missing handlers', () => {
@@ -140,7 +128,11 @@ test('should reject multiple missing handlers', () => {
   @CommandMissing()
   class SecondMissing {}
 
-  expect(() => new Container([FirstMissing, SecondMissing])).toThrow(
-    expect.objectContaining({ code: F_SYSTEM.MULTIPLE_MISSING_COMMANDS }),
+  expect(() =>
+    createApp(testModule({ commands: [FirstMissing, SecondMissing] })),
+  ).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.MULTIPLE_MISSING_COMMANDS),
+    }),
   )
 })

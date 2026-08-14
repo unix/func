@@ -1,14 +1,18 @@
-import { systemErrorCodes, type SystemErrorCode } from '@func/shared/system-errors'
+import {
+  ErrorScope,
+  SYSTEM,
+  formatErrorCode,
+  type SystemErrorCode,
+} from '@func/shared/core-errors'
 
-const SYSTEM_ERROR_PREFIX = 'F_SYSTEM_'
 const NOT_FOUND_CACHE_TTL_SECONDS = 24 * 60 * 60
 const REDIRECT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 const METHOD_CACHE_KEY_PARAM = '__error_alias_method'
 const ERROR_DOCUMENTATION_BASE_URL = 'https://func.witt.im/errors'
 
 const systemErrorByAlias: ReadonlyMap<string, SystemErrorCode> = new Map(
-  systemErrorCodes.map(code => {
-    return [code.slice(SYSTEM_ERROR_PREFIX.length), code] as const
+  Object.values(SYSTEM).map(code => {
+    return [code, formatErrorCode(ErrorScope.SYSTEM, code)] as const
   }),
 )
 

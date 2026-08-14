@@ -1,11 +1,11 @@
 import path from 'path'
-import type { SystemErrorCode } from '@func/shared/system-errors'
+import type { SystemErrorCode } from '@func/shared/core-errors'
 import { formatCodeFrame } from './dev-error-code-frame'
 import { resolveErrorLocation } from './dev-error-location'
 import { style } from './style'
 import type { StyleStream } from './style'
 
-interface FuncErrorLike {
+interface ExceptionLike {
   code?: unknown
   details?: unknown
   message?: unknown
@@ -18,11 +18,8 @@ export interface FormatErrorOptions {
   stream?: StyleStream
 }
 
-const CANNOT_INFER_VALUE_TYPE = 'cannot-infer-value-type'
 const CANNOT_INFER_VALUE_TYPE_CODE =
   'F_SYSTEM_CANNOT_INFER_VALUE_TYPE' satisfies SystemErrorCode
-const INVALID_PARAM_TYPE_CODE =
-  'F_SYSTEM_INVALID_PARAM_TYPE' satisfies SystemErrorCode
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -30,23 +27,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
 
 export const isCannotInferValueTypeError = (
   error: unknown,
-): error is FuncErrorLike => {
+): error is ExceptionLike => {
   if (!isRecord(error)) return false
-  if (error.code === CANNOT_INFER_VALUE_TYPE_CODE) return true
-  if (error.code !== INVALID_PARAM_TYPE_CODE) return false
-  if (!isRecord(error.details)) return false
-  if (typeof error.details.property !== 'string' || !error.details.property)
-    return false
-  if (error.details.reason === CANNOT_INFER_VALUE_TYPE) return true
-  if (typeof error.message !== 'string') return false
-
-  return error.message.includes(
-    `Cannot infer value type for "${error.details.property}"`,
-  )
+  return error.code === CANNOT_INFER_VALUE_TYPE_CODE
 }
 
 export const formatCannotInferValueTypeError = (
-  error: FuncErrorLike,
+  error: ExceptionLike,
   options: FormatErrorOptions = {},
 ): string => {
   const details = isRecord(error.details) ? error.details : {}

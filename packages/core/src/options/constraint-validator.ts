@@ -1,10 +1,11 @@
 import type arg from 'arg'
+import { RUNTIME_PRINT } from '@func/shared/core-errors'
 import type {
   FieldOptionParams,
   UserOption,
   UserOptionEnumValue,
 } from '../interfaces'
-import { F_RUNTIME_PRINT, createRuntimePrintError, errorTypes } from '../errors'
+import { ErrorScope, InternalException } from '../shared/errors'
 
 export class ConstraintValidator {
   constructor(
@@ -14,10 +15,11 @@ export class ConstraintValidator {
   ) {}
 
   validate() {
+    const explicitNames = this.explicitNames()
     this.fieldOptions.forEach(data => {
       this.validateEnum(data)
-      this.validateDependsOn(data)
-      this.validateExclusive(data)
+      this.validateDependsOn(data, explicitNames)
+      this.validateExclusive(data, explicitNames)
     })
   }
 
@@ -31,19 +33,17 @@ export class ConstraintValidator {
     )
   }
 
-  private validateDependsOn(data: FieldOptionParams) {
+  private validateDependsOn(data: FieldOptionParams, explicitNames: Set<string>) {
     if (!data.dependsOn?.length) return
-    const explicit = this.explicitNames()
-    if (!explicit.has(data.name)) return
-    const missing = data.dependsOn.filter(item => !explicit.has(item))
+    if (!explicitNames.has(data.name)) return
+    const missing = data.dependsOn.filter(item => !explicitNames.has(item))
     if (!missing.length) return
 
-    throw createRuntimePrintError(
-      F_RUNTIME_PRINT.VALIDATION,
-      errorTypes.INPUT,
-      `Option "--${data.name}" depends on: ${missing.map(item => `--${item}`).join(', ')}.`,
-      { option: data.name, dependsOn: data.dependsOn, missing },
-    )
+    throw new InternalException(RUNTIME_PRINT.VALIDATION, {
+      details: { dependsOn: data.dependsOn, missing, option: data.name },
+      message: `Option "--${data.name}" depends on: ${missing.map(item => `--${item}`).join(', ')}.`,
+      scope: ErrorScope.RUNTIME_PRINT,
+    })
   }
 
   private validateEnum(data: FieldOptionParams) {
@@ -57,26 +57,23 @@ export class ConstraintValidator {
     )
     if (!invalid.length) return
 
-    throw createRuntimePrintError(
-      F_RUNTIME_PRINT.VALIDATION,
-      errorTypes.INPUT,
-      `Option "--${data.name}" must be one of: ${enumValues.join(', ')}.`,
-      { option: data.name, enum: enumValues, invalid },
-    )
+    throw new InternalException(RUNTIME_PRINT.VALIDATION, {
+      details: { enum: enumValues, invalid, option: data.name },
+      message: `Option "--${data.name}" must be one of: ${enumValues.join(', ')}.`,
+      scope: ErrorScope.RUNTIME_PRINT,
+    })
   }
 
-  private validateExclusive(data: FieldOptionParams) {
+  private validateExclusive(data: FieldOptionParams, explicitNames: Set<string>) {
     if (!data.exclusive?.length) return
-    const explicit = this.explicitNames()
-    if (!explicit.has(data.name)) return
-    const conflicts = data.exclusive.filter(item => explicit.has(item))
+    if (!explicitNames.has(data.name)) return
+    const conflicts = data.exclusive.filter(item => explicitNames.has(item))
     if (!conflicts.length) return
 
-    throw createRuntimePrintError(
-      F_RUNTIME_PRINT.VALIDATION,
-      errorTypes.INPUT,
-      `Option "--${data.name}" cannot be used with: ${conflicts.map(item => `--${item}`).join(', ')}.`,
-      { option: data.name, exclusive: data.exclusive, conflicts },
-    )
+    throw new InternalException(RUNTIME_PRINT.VALIDATION, {
+      details: { conflicts, exclusive: data.exclusive, option: data.name },
+      message: `Option "--${data.name}" cannot be used with: ${conflicts.map(item => `--${item}`).join(', ')}.`,
+      scope: ErrorScope.RUNTIME_PRINT,
+    })
   }
 }

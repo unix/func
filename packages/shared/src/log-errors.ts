@@ -1,0 +1,7 @@
+export enum SYSTEM {
+  DEFINITION = 'DEFINITION',
+}
+
+export enum RUNTIME {
+  NOT_REGISTERED = 'NOT_REGISTERED',
+}

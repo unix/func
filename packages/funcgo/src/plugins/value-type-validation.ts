@@ -1,5 +1,5 @@
 import path from 'path'
-import type { SystemErrorCode } from '@func/shared/system-errors'
+import type { SystemErrorCode } from '@func/shared/core-errors'
 import ts from 'typescript'
 import type { Plugin } from 'rolldown'
 import { formatCodeFrame } from '../utils/dev-error-code-frame'

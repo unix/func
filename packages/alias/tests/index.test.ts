@@ -1,4 +1,4 @@
-import { systemErrorCodes } from '@func/shared/system-errors'
+import { ErrorScope, SYSTEM, formatErrorCode } from '@func/shared/core-errors'
 import { describe, expect, test } from 'vitest'
 import { handleRequest } from '../src'
 
@@ -57,12 +57,12 @@ const executeRequest = async (
 
 describe('alias worker', () => {
   test('redirects every shared system error without the common prefix', async () => {
-    for (const code of systemErrorCodes) {
-      const alias = code.replace('F_SYSTEM_', '').toLowerCase()
+    for (const code of Object.values(SYSTEM)) {
+      const alias = code.toLowerCase()
       const { response } = await executeRequest(`/${alias}`)
       expect(response.status).toBe(308)
       expect(response.headers.get('location')).toBe(
-        `https://func.witt.im/errors/${code}`,
+        `https://func.witt.im/errors/${formatErrorCode(ErrorScope.SYSTEM, code)}`,
       )
       expect(response.headers.get('cache-control')).toBe(REDIRECT_CACHE_CONTROL)
     }

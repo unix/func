@@ -1,17 +1,16 @@
-import 'reflect-metadata'
+import 'reflect-metadata/lite'
 import {
   Args,
   ArrayValue,
   CommandMajor,
-  Container,
-  F_SYSTEM,
   Flag,
-  FuncArgs,
   Handler,
-  SubOptions,
   Value,
+  ValueValidate,
+  createApp,
 } from '../src'
-import { expect, test } from './_test'
+import type { Args as ArgsValue } from '../src'
+import { SYSTEM, expect, systemErrorCode, test, testModule } from './_test'
 
 test.sequential(
   'should run with multiple field options together',
@@ -33,15 +32,15 @@ test.sequential(
       include: string[] = []
 
       @Handler()
-      run(@Args() arg: FuncArgs) {
+      run(@Args() arg: ArgsValue) {
         expect(this.verbose).toBe(true)
         expect(this.config).toBe('func.config.ts')
         expect(this.port).toBe(4000)
         expect(this.include).toEqual(['src', 'tests'])
-        expect(arg.option.verbose).toBe(true)
-        expect(arg.option.config).toBe('func.config.ts')
-        expect(arg.option.port).toBe(4000)
-        expect(arg.option.include).toEqual(['src', 'tests'])
+        expect(arg.options.verbose).toBe(true)
+        expect(arg.options.config).toBe('func.config.ts')
+        expect(arg.options.port).toBe(4000)
+        expect(arg.options.include).toEqual(['src', 'tests'])
       }
     }
 
@@ -63,25 +62,27 @@ test.sequential(
 )
 
 test.sequential(
-  'should run with values and sub-options together',
+  'should run with scalar and boolean field options together',
   async ({ runContainer }) => {
     expect.assertions(4)
 
     @CommandMajor()
-    @SubOptions([
-      { name: 'dry-run', alias: 'd' },
-      { name: 'retry', type: Number },
-    ])
     class Major {
+      @Flag({ name: 'dry-run', alias: 'd' })
+      dryRun = false
+
+      @Value()
+      retry: number = 0
+
       @Value()
       target: string = 'local'
 
       @Handler()
-      run(@Args() arg: FuncArgs) {
+      run(@Args() arg: ArgsValue) {
         expect(this.target).toBe('production')
-        expect(arg.option.target).toBe('production')
-        expect(arg.option['dry-run']).toBe(true)
-        expect(arg.option.retry).toBe(2)
+        expect(arg.options.target).toBe('production')
+        expect(arg.options['dry-run']).toBe(true)
+        expect(arg.options.retry).toBe(2)
       }
     }
 
@@ -93,29 +94,31 @@ test.sequential(
 )
 
 test.sequential(
-  'should run with flags, values, arrays, and sub-options together',
+  'should run with flags, values, and arrays together',
   async ({ runContainer }) => {
     expect.assertions(5)
 
     @CommandMajor()
-    @SubOptions([{ name: 'force', alias: 'f' }])
     class Major {
-      @Flag({ name: 'verbose', alias: 'v' })
+      @Flag({ alias: 'f' })
+      force = false
+
+      @Flag({ name: 'verbose', aliases: ['v', 'd'] })
       debug = false
 
-      @Value({ name: 'mode' })
+      @Value({ name: 'mode', aliases: ['m'] })
       runMode: string = 'dev'
 
-      @ArrayValue({ name: 'tag' })
+      @ArrayValue({ name: 'tag', aliases: ['t'] })
       tags: string[] = []
 
       @Handler()
-      run(@Args() arg: FuncArgs) {
+      run(@Args() arg: ArgsValue) {
         expect(this.debug).toBe(true)
         expect(this.runMode).toBe('release')
         expect(this.tags).toEqual(['stable', 'canary'])
-        expect(arg.option.force).toBe(true)
-        expect(arg.option).toEqual(
+        expect(arg.options.force).toBe(true)
+        expect(arg.options).toEqual(
           expect.objectContaining({
             verbose: true,
             mode: 'release',
@@ -126,18 +129,45 @@ test.sequential(
     }
 
     await runContainer(
-      [
-        '',
-        '',
-        '-v',
-        '--mode',
-        'release',
-        '--tag',
-        'stable',
-        '--tag',
-        'canary',
-        '-f',
-      ],
+      ['', '', '-d', '-m', 'release', '-t', 'stable', '-t', 'canary', '-f'],
+      [Major],
+    )
+  },
+)
+
+test.sequential(
+  'should support option and property names matching prototype keys',
+  async ({ runContainer }) => {
+    expect.assertions(13)
+
+    @CommandMajor()
+    class Major {
+      @Handler()
+      run(@Args() arg: ArgsValue) {
+        expect(Object.getPrototypeOf(arg.options)).toBeNull()
+        expect(Object.isFrozen(arg.options)).toBe(true)
+        expect(Object.prototype.hasOwnProperty.call(this, '__proto__')).toBe(true)
+        expect(Object.prototype.hasOwnProperty.call(this, 'constructor')).toBe(true)
+        expect(Object.prototype.hasOwnProperty.call(this, 'toString')).toBe(true)
+        expect(Reflect.get(this, '__proto__')).toBe('safe-prototype')
+        expect(Reflect.get(this, 'constructor')).toBe('safe-constructor')
+        expect(Reflect.get(this, 'toString')).toBeUndefined()
+        expect(arg.options['__proto__']).toBe('safe-prototype')
+        expect(arg.options.constructor).toBe('safe-constructor')
+        expect(arg.options.toString).toBeUndefined()
+      }
+    }
+
+    Value({ type: String })(Major.prototype, '__proto__')
+    ValueValidate((value, options) => {
+      expect(value).toBe('safe-prototype')
+      expect(Object.getPrototypeOf(options)).toBeNull()
+    })(Major.prototype, '__proto__')
+    Value({ type: String })(Major.prototype, 'constructor')
+    Value({ type: String })(Major.prototype, 'toString')
+
+    await runContainer(
+      ['', '', '--__proto__', 'safe-prototype', '--constructor', 'safe-constructor'],
       [Major],
     )
   },
@@ -154,9 +184,9 @@ test('should throw when multiple decorators use the same property option name', 
     run() {}
   }
 
-  expect(() => new Container([Major])).toThrow(
+  expect(() => createApp(testModule({ commands: [Major] }))).toThrow(
     expect.objectContaining({
-      code: F_SYSTEM.DUPLICATE_OPTION_TOKEN,
+      code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
       details: expect.objectContaining({ token: '--target' }),
     }),
   )
@@ -177,63 +207,68 @@ test('should throw when field options duplicate names or aliases', () => {
 
   @CommandMajor()
   class DuplicateAlias {
-    @Flag({ alias: 'd' })
+    @Flag({ aliases: ['d', 'x'] })
     first = false
 
-    @Value({ alias: 'd' })
+    @Value({ aliases: ['v', 'x'] })
     second: string = ''
 
     @Handler()
     run() {}
   }
 
-  expect(() => new Container([DuplicateName])).toThrow(
+  expect(() => createApp(testModule({ commands: [DuplicateName] }))).toThrow(
     expect.objectContaining({
-      code: F_SYSTEM.DUPLICATE_OPTION_TOKEN,
+      code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
       details: expect.objectContaining({ token: '--debug' }),
     }),
   )
-  expect(() => new Container([DuplicateAlias])).toThrow(
+  expect(() => createApp(testModule({ commands: [DuplicateAlias] }))).toThrow(
     expect.objectContaining({
-      code: F_SYSTEM.DUPLICATE_OPTION_TOKEN,
-      details: expect.objectContaining({ token: '-d' }),
+      code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
+      details: expect.objectContaining({ token: '-x' }),
     }),
   )
 })
 
-test('should throw when field options conflict with sub-options or handler flags', () => {
-  @CommandMajor()
-  @SubOptions([{ name: 'config', alias: 'c' }])
-  class DuplicateSubOption {
-    @Value({ name: 'config' })
-    config: string = ''
-
-    @Handler()
-    run() {}
-  }
-
+test('should throw when field options conflict with handler flags', () => {
   @CommandMajor()
   class DuplicateHandlerFlag {
-    @Flag({ name: 'help', alias: 'h' })
+    @Flag({ name: 'guide', aliases: ['g', 'h'] })
     helpEnabled = false
 
-    @Handler({ flag: 'help' })
+    @Handler({ flag: 'help', aliases: ['?', 'h'] })
     help() {}
 
     @Handler()
     run() {}
   }
 
-  expect(() => new Container([DuplicateSubOption])).toThrow(
+  expect(() => createApp(testModule({ commands: [DuplicateHandlerFlag] }))).toThrow(
     expect.objectContaining({
-      code: F_SYSTEM.DUPLICATE_OPTION_TOKEN,
-      details: expect.objectContaining({ token: '--config' }),
+      code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
+      details: expect.objectContaining({ token: '-h' }),
     }),
   )
-  expect(() => new Container([DuplicateHandlerFlag])).toThrow(
+})
+
+test('should reserve generated negative flag tokens', () => {
+  @CommandMajor()
+  class Major {
+    @Flag({ name: 'cache', negatable: true })
+    cache = true
+
+    @Flag({ name: 'no-cache' })
+    noCache = false
+
+    @Handler()
+    run() {}
+  }
+
+  expect(() => createApp(testModule({ commands: [Major] }))).toThrow(
     expect.objectContaining({
-      code: F_SYSTEM.DUPLICATE_OPTION_TOKEN,
-      details: expect.objectContaining({ token: '--help' }),
+      code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
+      details: expect.objectContaining({ token: '--no-cache' }),
     }),
   )
 })

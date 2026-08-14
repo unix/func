@@ -1,19 +1,11 @@
-import {
-  Args,
-  ArrayValue,
-  CommandMajor,
-  Enum,
-  Handler,
-  Regs,
-  SubOptions,
-  Value,
-} from 'func'
-import type { CommandRegistry, FuncArgs } from 'func'
+import { ArrayValue, CommandMajor, Context, Enum, Flag, Handler, Value } from 'func'
 import { ProjectService } from '../services/project.service.js'
 
 @CommandMajor()
-@SubOptions([{ name: 'dry-run', alias: 'd' }])
 export class MajorCommand {
+  @Flag({ name: 'dry-run', alias: 'd', aliases: ['D'] })
+  dryRun = false
+
   @Enum(['dev', 'prod'])
   @Value()
   mode: string = 'dev'
@@ -21,13 +13,16 @@ export class MajorCommand {
   @ArrayValue({ name: 'tag' })
   tags: string[] = []
 
-  constructor(private project: ProjectService) {}
+  constructor(
+    private project: ProjectService,
+    private context: Context,
+  ) {}
 
   @Handler()
-  run(@Args() args: FuncArgs) {
+  run() {
     console.log(
       JSON.stringify({
-        dryRun: Boolean(args.native['--dry-run']),
+        dryRun: this.dryRun,
         kind: 'major',
         mode: this.mode,
         project: this.project.name(),
@@ -36,9 +31,13 @@ export class MajorCommand {
     )
   }
 
-  @Handler({ flag: 'help', alias: 'h' })
-  help(@Regs() registry: CommandRegistry) {
-    const commands = registry.commands.map(command => command.name).sort()
+  @Handler({ flag: 'help', alias: 'h', aliases: ['?'] })
+  help() {
+    const commands: string[] = []
+    this.context.commands.forEach(command => {
+      commands.push(command.path.join(' '))
+    })
+    commands.sort()
     console.log(`commands:${commands.join(',')}`)
   }
 }

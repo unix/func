@@ -1,82 +1,177 @@
-import 'reflect-metadata'
-import { Command, Container, F_SYSTEM, Handler } from '../src'
+import 'reflect-metadata/lite'
+import { Command, Handler, createApp } from '../src'
 import { handlers, metadata } from '../src/utils/metadata'
-import { expect, random, test } from './_test'
+import { SYSTEM, expect, random, systemErrorCode, test, testModule } from './_test'
 
 test('should define command metadata and handler type', () => {
   const params = {
-    name: random(),
     alias: 'b',
+    aliases: ['bundle', 'b'],
     description: 'Build the project',
+    path: [random(), 'self'],
   }
 
   @Command(params)
   class BuildCommand {}
 
-  expect(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, BuildCommand)).toEqual(
-    params,
-  )
+  expect(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, BuildCommand)).toEqual({
+    aliases: ['b', 'bundle'],
+    description: params.description,
+    path: params.path,
+  })
   expect(Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, BuildCommand)).toBe(
     handlers.COMMAND,
   )
 })
 
 test('should copy command params before storing metadata', () => {
+  const original = random()
+  const aliases = ['b']
+  const path = [original, 'self']
   const params = {
-    name: random(),
+    aliases,
     description: 'Original description',
+    path,
   }
 
   @Command(params)
   class BuildCommand {}
 
   params.description = 'Changed description'
+  aliases[0] = 'changed'
+  path[0] = 'changed'
 
   expect(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, BuildCommand)).toEqual({
-    name: params.name,
+    aliases: ['b'],
     description: 'Original description',
+    path: [original, 'self'],
   })
 })
 
-test('should reject invalid command name and alias', () => {
+test('should normalize string command paths', () => {
+  @Command('build')
+  class BuildCommand {}
+
+  expect(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, BuildCommand)).toEqual({
+    aliases: [],
+    path: ['build'],
+  })
+})
+
+test('should reject invalid command paths and aliases', () => {
   expect(() => {
-    @Command({ name: '-build' })
+    @Command('-build')
     class InvalidNameCommand {}
 
     return InvalidNameCommand
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_TOKEN }))
+  }).toThrow(
+    expect.objectContaining({ code: systemErrorCode(SYSTEM.INVALID_TOKEN) }),
+  )
 
   expect(() => {
-    @Command({ name: random(), alias: 'bad alias' })
+    @Command({ path: random(), alias: 'bad alias' })
     class InvalidAliasCommand {}
 
     return InvalidAliasCommand
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_TOKEN }))
+  }).toThrow(
+    expect.objectContaining({ code: systemErrorCode(SYSTEM.INVALID_TOKEN) }),
+  )
+
+  expect(() => {
+    @Command({ path: random(), aliases: ['valid', '-invalid'] })
+    class InvalidAliasesCommand {}
+
+    return InvalidAliasesCommand
+  }).toThrow(
+    expect.objectContaining({ code: systemErrorCode(SYSTEM.INVALID_TOKEN) }),
+  )
+
+  expect(() => {
+    @Command({ path: random(), aliases: 'invalid' } as any)
+    class NonArrayAliasesCommand {}
+
+    return NonArrayAliasesCommand
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.EXPECTED_ARRAY_PARAM),
+    }),
+  )
 })
 
-test('should require a command name', () => {
+test('should require a non-empty command path', () => {
   expect(() => {
-    @Command({ name: '' })
+    @Command('')
     class MissingNameCommand {}
 
     return MissingNameCommand
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.MISSING_REQUIRED_PARAM }))
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.MISSING_REQUIRED_PARAM),
+    }),
+  )
+})
+
+test('should require subclasses to declare a command role while inheriting handlers', () => {
+  @Command('base')
+  class BaseCommand {
+    @Handler()
+    run() {}
+  }
+
+  class UndecoratedCommand extends BaseCommand {}
+
+  expect(() => createApp(testModule({ commands: [UndecoratedCommand] }))).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.UNKNOWN_HANDLER),
+      details: { handlers: ['UndecoratedCommand'] },
+    }),
+  )
+
+  @Command('child')
+  class ChildCommand extends BaseCommand {}
+
+  expect(() => createApp(testModule({ commands: [ChildCommand] }))).not.toThrow()
 })
 
 test('should reject duplicate command tokens', () => {
-  @Command({ name: 'build' })
+  @Command('build')
   class FirstBuildCommand {
     @Handler()
     run() {}
   }
 
-  @Command({ name: 'build' })
+  @Command(['build'])
   class SecondBuildCommand {
     @Handler()
     run() {}
   }
 
-  expect(() => new Container([FirstBuildCommand, SecondBuildCommand])).toThrow(
-    expect.objectContaining({ code: F_SYSTEM.DUPLICATE_COMMAND_TOKEN }),
+  expect(() =>
+    createApp(testModule({ commands: [FirstBuildCommand, SecondBuildCommand] })),
+  ).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.DUPLICATE_COMMAND_TOKEN),
+    }),
+  )
+
+  @Command({ aliases: ['d', 'run'], path: 'deploy' })
+  class DeployCommand {
+    @Handler()
+    run() {}
+  }
+
+  @Command('run')
+  class RunCommand {
+    @Handler()
+    run() {}
+  }
+
+  expect(() =>
+    createApp(testModule({ commands: [DeployCommand, RunCommand] })),
+  ).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.DUPLICATE_COMMAND_TOKEN),
+      details: expect.objectContaining({ token: 'run' }),
+    }),
   )
 })

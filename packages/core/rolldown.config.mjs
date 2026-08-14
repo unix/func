@@ -1,25 +1,25 @@
 import { defineConfig } from 'rolldown'
 
 export default defineConfig({
-  input: 'src/index.ts',
-  external: ['arg', 'reflect-metadata'],
+  input: {
+    config: 'src/subpath/config/index.ts',
+    help: 'src/subpath/help/index.ts',
+    index: 'src/index.ts',
+    log: 'src/subpath/log/index.ts',
+    testing: 'src/subpath/testing/index.ts',
+  },
+  external: ['arg', 'reflect-metadata/lite'],
   platform: 'node',
   preserveEntrySignatures: 'strict',
   transform: {
-    target: 'node20.12',
+    target: 'node24',
   },
   tsconfig: './tsconfig.json',
-  output: [
-    {
-      exports: 'named',
-      file: 'dist/index.js',
-      format: 'cjs',
-      minify: false,
-    },
-    {
-      file: 'dist/index.mjs',
-      format: 'esm',
-      minify: false,
-    },
-  ],
+  output: {
+    chunkFileNames: 'chunks/[name]-[hash].mjs',
+    dir: 'dist',
+    entryFileNames: '[name].mjs',
+    format: 'esm',
+    minify: false,
+  },
 })

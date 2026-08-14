@@ -1,31 +1,28 @@
-import {
-  Args,
-  Command,
-  FuncArgs,
-  Flag,
-  Handler,
-  Regs,
-  CommandRegistry,
-} from '../src'
-import { expect, random, test } from './_test'
+import { Args, ArrayValue, Command, Context, Flag, Handler, Inject } from '../src'
+import type { Args as ArgsValue } from '../src'
+import { SYSTEM, expect, random, systemErrorCode, test } from './_test'
 
 test.sequential(
   'should inject normalized args by token',
   async ({ runContainer }) => {
-    expect.assertions(4)
+    expect.assertions(8)
     const name = random()
 
-    @Command({ name })
+    @Command(name)
     class BuildCommand {
       @Flag()
       verbose = false
 
       @Handler()
-      run(@Args() args: FuncArgs) {
+      run(@Args() args: ArgsValue) {
         expect(args.inputs).toEqual(['src'])
-        expect(args.option.verbose).toBe(true)
-        expect(args.command?.name).toBe(name)
-        expect(args.handler?.methodName).toBe('run')
+        expect(args.invokedPath).toEqual([name])
+        expect(args.options.verbose).toBe(true)
+        expect(args.path).toEqual([name])
+        expect(args.raw).toEqual([name, 'src', '--verbose'])
+        expect(Object.isFrozen(args)).toBe(true)
+        expect(Object.isFrozen(args.raw)).toBe(true)
+        expect(Object.isFrozen(args.options)).toBe(true)
       }
     }
 
@@ -34,38 +31,74 @@ test.sequential(
 )
 
 test.sequential(
-  'should inject registered command metadata by token',
+  'should inject context by class token in constructors',
   async ({ runContainer }) => {
-    expect.assertions(2)
+    expect.assertions(11)
     const name = random()
 
-    @Command({ name })
+    @Command({ alias: 'b', aliases: ['build', 'b'], path: name })
     class BuildCommand {
+      @ArrayValue({ aliases: ['i'] })
+      include: string[] = []
+
+      constructor(private context: Context) {}
+
       @Handler()
-      run(@Regs() regs: CommandRegistry) {
-        expect(regs.commands.map(item => item.name)).toContain(name)
-        expect(regs.commands[0].handlers?.[0].methodName).toBe('run')
+      run() {
+        const command = this.context.commands.find(item => item.path[0] === name)
+        if (!command) throw new Error(`Command "${name}" is not registered.`)
+        expect(this.context.command?.path).toEqual([name])
+        expect(this.context.commands.map(item => item.path)).toContainEqual([name])
+        expect(this.context.command).toBe(command)
+        expect(Object.isFrozen(this.context.commands)).toBe(true)
+        expect(Object.isFrozen(command)).toBe(true)
+        expect(command.aliases).toEqual(['b', 'build'])
+        expect(Object.isFrozen(command.aliases)).toBe(true)
+        expect(Object.isFrozen(command.path)).toBe(true)
+        expect(Object.isFrozen(command.fieldOptions ?? {})).toBe(true)
+        expect(Object.isFrozen(command.fieldOptions?.[0].type ?? {})).toBe(true)
+        expect(command.fieldOptions?.[0]).not.toHaveProperty('validators')
       }
     }
 
-    await runContainer(['', '', name], [BuildCommand])
+    await runContainer(['', '', 'build'], [BuildCommand])
   },
 )
 
 test.sequential(
-  'should not inject undecorated parameters',
+  'should inject context into decorated method parameters',
+  async ({ runContainer }) => {
+    expect.assertions(1)
+
+    @Command('build')
+    class BuildCommand {
+      @Handler()
+      run(@Inject(Context) context: Context) {
+        expect(context.command?.path).toEqual(['build'])
+      }
+    }
+
+    await runContainer(['', '', 'build'], [BuildCommand])
+  },
+)
+
+test.sequential(
+  'should reject undecorated parameters as missing providers',
   async ({ runContainer }) => {
     expect.assertions(1)
     const name = random()
 
-    @Command({ name })
+    @Command(name)
     class BuildCommand {
       @Handler()
-      run(args: FuncArgs) {
-        expect(args).toBeUndefined()
-      }
+      run(_args: ArgsValue) {}
     }
 
-    await runContainer(['', '', name, 'src'], [BuildCommand])
+    await expect(
+      runContainer(['', '', name, 'src'], [BuildCommand]),
+    ).rejects.toMatchObject({
+      code: systemErrorCode(SYSTEM.MISSING_PROVIDER),
+      details: { token: 'Object' },
+    })
   },
 )

@@ -1,4 +1,4 @@
-import 'reflect-metadata'
+import 'reflect-metadata/lite'
 import { metadata, handlers } from '../utils/metadata'
 
 export const CommandMajor = (): ClassDecorator => target => {

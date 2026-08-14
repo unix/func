@@ -1,29 +1,36 @@
-import 'reflect-metadata'
-import { ArrayValue, F_SYSTEM, Flag, Required, Value, ValueValidate } from '../src'
-import { metadata } from '../src/utils/metadata'
-import { expect, test } from './_test'
+import 'reflect-metadata/lite'
+import { ArrayValue, Enum, Flag, Required, Value, ValueValidate } from '../src'
+import { compileFieldOptions } from '../src/options/field-metadata'
+import { SYSTEM, expect, systemErrorCode, test } from './_test'
 
 test('should collect flag, value, and array field options', () => {
   class Options {
-    @Flag({ alias: 'v', description: 'Verbose output' })
+    @Flag({
+      alias: 'v',
+      aliases: ['V', 'v'],
+      description: 'Verbose output',
+      negatable: true,
+    })
     verbose = false
 
-    @Value({ name: 'config', alias: 'c' })
+    @Value({ name: 'config', aliases: ['c', 'C'] })
     file: string = 'func.config.ts'
 
-    @ArrayValue({ name: 'include' })
+    @ArrayValue({ name: 'include', aliases: ['i', 'I'] })
     includes: string[] = []
   }
 
-  expect(Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, Options)).toEqual([
+  expect(compileFieldOptions(Options)).toEqual([
     {
       kind: 'flag',
       name: 'verbose',
       propertyKey: 'verbose',
       required: false,
       type: Boolean,
-      alias: 'v',
+      aliases: ['v', 'V'],
       description: 'Verbose output',
+      negatable: true,
+      validators: [],
     },
     {
       kind: 'value',
@@ -31,35 +38,144 @@ test('should collect flag, value, and array field options', () => {
       propertyKey: 'file',
       required: false,
       type: String,
-      alias: 'c',
+      aliases: ['c', 'C'],
+      validators: [],
     },
     {
+      aliases: ['i', 'I'],
       kind: 'array',
       name: 'include',
       propertyKey: 'includes',
       required: false,
       type: [String],
+      validators: [],
     },
   ])
 })
 
-test('should infer primitive value types and allow explicit value type', () => {
+test('should infer scalar types and allow explicit value types', () => {
   class Options {
     @Value()
     count: number = 1
 
-    @Value()
-    enabled: boolean = false
+    @Value({ type: String })
+    name: unknown = 'func'
 
-    @Value({ type: [String] })
-    tags: string[] = []
+    @ArrayValue({ type: Number })
+    ports: number[] = []
   }
 
-  expect(Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, Options)).toEqual([
+  expect(compileFieldOptions(Options)).toEqual([
     expect.objectContaining({ name: 'count', type: Number }),
-    expect.objectContaining({ name: 'enabled', type: Boolean }),
-    expect.objectContaining({ name: 'tags', type: [String] }),
+    expect.objectContaining({ name: 'name', type: String }),
+    expect.objectContaining({ name: 'ports', type: [Number] }),
   ])
+})
+
+test('should reject explicit and inferred boolean types for @Value', () => {
+  expect(() => {
+    class ExplicitBoolean {
+      // @ts-expect-error Boolean options must use @Flag.
+      @Value({ type: Boolean })
+      enabled: unknown = false
+    }
+
+    return ExplicitBoolean
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
+      details: {
+        className: 'ExplicitBoolean',
+        property: 'enabled',
+        type: 'Boolean',
+      },
+      message:
+        '@Value type "Boolean" is unsupported. Use String or Number. Use @Flag for boolean options.',
+    }),
+  )
+
+  expect(() => {
+    class InferredBoolean {
+      @Value()
+      enabled: boolean = false
+    }
+
+    return InferredBoolean
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
+      details: {
+        className: 'InferredBoolean',
+        property: 'enabled',
+        type: 'Boolean',
+      },
+    }),
+  )
+})
+
+test('should reject explicit and inferred array types for @Value', () => {
+  const invalidTypes = [Array, [String]]
+
+  invalidTypes.forEach(type => {
+    expect(() => {
+      class Options {
+        // @ts-expect-error Runtime validation protects JavaScript callers too.
+        @Value({ type })
+        tags: string[] = []
+      }
+
+      return Options
+    }).toThrow(
+      expect.objectContaining({
+        code: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
+        details: expect.objectContaining({
+          className: 'Options',
+          property: 'tags',
+        }),
+      }),
+    )
+  })
+
+  expect(() => {
+    class Options {
+      @Value()
+      tags: string[] = []
+    }
+
+    return Options
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
+      details: {
+        className: 'Options',
+        property: 'tags',
+        type: 'Array',
+      },
+    }),
+  )
+})
+
+test('should reject unsupported explicit types for @ArrayValue', () => {
+  expect(() => {
+    class Options {
+      // @ts-expect-error Boolean arrays are unsupported.
+      @ArrayValue({ type: Boolean })
+      enabled: boolean[] = []
+    }
+
+    return Options
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
+      details: {
+        className: 'Options',
+        property: 'enabled',
+        type: 'Boolean',
+      },
+      message:
+        '@ArrayValue type "Boolean" is unsupported. Use String or Number. Use @Flag for boolean options.',
+    }),
+  )
 })
 
 test('should reject invalid field targets and invalid option params', () => {
@@ -71,7 +187,9 @@ test('should reject invalid field targets and invalid option params', () => {
 
     return StaticOptions
   }).toThrow(
-    expect.objectContaining({ code: F_SYSTEM.INVALID_FIELD_DECORATOR_TARGET }),
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_FIELD_DECORATOR_TARGET),
+    }),
   )
 
   expect(() => {
@@ -81,7 +199,9 @@ test('should reject invalid field targets and invalid option params', () => {
     }
 
     return InvalidNameOptions
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_TOKEN }))
+  }).toThrow(
+    expect.objectContaining({ code: systemErrorCode(SYSTEM.INVALID_TOKEN) }),
+  )
 
   expect(() => {
     class InvalidAliasOptions {
@@ -90,7 +210,24 @@ test('should reject invalid field targets and invalid option params', () => {
     }
 
     return InvalidAliasOptions
-  }).toThrow(expect.objectContaining({ code: F_SYSTEM.INVALID_OPTION_ALIAS }))
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_OPTION_ALIAS),
+    }),
+  )
+
+  expect(() => {
+    class InvalidAliasesOptions {
+      @Flag({ aliases: ['v', 'verbose'] })
+      verbose = false
+    }
+
+    return InvalidAliasesOptions
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_OPTION_ALIAS),
+    }),
+  )
 })
 
 test('should require explicit type when value type cannot be inferred', () => {
@@ -103,7 +240,7 @@ test('should require explicit type when value type cannot be inferred', () => {
     return Options
   }).toThrow(
     expect.objectContaining({
-      code: F_SYSTEM.CANNOT_INFER_VALUE_TYPE,
+      code: systemErrorCode(SYSTEM.CANNOT_INFER_VALUE_TYPE),
       details: expect.objectContaining({
         className: 'Options',
         property: 'when',
@@ -124,11 +261,7 @@ test('should mark existing and future field options as required', () => {
     future?: string
   }
 
-  expect(Reflect.getMetadata(metadata.REQUIRED_FIELD_IDENTIFIER, Options)).toEqual([
-    'existing',
-    'future',
-  ])
-  expect(Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, Options)).toEqual([
+  expect(compileFieldOptions(Options)).toEqual([
     expect.objectContaining({ name: 'existing', required: true }),
     expect.objectContaining({ name: 'future', required: true }),
   ])
@@ -145,7 +278,41 @@ test('should collect validators by field property key', () => {
     port: number = 3000
   }
 
-  expect(Reflect.getMetadata(metadata.VALUE_VALIDATOR_IDENTIFIER, Options)).toEqual({
-    port: [integer, positive],
-  })
+  expect(compileFieldOptions(Options)).toEqual([
+    expect.objectContaining({
+      name: 'port',
+      validators: [integer, positive],
+    }),
+  ])
+})
+
+test('should isolate inherited field metadata updates', () => {
+  const validate = () => true
+
+  class BaseOptions {
+    @ValueValidate(validate)
+    @Value()
+    mode: string = 'dev'
+  }
+
+  class ChildOptions extends BaseOptions {}
+  Required()(ChildOptions.prototype, 'mode')
+  Enum(['prod'])(ChildOptions.prototype, 'mode')
+  const baseFields = compileFieldOptions(BaseOptions)
+  expect(baseFields).toEqual([
+    expect.objectContaining({
+      name: 'mode',
+      required: false,
+      validators: [validate],
+    }),
+  ])
+  expect(baseFields[0]).not.toHaveProperty('enum')
+  expect(compileFieldOptions(ChildOptions)).toEqual([
+    expect.objectContaining({
+      enum: ['prod'],
+      name: 'mode',
+      required: true,
+      validators: [validate],
+    }),
+  ])
 })

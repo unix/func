@@ -1,7 +1,7 @@
 import { Command, Handler } from 'func'
 import { ProjectService } from '../services/project.service.js'
 
-@Command({ name: 'async' })
+@Command('async')
 export class AsyncCommand {
   constructor(private project: ProjectService) {}
 

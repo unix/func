@@ -31,9 +31,9 @@ interface CommandFailure extends Error {
 }
 
 interface ConsumerProject {
-  directory: 'cjs' | 'esm'
+  directory: 'esm'
   distRoot: string
-  expectedEntry: 'index.js' | 'index.mjs'
+  expectedEntry: 'index.mjs'
   fixtureRoot: string
   label: string
   root: string
@@ -51,6 +51,26 @@ interface PackageManifest {
       require?: string
       types?: string
     }
+    './testing'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
+    './config'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
+    './log'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
+    './help'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
   }
   main?: string
   module?: string
@@ -60,11 +80,6 @@ interface PackageManifest {
 }
 
 const projectCases = [
-  {
-    directory: 'cjs',
-    expectedEntry: 'index.js',
-    label: 'CommonJS',
-  },
   {
     directory: 'esm',
     expectedEntry: 'index.mjs',
@@ -86,73 +101,54 @@ const projects: ConsumerProject[] = projectCases.map(project => {
 const runtimeApis = [
   'Args',
   'ArrayValue',
-  'Catch',
-  'CatchAll',
   'Command',
-  'CommandError',
   'CommandMajor',
   'CommandMissing',
-  'CommandRegistry',
   'Container',
+  'Context',
+  'Deprecated',
   'DependsOn',
   'Enum',
-  'Exception',
   'Exclusive',
-  'F_EFFECT',
-  'F_RUNTIME',
-  'F_RUNTIME_PRINT',
-  'F_SYSTEM',
   'Flag',
-  'FuncError',
-  'FuncException',
-  'FuncModule',
+  'Exception',
+  'ErrorScope',
+  'ExceptionContext',
+  'Module',
   'Handler',
-  'Regs',
+  'Inject',
+  'Injectable',
   'Required',
-  'Service',
-  'SubOptions',
   'Value',
   'ValueValidate',
   'createApp',
-  'createRuntimeError',
-  'createRuntimePrintError',
-  'createSystemError',
-  'errorLevels',
-  'errorScopes',
-  'errorTokenTypes',
-  'errorTypes',
-  'handleEffect',
-  'handleRuntimePrintError',
-  'handleSystemError',
-  'isFuncError',
-  'normalizeRuntimeError',
+  'createToken',
+  'formatExceptionCode',
+  'isException',
   'run',
 ]
 
 const callableApis = [
   'Args',
   'ArrayValue',
-  'Catch',
-  'CatchAll',
   'Command',
-  'CommandError',
   'CommandMajor',
   'CommandMissing',
   'Container',
+  'Deprecated',
   'DependsOn',
   'Enum',
-  'Exception',
   'Exclusive',
   'Flag',
-  'FuncModule',
+  'Module',
   'Handler',
-  'Regs',
+  'Inject',
+  'Injectable',
   'Required',
-  'Service',
-  'SubOptions',
   'Value',
   'ValueValidate',
   'createApp',
+  'createToken',
   'run',
 ]
 
@@ -279,7 +275,54 @@ describe.each(projects)('$label consumer', project => {
     expect(lines[1]).toBe('Hello, probe!')
   })
 
-  test('publishes the expected dual-package metadata', () => {
+  test('keeps testing helpers in the testing subpath', () => {
+    const probe = runProject(project, [], 'testing-probe.js')
+    expect(probe.stdout.trim()).toBe('testing-entry')
+  })
+
+  test('keeps logging helpers in the log subpath', () => {
+    const probe = runProject(project, [], 'log-probe.js')
+    expect(probe.stdout.trim()).toBe('log-entry')
+  })
+
+  test('keeps config helpers in the config subpath', () => {
+    const probe = runProject(project, [], 'config-probe.js')
+    expect(probe.stdout.trim()).toBe('config-entry')
+  })
+
+  test('keeps help helpers in the help subpath', () => {
+    const probe = runProject(project, [], 'help-probe.js')
+    expect(probe.stdout.trim()).toBe('help-entry')
+  })
+
+  test('ships self-contained declarations for every public entry', () => {
+    const typesRoot = join(project.root, 'node_modules', 'func', 'dist', 'types')
+    const declarations = readdirSync(typesRoot, {
+      encoding: 'utf8',
+      recursive: true,
+    })
+      .filter(file => file.endsWith('.d.ts'))
+      .sort()
+    const declarationPaths = declarations.map(file => file.replaceAll('\\', '/'))
+
+    expect(declarationPaths).toEqual(
+      expect.arrayContaining([
+        'index.d.ts',
+        'subpath/config/index.d.ts',
+        'subpath/help/index.d.ts',
+        'subpath/log/index.d.ts',
+        'subpath/testing/index.d.ts',
+      ]),
+    )
+    expect(declarationPaths).not.toContain('di/index.d.ts')
+    declarations.forEach(file => {
+      expect(readFileSync(join(typesRoot, file), 'utf8')).not.toContain(
+        '@func/shared',
+      )
+    })
+  })
+
+  test('publishes the expected ESM-only metadata', () => {
     const manifestPath = join(project.root, 'node_modules', 'func', 'package.json')
     const manifest = JSON.parse(
       readFileSync(manifestPath, 'utf8'),
@@ -289,15 +332,35 @@ describe.each(projects)('$label consumer', project => {
       exports: {
         '.': {
           import: './dist/index.mjs',
-          require: './dist/index.js',
           types: './dist/types/index.d.ts',
         },
+        './testing': {
+          import: './dist/testing.mjs',
+          types: './dist/types/subpath/testing/index.d.ts',
+        },
+        './config': {
+          import: './dist/config.mjs',
+          types: './dist/types/subpath/config/index.d.ts',
+        },
+        './log': {
+          import: './dist/log.mjs',
+          types: './dist/types/subpath/log/index.d.ts',
+        },
+        './help': {
+          import: './dist/help.mjs',
+          types: './dist/types/subpath/help/index.d.ts',
+        },
       },
-      main: './dist/index.js',
-      module: './dist/index.mjs',
       name: 'func',
+      module: './dist/index.mjs',
       type: 'commonjs',
       types: './dist/types/index.d.ts',
+    })
+
+    expect(manifest.exports).not.toHaveProperty('./di')
+    expect(manifest.main).toBeUndefined()
+    Object.values(manifest.exports ?? {}).forEach(entry => {
+      expect(entry.require).toBeUndefined()
     })
   })
 
@@ -342,7 +405,7 @@ describe.each(projects)('$label consumer', project => {
       table: true,
       target: 'production',
     })
-    expect(help.stdout.trim()).toBe('commands:async,deploy,greet')
+    expect(help.stdout.trim()).toBe('commands:async,deploy,greet,greet shout')
   })
 
   test('supports aliases, repeated array values, and asynchronous handlers', () => {
@@ -366,7 +429,7 @@ describe.each(projects)('$label consumer', project => {
       project: 'func-core-e2e',
       tags: ['api', 'cli'],
     })
-    expect(help.stdout.trim()).toBe('commands:async,deploy,greet')
+    expect(help.stdout.trim()).toBe('commands:async,deploy,greet,greet shout')
     expect(asyncHandler.stdout.trim()).toBe('async:func-core-e2e')
   })
 

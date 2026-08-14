@@ -16,6 +16,12 @@
     "strict": true,
     "isolatedModules": true
   },
-  "files": ["src/index.ts"],
+  "files": [
+    "src/index.ts",
+    "src/subpath/config/index.ts",
+    "src/subpath/help/index.ts",
+    "src/subpath/log/index.ts",
+    "src/subpath/testing/index.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

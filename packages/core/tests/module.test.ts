@@ -1,19 +1,20 @@
 import {
   Command,
   CommandMajor,
-  FuncModule,
+  Context,
+  Module,
   Handler,
-  Service,
+  Injectable,
   createApp,
   run,
 } from '../src'
-import { expect, random, test } from './_test'
+import { SYSTEM, expect, random, systemErrorCode, test } from './_test'
 
-test.sequential('should run commands from a FuncModule', async () => {
+test.sequential('should run commands from a Module', async () => {
   let invoked = false
   const name = random()
 
-  @Command({ name })
+  @Command(name)
   class BuildCommand {
     @Handler()
     run() {
@@ -21,7 +22,7 @@ test.sequential('should run commands from a FuncModule', async () => {
     }
   }
 
-  @FuncModule({
+  @Module({
     commands: [BuildCommand],
   })
   class AppModule {}
@@ -30,55 +31,135 @@ test.sequential('should run commands from a FuncModule', async () => {
   expect(invoked).toBe(true)
 })
 
-test.sequential('should run commands from a plain app config', async () => {
-  let invoked = false
-
-  @CommandMajor()
-  class Major {
-    @Handler()
-    run() {
-      invoked = true
-    }
-  }
-
-  await run({ commands: [Major] }, { argv: [] })
-  expect(invoked).toBe(true)
-})
-
 test.sequential(
-  'should create a low-level container from a FuncModule',
+  'should register imported commands in compiled module order',
   async () => {
-    @CommandMajor()
-    class Major {
+    expect.assertions(1)
+
+    @Command('shared')
+    class SharedCommand {
       @Handler()
       run() {}
     }
 
-    @FuncModule({
+    @Command('first')
+    class FirstCommand {
+      @Handler()
+      run() {}
+    }
+
+    @Command('second')
+    class SecondCommand {
+      @Handler()
+      run() {}
+    }
+
+    @CommandMajor()
+    class Major {
+      constructor(private readonly context: Context) {}
+
+      @Handler()
+      run() {
+        expect(this.context.commands.map(command => command.path.join(' '))).toEqual(
+          ['shared', 'first', 'second'],
+        )
+      }
+    }
+
+    @Module({ commands: [SharedCommand] })
+    class SharedModule {}
+
+    @Module({
+      commands: [FirstCommand],
+      imports: [SharedModule],
+    })
+    class FirstModule {}
+
+    @Module({
+      commands: [SecondCommand],
+      imports: [SharedModule],
+    })
+    class SecondModule {}
+
+    @Module({
       commands: [Major],
+      imports: [FirstModule, SecondModule],
     })
     class AppModule {}
 
-    expect(createApp(AppModule)).toEqual(
-      expect.objectContaining({ run: expect.any(Function) }),
-    )
+    await run(AppModule, { argv: [] })
   },
 )
 
+test('should reject a plain app config', () => {
+  expect(() => createApp({ commands: [] } as never)).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_MODULE_INPUT),
+      details: { module: '(module config)' },
+    }),
+  )
+})
+
+test('should reject a command class as application input', () => {
+  @Command('build')
+  class BuildCommand {
+    @Handler()
+    run() {}
+  }
+
+  expect(() => createApp(BuildCommand)).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_MODULE_INPUT),
+      details: { module: 'BuildCommand' },
+    }),
+  )
+})
+
+test('should require subclasses to declare their own module metadata', () => {
+  @Module({})
+  class BaseModule {}
+
+  class ChildModule extends BaseModule {}
+
+  expect(() => createApp(ChildModule)).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_MODULE_INPUT),
+      details: { module: 'ChildModule' },
+    }),
+  )
+})
+
+test.sequential('should create a low-level container from a Module', async () => {
+  @CommandMajor()
+  class Major {
+    @Handler()
+    run() {}
+  }
+
+  @Module({
+    commands: [Major],
+  })
+  class AppModule {}
+
+  expect(createApp(AppModule)).toEqual(
+    expect.objectContaining({ run: expect.any(Function) }),
+  )
+})
+
 test.sequential(
-  'should inject services registered by a feature module',
+  'should inject providers registered by a feature module',
   async () => {
     let message = ''
     const name = random()
 
-    @Service()
+    @Injectable()
     class FeatureService {
       text() {
         return 'feature-service'
       }
     }
 
-    @Command({ name })
+    @Command(name)
     class FeatureCommand {
       constructor(private service: FeatureService) {}
 
@@ -88,13 +169,13 @@ test.sequential(
       }
     }
 
-    @FuncModule({
+    @Module({
       commands: [FeatureCommand],
-      services: [FeatureService],
+      providers: [FeatureService],
     })
     class FeatureModule {}
 
-    @FuncModule({
+    @Module({
       imports: [FeatureModule],
     })
     class AppModule {}
@@ -105,19 +186,19 @@ test.sequential(
 )
 
 test.sequential(
-  'should inject dependencies between registered services',
+  'should inject dependencies between registered providers',
   async () => {
     let invoked = false
     const name = random()
 
-    @Service()
+    @Injectable()
     class ProjectService {
       name() {
         return name
       }
     }
 
-    @Service()
+    @Injectable()
     class FeatureService {
       constructor(private project: ProjectService) {}
 
@@ -126,7 +207,7 @@ test.sequential(
       }
     }
 
-    @Command({ name })
+    @Command(name)
     class FeatureCommand {
       constructor(private service: FeatureService) {}
 
@@ -136,9 +217,9 @@ test.sequential(
       }
     }
 
-    @FuncModule({
+    @Module({
       commands: [FeatureCommand],
-      services: [ProjectService, FeatureService],
+      providers: [ProjectService, FeatureService],
     })
     class AppModule {}
 

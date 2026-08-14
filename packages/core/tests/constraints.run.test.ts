@@ -1,88 +1,96 @@
-import { vi } from 'vitest'
 import {
   ArrayValue,
-  CatchAll,
   CommandMajor,
   DependsOn,
   Enum,
   Exclusive,
-  Exception,
-  F_RUNTIME_PRINT,
   Flag,
-  FuncException,
+  Exception,
+  ExceptionContext,
   Handler,
   Value,
 } from '../src'
-import { expect, test } from './_test'
+import type { OnError } from '../src'
+import { RUNTIME_PRINT, expect, runtimePrintErrorCode, test } from './_test'
 
 test.sequential('should validate enum constraints', async ({ runContainer }) => {
-  expect.assertions(2)
-  const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+  expect.assertions(1)
 
   @CommandMajor()
-  class Major {
+  class Major implements OnError {
     @Enum(['dev', 'prod'])
     @Value()
     mode: string = 'dev'
 
     @Handler()
     run() {}
-  }
 
-  @CatchAll()
-  class ErrorHandler {
-    constructor(@Exception() arg: FuncException) {
-      expect(arg.code).toBe(F_RUNTIME_PRINT.VALIDATION)
-      arg.preventDefaultPrint()
+    onError(arg: Exception, context: ExceptionContext) {
+      expect(arg.code).toBe(runtimePrintErrorCode(RUNTIME_PRINT.VALIDATION))
+      context.preventDefaultPrint()
     }
   }
 
-  await runContainer(['', '', '--mode', 'test'], [Major, ErrorHandler])
-  expect(log).not.toHaveBeenCalled()
-  log.mockRestore()
+  await runContainer(['', '', '--mode', 'test'], [Major])
 })
 
 test.sequential(
   'should validate every array enum item',
   async ({ runContainer }) => {
     expect.assertions(2)
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     @CommandMajor()
-    class Major {
+    class Major implements OnError {
       @ArrayValue()
       @Enum(['js', 'ts'])
       ext: string[] = []
 
       @Handler()
       run() {}
-    }
 
-    @CatchAll()
-    class ErrorHandler {
-      constructor(@Exception() arg: FuncException) {
-        expect(arg.code).toBe(F_RUNTIME_PRINT.VALIDATION)
+      onError(arg: Exception, context: ExceptionContext) {
+        expect(arg.code).toBe(runtimePrintErrorCode(RUNTIME_PRINT.VALIDATION))
         expect(arg.details.invalid).toEqual(['css'])
-        arg.preventDefaultPrint()
+        context.preventDefaultPrint()
       }
     }
 
-    await runContainer(
-      ['', '', '--ext', 'js', '--ext', 'css'],
-      [Major, ErrorHandler],
-    )
-    log.mockRestore()
+    await runContainer(['', '', '--ext', 'js', '--ext', 'css'], [Major])
+  },
+)
+
+test.sequential(
+  'should validate every number array enum item',
+  async ({ runContainer }) => {
+    expect.assertions(2)
+
+    @CommandMajor()
+    class Major implements OnError {
+      @ArrayValue({ type: Number })
+      @Enum([1, 2])
+      level: number[] = []
+
+      @Handler()
+      run() {}
+
+      onError(arg: Exception, context: ExceptionContext) {
+        expect(arg.code).toBe(runtimePrintErrorCode(RUNTIME_PRINT.VALIDATION))
+        expect(arg.details.invalid).toEqual([3])
+        context.preventDefaultPrint()
+      }
+    }
+
+    await runContainer(['', '', '--level', '1', '--level', '3'], [Major])
   },
 )
 
 test.sequential(
   'should validate dependsOn and exclusive by explicit input',
   async ({ runContainer }) => {
-    expect.assertions(3)
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect.assertions(2)
 
     @CommandMajor()
-    class Major {
+    class Major implements OnError {
       @DependsOn(['token'])
       @Value()
       registry?: string
@@ -99,19 +107,14 @@ test.sequential(
 
       @Handler()
       run() {}
-    }
 
-    @CatchAll()
-    class ErrorHandler {
-      constructor(@Exception() arg: FuncException) {
-        expect(arg.code).toBe(F_RUNTIME_PRINT.VALIDATION)
-        arg.preventDefaultPrint()
+      onError(arg: Exception, context: ExceptionContext) {
+        expect(arg.code).toBe(runtimePrintErrorCode(RUNTIME_PRINT.VALIDATION))
+        context.preventDefaultPrint()
       }
     }
 
-    await runContainer(['', '', '--registry', 'npm'], [Major, ErrorHandler])
-    await runContainer(['', '', '--table', '--json'], [Major, ErrorHandler])
-    expect(log).not.toHaveBeenCalled()
-    log.mockRestore()
+    await runContainer(['', '', '--registry', 'npm'], [Major])
+    await runContainer(['', '', '--table', '--json'], [Major])
   },
 )

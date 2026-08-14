@@ -1,4 +1,4 @@
-import 'reflect-metadata'
+import 'reflect-metadata/lite'
 import { CommandMajor } from '../src'
 import { handlers, metadata } from '../src/utils/metadata'
 import { expect, test } from './_test'

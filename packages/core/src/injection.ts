@@ -1,47 +1,24 @@
-import 'reflect-metadata'
-import { metadata } from './utils/metadata'
+import { Inject } from './di/decorators'
+import type { ProviderToken } from './di/provider'
+import { createToken } from './di/token'
+import { Context } from './context'
+import type { Args as ArgsValue } from './interfaces'
 
-export enum injectTokens {
-  ARGS = 'args',
-  EXCEPTION = 'exception',
-  REGS = 'regs',
-}
+export { Inject }
 
-const injectToken =
-  (token: injectTokens): ParameterDecorator =>
-  (target, propertyKey, parameterIndex) => {
-    const metadataTarget = propertyKey ? target : (target as Function)
-    const tokens = propertyKey
-      ? (Reflect.getMetadata(
-          metadata.PARAM_INJECT_TOKEN_IDENTIFIER,
-          metadataTarget,
-          propertyKey,
-        ) ?? {})
-      : (Reflect.getMetadata(
-          metadata.PARAM_INJECT_TOKEN_IDENTIFIER,
-          metadataTarget,
-        ) ?? {})
+export const ARGS = createToken<ArgsValue>('func.args')
 
-    if (propertyKey) {
-      Reflect.defineMetadata(
-        metadata.PARAM_INJECT_TOKEN_IDENTIFIER,
-        Object.assign({}, tokens, { [parameterIndex]: token }),
-        metadataTarget,
-        propertyKey,
-      )
-      return
-    }
+export type Args = ArgsValue
 
-    Reflect.defineMetadata(
-      metadata.PARAM_INJECT_TOKEN_IDENTIFIER,
-      Object.assign({}, tokens, { [parameterIndex]: token }),
-      metadataTarget,
-    )
+export const isBuiltInToken = (token: ProviderToken): boolean =>
+  token === ARGS || token === Context
+
+// TypeScript lets the decorator and its injected type share one public name.
+// eslint-disable-next-line no-redeclare
+export const Args = (): ParameterDecorator => (target, propertyKey, index) => {
+  if (!propertyKey) {
+    throw new TypeError('@Args can only decorate a command handler parameter.')
   }
 
-export const Args = (): ParameterDecorator => injectToken(injectTokens.ARGS)
-
-export const Exception = (): ParameterDecorator =>
-  injectToken(injectTokens.EXCEPTION)
-
-export const Regs = (): ParameterDecorator => injectToken(injectTokens.REGS)
+  Inject(ARGS)(target, propertyKey, index)
+}

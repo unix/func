@@ -42,33 +42,9 @@ describe('dev error formatting', () => {
     expect(isCannotInferValueTypeError(error)).toBe(true)
   })
 
-  test('keeps recognizing the legacy invalid param type code', () => {
+  test('does not treat other system errors as type inference failures', () => {
     const error = {
-      code: 'F_SYSTEM_INVALID_PARAM_TYPE',
-      details: {
-        property: 'name',
-        reason: 'cannot-infer-value-type',
-      },
-    }
-
-    expect(isCannotInferValueTypeError(error)).toBe(true)
-  })
-
-  test('detects cannot infer value type errors from older messages', () => {
-    const error = {
-      code: 'F_SYSTEM_INVALID_PARAM_TYPE',
-      details: {
-        property: 'name',
-      },
-      message: 'Cannot infer value type for "name". Please pass type explicitly.',
-    }
-
-    expect(isCannotInferValueTypeError(error)).toBe(true)
-  })
-
-  test('does not treat other invalid param type errors as type inference failures', () => {
-    const error = {
-      code: 'F_SYSTEM_INVALID_PARAM_TYPE',
+      code: 'F_SYSTEM_INVALID_FIELD_DECORATOR_TARGET',
       details: {
         property: 'verbose',
       },
@@ -114,7 +90,7 @@ describe('dev error formatting', () => {
           property: 'name',
         },
         stack: [
-          'FuncError: Cannot infer value type for "name".',
+          'InternalException: Cannot infer value type for "name".',
           `    at __decorate (${sourceFile}:1:1)`,
           `    at Object.<anonymous> (${sourceFile}:5:3)`,
           `    at createSystemError (${path.join(tempDir, 'node_modules', 'func', 'index.js')}:1:1)`,
@@ -139,7 +115,7 @@ describe('dev error formatting', () => {
         className: 'Greet',
         property: 'name',
       },
-      stack: 'FuncError: Cannot infer value type for "name".',
+      stack: 'InternalException: Cannot infer value type for "name".',
     }
 
     const message = formatCannotInferValueTypeError(error, { cwd: process.cwd() })

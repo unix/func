@@ -1,21 +1,46 @@
-import 'reflect-metadata'
+import 'reflect-metadata/lite'
 import * as validator from '../utils/validator'
-import type { CommandParams } from '../interfaces'
+import type {
+  CommandDecoratorInput,
+  CommandDecoratorParams,
+  CommandParams,
+  CommandPath,
+} from '../interfaces'
+import { normalizeDeprecation } from '../deprecation'
 import { handlers, metadata } from '../utils/metadata'
 
-const commandFactory =
-  (commandParams: CommandParams): ClassDecorator =>
-  target => {
-    validator.commandName(commandParams.name, 'name')
-    validator.commandAlias(commandParams.alias, 'alias')
+interface CommandDecorator {
+  (input: CommandDecoratorInput): ClassDecorator
+}
 
-    Reflect.defineMetadata(
-      metadata.COMMAND_IDENTIFIER,
-      Object.assign({}, commandParams),
-      target,
-    )
-    Reflect.defineMetadata(metadata.HANDLER_IDENTIFIER, handlers.COMMAND, target)
+export const Command: CommandDecorator = input => target => {
+  const command = normalizeCommand(input)
+  Reflect.defineMetadata(metadata.COMMAND_IDENTIFIER, command, target)
+  Reflect.defineMetadata(metadata.HANDLER_IDENTIFIER, handlers.COMMAND, target)
+}
+
+const normalizeCommand = (input: CommandDecoratorInput): CommandParams => {
+  const params = isCommandParams(input) ? input : { path: input }
+  const path = normalizeCommandPath(params.path)
+  const aliases = validator.commandAliases(params.alias, params.aliases)
+  const deprecated = normalizeDeprecation(params.deprecated)
+
+  return {
+    aliases,
+    ...(deprecated ? { deprecated } : {}),
+    ...(params.description ? { description: params.description } : {}),
+    path,
   }
+}
 
-export const Command = (commandParams: CommandParams): ClassDecorator =>
-  commandFactory(commandParams)
+const isCommandParams = (
+  input: CommandDecoratorInput,
+): input is CommandDecoratorParams =>
+  typeof input === 'object' && !Array.isArray(input)
+
+const normalizeCommandPath = (input: CommandPath): string[] => {
+  const path: string[] = typeof input === 'string' ? [input] : [...input]
+  if (!path.length) validator.commandName('', 'path')
+  path.forEach(segment => validator.commandName(segment, 'path'))
+  return path
+}

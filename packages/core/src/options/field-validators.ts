@@ -1,26 +1,15 @@
-import 'reflect-metadata'
-import type {
-  FieldOptionParams,
-  UserOptionEnumValue,
-  ValueValidator,
-} from '../interfaces'
-import { F_SYSTEM, createSystemError, errorTypes } from '../errors'
-import { metadata } from '../utils/metadata'
+import { SYSTEM } from '@func/shared/core-errors'
+import type { UserOptionEnumValue, ValueValidator } from '../interfaces'
+import { InternalException } from '../shared/errors'
 import * as validator from '../utils/validator'
-
-interface FieldConstraintParams {
-  enum?: UserOptionEnumValue[]
-  dependsOn?: string[]
-  exclusive?: string[]
-}
+import type { FieldConstraints } from './field-metadata'
+import { updateFieldMetadata } from './field-metadata'
 
 const throwInvalidFieldTarget = (propertyKey: string | symbol): never => {
-  throw createSystemError(
-    F_SYSTEM.INVALID_FIELD_DECORATOR_TARGET,
-    errorTypes.DEFINITION,
-    `Field validator "${String(propertyKey)}" must decorate an instance property.`,
-    { property: String(propertyKey) },
-  )
+  throw new InternalException(SYSTEM.INVALID_FIELD_DECORATOR_TARGET, {
+    details: { property: String(propertyKey) },
+    message: `Field validator "${String(propertyKey)}" must decorate an instance property.`,
+  })
 }
 
 export const Required = (): PropertyDecorator => (target, propertyKey) => {
@@ -28,29 +17,10 @@ export const Required = (): PropertyDecorator => (target, propertyKey) => {
     throwInvalidFieldTarget(propertyKey)
   }
 
-  const key = propertyKey as string
-  const requiredKeys = (Reflect.getMetadata(
-    metadata.REQUIRED_FIELD_IDENTIFIER,
-    target.constructor,
-  ) ?? []) as string[]
-  Reflect.defineMetadata(
-    metadata.REQUIRED_FIELD_IDENTIFIER,
-    requiredKeys.includes(key) ? requiredKeys : requiredKeys.concat([key]),
-    target.constructor,
-  )
-
-  const options = (Reflect.getMetadata(
-    metadata.FIELD_OPTION_IDENTIFIER,
-    target.constructor,
-  ) ?? []) as FieldOptionParams[]
-  Reflect.defineMetadata(
-    metadata.FIELD_OPTION_IDENTIFIER,
-    options.map((item: FieldOptionParams) => {
-      if (item.propertyKey !== key) return item
-      return Object.assign({}, item, { required: true })
-    }),
-    target.constructor,
-  )
+  updateFieldMetadata(target, propertyKey as string, field => ({
+    ...field,
+    required: true,
+  }))
 }
 
 export const Enum =
@@ -83,51 +53,23 @@ export const ValueValidate =
       throwInvalidFieldTarget(propertyKey)
     }
 
-    const key = propertyKey as string
-    const validators = (Reflect.getMetadata(
-      metadata.VALUE_VALIDATOR_IDENTIFIER,
-      target.constructor,
-    ) ?? {}) as Partial<Record<string, ValueValidator[]>>
-    Reflect.defineMetadata(
-      metadata.VALUE_VALIDATOR_IDENTIFIER,
-      Object.assign({}, validators, {
-        [key]: (validators[key] ?? []).concat([fn]),
-      }),
-      target.constructor,
-    )
+    updateFieldMetadata(target, propertyKey as string, field => ({
+      ...field,
+      validators: field.validators.concat([fn]),
+    }))
   }
 
 const defineFieldConstraint = (
   target: Object,
   propertyKey: string | symbol,
-  params: FieldConstraintParams,
+  params: FieldConstraints,
 ) => {
   if (typeof target === 'function' || typeof propertyKey !== 'string') {
     throwInvalidFieldTarget(propertyKey)
   }
 
-  const key = propertyKey as string
-  const constraints = (Reflect.getMetadata(
-    metadata.FIELD_CONSTRAINT_IDENTIFIER,
-    target.constructor,
-  ) ?? {}) as Partial<Record<string, FieldConstraintParams>>
-  const nextParams = Object.assign({}, constraints[key] ?? {}, params)
-  Reflect.defineMetadata(
-    metadata.FIELD_CONSTRAINT_IDENTIFIER,
-    Object.assign({}, constraints, { [key]: nextParams }),
-    target.constructor,
-  )
-
-  const options = (Reflect.getMetadata(
-    metadata.FIELD_OPTION_IDENTIFIER,
-    target.constructor,
-  ) ?? []) as FieldOptionParams[]
-  Reflect.defineMetadata(
-    metadata.FIELD_OPTION_IDENTIFIER,
-    options.map((item: FieldOptionParams) => {
-      if (item.propertyKey !== key) return item
-      return Object.assign({}, item, nextParams)
-    }),
-    target.constructor,
-  )
+  updateFieldMetadata(target, propertyKey as string, field => ({
+    ...field,
+    constraints: { ...field.constraints, ...params },
+  }))
 }

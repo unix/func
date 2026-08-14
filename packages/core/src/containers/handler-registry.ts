@@ -1,56 +1,48 @@
-import type { CommandClass, RegisterCommandParams } from '../interfaces'
-import { handlers, metadata } from '../utils/metadata'
-import type { ContainerData, ContainerParams } from './container'
+import type { CompiledModule } from '../di/compiler'
+import type { Type } from '../di/provider'
+import type { CommandParams, HandlerParams } from '../interfaces'
+import type { CompiledFieldOption } from '../options/field-metadata'
+import { handlers } from '../utils/metadata'
+
+export interface HandlerRecord {
+  command?: CommandParams
+  fieldOptions: CompiledFieldOption[]
+  handler: Type
+  kind?: handlers
+  methodHandlers: HandlerParams[]
+  owner: CompiledModule
+}
+
+type HandlerData = Partial<Record<handlers, HandlerRecord[]>>
 
 export class HandlerRegistry {
-  datas: ContainerData = {}
-  invalidHandlers: ContainerParams = []
+  readonly invalidHandlers: HandlerRecord[] = []
+  private readonly data: HandlerData = {}
 
-  constructor(params: ContainerParams) {
-    params.forEach(handler => {
-      const type = Reflect.getMetadata(metadata.HANDLER_IDENTIFIER, handler) as
-        handlers | undefined
-      if (!type) {
-        this.invalidHandlers = this.invalidHandlers.concat([handler])
+  constructor(records: HandlerRecord[]) {
+    records.forEach(record => {
+      if (!record.kind) {
+        this.invalidHandlers.push(record)
         return
       }
 
-      this.datas[type] = (this.datas[type] ?? []).concat([handler])
+      this.data[record.kind] = (this.data[record.kind] ?? []).concat([record])
     })
   }
 
-  commands(): ContainerParams {
-    return this.handlers(handlers.COMMAND)
+  commands(): HandlerRecord[] {
+    return this.records(handlers.COMMAND)
   }
 
-  errors(): ContainerParams {
-    return this.handlers(handlers.ERROR)
+  majors(): HandlerRecord[] {
+    return this.records(handlers.MAJOR)
   }
 
-  major(): CommandClass | undefined {
-    return this.majors().at(0)
+  missing(): HandlerRecord[] {
+    return this.records(handlers.MISSING)
   }
 
-  majors(): ContainerParams {
-    return this.handlers(handlers.MAJOR)
-  }
-
-  missing(): ContainerParams {
-    return this.handlers(handlers.MISSING)
-  }
-
-  findCommand(input?: string): CommandClass | undefined {
-    if (!input || input.startsWith('-')) return undefined
-
-    return this.commands().find(item => {
-      const data = Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, item) as
-        RegisterCommandParams | undefined
-      if (!data) return false
-      return data.name === input || data.alias === input
-    })
-  }
-
-  private handlers(kind: handlers): ContainerParams {
-    return this.datas[kind] ?? []
+  private records(kind: handlers): HandlerRecord[] {
+    return this.data[kind] ?? []
   }
 }

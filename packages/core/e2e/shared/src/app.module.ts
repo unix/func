@@ -1,9 +1,15 @@
-import { FuncModule } from 'func'
+import { Module } from 'func'
+import type { Exception, ExceptionContext, OnError } from 'func'
 import { commands } from './commands/index.js'
 import { ProjectService } from './services/project.service.js'
 
-@FuncModule({
+@Module({
   commands,
-  services: [ProjectService],
+  providers: [ProjectService],
 })
-export class AppModule {}
+export class AppModule implements OnError {
+  onError(exception: Exception, context: ExceptionContext) {
+    console.error(`global:${exception.code}:${exception.message}`)
+    context.preventDefaultPrint()
+  }
+}

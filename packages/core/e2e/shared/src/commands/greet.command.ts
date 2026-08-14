@@ -1,25 +1,26 @@
 import { Args, Command, Flag, Handler, Value } from 'func'
-import type { FuncArgs } from 'func'
+import type { Args as ArgsValue } from 'func'
 
 @Command({
-  name: 'greet',
   alias: 'g',
+  aliases: ['hello'],
   description: 'print a greeting',
+  path: 'greet',
 })
 export class GreetCommand {
-  @Value({ alias: 'n' })
+  @Value({ alias: 'n', aliases: ['N'] })
   name: string = 'friend'
 
-  @Flag({ alias: 'u' })
+  @Flag({ alias: 'u', aliases: ['U'] })
   upper = false
 
   @Handler()
-  run(@Args() args: FuncArgs) {
+  run(@Args() args: ArgsValue) {
     const extra = args.inputs.length ? ` ${args.inputs.join(' ')}` : ''
     this.print(`Hello, ${this.name}!${extra}`)
   }
 
-  @Handler({ path: ['shout'] })
+  @Handler('shout')
   shout() {
     this.print(`HELLO, ${this.name.toUpperCase()}!`)
   }

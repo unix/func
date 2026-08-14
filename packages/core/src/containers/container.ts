@@ -1,442 +1,499 @@
-import arg from 'arg'
-import { Factory } from '../utils/factory'
-import * as filter from '../utils/filter'
-import type {
-  CommandClass,
-  FieldOptionParams,
-  HandlerParams,
-  OptionParams,
-  RegisterCommandParams,
-  UserOption,
-  ValueValidator,
-} from '../interfaces'
-import type { ServiceClass } from '../application/interfaces'
-import { metadata, handlers } from '../utils/metadata'
+import type arg from 'arg'
+import { RUNTIME } from '@func/shared/core-errors'
+import type { Readable, Writable } from 'node:stream'
+import type { CompiledApplication } from '../application/module-compiler'
 import {
-  F_RUNTIME_PRINT,
-  F_SYSTEM,
-  errorLevels,
-  errorTypes,
-  createRuntimePrintError,
-  createSystemError,
-  handleRuntimePrintError,
-  handleSystemError,
-  isFuncError,
-  normalizeRuntimeError,
-} from '../errors'
-import { FuncException } from '../context'
-import { ConstraintValidator } from '../options/constraint-validator'
-import type { CatchParams } from '../commands/catch'
-import { HandlerRegistry } from './handler-registry'
-import { RegistrationValidator } from './registration-validator'
-
-export type ContainerParams = Array<new (...args: any[]) => any>
-export interface ContainerData {
-  [key: string]: ContainerParams | undefined
-}
+  Context,
+  ExceptionContext,
+  failContext,
+  selectContextCommand,
+  selectContextInvocation,
+} from '../context'
+import type { CompiledModule } from '../di/compiler'
+import { RuntimeInjector } from '../di/injector'
+import { hasOnDispose, hasOnError, hasOnInit } from '../di/lifecycle'
+import type { ExecutionOutcome } from '../di/lifecycle'
+import type { ProviderToken, Type } from '../di/provider'
+import { ARGS } from '../injection'
+import type {
+  Args as CommandArgs,
+  ArgsOptionValue,
+  Deprecation,
+  UserOption,
+  UserOptionValue,
+} from '../interfaces'
+import { bindFieldOptions, hydrateFieldOptions } from '../options/field-binding'
+import type { Exception } from '../shared/errors'
+import {
+  ErrorScope,
+  InternalException,
+  isException,
+  printException,
+} from '../shared/errors'
+import { createDictionary } from '../utils/dictionary'
+import type { OptionPlan } from './command-graph'
+import { resolveInvocation } from './invocation-resolver'
+import type { ResolvedInvocation } from './invocation-resolver'
 
 export interface ContainerOptions {
   argv?: string[]
-  services?: ServiceClass[]
+  cwd?: string
+  stderr?: Writable
+  stdin?: Readable
+  signal?: AbortSignal
+  stdout?: Writable
 }
 
-interface Scope {
-  handler: CommandClass
-  kind: handlers.COMMAND | handlers.MAJOR | handlers.MISSING
+export interface InvocationResult {
+  readonly exitCode: number
+  readonly result: unknown
 }
 
-interface SelectedHandler {
-  data: HandlerParams
-  inputs: string[]
-  path: string[]
+interface ActivatedScope {
+  instance: unknown
+  kind: 'command' | 'module' | 'option-command'
+  managedByInjector?: boolean
+  name: string
+}
+
+interface ErrorResolution {
+  exception: Exception
+  handled: boolean
+}
+
+interface DispatchParams {
+  injector: RuntimeInjector
+  invocation: ResolvedInvocation
+  nativeOption: UserOption
+  scopes: ActivatedScope[]
+  skipsValidation: boolean
+  values: Map<ProviderToken, unknown>
+}
+
+interface ScopeDisposeFailure {
+  error: Error
+  kind: ActivatedScope['kind']
+  name: string
 }
 
 export class Container {
+  private application: CompiledApplication
   private argv: string[]
-  private registry: HandlerRegistry
-  private services: ServiceClass[]
-  datas: ContainerData
+  private cwd: string
+  private stderr: Writable
+  private stdin: Readable
+  private signal: AbortSignal
+  private stdout: Writable
 
-  constructor(params: ContainerParams, options: ContainerOptions = {}) {
+  constructor(application: CompiledApplication, options: ContainerOptions = {}) {
+    this.application = application
     this.argv = options.argv ?? process.argv.slice(2)
-    this.registry = new HandlerRegistry(params)
-    this.services = options.services ?? []
-    this.datas = this.registry.datas
-    new RegistrationValidator(this.registry).validate()
+    this.cwd = options.cwd ?? process.cwd()
+    this.stderr = options.stderr ?? process.stderr
+    this.stdin = options.stdin ?? process.stdin
+    this.signal = options.signal ?? new AbortController().signal
+    this.stdout = options.stdout ?? process.stdout
   }
 
-  async run(): Promise<void> {
-    try {
-      await this.dispatch()
-    } catch (error) {
-      this.dispatchError(error)
-    }
-  }
-
-  private async dispatch() {
-    const scope = this.scope()
-    if (!scope) return
-    if (
-      scope.kind === handlers.MISSING &&
-      !this.methodHandlers(scope.handler).length
-    ) {
-      this.dispatchLegacyMissing(scope.handler)
-      return
-    }
-
-    const spec = this.optionSpec(scope.handler)
-    const args = this.parse(spec)
-    this.throwUnknownOptions(args, scope.kind === handlers.COMMAND)
-    const nativeOption = this.nativeOption(spec, args)
-    const commandData = this.commandData(scope.handler)
-    const baseInputs = scope.kind === handlers.COMMAND ? args._.slice(1) : args._
-    const selectedHandler = this.selectHandler(scope.handler, args, baseInputs)
-    const factory = new Factory({
-      nativeOption,
-      args,
-      command: commandData,
-      commands: this.registry.commands(),
-      handler: selectedHandler.data,
-      inputs: selectedHandler.inputs,
-      path: selectedHandler.path,
-      services: this.services,
-    })
-    const constructorParams = factory.getServiceParams(scope.handler)
-    const instance = new scope.handler(...constructorParams)
+  async run(): Promise<InvocationResult> {
+    const context = this.invocationContext()
+    const values = new Map<ProviderToken, unknown>([[Context, context]])
+    const injector = new RuntimeInjector(this.application.graph, values)
+    const scopes: ActivatedScope[] = []
+    let executionError: unknown
+    let result: unknown
 
     try {
-      this.injectFields(scope.handler, instance, args, nativeOption)
-      this.validateFieldValues(scope.handler, nativeOption)
-      new ConstraintValidator(
-        this.fieldOptions(scope.handler),
-        args,
+      const rootPlan = this.application.commandGraph.nodes()[0].optionPlan
+      injector.allowOptions(rootPlan.providers.map(option => option.record))
+      const rootScope = await this.activateModule(
+        injector,
+        this.application.graph.root,
+        scopes,
+        false,
+      )
+      const invocation = this.resolveInvocation()
+      this.printDeprecations(invocation)
+      injector.allowOptions(invocation.plan.providers.map(option => option.record))
+      const owner = this.executionOwner(invocation)
+      const ownerScope =
+        owner === this.application.graph.root
+          ? undefined
+          : await this.activateModule(injector, owner, scopes, false)
+      const nativeOption = this.nativeOption(invocation.plan, invocation.args)
+      const skipsValidation = Boolean(invocation.action)
+      await this.activateProviderOptions(
+        injector,
+        invocation,
         nativeOption,
-      ).validate()
-
-      const methodParams = factory.getMethodServiceParams(
-        instance,
-        selectedHandler.data.methodName,
+        owner,
+        skipsValidation,
       )
-
-      await Promise.resolve(
-        instance[selectedHandler.data.methodName](...methodParams),
-      )
-    } catch (error) {
-      const caught = await this.dispatchLocalCatch(
-        scope.handler,
-        instance,
-        error,
-        factory,
-      )
-      if (caught) return
-      throw error
-    }
-  }
-
-  private scope(): Scope | undefined {
-    const command = this.findCommand()
-    if (command) return { handler: command, kind: handlers.COMMAND }
-
-    if (this.argv[0] && !this.argv[0].startsWith('-')) {
-      const missing = this.registry.missing().at(0)
-      if (missing) return { handler: missing, kind: handlers.MISSING }
-      return undefined
-    }
-
-    const major = this.registry.major()
-    if (major) return { handler: major, kind: handlers.MAJOR }
-
-    if (this.argv.some(item => item.startsWith('-') && item !== '-')) {
-      throw createRuntimePrintError(
-        F_RUNTIME_PRINT.UNKNOWN_OPTION,
-        errorTypes.INPUT,
-        `Unknown option${this.argv.length > 1 ? 's' : ''}: ${this.argv.join(', ')}.`,
-        { options: this.argv },
-      )
-    }
-
-    return undefined
-  }
-
-  private dispatchLegacyMissing(missing: CommandClass) {
-    const args = { _: this.argv } as arg.Result<any>
-    const factory = new Factory({
-      nativeOption: {},
-      args,
-      commands: this.registry.commands(),
-      inputs: this.argv,
-      services: this.services,
-    })
-    const params = factory.getServiceParams(missing)
-    new missing(...params)
-  }
-
-  private parse(spec: arg.Spec): arg.Result<any> {
-    try {
-      return arg(spec, { argv: this.argv, permissive: true })
-    } catch (error) {
-      throw createRuntimePrintError(
-        F_RUNTIME_PRINT.PARSE,
-        errorTypes.INPUT,
-        error instanceof Error ? error.message : String(error),
-        { error },
-        error instanceof Error ? error : undefined,
-      )
-    }
-  }
-
-  private nativeOption(spec: arg.Spec, args: arg.Result<any>): UserOption {
-    return Object.keys(spec).reduce<UserOption>((pre, key) => {
-      if (!key.startsWith('--')) return pre
-
-      return Object.assign({}, pre, {
-        [filter.removeHyphen(key)]: Object.prototype.hasOwnProperty.call(args, key)
-          ? args[key]
-          : undefined,
+      await this.initializeScope(rootScope)
+      await this.initializeScope(ownerScope)
+      this.selectContext(context, invocation)
+      result = await this.dispatch({
+        injector,
+        invocation,
+        nativeOption,
+        scopes,
+        skipsValidation,
+        values,
       })
-    }, {})
+    } catch (error) {
+      executionError = error
+    }
+
+    const { outcome, pendingError } = await this.executionOutcome(
+      executionError,
+      result,
+      scopes,
+      context,
+    )
+    const disposeErrors = await this.dispose(injector, scopes, outcome)
+    const finalError = this.finalError(pendingError, disposeErrors)
+    if (finalError) {
+      failContext(context)
+      throw finalError
+    }
+
+    return { exitCode: context.exitCode, result }
   }
 
-  private injectFields(
-    handler: CommandClass,
-    instance: any,
-    args: arg.Result<any>,
-    nativeOption: UserOption,
-  ) {
-    this.fieldOptions(handler).forEach(data => {
-      const key = `--${data.name}`
-      const hasValue = Object.prototype.hasOwnProperty.call(args, key)
-      const value = hasValue ? args[key] : instance[data.propertyKey]
-      if (data.required && value === undefined) {
-        throw createRuntimePrintError(
-          F_RUNTIME_PRINT.VALIDATION,
-          errorTypes.INPUT,
-          `Option "--${data.name}" is required.`,
-          { option: data.name },
+  private resolveInvocation(): ResolvedInvocation {
+    return resolveInvocation(this.application.commandGraph, this.argv)
+  }
+
+  private printDeprecations(invocation: ResolvedInvocation) {
+    const target = invocation.action ?? invocation.endpoint
+    if (target?.kind === 'command') {
+      const command = target.record.command
+      if (command?.deprecated) {
+        this.stderr.write(
+          deprecationNotice(
+            `Command "${command.path.join(' ')}"`,
+            command.deprecated,
+          ),
         )
       }
-
-      instance[data.propertyKey] = value
-      nativeOption[data.name] = value
-    })
-  }
-
-  private validateFieldValues(handler: CommandClass, nativeOption: UserOption) {
-    const validators = (Reflect.getMetadata(
-      metadata.VALUE_VALIDATOR_IDENTIFIER,
-      handler,
-    ) ?? {}) as Partial<Record<string, ValueValidator[]>>
-    this.fieldOptions(handler).forEach(data => {
-      const fns = validators[data.propertyKey] ?? []
-      fns.forEach(fn => {
-        try {
-          const result = fn(nativeOption[data.name], nativeOption)
-          if (result === false || typeof result === 'string') {
-            throw createRuntimePrintError(
-              F_RUNTIME_PRINT.VALIDATION,
-              errorTypes.INPUT,
-              typeof result === 'string'
-                ? result
-                : `Option "--${data.name}" is invalid.`,
-              { option: data.name, value: nativeOption[data.name] },
-            )
-          }
-        } catch (error) {
-          if (isFuncError(error)) throw error
-
-          throw createRuntimePrintError(
-            F_RUNTIME_PRINT.VALIDATION,
-            errorTypes.INPUT,
-            error instanceof Error ? error.message : String(error),
-            { option: data.name, value: nativeOption[data.name] },
-            error instanceof Error ? error : undefined,
-          )
-        }
-      })
-    })
-  }
-
-  private selectHandler(
-    handler: CommandClass,
-    args: arg.Result<any>,
-    inputs: string[],
-  ): SelectedHandler {
-    const methodHandlers = this.methodHandlers(handler)
-    const pathHandler = this.selectPathHandler(methodHandlers, inputs)
-    if (pathHandler) return pathHandler
-
-    const matchedHandlers = methodHandlers.filter(data => {
-      if (!data.flag) return false
-      return Object.prototype.hasOwnProperty.call(args, `--${data.flag}`)
-    })
-
-    if (matchedHandlers.length > 1) {
-      throw createRuntimePrintError(
-        F_RUNTIME_PRINT.MULTIPLE_OPTIONS,
-        errorTypes.INPUT,
-        `Only one handler flag can be invoked at a time: ${matchedHandlers
-          .map(item => `--${item.flag}`)
-          .join(', ')}.`,
-        { options: matchedHandlers.map(item => item.flag) },
-      )
     }
 
-    const selectedHandler =
-      matchedHandlers.at(0) ?? methodHandlers.find(data => !data.flag)
-    if (selectedHandler) {
-      return {
-        data: selectedHandler,
-        inputs,
-        path: [],
-      }
-    }
-
-    throw createSystemError(
-      F_SYSTEM.NO_MATCHING_HANDLER,
-      errorTypes.REGISTRATION,
-      `Command "${handler.name}" does not have a matching @Handler method.`,
-      { handler: handler.name },
-    )
-  }
-
-  private optionSpec(handler: CommandClass): arg.Spec {
-    const fieldOptions = this.fieldOptions(handler)
-    const handlerOptions = this.methodHandlers(handler)
-      .filter(item => item.flag)
-      .map<OptionParams>(item => ({
-        name: item.flag ?? '',
-        alias: item.alias,
-        description: item.description,
-        type: Boolean,
-      }))
-
-    const options: OptionParams[] = [
-      ...fieldOptions,
-      ...handlerOptions,
-      ...this.subOptions(handler),
-    ]
-
-    return filter.optionsToKeyValue(options)
-  }
-
-  private fieldOptions(handler: CommandClass): FieldOptionParams[] {
-    return (Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, handler) ??
-      []) as FieldOptionParams[]
-  }
-
-  private commandData(handler: CommandClass): RegisterCommandParams | undefined {
-    return Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, handler) as
-      RegisterCommandParams | undefined
-  }
-
-  private methodHandlers(handler: CommandClass): HandlerParams[] {
-    return (Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, handler) ??
-      []) as HandlerParams[]
-  }
-
-  private selectPathHandler(
-    candidateHandlers: HandlerParams[],
-    inputs: string[],
-  ): SelectedHandler | undefined {
-    const matched = candidateHandlers
-      .filter((data): data is HandlerParams & { path: string[] } =>
-        Boolean(data.path?.length),
-      )
-      .filter(data => data.path.every((item, index) => inputs[index] === item))
-      .sort((a, b) => b.path.length - a.path.length)
-      .at(0)
-    if (!matched) return undefined
-
-    return {
-      data: matched,
-      inputs: inputs.slice(matched.path.length),
-      path: matched.path,
-    }
-  }
-
-  private subOptions(handler: CommandClass): OptionParams[] {
-    return (Reflect.getMetadata(metadata.SUB_OPTION_IDENTIFIER, handler) ??
-      []) as OptionParams[]
-  }
-
-  private findCommand(): CommandClass | undefined {
-    const first = this.argv[0]
-    if (!first || first.startsWith('-')) return undefined
-    return this.registry.findCommand(first)
-  }
-
-  private throwUnknownOptions(args: arg.Result<any>, hasCommand: boolean) {
-    const options = args._.filter((input, index) => {
-      if (hasCommand && index === 0) return false
-      return input.startsWith('-') && input !== '-'
-    })
-    if (!options.length) return
-
-    throw createRuntimePrintError(
-      F_RUNTIME_PRINT.UNKNOWN_OPTION,
-      errorTypes.INPUT,
-      `Unknown option${options.length > 1 ? 's' : ''}: ${options.join(', ')}.`,
-      { options },
-    )
-  }
-
-  private dispatchError(error: unknown) {
-    const funcError = normalizeRuntimeError(error)
-    if (funcError.level === errorLevels.SYSTEM) {
-      handleSystemError(funcError)
-    }
-
-    const errors = this.registry.errors()
-    if (!errors.length) {
-      if (funcError.level === errorLevels.RUNTIME_PRINT) {
-        handleRuntimePrintError(funcError, false)
+    const warned = new Set<string>()
+    invocation.effectiveOptions.forEach(option => {
+      if (!option.deprecated || warned.has(option.name)) return
+      if (!Object.prototype.hasOwnProperty.call(invocation.args, `--${option.name}`))
         return
-      }
-
-      throw funcError
-    }
-
-    const factory = new Factory({
-      nativeOption: {},
-      args: { _: [] } as arg.Result<any>,
-      commands: this.registry.commands(),
-      services: this.services,
-    })
-
-    const exception = new FuncException(funcError)
-    errors.forEach(errorHandler => {
-      const params = factory.getServiceParams(errorHandler, exception)
-      new errorHandler(...params)
-    })
-
-    if (funcError.level === errorLevels.RUNTIME_PRINT) {
-      handleRuntimePrintError(funcError, exception.printPrevented)
-    }
-  }
-
-  private async dispatchLocalCatch(
-    handler: CommandClass,
-    instance: any,
-    error: unknown,
-    factory: Factory,
-  ): Promise<boolean> {
-    const funcError = normalizeRuntimeError(error)
-    if (funcError.level === errorLevels.SYSTEM) return false
-
-    const catches: CatchParams[] =
-      Reflect.getMetadata(metadata.METHOD_CATCH_IDENTIFIER, handler) ?? []
-    if (!catches.length) return false
-
-    await catches.reduce(async (promise, data) => {
-      await promise
-      const params = factory.getMethodServiceParams(
-        instance,
-        data.methodName,
-        new FuncException(funcError),
+      warned.add(option.name)
+      this.stderr.write(
+        deprecationNotice(`Option "--${option.name}"`, option.deprecated),
       )
-      await Promise.resolve(instance[data.methodName](...params))
-    }, Promise.resolve())
-
-    return true
+    })
   }
+
+  private executionOwner(invocation: ResolvedInvocation): CompiledModule {
+    if (invocation.action?.kind === 'option-command') return invocation.action.owner
+    if (invocation.action) return invocation.action.record.owner
+    return invocation.endpoint?.record.owner ?? this.application.graph.root
+  }
+
+  private async activateProviderOptions(
+    injector: RuntimeInjector,
+    invocation: ResolvedInvocation,
+    nativeOption: UserOption,
+    owner: CompiledModule,
+    skipsValidation: boolean,
+  ) {
+    for (const binding of invocation.plan.providerBindings) {
+      if (
+        binding.provider.owner !== this.application.graph.root &&
+        binding.provider.owner !== owner
+      )
+        continue
+      await injector.activateOption(binding.provider.record, instance => {
+        const params = {
+          args: invocation.args,
+          fieldOptions: binding.fieldOptions.slice(),
+          instance,
+          nativeOption,
+        }
+        if (skipsValidation) {
+          hydrateFieldOptions(params)
+          return
+        }
+        bindFieldOptions(params)
+      })
+    }
+  }
+
+  private async dispatch({
+    injector,
+    invocation,
+    nativeOption,
+    scopes,
+    skipsValidation,
+    values,
+  }: DispatchParams): Promise<unknown> {
+    const target = invocation.action ?? invocation.endpoint
+    if (!target) return undefined
+    if (target.kind === 'option-command') {
+      values.set(ARGS, this.commandArgs(invocation, target.path, nativeOption))
+      const instance = await injector.activateOption(
+        target.declaration.record,
+        () => {},
+      )
+      scopes.push({
+        instance,
+        kind: 'option-command',
+        managedByInjector: true,
+        name: target.declaration.target.name || '(anonymous option command)',
+      })
+      const methodParams = await injector.parameters(
+        Object.getPrototypeOf(instance) as object,
+        target.handler.methodName,
+        target.owner,
+      )
+      return Promise.resolve(
+        (instance as any)[target.handler.methodName](...methodParams),
+      )
+    }
+
+    const record = target.record
+    const instance = await injector.instantiate(record.handler, record.owner)
+    scopes.push({
+      instance,
+      kind: 'command',
+      name: record.handler.name || '(anonymous command)',
+    })
+    const fieldOptions = invocation.plan.commandBindings.get(record) ?? []
+    const params = {
+      args: invocation.args,
+      fieldOptions: fieldOptions.slice(),
+      instance,
+      nativeOption,
+    }
+    if (skipsValidation) hydrateFieldOptions(params)
+    else bindFieldOptions(params)
+    values.set(ARGS, this.commandArgs(invocation, target.path, nativeOption))
+    if (hasOnInit(instance)) await instance.onInit()
+
+    const methodParams = await injector.parameters(
+      Object.getPrototypeOf(instance) as object,
+      target.handler.methodName,
+      record.owner,
+    )
+    return Promise.resolve(
+      (instance as any)[target.handler.methodName](...methodParams),
+    )
+  }
+
+  private async activateModule(
+    injector: RuntimeInjector,
+    module: CompiledModule,
+    scopes: ActivatedScope[],
+    initialize = true,
+  ): Promise<ActivatedScope | undefined> {
+    if (typeof module.input !== 'function') return undefined
+    const instance = await injector.instantiate(module.input as Type, module)
+    const scope: ActivatedScope = {
+      instance,
+      kind: 'module',
+      name: module.name,
+    }
+    scopes.push(scope)
+    if (initialize) await this.initializeScope(scope)
+    return scope
+  }
+
+  private async initializeScope(scope: ActivatedScope | undefined): Promise<void> {
+    if (scope && hasOnInit(scope.instance)) await scope.instance.onInit()
+  }
+
+  private selectContext(context: Context, invocation: ResolvedInvocation) {
+    selectContextInvocation(
+      context,
+      this.application.commandGraph,
+      invocation.match.node,
+    )
+    const target = invocation.action ?? invocation.endpoint
+    if (target?.kind === 'command') selectContextCommand(context, target.command)
+  }
+
+  private async executionOutcome(
+    error: unknown,
+    result: unknown,
+    scopes: ActivatedScope[],
+    context: Context,
+  ): Promise<{
+    outcome: ExecutionOutcome
+    pendingError?: Error
+  }> {
+    if (error === undefined) {
+      return {
+        outcome: Object.freeze({
+          exitCode: context.exitCode,
+          result,
+          status: 'success',
+        }),
+      }
+    }
+
+    failContext(context)
+    const resolution = await this.resolveError(error, scopes, context)
+    return {
+      outcome: Object.freeze({
+        error: resolution.exception,
+        exitCode: context.exitCode,
+        handled: resolution.handled,
+        status: 'error',
+      }),
+      ...(resolution.handled ? {} : { pendingError: resolution.exception }),
+    }
+  }
+
+  private async resolveError(
+    error: unknown,
+    scopes: ActivatedScope[],
+    context: Context,
+  ): Promise<ErrorResolution> {
+    let exception = normalizeRuntimeError(error)
+    let exceptionContext = new ExceptionContext()
+    let handled = false
+    if (exception.scope !== ErrorScope.SYSTEM) {
+      for (const scope of scopes.slice().reverse()) {
+        if (!hasOnError(scope.instance)) continue
+        try {
+          await scope.instance.onError(exception, exceptionContext)
+          handled = true
+          break
+        } catch (hookError) {
+          exception = normalizeRuntimeError(hookError)
+          exceptionContext = new ExceptionContext()
+          if (exception.scope === ErrorScope.SYSTEM) break
+        }
+      }
+    }
+
+    if (exception.scope === ErrorScope.RUNTIME_PRINT) {
+      if (!exceptionContext.printPrevented) printException(exception, this.stderr)
+      handled = true
+    }
+    if (!handled) failContext(context)
+    return { exception, handled }
+  }
+
+  private async dispose(
+    injector: RuntimeInjector,
+    scopes: ActivatedScope[],
+    outcome: ExecutionOutcome,
+  ): Promise<Error[]> {
+    const failures: ScopeDisposeFailure[] = []
+    for (const scope of scopes.slice().reverse()) {
+      if (scope.managedByInjector || !hasOnDispose(scope.instance)) continue
+      try {
+        await scope.instance.onDispose(outcome)
+      } catch (error) {
+        failures.push({
+          error: normalizeError(error),
+          kind: scope.kind,
+          name: scope.name,
+        })
+      }
+    }
+
+    const errors: Error[] = failures.map(failure => failure.error)
+    try {
+      await injector.dispose(outcome)
+    } catch (error) {
+      errors.push(normalizeError(error))
+    }
+    if (!failures.length) return errors
+
+    errors.unshift(
+      new InternalException(RUNTIME.PROVIDER_DISPOSE, {
+        cause: failures[0].error,
+        details: { errors: failures },
+        message: failures[0].error.message,
+        scope: ErrorScope.RUNTIME,
+      }),
+    )
+    return errors
+  }
+
+  private finalError(
+    pendingError: Error | undefined,
+    disposeErrors: Error[],
+  ): Error | undefined {
+    if (pendingError) {
+      if (disposeErrors.length && isException(pendingError)) {
+        pendingError.details.disposeErrors = disposeErrors
+      }
+      return pendingError
+    }
+    return disposeErrors[0]
+  }
+
+  private nativeOption(plan: OptionPlan, args: arg.Result<any>): UserOption {
+    const options = createDictionary<UserOptionValue>()
+    plan.options.forEach(option => {
+      const key = `--${option.name}`
+      options[option.name] = Object.prototype.hasOwnProperty.call(args, key)
+        ? args[key]
+        : undefined
+    })
+    return options
+  }
+
+  private invocationContext(): Context {
+    return new Context(
+      this.application.commandCatalog,
+      {
+        stderr: this.stderr,
+        stdin: this.stdin,
+        stdout: this.stdout,
+      },
+      this.cwd,
+      this.signal,
+    )
+  }
+
+  private commandArgs(
+    invocation: ResolvedInvocation,
+    path: readonly string[],
+    options: UserOption,
+  ): CommandArgs {
+    const readonlyOptions = createDictionary<ArgsOptionValue>()
+    Object.keys(options).forEach(key => {
+      const value = options[key]
+      readonlyOptions[key] = Array.isArray(value)
+        ? Object.freeze(value.slice())
+        : value
+    })
+
+    return Object.freeze({
+      inputs: Object.freeze(invocation.args._.slice(invocation.match.consumed)),
+      invokedPath: Object.freeze(invocation.match.invokedPath.slice()),
+      options: Object.freeze(readonlyOptions),
+      path: Object.freeze(path.slice()),
+      raw: Object.freeze(this.argv.slice()),
+    })
+  }
+}
+
+const normalizeRuntimeError = (error: unknown): Exception => {
+  if (isException(error)) return error
+  const cause = normalizeError(error)
+  return new InternalException(RUNTIME.HANDLER_ERROR, {
+    cause,
+    details: { error: cause },
+    message: cause.message,
+    scope: ErrorScope.RUNTIME,
+  })
+}
+
+const normalizeError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error))
+
+const deprecationNotice = (subject: string, deprecated: Deprecation): string => {
+  const detail = deprecated === true ? '' : ` ${deprecated}`
+  return `${subject} is deprecated.${detail}\n`
 }

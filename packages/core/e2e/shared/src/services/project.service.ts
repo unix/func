@@ -1,6 +1,6 @@
-import { Service } from 'func'
+import { Injectable } from 'func'
 
-@Service()
+@Injectable()
 export class ProjectService {
   name() {
     return 'func-core-e2e'

@@ -1,17 +1,10 @@
-import 'reflect-metadata'
+import 'reflect-metadata/lite'
 
-export {
-  Catch,
-  CatchAll,
-  Command,
-  CommandError,
-  CommandMajor,
-  CommandMissing,
-  Handler,
-  SubOptions,
-} from './commands'
+export { Command, CommandMajor, CommandMissing, Handler } from './commands'
 
-export { Args, Exception, Regs } from './injection'
+export { Deprecated } from './deprecation'
+
+export { Args, Inject } from './injection'
 
 export {
   ArrayValue,
@@ -19,18 +12,59 @@ export {
   Enum,
   Exclusive,
   Flag,
+  Option,
+  OptionCommand,
+  Override,
   Required,
   Value,
   ValueValidate,
 } from './options'
 
-export { FuncModule, Service, createApp, run } from './application'
-
-export type { FuncArgs } from './interfaces'
+export { Module, Injectable, createApp, createToken, run } from './application'
 
 export { Container } from './containers/container'
-export type { ContainerOptions, ContainerParams } from './containers/container'
-export type { FuncModuleInput, FuncModuleParams } from './application'
+export type { ContainerOptions, InvocationResult } from './containers/container'
+export type {
+  ArrayValueDecoratorParams,
+  CommandDecoratorInput,
+  CommandDecoratorParams,
+  CommandPath,
+  Deprecation,
+  HandlerDecoratorInput,
+  HandlerDecoratorParams,
+  HandlerPath,
+  OptionCommandDecoratorParams,
+  FieldOptionDecoratorParams,
+  FlagDecoratorParams,
+  ValueDecoratorParams,
+  ValueOptionType,
+} from './interfaces'
+export type {
+  ClassProvider,
+  FactoryProvider,
+  ExecutionOutcome,
+  ModuleMetadata,
+  InjectionToken,
+  OnDispose,
+  OnError,
+  OnInit,
+  Provider,
+  ProviderToken,
+  Type,
+  ValueProvider,
+} from './application'
 
-export * from './errors'
-export * from './context'
+export {
+  ErrorScope,
+  Exception,
+  formatExceptionCode,
+  isException,
+} from './shared/errors'
+export type {
+  ExceptionCode,
+  ExceptionDetails,
+  ExceptionOptions,
+  SerializedException,
+} from './shared/errors'
+export { Context, ExceptionContext } from './context'
+export type { CommandInfo, ContextIO } from './context'

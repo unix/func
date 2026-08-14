@@ -1,31 +1,37 @@
-import { vi } from 'vitest'
 import {
   Args,
   ArrayValue,
   Command,
-  CommandError,
   CommandMajor,
-  Container,
-  F_RUNTIME_PRINT,
-  F_SYSTEM,
   Flag,
-  FuncArgs,
-  FuncException,
-  Handler,
   Exception,
+  ExceptionContext,
+  Module,
+  Handler,
   Required,
-  SubOptions,
   Value,
   ValueValidate,
+  createApp,
+  run,
 } from '../src'
-import { expect, random, test } from './_test'
+import type { Args as ArgsValue, OnError } from '../src'
+import {
+  RUNTIME_PRINT,
+  SYSTEM,
+  expect,
+  random,
+  runtimePrintErrorCode,
+  systemErrorCode,
+  test,
+  testModule,
+} from './_test'
 
 test.sequential(
   'should run default handler for a command',
   async ({ runContainer }) => {
     let invoked = false
     const name = random()
-    @Command({ name })
+    @Command(name)
     class BuildCommand {
       @Handler()
       run() {
@@ -54,11 +60,11 @@ test.sequential(
       port: number = 3000
 
       @Handler()
-      run(@Args() arg: FuncArgs) {
+      run(@Args() arg: ArgsValue) {
         expect(this.verbose).toBe(true)
         expect(this.config).toBe('func.config.ts')
         expect(this.port).toBe(4000)
-        expect(arg.option.port).toBe(4000)
+        expect(arg.options.port).toBe(4000)
       }
     }
 
@@ -85,61 +91,49 @@ test.sequential('should select a handler by flag', async ({ runContainer }) => {
   expect(selected).toBe('help')
 })
 
-test.sequential(
-  'should reject multiple selected handlers',
-  async ({ runContainer }) => {
-    expect.assertions(2)
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
-    @CommandMajor()
-    class Major {
-      @Handler({ flag: 'help', alias: 'h' })
-      help() {}
+test.sequential('should reject multiple selected handlers', async () => {
+  expect.assertions(1)
+  @CommandMajor()
+  class Major {
+    @Handler({ flag: 'help', alias: 'h' })
+    help() {}
 
-      @Handler({ flag: 'version', alias: 'v' })
-      version() {}
+    @Handler({ flag: 'version', alias: 'v' })
+    version() {}
+  }
+
+  @Module({ commands: [Major] })
+  class AppModule implements OnError {
+    onError(arg: Exception, context: ExceptionContext) {
+      expect(arg.code).toBe(runtimePrintErrorCode(RUNTIME_PRINT.MULTIPLE_OPTIONS))
+      context.preventDefaultPrint()
     }
+  }
 
-    @CommandError()
-    class ErrorHandler {
-      constructor(@Exception() arg: FuncException) {
-        expect(arg.code).toBe(F_RUNTIME_PRINT.MULTIPLE_OPTIONS)
-        arg.preventDefaultPrint()
-      }
-    }
-
-    await runContainer(['', '', '-h', '-v'], [Major, ErrorHandler])
-    expect(log).not.toHaveBeenCalled()
-    log.mockRestore()
-  },
-)
+  await run(AppModule, { argv: ['-h', '-v'] })
+})
 
 test.sequential(
   'should support required and validate for values',
   async ({ runContainer }) => {
-    expect.assertions(2)
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect.assertions(1)
     @CommandMajor()
-    class Major {
+    class Major implements OnError {
       @Required()
       @Value()
       @ValueValidate(value => Number(value) > 0 || 'port must be positive')
       port?: number
 
+      onError(arg: Exception, context: ExceptionContext) {
+        expect(arg.code).toBe(runtimePrintErrorCode(RUNTIME_PRINT.VALIDATION))
+        context.preventDefaultPrint()
+      }
+
       @Handler()
       run() {}
     }
 
-    @CommandError()
-    class ErrorHandler {
-      constructor(@Exception() arg: FuncException) {
-        expect(arg.code).toBe(F_RUNTIME_PRINT.VALIDATION)
-        arg.preventDefaultPrint()
-      }
-    }
-
-    await runContainer(['', '', '--port', '-1'], [Major, ErrorHandler])
-    expect(log).not.toHaveBeenCalled()
-    log.mockRestore()
+    await runContainer(['', '', '--port', '-1'], [Major])
   },
 )
 
@@ -159,52 +153,16 @@ test.sequential('should collect array values', async ({ runContainer }) => {
   await runContainer(['', '', '--include', 'one', '--include', 'two'], [Major])
 })
 
-test.sequential(
-  'should keep sub-options as manual parse schema',
-  async ({ runContainer }) => {
-    expect.assertions(1)
-    @CommandMajor()
-    @SubOptions([{ name: 'dry', alias: 'd' }])
-    class Major {
-      @Handler()
-      run(@Args() arg: FuncArgs) {
-        expect(arg.option.dry).toBe(true)
-      }
-    }
-
-    await runContainer(['', '', '-d'], [Major])
-  },
-)
-
-test.sequential(
-  'should throw duplicate errors across sub-options and values',
-  async () => {
-    @CommandMajor()
-    @SubOptions([{ name: 'config' }])
-    class Major {
-      @Value()
-      config: string = 'func.config.ts'
-
-      @Handler()
-      run() {}
-    }
-
-    expect(() => new Container([Major])).toThrow(
-      expect.objectContaining({ code: F_SYSTEM.DUPLICATE_OPTION_TOKEN }),
-    )
-  },
-)
-
 test.sequential('should throw when a command has no handler', () => {
   const name = random()
-  @Command({ name })
+  @Command(name)
   class BuildCommand {
     @Value()
     config: string = 'func.config.ts'
   }
 
-  expect(() => new Container([BuildCommand])).toThrow(
-    expect.objectContaining({ code: F_SYSTEM.MISSING_HANDLER }),
+  expect(() => createApp(testModule({ commands: [BuildCommand] }))).toThrow(
+    expect.objectContaining({ code: systemErrorCode(SYSTEM.MISSING_HANDLER) }),
   )
 })
 
@@ -236,8 +194,12 @@ test.sequential('should allow only one major command', () => {
     run() {}
   }
 
-  expect(() => new Container([FirstMajor, SecondMajor])).toThrow(
-    expect.objectContaining({ code: F_SYSTEM.MULTIPLE_MAJOR_COMMANDS }),
+  expect(() =>
+    createApp(testModule({ commands: [FirstMajor, SecondMajor] })),
+  ).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.MULTIPLE_MAJOR_COMMANDS),
+    }),
   )
 })
 
@@ -248,7 +210,9 @@ test.sequential('should throw when no handler matches the invocation', async () 
     help() {}
   }
 
-  await expect(new Container([Major], { argv: [] }).run()).rejects.toMatchObject({
-    code: F_SYSTEM.NO_MATCHING_HANDLER,
+  await expect(
+    createApp(testModule({ commands: [Major] }), { argv: [] }).run(),
+  ).rejects.toMatchObject({
+    code: systemErrorCode(SYSTEM.NO_MATCHING_HANDLER),
   })
 })

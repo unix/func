@@ -5,8 +5,8 @@ import { errorTrackingUrl, withErrorTrackingUrl } from '../src/utils/error-track
 
 describe('error tracking', () => {
   test('builds a tracking URL from a func system error code', () => {
-    expect(errorTrackingUrl({ code: 'F_SYSTEM_DUPLICATE_HANDLER' })).toBe(
-      'https://f.witt.im/DUPLICATE_HANDLER',
+    expect(errorTrackingUrl({ code: 'F_SYSTEM_DUPLICATE_COMMAND_TOKEN' })).toBe(
+      'https://f.witt.im/DUPLICATE_COMMAND_TOKEN',
     )
   })
 
@@ -14,9 +14,9 @@ describe('error tracking', () => {
     expect(
       errorTrackingUrl({
         code: 'PLUGIN_ERROR',
-        pluginCode: 'F_SYSTEM_INVALID_PARAM_TYPE',
+        pluginCode: 'F_SYSTEM_CANNOT_INFER_VALUE_TYPE',
       }),
-    ).toBe('https://f.witt.im/INVALID_PARAM_TYPE')
+    ).toBe('https://f.witt.im/CANNOT_INFER_VALUE_TYPE')
   })
 
   test('ignores unrelated and malformed codes', () => {
@@ -27,7 +27,7 @@ describe('error tracking', () => {
 
   test('places actionable error guidance at the bottom once', () => {
     const error = Object.assign(new Error('duplicate'), {
-      code: 'F_SYSTEM_DUPLICATE_HANDLER',
+      code: 'F_SYSTEM_DUPLICATE_COMMAND_TOKEN',
     })
     const output = withErrorTrackingUrl('duplicate', error)
 
@@ -35,7 +35,7 @@ describe('error tracking', () => {
       [
         'duplicate',
         '',
-        'Learn how to fix this error: https://f.witt.im/DUPLICATE_HANDLER',
+        'Learn how to fix this error: https://f.witt.im/DUPLICATE_COMMAND_TOKEN',
       ].join('\n'),
     )
     expect(withErrorTrackingUrl(output, error)).toBe(output)
@@ -47,11 +47,11 @@ describe('error tracking', () => {
         errors: [
           {
             code: 'PLUGIN_ERROR',
-            pluginCode: 'F_SYSTEM_INVALID_PARAM_TYPE',
+            pluginCode: 'F_SYSTEM_CANNOT_INFER_VALUE_TYPE',
           },
         ],
       }),
-    ).toBe('https://f.witt.im/INVALID_PARAM_TYPE')
+    ).toBe('https://f.witt.im/CANNOT_INFER_VALUE_TYPE')
   })
 
   test('prints actionable guidance as the final dev error line', () => {
@@ -63,8 +63,8 @@ describe('error tracking', () => {
     )
     const script = [
       "const error = new Error('Duplicate handler')",
-      "error.name = 'FuncError'",
-      "error.code = 'F_SYSTEM_DUPLICATE_HANDLER'",
+      "error.name = 'InternalException'",
+      "error.code = 'F_SYSTEM_DUPLICATE_COMMAND_TOKEN'",
       'throw error',
     ].join(';')
     const result = spawnSync(
@@ -74,9 +74,9 @@ describe('error tracking', () => {
     )
 
     expect(result.status).toBe(1)
-    expect(result.stderr).toContain('FuncError: Duplicate handler')
+    expect(result.stderr).toContain('InternalException: Duplicate handler')
     expect(result.stderr.trimEnd().split('\n').at(-1)).toBe(
-      'Learn how to fix this error: https://f.witt.im/DUPLICATE_HANDLER',
+      'Learn how to fix this error: https://f.witt.im/DUPLICATE_COMMAND_TOKEN',
     )
   })
 })

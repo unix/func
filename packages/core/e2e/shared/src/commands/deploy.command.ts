@@ -1,8 +1,6 @@
 import {
-  Catch,
   Command,
   DependsOn,
-  Exception,
   Exclusive,
   Flag,
   Handler,
@@ -10,10 +8,10 @@ import {
   Value,
   ValueValidate,
 } from 'func'
-import type { FuncException } from 'func'
+import type { Exception, ExceptionContext, OnError } from 'func'
 
-@Command({ name: 'deploy' })
-export class DeployCommand {
+@Command('deploy')
+export class DeployCommand implements OnError {
   @Required()
   @ValueValidate(value => typeof value === 'string' && value.length >= 3)
   @Value()
@@ -45,9 +43,8 @@ export class DeployCommand {
     )
   }
 
-  @Catch()
-  handleError(@Exception() exception: FuncException) {
+  onError(exception: Exception, context: ExceptionContext) {
     console.error(`local:${exception.code}:${exception.message}`)
-    exception.preventDefaultPrint()
+    context.preventDefaultPrint()
   }
 }
