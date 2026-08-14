@@ -141,7 +141,7 @@ const authoringEvidence: Record<Framework, FrameworkAuthoringEvaluation> = {
       },
       'error-authoring': {
         evidence:
-          '@Catch and @CommandError provide framework boundaries; the adapter only normalizes benchmark output.',
+          'Command and module onError hooks provide framework boundaries; the adapter only normalizes benchmark output.',
         level: 4,
       },
       'isolated-testing': {
@@ -167,7 +167,8 @@ const authoringEvidence: Record<Framework, FrameworkAuthoringEvaluation> = {
         level: 3,
       },
       'error-boundary': {
-        evidence: '@Catch and @CommandError converge parsing and command failures.',
+        evidence:
+          'Command and module onError hooks converge parsing and command failures.',
         level: 4,
       },
       'local-glue': {
@@ -182,7 +183,7 @@ const authoringEvidence: Record<Framework, FrameworkAuthoringEvaluation> = {
       },
       'type-escapes': {
         evidence:
-          'Handlers consume typed fields and FuncArgs without adapter-level assertions.',
+          'Handlers consume typed fields and Args without adapter-level assertions.',
         level: 4,
       },
     },

@@ -1,23 +1,22 @@
 import {
   Args,
   ArrayValue,
-  Catch,
   Command,
-  CommandError,
   CommandMissing,
   DependsOn,
   Enum,
-  Exception,
   Exclusive,
   Flag,
-  FuncArgs,
-  FuncException,
+  Exception,
+  ExceptionContext,
+  Module,
   Handler,
   Required,
   Value,
   ValueValidate,
   run,
 } from 'func'
+import type { Args as CommandArgs, OnError } from 'func'
 
 const environments = ['development', 'staging', 'production']
 const regions = ['us-east-1', 'eu-west-1', 'ap-southeast-1']
@@ -27,15 +26,14 @@ const configSchemas = ['strict', 'compatible', 'loose']
 const platforms = ['linux/amd64', 'linux/arm64', 'darwin/arm64']
 const verificationModes = ['none', 'checksum', 'signature']
 
-abstract class FuncCommand {
-  @Catch()
-  onError(@Exception() exception: FuncException): void {
-    fail(exception.error)
+abstract class FuncCommand implements OnError {
+  onError(exception: Exception): void {
+    fail(exception)
   }
 }
 
 @Command({
-  name: 'release',
+  path: 'release',
   alias: 'r',
   description: 'plan or apply a service release',
 })
@@ -96,17 +94,17 @@ class ReleaseCommand extends FuncCommand {
   timeout = 300
 
   @Handler({ path: ['plan'] })
-  plan(@Args() args: FuncArgs): void {
+  plan(@Args() args: CommandArgs): void {
     this.execute('plan', args.inputs)
   }
 
   @Handler({ path: ['apply'] })
-  apply(@Args() args: FuncArgs): void {
+  apply(@Args() args: CommandArgs): void {
     this.execute('apply', args.inputs)
   }
 
   @Handler()
-  unknown(@Args() args: FuncArgs): void {
+  unknown(@Args() args: CommandArgs): void {
     fail(new Error(`Unknown release action: ${args.inputs[0] ?? '<missing>'}.`))
   }
 
@@ -167,7 +165,7 @@ class ReleaseCommand extends FuncCommand {
   }
 }
 
-@Command({ name: 'config', alias: 'c', description: 'validate configuration files' })
+@Command({ path: 'config', alias: 'c', description: 'validate configuration files' })
 class ConfigCommand extends FuncCommand {
   @Flag({ name: 'allow-unknown', description: 'allow unknown configuration keys' })
   allowUnknown = false
@@ -191,7 +189,7 @@ class ConfigCommand extends FuncCommand {
   schema: string = 'compatible'
 
   @Handler({ path: ['validate'] })
-  validate(@Args() args: FuncArgs): void {
+  validate(@Args() args: CommandArgs): void {
     const profile = oneOf(
       required(args.inputs[0], 'profile'),
       ['local', 'staging', 'production'],
@@ -227,12 +225,12 @@ class ConfigCommand extends FuncCommand {
   }
 
   @Handler()
-  unknown(@Args() args: FuncArgs): void {
+  unknown(@Args() args: CommandArgs): void {
     fail(new Error(`Unknown config action: ${args.inputs[0] ?? '<missing>'}.`))
   }
 }
 
-@Command({ name: 'artifact', alias: 'a', description: 'inspect a release artifact' })
+@Command({ path: 'artifact', alias: 'a', description: 'inspect a release artifact' })
 class ArtifactCommand extends FuncCommand {
   @Flag({ description: 'write JSON output' })
   json = false
@@ -253,7 +251,7 @@ class ArtifactCommand extends FuncCommand {
   verify: string = 'checksum'
 
   @Handler({ path: ['inspect'] })
-  inspect(@Args() args: FuncArgs): void {
+  inspect(@Args() args: CommandArgs): void {
     const reference = required(args.inputs[0], 'reference')
     if (!digestReference.test(reference)) {
       throw new Error('reference must be a registry image with a sha256 digest.')
@@ -284,7 +282,7 @@ class ArtifactCommand extends FuncCommand {
   }
 
   @Handler()
-  unknown(@Args() args: FuncArgs): void {
+  unknown(@Args() args: CommandArgs): void {
     fail(new Error(`Unknown artifact action: ${args.inputs[0] ?? '<missing>'}.`))
   }
 }
@@ -292,16 +290,8 @@ class ArtifactCommand extends FuncCommand {
 @CommandMissing()
 class MissingCommand {
   @Handler()
-  run(@Args() args: FuncArgs): void {
+  run(@Args() args: CommandArgs): void {
     fail(new Error(`Unknown command: ${args.inputs[0] ?? '<missing>'}.`))
-  }
-}
-
-@CommandError()
-class ErrorCommand {
-  constructor(@Exception() exception: FuncException) {
-    exception.preventDefaultPrint()
-    fail(exception.error)
   }
 }
 
@@ -408,12 +398,14 @@ const fail = (error: unknown): void => {
   process.exitCode = 2
 }
 
-await run({
-  commands: [
-    ReleaseCommand,
-    ConfigCommand,
-    ArtifactCommand,
-    MissingCommand,
-    ErrorCommand,
-  ],
+@Module({
+  commands: [ReleaseCommand, ConfigCommand, ArtifactCommand, MissingCommand],
 })
+class AppModule implements OnError {
+  onError(exception: Exception, context: ExceptionContext): void {
+    context.preventDefaultPrint()
+    fail(exception)
+  }
+}
+
+await run(AppModule)

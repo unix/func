@@ -117,7 +117,7 @@
         "repeatedValues": "@ArrayValue",
         "dependencies": "@DependsOn",
         "exclusivity": "@Exclusive",
-        "errorBoundary": "@Catch + @CommandError"
+        "errorBoundary": "command/module onError"
       },
       "commander": {
         "routing": "Command subcommands + Argument",
@@ -237,7 +237,7 @@
               "level": 3
             },
             "error-authoring": {
-              "evidence": "@Catch and @CommandError provide framework boundaries; the adapter only normalizes benchmark output.",
+              "evidence": "Command and module onError hooks provide framework boundaries; the adapter only normalizes benchmark output.",
               "level": 4
             },
             "isolated-testing": {
@@ -262,7 +262,7 @@
               "level": 3
             },
             "error-boundary": {
-              "evidence": "@Catch and @CommandError converge parsing and command failures.",
+              "evidence": "Command and module onError hooks converge parsing and command failures.",
               "level": 4
             },
             "local-glue": {
@@ -274,7 +274,7 @@
               "level": 3
             },
             "type-escapes": {
-              "evidence": "Handlers consume typed fields and FuncArgs without adapter-level assertions.",
+              "evidence": "Handlers consume typed fields and Args without adapter-level assertions.",
               "level": 4
             }
           },

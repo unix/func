@@ -82,7 +82,7 @@ const capabilityMechanisms = {
     repeatedValues: '@ArrayValue',
     dependencies: '@DependsOn',
     exclusivity: '@Exclusive',
-    errorBoundary: '@Catch + @CommandError',
+    errorBoundary: 'command/module onError',
   },
   commander: {
     routing: 'Command subcommands + Argument',
