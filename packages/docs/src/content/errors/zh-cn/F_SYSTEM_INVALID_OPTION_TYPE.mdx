@@ -1,0 +1,38 @@
+---
+code: F_SYSTEM_INVALID_OPTION_TYPE
+title: 选项类型无效
+description: Value 或 ArrayValue 字段使用了不受支持的解析类型。
+lastModified: '2026-08-14'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Value } from 'func'",
+  '',
+  'class Options {',
+  '  @Value()',
+  '  tags: string[] = []',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  "import { ArrayValue } from 'func'",
+  '',
+  'class Options {',
+  '  @ArrayValue()',
+  '  tags: string[] = []',
+  '}',
+].join('\n')
+
+## 复现
+
+`@Value()` 只接受标量 `String` 和 `Number` 类型：
+
+<CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
+
+## 如何修复
+
+布尔选项应使用 `@Flag()`，重复的 `String` 或 `Number` 值应使用 `@ArrayValue()`；其他情况需要把属性和显式 `type` 改成受支持的标量类型：
+
+<CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />

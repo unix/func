@@ -8,7 +8,7 @@ lastModified: '2026-08-08'
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { CommandMajor, Container, Handler } from 'func'",
+  "import { CommandMajor, Handler, createApp } from 'func'",
   '',
   '@CommandMajor()',
   'class FirstMajor {',
@@ -22,11 +22,11 @@ export const reproductionCode = [
   '  run() {}',
   '}',
   '',
-  'new Container([FirstMajor, SecondMajor])',
+  'createApp({ commands: [FirstMajor, SecondMajor] })',
 ].join('\n')
 
 export const fixCode = [
-  "import { Command, CommandMajor, Container, Handler } from 'func'",
+  "import { Command, CommandMajor, Handler, createApp } from 'func'",
   '',
   '@CommandMajor()',
   'class FirstMajor {',
@@ -40,7 +40,7 @@ export const fixCode = [
   '  run() {}',
   '}',
   '',
-  'new Container([FirstMajor, SecondCommand])',
+  'createApp({ commands: [FirstMajor, SecondCommand] })',
 ].join('\n')
 
 ## 复现

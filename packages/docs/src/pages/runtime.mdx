@@ -51,7 +51,7 @@ For example, `ship project member add alice --role owner --force` yields the `pr
 
 ## Assemble the application
 
-The root `@FuncModule` is the runtime assembly boundary. func recursively expands imports and combines registered commands and services into an application-level model. A module describes structure; assembly does not instantiate every command and service. Instances are created only when an invocation needs them.
+The root `@Module` is the runtime assembly boundary. func recursively expands imports and combines registered commands and services into an application-level model. A module describes structure; assembly does not instantiate every command and service. Instances are created only when an invocation needs them.
 
 Commands are grouped by role. `@Command` contributes named commands, `@CommandMajor` provides the top-level scope when no named command is present, `@CommandMissing` receives unknown commands, and error handlers participate separately in failure routing. The service list becomes the provider set available to dependency injection.
 
@@ -77,7 +77,7 @@ Only after scope selection can func establish the option grammar for an invocati
 
 The terminology follows [POSIX Utility Argument Syntax](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html): an _option_ is a named switch, an _option-argument_ is its value, and an _operand_ is positional input. func also supports GNU-style `--long-options` and permits options on either side of operands. That intermixing follows the [GNU command-line convention](https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces), not strict POSIX ordering.
 
-Declared options undergo alias normalization and Boolean, String, Number, or repeated string conversion in this phase. An unrecognized hyphen-prefixed token becomes an unknown-option error; ordinary tokens remain operands for handler dispatch. A named command's command token is removed before dispatch, while major and missing commands have no command token to remove.
+Declared options undergo alias normalization and Boolean, String, Number, or repeated String and Number conversion in this phase. An unrecognized hyphen-prefixed token becomes an unknown-option error; ordinary tokens remain operands for handler dispatch. A named command's command token is removed before dispatch, while major and missing commands have no command token to remove.
 
 Major, named, and modern missing commands use the same option parser. A legacy constructor-only missing command is the compatibility branch: it receives raw input directly and does not enter the field-and-handler pipeline.
 

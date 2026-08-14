@@ -40,10 +40,10 @@ import { CliModule } from './cli.module'
 run(CliModule)`
 
 export const moduleCode = [
-  "import { FuncModule } from 'func'",
+  "import { Module } from 'func'",
   "import { HelloCommand } from './commands/hello.command'",
   '',
-  '@FuncModule({',
+  '@Module({',
   '  commands: [HelloCommand],',
   '})',
   'export class CliModule {}',
@@ -102,7 +102,7 @@ A shared package is reasonable when the repository cannot add another workspace 
 
 <CodeBlock code={installCode} lang="shell" />
 
-Keep every CLI-owned file under a dedicated directory. A small func application normally consists of one executable entry, one root `@FuncModule`, command classes, and optional service classes:
+Keep every CLI-owned file under a dedicated directory. A small func application normally consists of one executable entry, one root `@Module`, command classes, and optional service classes:
 
 <CodeBlock code={mixedTree} filename="Isolated CLI source" />
 <CodeBlock code={entryCode} filename="src/cli/index.ts" lang="ts" />

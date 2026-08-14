@@ -40,10 +40,10 @@ import { CliModule } from './cli.module'
 run(CliModule)`
 
 export const moduleCode = [
-  "import { FuncModule } from 'func'",
+  "import { Module } from 'func'",
   "import { HelloCommand } from './commands/hello.command'",
   '',
-  '@FuncModule({',
+  '@Module({',
   '  commands: [HelloCommand],',
   '})',
   'export class CliModule {}',
@@ -102,7 +102,7 @@ export const packageConfigCode = `{
 
 <CodeBlock code={installCode} lang="shell" />
 
-把 CLI 文件全部放进专用目录。一个小型 func 应用通常包含一个可执行入口、一个根 `@FuncModule`、若干命令类和可选服务类组成：
+把 CLI 文件全部放进专用目录。一个小型 func 应用通常包含一个可执行入口、一个根 `@Module`、若干命令类和可选服务类组成：
 
 <CodeBlock code={mixedTree} filename="隔离的 CLI 源码" />
 <CodeBlock code={entryCode} filename="src/cli/index.ts" lang="ts" />

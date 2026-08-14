@@ -1,7 +1,7 @@
 ---
 code: F_SYSTEM_HANDLER_ALIAS_REQUIRES_FLAG
 title: Handler alias requires a flag
-description: A @Handler declares an alias without declaring the flag that alias should abbreviate.
+description: A @Handler declares alias or aliases without declaring the flag they should abbreviate.
 lastModified: '2026-08-08'
 ---
 
@@ -11,21 +11,21 @@ export const reproductionCode = [
   "import { Handler } from 'func'",
   '',
   'class HelpCommand {',
-  "  @Handler({ alias: 'h' })",
+  "  @Handler({ aliases: ['h', '?'] })",
   '  help() {}',
   '}',
 ].join('\n')
 
 export const fixCode = [
   'class HelpCommand {',
-  "  @Handler({ flag: 'help', alias: 'h' })",
+  "  @Handler({ flag: 'help', aliases: ['h', '?'] })",
   '  help() {}',
   '}',
 ].join('\n')
 
 ## Reproduction
 
-An alias has no long-form handler flag to reference:
+The aliases have no long-form handler flag to reference:
 
 <CodeBlock code={reproductionCode} filename="src/help.command.ts" lang="ts" />
 

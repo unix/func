@@ -1,8 +1,8 @@
 ---
 code: F_SYSTEM_INVALID_METHOD_DECORATOR_TARGET
 title: 方法装饰器目标无效
-description: '@Handler 或 @Catch 被用于实例方法以外的目标。'
-lastModified: '2026-08-08'
+description: '方法装饰器被用于不支持的目标或 handler 类型。'
+lastModified: '2026-08-14'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -34,3 +34,5 @@ export const fixCode = [
 改用实例方法：
 
 <CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />
+
+当 `@Deprecated()` 装饰默认 handler 或 path handler 时也会出现此错误。`@Deprecated()` 支持 `@Handler({ flag })` 动作选项；如需废弃默认或基于路径的命令入口，请使用 `@Command` 的 `deprecated` 参数。

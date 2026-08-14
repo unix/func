@@ -39,7 +39,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
   en: {
     '/': 'Introduction',
     guide: 'Quick Start',
-    'guide/agent-setup': 'Work with func using an Agent',
+    'guide/agent-setup': 'Work with Agent',
     'guide/existing-project': 'Existing Projects',
     concepts: 'Concepts',
     'use-cases': 'Examples',

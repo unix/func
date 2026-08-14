@@ -1,4 +1,9 @@
-import { systemErrorCodes, type SystemErrorCode } from '@func/shared/system-errors'
+import {
+  ErrorScope,
+  SYSTEM,
+  formatErrorCode,
+  type SystemErrorCode,
+} from '@func/shared/core-errors'
 import type { MDXInstance } from 'astro'
 import { defaultLocale, type DocFrontmatter, type Locale } from './docs'
 
@@ -14,6 +19,13 @@ export interface SystemErrorPage {
   Content: MDXInstance<SystemErrorFrontmatter>['Content']
   frontmatter: SystemErrorFrontmatter
 }
+
+const systemErrorCodes: SystemErrorCode[] = Object.values(SYSTEM).map(code =>
+  formatErrorCode(ErrorScope.SYSTEM, code),
+)
+
+const isSystemErrorCode = (code: string): code is SystemErrorCode =>
+  systemErrorCodes.some(systemErrorCode => systemErrorCode === code)
 
 const englishErrorPageModules = import.meta.glob<
   MDXInstance<SystemErrorFrontmatter>
@@ -31,7 +43,7 @@ const createSystemErrorPages = (
       .split('/')
       .at(-1)
       ?.replace(/\.mdx$/, '')
-    if (!code || !systemErrorCodes.includes(code as SystemErrorCode)) {
+    if (!code || !isSystemErrorCode(code)) {
       throw new Error(`Unknown system error document: ${file}`)
     }
     if (module.frontmatter.code !== code) {
@@ -39,7 +51,7 @@ const createSystemErrorPages = (
     }
 
     return {
-      code: code as SystemErrorCode,
+      code,
       Content: module.Content,
       frontmatter: module.frontmatter,
     }

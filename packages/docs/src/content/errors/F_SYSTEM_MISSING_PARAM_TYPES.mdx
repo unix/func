@@ -9,7 +9,7 @@ lastModified: '2026-08-08'
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { Command, FuncModule, Handler, run } from 'func'",
+  "import { Command, Module, Handler, run } from 'func'",
   '',
   'class ProjectService {}',
   '',
@@ -21,7 +21,7 @@ export const reproductionCode = [
   '  run() {}',
   '}',
   '',
-  '@FuncModule({ commands: [InspectCommand] })',
+  '@Module({ commands: [InspectCommand] })',
   'class AppModule {}',
   '',
   'run(AppModule)',
@@ -52,4 +52,4 @@ Enable both decorator options in the TypeScript configuration used by the build:
 
 <CodeBlock code={tsconfigCode} filename="tsconfig.json" lang="json" />
 
-Ensure the class has a func decorator, register injected services in `FuncModule.services`, and confirm that `funcgo` is reading the intended `tsconfig.json`.
+Ensure the class has a func decorator, register injected services in `Module.providers`, and confirm that `funcgo` is reading the intended `tsconfig.json`.

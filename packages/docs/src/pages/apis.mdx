@@ -1,7 +1,7 @@
 ---
 title: API Reference
 description: Reference the current func decorators, runtime types, module APIs, and funcgo commands.
-lastModified: '2026-08-04'
+lastModified: '2026-08-14'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -45,53 +45,56 @@ Use this page when you already know which func concept you need and want its exa
 
 ## Commands
 
-| Signature                                  | Structure                                                                                                               | Description                                                                                                                                          |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@Command(params: CommandParams)`          | `CommandParams = { name: string, description?: string, alias?: string }`                                                | Register a named command. The name or alias is matched against the first input token.                                                                |
-| `@Handler(params?: HandlerParams)`         | `HandlerParams = { flag?: string, alias?: string, description?: string, path?: string[] }`                              | Register a default handler, flag handler, or path handler. path cannot be combined with flag or alias.                                               |
-| `@SubOptions(params: Array<OptionParams>)` | `OptionParams = { name: string, type?: Boolean \| String \| Number \| [String], description?: string, alias?: string }` | Add parse-only options for the current command scope. Field options are preferred for values read from the command instance.                         |
-| `@CommandMissing()`                        | `-`                                                                                                                     | Register a fallback command for bare input whose first token is not a known command. It can define handlers and field options like a normal command. |
-| `@CommandMajor()`                          | `-`                                                                                                                     | Register the major command for empty invocation and top-level options.                                                                               |
-| `@Catch()`                                 | `-`                                                                                                                     | Register a local command error method. Normal completion consumes the failure before global error handlers.                                          |
-| `@CatchAll() / @CommandError()`            | `-`                                                                                                                     | Register a global error handler class. CommandError is an alias for CatchAll.                                                                        |
+| Signature                          | Structure                                                                                                                                               | Description                                                                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@Command(params: CommandParams)`  | `CommandParams = { path: string \| readonly string[], deprecated?: true \| string, description?: string, alias?: string, aliases?: readonly string[] }` | Register a named command. Its path or any alias is matched against input tokens.                                                                        |
+| `@Handler(params?: HandlerParams)` | `HandlerParams = { flag?: string, alias?: string, aliases?: readonly string[], description?: string, path?: string[] }`                                 | Register a default, flag, or path handler. A path cannot be combined with a flag or aliases. Option-style aliases must be one character.                |
+| `@CommandMissing()`                | `-`                                                                                                                                                     | Register a fallback command for bare input whose first token is not a known command. It can define handlers and field options like a normal command.    |
+| `@CommandMajor()`                  | `-`                                                                                                                                                     | Register the major command for empty invocation and top-level options.                                                                                  |
+| `onError(exception, context)`      | `Exception, ExceptionContext`                                                                                                                           | Handle a non-system exception on the selected command, direct owner module, or root module. Returning marks it handled; throwing continues propagation. |
+| `onInit()`                         | `-`                                                                                                                                                     | Initialize an activated command, module, option provider, or provider.                                                                                  |
+| `onDispose(outcome)`               | `ExecutionOutcome`                                                                                                                                      | Clean up an activated managed instance after success or failure.                                                                                        |
 
 ## Field Options and Validators
 
-| Signature              | Structure                                                                                                                              | Description                                                                             |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `@Flag(params?)`       | `params = { name?: string, alias?: string, description?: string }`                                                                     | Declare a boolean option assigned to the decorated property.                            |
-| `@Value(params?)`      | `params = { name?: string, alias?: string, description?: string, type?: Boolean \| String \| Number \| [String], required?: boolean }` | Declare a scalar value option. The type is inferred from design metadata when possible. |
-| `@ArrayValue(params?)` | `params = { name?: string, alias?: string, description?: string }`                                                                     | Declare a repeated string option assigned as a string array.                            |
-| `@Required()`          | `-`                                                                                                                                    | Require the option to be provided explicitly or have a defined value.                   |
-| `@Enum(values)`        | `values = Array<boolean \| string \| number>`                                                                                          | Validate that a scalar value, or every array item, is one of the allowed values.        |
-| `@DependsOn(options)`  | `options = string[]`                                                                                                                   | Require other options when this option is explicitly provided.                          |
-| `@Exclusive(options)`  | `options = string[]`                                                                                                                   | Reject combinations where this option and one of the listed options are both explicit.  |
-| `@ValueValidate(fn)`   | `fn(value, options) => boolean \| string \| void`                                                                                      | Run a custom validator. Return false or a string to create a validation error.          |
+| Signature                | Structure                                                                                                                                          | Description                                                                                     |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `@OptionCommand(params)` | `params = { name: string, alias?: string, aliases?: readonly string[], deprecated?: true \| string, description?: string, overrideAll?: boolean }` | Declare a module-scoped action option. Every alias must contain exactly one character.          |
+| `@Flag(params?)`         | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, negatable?: boolean }`                               | Declare a boolean option. Every alias is positive; `negatable` also registers `--no-<name>`.    |
+| `@Value(params?)`        | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, type?: String \| Number }`                           | Declare a scalar value option. The type is inferred from design metadata when possible.         |
+| `@ArrayValue(params?)`   | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, type?: String \| Number }`                           | Declare a repeated option. The element type defaults to `String`.                               |
+| `@Deprecated(message?)`  | `message?: string`                                                                                                                                 | Mark a field option or `@Handler({ flag })` action as deprecated. Ordinary members are ignored. |
+| `@Required()`            | `-`                                                                                                                                                | Require the option to be provided explicitly or have a defined value.                           |
+| `@Enum(values)`          | `values = Array<boolean \| string \| number>`                                                                                                      | Validate that a scalar value, or every array item, is one of the allowed values.                |
+| `@DependsOn(options)`    | `options = string[]`                                                                                                                               | Require other options when this option is explicitly provided.                                  |
+| `@Exclusive(options)`    | `options = string[]`                                                                                                                               | Reject combinations where this option and one of the listed options are both explicit.          |
+| `@ValueValidate(fn)`     | `fn(value, options) => boolean \| string \| void`                                                                                                  | Run a custom validator. Return false or a string to create a validation error.                  |
 
 ## Context Injection
 
-| Signature      | Description                                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------------------------------ |
-| `@Args()`      | Inject FuncArgs: command metadata, selected handler, inputs, path, normalized option, and native parse data. |
-| `@Regs()`      | Inject CommandRegistry for registered command metadata.                                                      |
-| `@Exception()` | Inject FuncException into local catch methods and global error handlers.                                     |
+| Signature | Description                                                                                              |
+| --------- | -------------------------------------------------------------------------------------------------------- |
+| `@Args()` | Inject Args: command metadata, selected handler, inputs, path, normalized option, and native parse data. |
+| `@Regs()` | Inject CommandRegistry for registered command metadata.                                                  |
 
 ## Application
 
-| Signature                    | Structure                                                                          | Description                                                                           |
-| ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `@FuncModule(params)`        | `params = { commands?: Class[], imports?: FuncModuleInput[], services?: Class[] }` | Create an application or feature module.                                              |
-| `@Service()`                 | `-`                                                                                | Mark a service class that can be injected into commands or other registered services. |
-| `run(input, options?)`       | `options = { argv?: string[], services?: Class[] }`                                | Create an app and execute it.                                                         |
-| `createApp(input, options?)` | `options = { argv?: string[], services?: Class[] }`                                | Create the low-level Container without running it.                                    |
+| Signature                     | Structure                                                                                                           | Description                                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `@Module(params)`             | `params = { commands?: Type[], imports?: Array<Type \| ModuleMetadata>, options?: Type[], providers?: Provider[] }` | Create an application or feature module. The application root passed to `run` must be a decorated class. |
+| `@Injectable()`               | `-`                                                                                                                 | Mark an injectable class provider.                                                                       |
+| `run(module, options?)`       | `options = { argv?, cwd?, stdin?, stdout?, stderr?, signal? }`                                                      | Create and execute an application module.                                                                |
+| `createApp(module, options?)` | same as `run`                                                                                                       | Create the low-level Container without running it.                                                       |
 
 ## Runtime Types
 
-| Signature         | Structure                                                                              | Description                                                |
-| ----------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `FuncArgs`        | `{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }` | Normalized runtime context injected by Args.               |
-| `FuncException`   | `code, details, error, level, message, type, preventDefaultPrint()`                    | Wrapper around FuncError used by catch and error handlers. |
-| `CommandRegistry` | `{ commands: RegisterCommandParams[] }`                                                | Read-only registry context injected by Regs.               |
+| Signature          | Structure                                                                              | Description                                              |
+| ------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `Args`             | `{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }` | Normalized runtime context injected by Args.             |
+| `Exception`        | `code, details, message, scope, cause`                                                 | Structured `Error` subclass passed to error handlers.    |
+| `ExceptionContext` | `printPrevented, preventDefaultPrint()`                                                | Mutable handling state passed beside an `Exception`.     |
+| `CommandRegistry`  | `{ commands: RegisterCommandParams[] }`                                                | Read-only registry context injected by Regs.             |
+| `Deprecation`      | `true \| string`                                                                       | A deprecation marker with an optional migration message. |
 
 ## Support
 

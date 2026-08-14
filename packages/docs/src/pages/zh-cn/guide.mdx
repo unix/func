@@ -103,11 +103,11 @@ import { StatusCommand } from './status.command'
 export const commands = [Major, StatusCommand, Missing, ErrorHandler]`
 
 export const moduleCode = [
-  "import { FuncModule } from 'func'",
+  "import { Module } from 'func'",
   "import { commands } from './commands'",
   "import { services } from './services'",
   '',
-  '@FuncModule({',
+  '@Module({',
   '  commands,',
   '  services,',
   '})',

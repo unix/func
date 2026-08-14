@@ -67,7 +67,7 @@ export const registerCode = [
 ].join('\n')
 
 export const userSearchCode = [
-  "import { Args, CommandMissing, Flag, FuncArgs, Handler } from 'func'",
+  "import { Args, CommandMissing, Flag, Args, Handler } from 'func'",
   '',
   '@CommandMissing()',
   'export class UserSearchFallback {',
@@ -78,7 +78,7 @@ export const userSearchCode = [
   '  verified = false',
   '',
   '  @Handler()',
-  '  async search(@Args() args: FuncArgs) {',
+  '  async search(@Args() args: Args) {',
   '    const [username, ...aliases] = args.inputs',
   "    console.log('Searching user:', {",
   '      username,',

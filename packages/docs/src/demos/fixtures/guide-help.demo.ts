@@ -1,4 +1,4 @@
-import { CommandMajor, FuncModule, Handler } from '../../../../core/src'
+import { CommandMajor, Module, Handler } from '../../../../core/src'
 
 @CommandMajor()
 class HelpCommand {
@@ -24,7 +24,7 @@ Options:
   }
 }
 
-@FuncModule({
+@Module({
   commands: [HelpCommand],
 })
 export class GuideHelpModule {}

@@ -1,7 +1,7 @@
 ---
 title: Field Options
 description: Define command flags, scalar values, repeated values, defaults, aliases, and validation.
-lastModified: '2026-08-04'
+lastModified: '2026-08-14'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -12,12 +12,15 @@ export const flagCode = [
   '',
   "@Command({ name: 'serve' })",
   'export class ServeCommand {',
-  "  @Flag({ alias: 'v', description: 'Print request logs' })",
+  "  @Flag({ alias: 'v', aliases: ['V'], description: 'Print request logs' })",
   '  verbose = false',
+  '',
+  "  @Flag({ aliases: ['c', 'C'], description: 'Use colored output', negatable: true })",
+  '  color = true',
   '',
   '  @Handler()',
   '  run() {',
-  '    console.log(this.verbose)',
+  '    console.log(this.verbose, this.color)',
   '  }',
   '}',
 ].join('\n')
@@ -30,7 +33,7 @@ export const valueCode = [
   "  @Value({ description: 'Interface to bind' })",
   "  host: string = 'localhost'",
   '',
-  "  @Value({ alias: 'p', description: 'Port to listen on' })",
+  "  @Value({ aliases: ['p', 'P'], description: 'Port to listen on' })",
   '  port: number = 3000',
   '',
   "  @Value({ name: 'config-file', type: String })",
@@ -48,12 +51,15 @@ export const arrayCode = [
   '',
   "@Command({ name: 'build' })",
   'export class BuildCommand {',
-  "  @ArrayValue({ name: 'include', alias: 'i' })",
+  "  @ArrayValue({ name: 'include', aliases: ['i', 'I'] })",
   '  includes: string[] = []',
+  '',
+  "  @ArrayValue({ name: 'port', type: Number })",
+  '  ports: number[] = []',
   '',
   '  @Handler()',
   '  run() {',
-  '    console.log(this.includes)',
+  '    console.log(this.includes, this.ports)',
   '  }',
   '}',
 ].join('\n')
@@ -91,20 +97,23 @@ export const validationCode = [
   '}',
 ].join('\n')
 
-export const subOptionsCode = [
-  "import { Args, Command, FuncArgs, Handler, SubOptions } from 'func'",
+export const moduleOptionsCode = [
+  "import { Flag, Module, Option, Value } from 'func'",
   '',
-  '@SubOptions([',
-  "  { name: 'format', alias: 'f', type: String },",
-  "  { name: 'raw', type: Boolean },",
-  '])',
-  "@Command({ name: 'inspect' })",
-  'export class InspectCommand {',
-  '  @Handler()',
-  '  run(@Args() args: FuncArgs) {',
-  '    console.log(args.option.format, args.option.raw)',
-  '  }',
+  '@Option()',
+  'export class DeployOptions {',
+  '  @Flag()',
+  '  json = false',
+  '',
+  '  @Value()',
+  "  profile: string = 'default'",
   '}',
+  '',
+  '@Module({',
+  '  commands: [DeployCommand],',
+  '  options: [DeployOptions],',
+  '})',
+  'export class DeployModule {}',
 ].join('\n')
 
 <DocsLayout frontmatter={frontmatter} page="options">
@@ -113,39 +122,57 @@ A field option is a command property that also describes part of the public CLI.
 
 Field options belong to one command scope. An option declared on `ServeCommand` is available to `ship serve`, not automatically to the major command or another named command.
 
+## Share options through a module
+
+When several commands declared by one feature need the same CLI options, place those fields in an `@Option()` class and register it through the module's `options` array.
+
+<CodeBlock
+  code={moduleOptionsCode}
+  filename="src/deploy/deploy.module.ts"
+  lang="ts"
+/>
+
+The option class is a normal DI-managed dependency, so its direct module and commands can inject `DeployOptions`. It also participates in `onInit` and `onDispose` like other providers.
+
+Scope is explicit: feature-module options apply only to commands declared directly by that module. They do not flow through `imports`. Options registered on the root `AppModule` are application-wide and can be injected anywhere. A root option, owner-module option, command option, and handler flag must not claim the same public name or alias within one command scope.
+
 ## Choose the value shape
 
-| User need                            | Example syntax                  | Decorator       | Field value                   |
-| ------------------------------------ | ------------------------------- | --------------- | ----------------------------- |
-| A yes/no switch                      | `--verbose or -v`               | `@Flag()`       | `boolean`                     |
-| One string, number, or boolean value | `--port 3000`                   | `@Value()`      | `string \| number \| boolean` |
-| The same option more than once       | `--include src --include tests` | `@ArrayValue()` | `string[]`                    |
+| User need                      | Example syntax                  | Decorator       | Field value            |
+| ------------------------------ | ------------------------------- | --------------- | ---------------------- |
+| A yes/no switch                | `--verbose or -v`               | `@Flag()`       | `boolean`              |
+| One string or finite number    | `--port 3000`                   | `@Value()`      | `string \| number`     |
+| The same option more than once | `--include src --include tests` | `@ArrayValue()` | `string[] \| number[]` |
 
 ## Boolean flags
 
-`@Flag()` creates a boolean switch. Without the option, the property's initializer is used. Passing the long name or its one-character alias sets the field to `true`.
+`@Flag()` creates a boolean switch. Without the option, the property's initializer is used. Passing the long name or any of its one-character aliases sets the field to `true`.
 
 <CodeBlock code={flagCode} filename="src/commands/serve.command.ts" lang="ts" />
 
-Both `ship serve --verbose` and `ship serve -v` produce `this.verbose === true`. Use a field flag for data that modifies an action. If the option must select a different method, use a handler flag instead; see [Commands](/commands).
+`ship serve --verbose`, `ship serve -v`, and `ship serve -V` all produce `this.verbose === true`. Use `aliases` for several short forms. The singular `alias` remains supported, and both properties are merged and deduplicated when used together.
+
+A negatable flag additionally accepts the generated `--no-<name>` form, so `ship serve --no-color` produces `this.color === false`. Every short alias remains a positive form: `ship serve --no-color -C` produces `true`. If positive and negative forms both occur, the last one wins. Without either form, the property initializer is preserved.
+
+Use a field flag for data that modifies an action. If the option must select a different method, use a handler flag instead; see [Commands](/commands).
 
 ## Scalar values
 
-`@Value()` consumes one value. func can infer `String`, `Number`, and `Boolean` from emitted TypeScript decorator metadata. Pass `type` explicitly for an optional property or any declaration whose runtime type cannot be inferred.
+`@Value()` consumes one value. func can infer `String` and `Number` from emitted TypeScript decorator metadata. Boolean options must use `@Flag()` so their presence and negated forms have unambiguous CLI semantics. Pass `type` explicitly for an optional property or any declaration whose runtime type cannot be inferred.
 
 <CodeBlock code={valueCode} filename="src/commands/serve.command.ts" lang="ts" />
 
-`ship serve --host 0.0.0.0 --port 4000 --config-file ./dev.json` assigns a string, a number, and a string to the three fields. A property name is the default public option name. For camel-case fields that should use conventional kebab case, set `name` explicitly as shown by `configFile`.
+`ship serve --host 0.0.0.0 -P 4000 --config-file ./dev.json` assigns a string, a number, and a string to the three fields. A property name is the default public option name. For camel-case fields that should use conventional kebab case, set `name` explicitly as shown by `configFile`.
 
 The property initializer is the default when the user omits the option. Defaults are application behavior, so choose them intentionally and include them in help output when users need to know them.
 
-## Repeated string values
+## Repeated values
 
-`@ArrayValue()` collects repeated occurrences into a string array. Use it when order or multiplicity matters; do not ask users to invent a comma-separated format and parse it themselves.
+`@ArrayValue()` collects repeated occurrences into an array. Its element type defaults to `String`; pass `type: Number` for finite numbers. TypeScript decorator metadata exposes only `Array`, so number arrays must declare their element type explicitly.
 
 <CodeBlock code={arrayCode} filename="src/commands/build.command.ts" lang="ts" />
 
-`ship build -i src -i tests` assigns `['src', 'tests']` to `this.includes`. Array values currently contain strings; convert them in business code only when the public CLI genuinely needs another representation.
+`ship build -i src -I tests --port 3000 --port -1.5` assigns `['src', 'tests']` to `this.includes` and `[3000, -1.5]` to `this.ports`. Repeated values preserve their input order.
 
 ## Validate before business code runs
 
@@ -165,16 +192,12 @@ Validators run after fields receive parsed or default values and before the hand
 
 Names passed to dependency and exclusivity validators are public long option names without `--`, not TypeScript property names or short aliases.
 
-## Parse-only sub-options
-
-`@SubOptions()` declares options that appear only in `@Args().option`; func does not assign them to fields. They are useful when adapting an existing dynamic option model, but they hide the available data from the command instance and make defaults less visible. Prefer field options for normal typed commands.
-
-<CodeBlock
-  code={subOptionsCode}
-  filename="src/commands/inspect.command.ts"
-  lang="ts"
-/>
-
 Undeclared option-looking tokens are rejected. Use [Parameters](/parameters) for remaining positional input and complete runtime context.
+
+## Deprecate an option without removing it
+
+Place `@Deprecated()` beside `@Flag`, `@Value`, or `@ArrayValue` to keep an option working while marking it in structured help and printing a non-fatal stderr notice when the user explicitly supplies it. Pass a message such as `@Deprecated('Use --format instead.')` to include migration guidance. Defaults do not trigger notices, and placing the decorator on an ordinary property has no observable effect.
+
+Module-scoped action options use the `deprecated` parameter on `@OptionCommand` instead.
 
 </DocsLayout>

@@ -2,7 +2,7 @@
 code: F_SYSTEM_CANNOT_INFER_VALUE_TYPE
 title: 无法推断值类型
 description: '@Value 属性没有受支持的运行时类型，也没有显式声明解析类型。'
-lastModified: '2026-08-08'
+lastModified: '2026-08-14'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -35,4 +35,4 @@ export const fixCode = [
 
 <CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />
 
-可使用 `String`、`Number` 或 `Boolean`；重复字符串应使用 `@ArrayValue()`。
+可使用 `String` 或 `Number`；布尔选项应使用 `@Flag()`，重复值应使用 `@ArrayValue()`，数字数组还需要传入 `type: Number`。

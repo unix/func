@@ -1,7 +1,7 @@
 ---
 title: API 参考
 description: 查阅当前 func 装饰器、运行时类型、模块 API 和 funcgo 命令。
-lastModified: '2026-08-04'
+lastModified: '2026-08-14'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -45,53 +45,56 @@ export const apiExampleCode = [
 
 ## 命令
 
-| 签名                                       | 结构                                                                                                                    | 描述                                                                                         |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `@Command(params: CommandParams)`          | `CommandParams = { name: string, description?: string, alias?: string }`                                                | 注册具名命令。name 或 alias 会与第一个输入 token 匹配。                                      |
-| `@Handler(params?: HandlerParams)`         | `HandlerParams = { flag?: string, alias?: string, description?: string, path?: string[] }`                              | 注册默认处理器、标志处理器或路径处理器。path 不能与 flag 或 alias 同时使用。                 |
-| `@SubOptions(params: Array<OptionParams>)` | `OptionParams = { name: string, type?: Boolean \| String \| Number \| [String], description?: string, alias?: string }` | 为当前命令作用域添加仅用于解析的选项。需要从命令实例读取值时，优先使用字段选项。             |
-| `@CommandMissing()`                        | `-`                                                                                                                     | 注册用于处理未知首个裸输入的 fallback command。它可以像普通命令一样定义 handler 和字段选项。 |
-| `@CommandMajor()`                          | `-`                                                                                                                     | 注册空调用和顶层选项使用的主命令。                                                           |
-| `@Catch()`                                 | `-`                                                                                                                     | 注册局部命令错误方法。方法正常结束后，错误不再传递给全局处理器。                             |
-| `@CatchAll() / @CommandError()`            | `-`                                                                                                                     | 注册全局错误处理器类。CommandError 是 CatchAll 的别名。                                      |
+| 签名                               | 结构                                                                                                                                                    | 描述                                                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `@Command(params: CommandParams)`  | `CommandParams = { path: string \| readonly string[], deprecated?: true \| string, description?: string, alias?: string, aliases?: readonly string[] }` | 注册具名命令。path 或任一 alias 会与输入 token 匹配。                                                |
+| `@Handler(params?: HandlerParams)` | `HandlerParams = { flag?: string, alias?: string, aliases?: readonly string[], description?: string, path?: string[] }`                                 | 注册默认、标志或路径处理器。path 不能与 flag 或 aliases 同时使用；选项式 alias 必须为单字符。        |
+| `@CommandMissing()`                | `-`                                                                                                                                                     | 注册用于处理未知首个裸输入的 fallback command。它可以像普通命令一样定义 handler 和字段选项。         |
+| `@CommandMajor()`                  | `-`                                                                                                                                                     | 注册空调用和顶层选项使用的主命令。                                                                   |
+| `onError(exception, context)`      | `Exception, ExceptionContext`                                                                                                                           | 在当前 command、直接 owner module 或根 module 上处理非系统异常。正常返回表示已处理，抛错则继续传播。 |
+| `onInit()`                         | `-`                                                                                                                                                     | 初始化已激活的 command、module、option provider 或 provider。                                        |
+| `onDispose(outcome)`               | `ExecutionOutcome`                                                                                                                                      | 在成功或失败后清理已激活的受管实例。                                                                 |
 
 ## 字段选项和校验器
 
-| 签名                   | 结构                                                                                                                                   | 描述                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `@Flag(params?)`       | `params = { name?: string, alias?: string, description?: string }`                                                                     | 声明一个赋值给被装饰属性的布尔选项。                        |
-| `@Value(params?)`      | `params = { name?: string, alias?: string, description?: string, type?: Boolean \| String \| Number \| [String], required?: boolean }` | 声明标量值选项。能从 design metadata 推断类型时会自动推断。 |
-| `@ArrayValue(params?)` | `params = { name?: string, alias?: string, description?: string }`                                                                     | 声明重复字符串选项，并以字符串数组赋给属性。                |
-| `@Required()`          | `-`                                                                                                                                    | 要求选项被显式提供，或已经定义默认值。                      |
-| `@Enum(values)`        | `values = Array<boolean \| string \| number>`                                                                                          | 校验标量值或数组中的每一项是否位于允许列表中。              |
-| `@DependsOn(options)`  | `options = string[]`                                                                                                                   | 当此选项被显式提供时，要求同时提供其他选项。                |
-| `@Exclusive(options)`  | `options = string[]`                                                                                                                   | 拒绝此选项与列表中的任一选项同时显式出现。                  |
-| `@ValueValidate(fn)`   | `fn(value, options) => boolean \| string \| void`                                                                                      | 运行自定义校验器。返回 false 或字符串会创建校验错误。       |
+| 签名                     | 结构                                                                                                                                               | 描述                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `@OptionCommand(params)` | `params = { name: string, alias?: string, aliases?: readonly string[], deprecated?: true \| string, description?: string, overrideAll?: boolean }` | 声明 module 作用域的动作选项；每个 alias 必须为单字符。                 |
+| `@Flag(params?)`         | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, negatable?: boolean }`                               | 声明布尔选项；所有 alias 都是正向形式，`negatable` 注册 `--no-<name>`。 |
+| `@Value(params?)`        | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, type?: String \| Number }`                           | 声明标量值选项。能从 design metadata 推断类型时会自动推断。             |
+| `@ArrayValue(params?)`   | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, type?: String \| Number }`                           | 声明重复值选项；元素类型默认为 `String`。                               |
+| `@Deprecated(message?)`  | `message?: string`                                                                                                                                 | 将字段选项或 `@Handler({ flag })` 动作标记为废弃；普通成员会被忽略。    |
+| `@Required()`            | `-`                                                                                                                                                | 要求选项被显式提供，或已经定义默认值。                                  |
+| `@Enum(values)`          | `values = Array<boolean \| string \| number>`                                                                                                      | 校验标量值或数组中的每一项是否位于允许列表中。                          |
+| `@DependsOn(options)`    | `options = string[]`                                                                                                                               | 当此选项被显式提供时，要求同时提供其他选项。                            |
+| `@Exclusive(options)`    | `options = string[]`                                                                                                                               | 拒绝此选项与列表中的任一选项同时显式出现。                              |
+| `@ValueValidate(fn)`     | `fn(value, options) => boolean \| string \| void`                                                                                                  | 运行自定义校验器。返回 false 或字符串会创建校验错误。                   |
 
 ## 上下文注入
 
-| 签名           | 描述                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------- |
-| `@Args()`      | 注入 FuncArgs：命令元数据、选中的处理器、inputs、path、归一化 option 和原生解析数据。 |
-| `@Regs()`      | 注入 CommandRegistry，用于读取已注册命令元数据。                                      |
-| `@Exception()` | 向局部 catch 方法和全局错误处理器注入 FuncException。                                 |
+| 签名      | 描述                                                                              |
+| --------- | --------------------------------------------------------------------------------- |
+| `@Args()` | 注入 Args：命令元数据、选中的处理器、inputs、path、归一化 option 和原生解析数据。 |
+| `@Regs()` | 注入 CommandRegistry，用于读取已注册命令元数据。                                  |
 
 ## 应用
 
-| 签名                         | 结构                                                                               | 描述                                               |
-| ---------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `@FuncModule(params)`        | `params = { commands?: Class[], imports?: FuncModuleInput[], services?: Class[] }` | 创建应用模块或功能模块。                           |
-| `@Service()`                 | `-`                                                                                | 标记一个可被注入到命令或其他已注册服务中的服务类。 |
-| `run(input, options?)`       | `options = { argv?: string[], services?: Class[] }`                                | 创建应用并执行。                                   |
-| `createApp(input, options?)` | `options = { argv?: string[], services?: Class[] }`                                | 创建底层 Container，但不运行它。                   |
+| 签名                          | 结构                                                                                                                | 描述                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `@Module(params)`             | `params = { commands?: Type[], imports?: Array<Type \| ModuleMetadata>, options?: Type[], providers?: Provider[] }` | 创建应用或 feature module；传给 `run` 的根必须是带装饰器的类。 |
+| `@Injectable()`               | `-`                                                                                                                 | 标记可注入的类 provider。                                      |
+| `run(module, options?)`       | `options = { argv?, cwd?, stdin?, stdout?, stderr?, signal? }`                                                      | 创建并执行应用 module。                                        |
+| `createApp(module, options?)` | 与 `run` 相同                                                                                                       | 创建底层 Container，但不执行。                                 |
 
 ## 运行时类型
 
-| 签名              | 结构                                                                                   | 描述                                          |
-| ----------------- | -------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `FuncArgs`        | `{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }` | 由 Args 注入的归一化运行时上下文。            |
-| `FuncException`   | `code, details, error, level, message, type, preventDefaultPrint()`                    | catch 和错误处理器使用的 FuncError 包装对象。 |
-| `CommandRegistry` | `{ commands: RegisterCommandParams[] }`                                                | 由 Regs 注入的只读注册表上下文。              |
+| 签名               | 结构                                                                                   | 描述                                        |
+| ------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `Args`             | `{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }` | 由 Args 注入的归一化运行时上下文。          |
+| `Exception`        | `code, details, message, scope, cause`                                                 | 传给错误处理器的结构化 `Error` 子类。       |
+| `ExceptionContext` | `printPrevented, preventDefaultPrint()`                                                | 与 `Exception` 一同传入的可变错误处理状态。 |
+| `CommandRegistry`  | `{ commands: RegisterCommandParams[] }`                                                | 由 Regs 注入的只读注册表上下文。            |
+| `Deprecation`      | `true \| string`                                                                       | 废弃标记，以及可选的迁移说明。              |
 
 ## 支持命令
 

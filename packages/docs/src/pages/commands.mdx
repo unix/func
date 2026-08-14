@@ -1,7 +1,7 @@
 ---
 title: Commands
 description: Define user-facing commands, aliases, and several actions inside one func command scope.
-lastModified: '2026-08-04'
+lastModified: '2026-08-14'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -63,7 +63,7 @@ export const statusCommands = {
 
 export const aliasCode = `@Command({
   name: 'status',
-  alias: 's',
+  aliases: ['s', 'stat'],
   description: 'Print service status',
 })
 export class StatusCommand {}`
@@ -73,7 +73,7 @@ export const projectCommandCode = [
   '',
   '@Command({',
   "  name: 'project',",
-  "  alias: 'p',",
+  "  aliases: ['p', 'proj'],",
   "  description: 'Manage projects and members',",
   '})',
   'export class ProjectCommand {',
@@ -92,7 +92,7 @@ export const projectCommandCode = [
   "    console.log('Add project member')",
   '  }',
   '',
-  "  @Handler({ flag: 'help', alias: 'h', description: 'Print project help' })",
+  "  @Handler({ flag: 'help', aliases: ['h', '?'], description: 'Print project help' })",
   '  help() {',
   "    console.log('Project usage')",
   '  }',
@@ -145,15 +145,21 @@ A decorated class does not become reachable merely because its file exists. Add 
 
 func selects `StatusCommand`, creates an instance, and invokes `run()` because it is the default `@Handler()`. Each command must have at least one handler, and a command can have at most one default handler.
 
-## Add an alias when it saves real typing
+## Add aliases when they save real typing
 
-An alias is a second token that selects the same command. It does not create another command and does not run a different handler:
+An alias is another token that selects the same command. It does not create another command and does not run a different handler:
 
 <CodeBlock code={aliasCode} lang="ts" />
 
-Both `ship status` and `ship s` now select `StatusCommand`. Prefer recognizable abbreviations for frequent commands, such as `g` for `greet`. Avoid aliases for rarely used commands or abbreviations that could plausibly belong to another command. Names and aliases must be unique across all registered named commands.
+`ship status`, `ship s`, and `ship stat` now select `StatusCommand`. Use `aliases` for several alternatives. The singular `alias` remains supported, and when both properties are present func merges them in declaration order and removes duplicates. Prefer recognizable abbreviations for frequent commands, such as `g` for `greet`. Avoid aliases for rarely used commands or abbreviations that could plausibly belong to another command. Names and aliases must be unique across all registered named commands.
 
 Command aliases may contain more than one character, while option aliases such as `-h` must be a single character. Neither form should include a leading hyphen in the decorator value; func adds the hyphen for options.
+
+## Deprecate commands and action flags
+
+Set `deprecated: true` on `@Command` to mark the whole command, or provide a string to include migration guidance. Deprecated commands remain executable, appear as deprecated in structured help, and print a non-fatal notice to stderr when dispatched.
+
+Use `@Deprecated()` on a method decorated with `@Handler({ flag })` to deprecate only that action option. Default and path handlers cannot use `@Deprecated()`; deprecate their owning command instead.
 
 ## Put related actions in one command
 
@@ -167,14 +173,14 @@ Use a command for a stable top-level verb or resource. When several actions belo
 
 - `ship project` runs the default `list()` handler.
 - `ship project create` runs the `create()` path handler.
-- `ship p member add` uses the command alias, then runs the longest matching path.
-- `ship project --help` runs the help handler selected by a handler flag.
+- `ship p member add` uses one command alias, then runs the longest matching path.
+- `ship project -?` runs the help handler through one of its short aliases.
 
-A handler flag chooses one mutually exclusive action. This is different from a field `@Flag()`, which supplies boolean data to whichever handler was selected. Path handlers are checked first, then handler flags, then the default handler. A path cannot declare an alias or be combined with a handler flag.
+A handler flag chooses one mutually exclusive action. This is different from a field `@Flag()`, which supplies boolean data to whichever handler was selected. Handler flags accept `alias` and `aliases`, but every option-style alias must contain exactly one character. Path handlers are checked first, then handler flags, then the default handler. A path cannot declare aliases or be combined with a handler flag.
 
 ## Organize several commands
 
-An application can register as many named commands as it needs, normally one class per top-level business area. Group larger areas in feature `@FuncModule` classes and import those modules from the root instead of putting unrelated operations into one large command class.
+An application can register as many named commands as it needs, normally one class per top-level business area. Group larger areas in feature `@Module` classes and import those modules from the root instead of putting unrelated operations into one large command class.
 
 One CLI invocation selects only one top-level command. Do not expect `ship build deploy` to run the `build` command and then the `deploy` command: `build` owns the scope and `deploy` is remaining input. For a fixed nested action, use a handler path. For a workflow that intentionally performs several operations, create one orchestration command and call shared services from its handler.
 

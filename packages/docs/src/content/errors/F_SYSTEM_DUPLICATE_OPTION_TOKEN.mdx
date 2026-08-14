@@ -8,7 +8,7 @@ lastModified: '2026-08-08'
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { CommandMajor, Container, Flag, Handler, Value } from 'func'",
+  "import { CommandMajor, Flag, Handler, Value, createApp } from 'func'",
   '',
   '@CommandMajor()',
   'class BuildCommand {',
@@ -22,7 +22,7 @@ export const reproductionCode = [
   '  run() {}',
   '}',
   '',
-  'new Container([BuildCommand])',
+  'createApp({ commands: [BuildCommand] })',
 ].join('\n')
 
 export const fixCode = [
@@ -38,7 +38,7 @@ export const fixCode = [
   '  run() {}',
   '}',
   '',
-  'new Container([BuildCommand])',
+  'createApp({ commands: [BuildCommand] })',
 ].join('\n')
 
 ## Reproduction

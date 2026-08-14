@@ -1,27 +1,33 @@
 ---
 code: F_SYSTEM_EXPECTED_ARRAY_PARAM
 title: Expected an array parameter
-description: A decorator parameter such as path, SubOptions, Enum, DependsOn, or Exclusive is not an array.
+description: A list parameter such as aliases, Enum, DependsOn, or Exclusive is not an array.
 lastModified: '2026-08-08'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { SubOptions } from 'func'",
+  "import { Enum, Value } from 'func'",
   '',
-  "@SubOptions({ name: 'verbose' } as any)",
-  'class BuildCommand {}',
+  'class BuildCommand {',
+  "  @Enum('production' as any)",
+  '  @Value()',
+  "  target: string = 'development'",
+  '}',
 ].join('\n')
 
 export const fixCode = [
-  "@SubOptions([{ name: 'verbose' }])",
-  'class BuildCommand {}',
+  'class BuildCommand {',
+  "  @Enum(['production'])",
+  '  @Value()',
+  "  target: string = 'development'",
+  '}',
 ].join('\n')
 
 ## Reproduction
 
-Decorators that accept a list require an array even when the list has one item:
+Decorator properties that accept a list, including `aliases`, require an array even when the list has one item:
 
 <CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
 

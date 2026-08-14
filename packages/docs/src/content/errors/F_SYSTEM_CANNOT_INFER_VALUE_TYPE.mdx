@@ -2,7 +2,7 @@
 code: F_SYSTEM_CANNOT_INFER_VALUE_TYPE
 title: Cannot infer value type
 description: A @Value property has no supported runtime type and does not declare one explicitly.
-lastModified: '2026-08-08'
+lastModified: '2026-08-14'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -35,4 +35,4 @@ Pass a supported parser type explicitly and keep the property type compatible:
 
 <CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />
 
-Use `String`, `Number`, or `Boolean`. For repeated strings, use `@ArrayValue()`.
+Use `String` or `Number`. For booleans, use `@Flag()`; for repeated values, use `@ArrayValue()` and pass `type: Number` when needed.

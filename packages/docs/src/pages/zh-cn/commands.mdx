@@ -1,7 +1,7 @@
 ---
 title: 命令
 description: 定义面向用户的 func 命令、别名，以及同一命令作用域内的多个动作。
-lastModified: '2026-08-04'
+lastModified: '2026-08-14'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -63,7 +63,7 @@ export const statusCommands = {
 
 export const aliasCode = `@Command({
   name: 'status',
-  alias: 's',
+  aliases: ['s', 'stat'],
   description: 'Print service status',
 })
 export class StatusCommand {}`
@@ -73,7 +73,7 @@ export const projectCommandCode = [
   '',
   '@Command({',
   "  name: 'project',",
-  "  alias: 'p',",
+  "  aliases: ['p', 'proj'],",
   "  description: 'Manage projects and members',",
   '})',
   'export class ProjectCommand {',
@@ -92,7 +92,7 @@ export const projectCommandCode = [
   "    console.log('Add project member')",
   '  }',
   '',
-  "  @Handler({ flag: 'help', alias: 'h', description: 'Print project help' })",
+  "  @Handler({ flag: 'help', aliases: ['h', '?'], description: 'Print project help' })",
   '  help() {',
   "    console.log('Project usage')",
   '  }',
@@ -148,13 +148,19 @@ func 匹配到 `StatusCommand` 后会创建实例，并调用默认处理器 `ru
 
 ## 只在确实节省输入时添加别名
 
-别名是同一命令的另一个名称，不会创建新命令，也不会调用其他处理器：
+别名是同一命令的其他名称，不会创建新命令，也不会调用其他处理器：
 
 <CodeBlock code={aliasCode} lang="ts" />
 
-`ship status` 和 `ship s` 现在都会选择 `StatusCommand`。频繁使用的命令可以采用容易辨认的缩写，例如用 `g` 表示 `greet` 。很少使用的命令，或容易与其他命令混淆的缩写，不适合用作别名。所有已注册命令的 name 和 alias 都不能重复。
+`ship status`、`ship s` 和 `ship stat` 现在都会选择 `StatusCommand`。多个别名使用 `aliases`；单数 `alias` 继续兼容，两者同时提供时，func 会按声明顺序合并并去重。频繁使用的命令可以采用容易辨认的缩写，例如用 `g` 表示 `greet`。很少使用的命令，或容易与其他命令混淆的缩写，不适合用作别名。所有已注册命令的 name 和 aliases 都不能重复。
 
 命令别名可以超过一个字符；`-h` 这样的选项别名则必须是单个字符。装饰器中的值不需要带开头的连字符，func 会为选项补上它。
+
+## 废弃命令和动作 flag
+
+在 `@Command` 中设置 `deprecated: true` 可以标记整个命令，也可以传入字符串提供迁移说明。废弃命令仍然可以执行，会在结构化帮助中标明，并在实际分派时向 stderr 输出不影响退出码的提示。
+
+在带有 `@Handler({ flag })` 的方法上使用 `@Deprecated()`，可以只废弃该动作选项。默认 handler 和 path handler 不能使用 `@Deprecated()`；这类场景应废弃其所属命令。
 
 ## 把相关动作放入同一个命令
 
@@ -168,14 +174,14 @@ func 匹配到 `StatusCommand` 后会创建实例，并调用默认处理器 `ru
 
 - `ship project` 运行默认的 `list()` 处理器。
 - `ship project create` 运行 `create()` 路径处理器。
-- `ship p member add` 通过命令别名和最长匹配路径运行 `addMember()`。
-- `ship project --help` 运行由处理器标志选择的 help 方法。
+- `ship p member add` 通过一个命令别名和最长匹配路径运行 `addMember()`。
+- `ship project -?` 通过一个短别名运行 help 方法。
 
-处理器标志用来选择互斥动作；字段 `@Flag()` 只向已选中的处理器提供布尔值。 func 的匹配顺序为：路径处理器、处理器标志、默认处理器。路径不能声明 alias， 也不能与处理器 flag 同时使用。
+处理器标志用来选择互斥动作；字段 `@Flag()` 只向已选中的处理器提供布尔值。处理器标志同时接受 `alias` 和 `aliases`，但每个选项式别名都必须是单字符。func 的匹配顺序为：路径处理器、处理器标志、默认处理器。路径不能声明 aliases，也不能与处理器 flag 同时使用。
 
 ## 组织多个命令
 
-一个应用可以注册多个具名命令，通常每个顶层业务领域对应一个类。较大的业务领域可以放入独立的 `@FuncModule`，由根模块 import。不要把无关的操作都写在一个命令类中。
+一个应用可以注册多个具名命令，通常每个顶层业务领域对应一个类。较大的业务领域可以放入独立的 `@Module`，由根模块 import。不要把无关的操作都写在一个命令类中。
 
 一次 CLI 调用只会选中一个顶层命令。对于 `ship build deploy`，func 会选中 `build`，而 `deploy` 只是剩余输入。固定的嵌套动作应使用处理器路径； 需要连续执行多个业务操作时，可以定义一个专用命令，并在处理器中调用共享服务。
 

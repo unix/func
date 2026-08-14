@@ -2,9 +2,9 @@ import {
   Args,
   Command,
   CommandMissing,
-  FuncModule,
+  Module,
   Handler,
-  type FuncArgs,
+  type Args,
 } from '../../../../core/src'
 
 @Command({
@@ -21,12 +21,12 @@ class StatusCommand {
 @CommandMissing()
 class MissingCommand {
   @Handler()
-  run(@Args() args: FuncArgs) {
+  run(@Args() args: Args) {
     console.error(`Unknown command: ${args.inputs[0]}`)
   }
 }
 
-@FuncModule({
+@Module({
   commands: [StatusCommand, MissingCommand],
 })
 export class SaasStatusModule {}

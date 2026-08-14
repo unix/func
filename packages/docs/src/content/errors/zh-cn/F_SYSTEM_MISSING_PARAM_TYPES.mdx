@@ -9,7 +9,7 @@ lastModified: '2026-08-08'
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { Command, FuncModule, Handler, run } from 'func'",
+  "import { Command, Module, Handler, run } from 'func'",
   '',
   'class ProjectService {}',
   '',
@@ -21,7 +21,7 @@ export const reproductionCode = [
   '  run() {}',
   '}',
   '',
-  '@FuncModule({ commands: [InspectCommand] })',
+  '@Module({ commands: [InspectCommand] })',
   'class AppModule {}',
   '',
   'run(AppModule)',
@@ -52,4 +52,4 @@ export const tsconfigCode = [
 
 <CodeBlock code={tsconfigCode} filename="tsconfig.json" lang="json" />
 
-确保目标类带有 func 装饰器，把注入的服务注册到 `FuncModule.services`，并确认 `funcgo` 读取的是预期的 `tsconfig.json`。
+确保目标类带有 func 装饰器，把注入的服务注册到 `Module.providers`，并确认 `funcgo` 读取的是预期的 `tsconfig.json`。

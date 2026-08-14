@@ -1,7 +1,7 @@
 ---
 title: 字段选项
 description: 定义命令标志、标量值、重复值、默认值、别名和校验。
-lastModified: '2026-08-04'
+lastModified: '2026-08-14'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -12,12 +12,15 @@ export const flagCode = [
   '',
   "@Command({ name: 'serve' })",
   'export class ServeCommand {',
-  "  @Flag({ alias: 'v', description: 'Print request logs' })",
+  "  @Flag({ alias: 'v', aliases: ['V'], description: 'Print request logs' })",
   '  verbose = false',
+  '',
+  "  @Flag({ aliases: ['c', 'C'], description: 'Use colored output', negatable: true })",
+  '  color = true',
   '',
   '  @Handler()',
   '  run() {',
-  '    console.log(this.verbose)',
+  '    console.log(this.verbose, this.color)',
   '  }',
   '}',
 ].join('\n')
@@ -30,7 +33,7 @@ export const valueCode = [
   "  @Value({ description: 'Interface to bind' })",
   "  host: string = 'localhost'",
   '',
-  "  @Value({ alias: 'p', description: 'Port to listen on' })",
+  "  @Value({ aliases: ['p', 'P'], description: 'Port to listen on' })",
   '  port: number = 3000',
   '',
   "  @Value({ name: 'config-file', type: String })",
@@ -48,12 +51,15 @@ export const arrayCode = [
   '',
   "@Command({ name: 'build' })",
   'export class BuildCommand {',
-  "  @ArrayValue({ name: 'include', alias: 'i' })",
+  "  @ArrayValue({ name: 'include', aliases: ['i', 'I'] })",
   '  includes: string[] = []',
+  '',
+  "  @ArrayValue({ name: 'port', type: Number })",
+  '  ports: number[] = []',
   '',
   '  @Handler()',
   '  run() {',
-  '    console.log(this.includes)',
+  '    console.log(this.includes, this.ports)',
   '  }',
   '}',
 ].join('\n')
@@ -91,20 +97,23 @@ export const validationCode = [
   '}',
 ].join('\n')
 
-export const subOptionsCode = [
-  "import { Args, Command, FuncArgs, Handler, SubOptions } from 'func'",
+export const moduleOptionsCode = [
+  "import { Flag, Module, Option, Value } from 'func'",
   '',
-  '@SubOptions([',
-  "  { name: 'format', alias: 'f', type: String },",
-  "  { name: 'raw', type: Boolean },",
-  '])',
-  "@Command({ name: 'inspect' })",
-  'export class InspectCommand {',
-  '  @Handler()',
-  '  run(@Args() args: FuncArgs) {',
-  '    console.log(args.option.format, args.option.raw)',
-  '  }',
+  '@Option()',
+  'export class DeployOptions {',
+  '  @Flag()',
+  '  json = false',
+  '',
+  '  @Value()',
+  "  profile: string = 'default'",
   '}',
+  '',
+  '@Module({',
+  '  commands: [DeployCommand],',
+  '  options: [DeployOptions],',
+  '})',
+  'export class DeployModule {}',
 ].join('\n')
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="options">
@@ -113,39 +122,57 @@ export const subOptionsCode = [
 
 字段选项只属于一个命令作用域。`ServeCommand` 声明的选项可用于 `ship serve`，不会自动出现在主命令或其他具名命令中。
 
+## 通过 module 共享选项
+
+同一 feature 直接声明的多个 command 需要共享 CLI 选项时，把字段放入一个 `@Option()` 类，并通过 module 的 `options` 数组注册。
+
+<CodeBlock
+  code={moduleOptionsCode}
+  filename="src/deploy/deploy.module.ts"
+  lang="ts"
+/>
+
+option class 是普通的 DI 受管依赖，因此其直接 module 和 command 都可以注入 `DeployOptions`，也可以像其他 provider 一样实现 `onInit` 与 `onDispose`。
+
+作用域是显式的：feature module 的 options 只应用于该 module 直接声明的 commands，不会沿 `imports` 传播。注册在根 `AppModule` 的 options 在应用内全局生效，也可以在任意位置注入。同一个 command 作用域内，根 option、owner module option、command option 和 handler flag 不能占用相同的公开名称或 alias。
+
 ## 选择合适的值类型
 
-| 用户需求                 | 输入示例                        | 装饰器          | 字段值                        |
-| ------------------------ | ------------------------------- | --------------- | ----------------------------- |
-| 是或否的开关             | `--verbose 或 -v`               | `@Flag()`       | `boolean`                     |
-| 一个字符串、数字或布尔值 | `--port 3000`                   | `@Value()`      | `string \| number \| boolean` |
-| 同一选项重复多次         | `--include src --include tests` | `@ArrayValue()` | `string[]`                    |
+| 用户需求             | 输入示例                        | 装饰器          | 字段值                 |
+| -------------------- | ------------------------------- | --------------- | ---------------------- |
+| 是或否的开关         | `--verbose 或 -v`               | `@Flag()`       | `boolean`              |
+| 一个字符串或有限数字 | `--port 3000`                   | `@Value()`      | `string \| number`     |
+| 同一选项重复多次     | `--include src --include tests` | `@ArrayValue()` | `string[] \| number[]` |
 
 ## 布尔标志
 
-`@Flag()` 创建布尔开关。用户没有传入该选项时，字段保留属性初始值；使用长名称或单字符 别名时，字段值为 `true`。
+`@Flag()` 创建布尔开关。用户没有传入该选项时，字段保留属性初始值；使用长名称或任一单字符别名时，字段值为 `true`。
 
 <CodeBlock code={flagCode} filename="src/commands/serve.command.ts" lang="ts" />
 
-`ship serve --verbose` 和 `ship serve -v` 都会得到 `this.verbose === true` 。字段标志用于向当前动作提供布尔值。如果该选项应该选择 另一个方法，请改用处理器标志，详见[命令](/zh-cn/commands)。
+`ship serve --verbose`、`ship serve -v` 和 `ship serve -V` 都会得到 `this.verbose === true`。多个短形式使用 `aliases`；单数 `alias` 继续兼容，两者同时使用时会合并并去重。
+
+negatable flag 还会接受自动生成的 `--no-<name>` 形式，因此 `ship serve --no-color` 会得到 `this.color === false`。所有短别名都是正向形式：`ship serve --no-color -C` 会得到 `true`。正向和反向形式同时出现时，以最后一个为准；都未出现时保留属性初始值。
+
+字段标志用于向当前动作提供布尔值。如果该选项应该选择另一个方法，请改用处理器标志，详见[命令](/zh-cn/commands)。
 
 ## 标量值
 
-`@Value()` 接收一个值。func 可以根据 TypeScript 发出的装饰器元数据推断 `String`、`Number` 和 `Boolean` 。可选属性或其他无法在运行时推断的声明需要显式传入 `type`。
+`@Value()` 接收一个值。func 可以根据 TypeScript 发出的装饰器元数据推断 `String` 和 `Number`。布尔选项必须使用 `@Flag()`，从而让存在形式与反向形式保持明确的 CLI 语义。可选属性或其他无法在运行时推断的声明需要显式传入 `type`。
 
 <CodeBlock code={valueCode} filename="src/commands/serve.command.ts" lang="ts" />
 
-`ship serve --host 0.0.0.0 --port 4000 --config-file ./dev.json` 会分别为三个字段赋予字符串、数字和字符串。属性名默认作为对外选项名。驼峰字段如果需要常见 的 kebab-case 时，应像 `configFile` 一样显式设置 `name`。
+`ship serve --host 0.0.0.0 -P 4000 --config-file ./dev.json` 会分别为三个字段赋予字符串、数字和字符串。属性名默认作为对外选项名。驼峰字段如果需要常见的 kebab-case 时，应像 `configFile` 一样显式设置 `name`。
 
 用户省略选项时，属性初始值就是默认值。默认值会直接影响应用行为；如果用户需要知道 它，帮助信息中也应注明。
 
-## 重复字符串值
+## 重复值
 
-`@ArrayValue()` 会把同一选项的多次输入收集为字符串数组。如果顺序或重复次数有意义，应使用该装饰器， 不要另外设计逗号分隔格式并在业务代码中解析。
+`@ArrayValue()` 会把同一选项的多次输入收集为数组。元素类型默认是 `String`；有限数字需要显式传入 `type: Number`。TypeScript 装饰器元数据只能识别到 `Array`，因此无法自动推断数字数组的元素类型。
 
 <CodeBlock code={arrayCode} filename="src/commands/build.command.ts" lang="ts" />
 
-`ship build -i src -i tests` 会把 `['src', 'tests']` 赋给 `this.includes`。ArrayValue 当前包含字符串；只有公开 CLI 确实需要其他表示时，可以在业务代码中转换。
+`ship build -i src -I tests --port 3000 --port -1.5` 会把 `['src', 'tests']` 赋给 `this.includes`，并把 `[3000, -1.5]` 赋给 `this.ports`。重复值会保留输入顺序。
 
 ## 在业务代码运行前完成校验
 
@@ -165,16 +192,12 @@ export const subOptionsCode = [
 
 依赖和互斥校验器接收的是不带 `--` 的公开长选项名，不是 TypeScript 属性名或短 alias。
 
-## 仅解析的子选项
-
-`@SubOptions()` 声明只出现在 `@Args().option` 中的选项，func 不会把它们赋给字段。它适合兼容已有的动态选项设计，但无法直接在命令实例上看到可用数据和默认值。 普通的类型化命令应优先使用字段选项。
-
-<CodeBlock
-  code={subOptionsCode}
-  filename="src/commands/inspect.command.ts"
-  lang="ts"
-/>
-
 看起来像选项但没有声明的 token 会被拒绝。剩余位置输入和完整运行时上下文见 [参数注入](/zh-cn/parameters)。
+
+## 在不移除选项的情况下标记废弃
+
+将 `@Deprecated()` 与 `@Flag`、`@Value` 或 `@ArrayValue` 放在同一属性上，可以让选项继续工作，同时在结构化帮助中标明，并在用户显式传入时向 stderr 输出不影响退出码的提示。可以传入 `@Deprecated('Use --format instead.')` 这样的迁移说明。默认值不会触发提示；把该装饰器放在普通属性上也不会产生可观察效果。
+
+module 作用域的动作选项通过 `@OptionCommand` 的 `deprecated` 参数标记。
 
 </DocsLayout>

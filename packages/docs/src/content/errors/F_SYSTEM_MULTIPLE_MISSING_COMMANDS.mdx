@@ -8,7 +8,7 @@ lastModified: '2026-08-08'
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { CommandMissing, Container } from 'func'",
+  "import { CommandMissing, createApp } from 'func'",
   '',
   '@CommandMissing()',
   'class FirstMissing {}',
@@ -16,14 +16,14 @@ export const reproductionCode = [
   '@CommandMissing()',
   'class SecondMissing {}',
   '',
-  'new Container([FirstMissing, SecondMissing])',
+  'createApp({ commands: [FirstMissing, SecondMissing] })',
 ].join('\n')
 
 export const fixCode = [
   '@CommandMissing()',
   'class MissingCommand {}',
   '',
-  'new Container([MissingCommand])',
+  'createApp({ commands: [MissingCommand] })',
 ].join('\n')
 
 ## Reproduction

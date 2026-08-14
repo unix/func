@@ -30,7 +30,7 @@ Use these rules when the user has not supplied a stronger repository-specific co
 - Use `@Flag`, `@Value`, and `@ArrayValue` instead of manually parsing known options from `process.argv`.
 - Use `@Args()` only for remaining positional input or runtime metadata that field decorators do not represent.
 - Put reusable work in `@Service()` classes and inject them. Command handlers should coordinate input, services, and output.
-- Group large applications with `@FuncModule({ imports })`; do not create a single command registry file that imports every implementation detail across all domains.
+- Group large applications with `@Module({ imports })`; do not create a single command registry file that imports every implementation detail across all domains.
 
 4. Preserve runtime boundaries
 
@@ -53,7 +53,7 @@ Use these rules when the user has not supplied a stronger repository-specific co
 For a new named command, cover:
 
 - its canonical command name;
-- its alias, when one is declared;
+- each alias, when aliases are declared;
 - the default handler's successful result;
 - every added path handler or handler flag;
 - required, repeated, enum, dependency, exclusivity, or custom validation introduced by the change;
@@ -62,7 +62,7 @@ For a new named command, cover:
 
 For a changed service, cover the service logic directly when it has meaningful branching, then keep at least one CLI-level test proving the command is wired to it.
 
-For help or discovery output, assert the relevant command name, alias, and description through `@Regs()` output. Do not duplicate framework metadata tests for every command.
+For help or discovery output, assert the relevant command name, aliases, and description through `Context.commands` or `func/help` output. Do not duplicate framework metadata tests for every command.
 
 7. Finish with focused verification
 

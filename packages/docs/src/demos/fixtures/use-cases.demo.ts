@@ -5,11 +5,11 @@ import {
   CommandMissing,
   Enum,
   Flag,
-  FuncModule,
+  Module,
   Handler,
   Required,
   Value,
-  type FuncArgs,
+  type Args,
 } from '../../../../core/src'
 
 @Command({
@@ -67,7 +67,7 @@ class UserSearchFallback {
   verified = false
 
   @Handler()
-  async search(@Args() args: FuncArgs) {
+  async search(@Args() args: Args) {
     const [username, ...aliases] = args.inputs
     console.log('Searching user:', {
       username,
@@ -95,7 +95,7 @@ class ScaleCommand {
   }
 }
 
-@FuncModule({
+@Module({
   commands: [
     StatusCommand,
     DomainCommand,

@@ -10,7 +10,7 @@ import DocsLayout from '@/layouts/docs.astro'
 
 export const conceptModel = [
   'Application definition',
-  '@FuncModule()',
+  '@Module()',
   '├─ registers command scopes',
   '│  ├─ @CommandMajor()       entry without a named command',
   '│  ├─ @Command({ name })    matches a top-level command',
@@ -37,8 +37,8 @@ export const commandAnatomy = [
 ].join('\n')
 
 export const mappedApplicationCode = [
-  "import { Args, Command, Flag, FuncModule, Handler, Service, Value } from 'func'",
-  "import type { FuncArgs } from 'func'",
+  "import { Args, Command, Flag, Module, Handler, Service, Value } from 'func'",
+  "import type { Args } from 'func'",
   '',
   '@Service()',
   'class ProjectService {',
@@ -58,13 +58,13 @@ export const mappedApplicationCode = [
   '  constructor(private project: ProjectService) {}',
   '',
   "  @Handler({ path: ['member', 'add'] })",
-  '  addMember(@Args() args: FuncArgs) {',
+  '  addMember(@Args() args: Args) {',
   "    const [username = ''] = args.inputs",
   '    console.log(this.project.addMember(username, this.role, this.force))',
   '  }',
   '}',
   '',
-  '@FuncModule({',
+  '@Module({',
   '  commands: [ProjectCommand],',
   '  services: [ProjectService],',
   '})',
@@ -83,7 +83,7 @@ then passes the user-provided context data to the handler. Before that data reac
 
 A command is the most basic unit. A project usually contains multiple command-derived classes, which are the entry points ultimately used to execute commands.
 
-`@FuncModule()` defines the application's root routing and registers command scopes and services. Command scopes interpret CLI input and select actions; services provide reusable business capabilities. Each invocation selects only one execution path from the registered commands rather than running multiple command classes in sequence.
+`@Module()` defines the application's root routing and registers command scopes and services. Command scopes interpret CLI input and select actions; services provide reusable business capabilities. Each invocation selects only one execution path from the registered commands rather than running multiple command classes in sequence.
 
 <CodeBlock code={conceptModel} filename="The func mental model" />
 
@@ -133,7 +133,7 @@ Here, the input matches the `['member', 'add']` decorator on `addMember`, so tha
 <CodeBlock code={mappedApplicationCode} filename="src/app.module.ts" lang="ts" />
 <Callout title="Not every concept corresponds to an input token">
 
-`@FuncModule()` and `@Service()` organize application code and have no corresponding CLI token. Commands, handlers, and inputs describe how a user invokes the application; modules and services describe how the application organizes its capabilities internally.
+`@Module()` and `@Service()` organize application code and have no corresponding CLI token. Commands, handlers, and inputs describe how a user invokes the application; modules and services describe how the application organizes its capabilities internally.
 
 </Callout>
 

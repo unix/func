@@ -8,12 +8,12 @@ lastModified: '2026-08-08'
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { Command, FuncModule, run } from 'func'",
+  "import { Command, Module, run } from 'func'",
   '',
   "@Command({ name: 'build' })",
   'class BuildCommand {}',
   '',
-  '@FuncModule({ commands: [BuildCommand] })',
+  '@Module({ commands: [BuildCommand] })',
   'class AppModule {}',
   '',
   'run(AppModule)',

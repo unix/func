@@ -1,0 +1,34 @@
+---
+code: F_SYSTEM_INVALID_MODULE_INPUT
+title: Invalid module input
+description: A class passed as a module does not carry explicit module metadata.
+lastModified: '2026-08-14'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Handler, run } from 'func'",
+  '',
+  "@Command('build')",
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'run(BuildCommand)',
+].join('\n')
+
+## Reproduction
+
+A command class cannot be passed directly as the application input:
+
+<CodeBlock code={reproductionCode} filename="src/index.ts" lang="ts" />
+
+## What this error means
+
+Class inputs must carry `@Module()` metadata. func no longer treats an undecorated module input as a command automatically.
+
+## How to fix it
+
+Create a class decorated with `@Module({ commands: [BuildCommand] })` and pass that module to `run`.

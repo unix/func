@@ -1,4 +1,4 @@
-import { run, type FuncModuleInput } from '../../../core/src'
+import { run, type Type } from '../../../core/src'
 import { ErrorsLocalCatchModule } from './fixtures/errors-local-catch.demo'
 import { GuideHelpModule } from './fixtures/guide-help.demo'
 import { GuideStatusModule } from './fixtures/guide-status.demo'
@@ -8,7 +8,7 @@ import type { TerminalDemoId } from './protocol'
 
 interface TerminalDemoDefinition {
   executable: string
-  input: FuncModuleInput
+  input: Type
 }
 
 const terminalDemos: Record<TerminalDemoId, TerminalDemoDefinition> = {

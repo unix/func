@@ -32,7 +32,7 @@ These terms belong to different layers and are not interchangeable. Start with [
 | `Handler path`    | One or more fixed positional tokens that select a handler; the longest matching path wins.   | `@Handler({ path })`           |
 | `Handler flag`    | An option such as --help that switches execution to another mutually exclusive handler.      | `@Handler({ flag, alias })`    |
 | `Field option`    | A flag, scalar value, or repeated value parsed and assigned to a command instance property.  | `@Flag / @Value / @ArrayValue` |
-| `Input`           | Positional tokens left after removing the named command and selected handler path.           | `FuncArgs.inputs`              |
+| `Input`           | Positional tokens left after removing the named command and selected handler path.           | `Args.inputs`                  |
 
 ## Runtime and application-structure terms
 
@@ -40,7 +40,7 @@ These terms belong to different layers and are not interchangeable. Start with [
 | --------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | `Command scope` | The one decorated class selected for an invocation: major, named, or missing.                               | `CommandMajor / Command / CommandMissing` |
 | `Registry`      | Read-only metadata for registered named commands, most often used to generate help.                         | `@Regs() / CommandRegistry`               |
-| `Module`        | An application boundary that organizes commands, services, and imported modules; it is not a command.       | `@FuncModule()`                           |
+| `Module`        | An application boundary that organizes commands, services, and imported modules; it is not a command.       | `@Module()`                               |
 | `Service`       | A reusable class registered by a module and injected by constructor type for domain or infrastructure work. | `@Service()`                              |
 
 See [Runtime](/runtime) for how these definitions select a class, method, and dependencies, or [API Reference](/apis) for every decorator parameter.

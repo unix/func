@@ -1,4 +1,4 @@
-import { Command, FuncModule, Handler } from '../../../../core/src'
+import { Command, Module, Handler } from '../../../../core/src'
 
 @Command({
   name: 'status',
@@ -11,7 +11,7 @@ class StatusCommand {
   }
 }
 
-@FuncModule({
+@Module({
   commands: [StatusCommand],
 })
 export class GuideStatusModule {}

@@ -45,7 +45,7 @@ func 的运行时分为两个时期。应用启动时，它先把模块声明聚
 
 ## 装配应用
 
-根 `@FuncModule` 是运行时的装配边界。func 递归展开 imports，将各模块注册的 commands 和 services 合并为应用级模型。模块描述结构，但不会因为装配过程而创建所有命令与服务；实例只在某次调用实际需要时产生。
+根 `@Module` 是运行时的装配边界。func 递归展开 imports，将各模块注册的 commands 和 services 合并为应用级模型。模块描述结构，但不会因为装配过程而创建所有命令与服务；实例只在某次调用实际需要时产生。
 
 命令在这里按角色分组：`@Command` 形成具名命令集合，`@CommandMajor` 提供没有具名命令时的顶层作用域，`@CommandMissing` 接收未知 command，错误处理器则独立参与失败路由。服务列表形成后续依赖注入可使用的 provider 集合。
 
@@ -71,7 +71,7 @@ shell 已经完成引号、转义和变量展开后，才把 argv 交给程序�
 
 这里沿用 [POSIX Utility Argument Syntax](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html) 的术语：_option_ 是具名开关，_option-argument_ 是选项携带的值，_operand_ 是位置输入。func 同时支持 GNU 风格的 `--long-option`，并允许 option 出现在 operand 前后；这种交错方式属于 [GNU command-line convention](https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces)，不是严格 POSIX 的排列方式。
 
-已声明的 option 在这一阶段完成 alias 归一化和 Boolean、String、Number、重复字符串等类型转换。未识别且仍以连字符开头的 token 被归类为 unknown option；普通 token 则保留为 operand，交给处理器分派。具名命令的 command token 会在分派前移除，主命令和缺失命令没有这一步。
+已声明的 option 在这一阶段完成 alias 归一化和 Boolean、String、Number、重复 String 或 Number 等类型转换。未识别且仍以连字符开头的 token 被归类为 unknown option；普通 token 则保留为 operand，交给处理器分派。具名命令的 command token 会在分派前移除，主命令和缺失命令没有这一步。
 
 主命令、具名命令和带处理器的缺失命令使用同一套 option 解析。旧式的构造函数型缺失命令是兼容分支：它直接接收原始输入，不进入字段和处理器管线。
 

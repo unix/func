@@ -1,10 +1,9 @@
-import type { FuncException } from '../../../../core/src'
-import { Catch, Command, Exception, FuncModule, Handler } from '../../../../core/src'
+import type { Exception, OnError } from '../../../../core/src'
+import { Command, Module, Handler } from '../../../../core/src'
 
-@Command({ name: 'publish' })
-class PublishCommand {
-  @Catch()
-  onError(@Exception() exception: FuncException) {
+@Command('publish')
+class PublishCommand implements OnError {
+  onError(exception: Exception) {
     console.error(`Publish failed: ${exception.message}`)
   }
 
@@ -14,7 +13,7 @@ class PublishCommand {
   }
 }
 
-@FuncModule({
+@Module({
   commands: [PublishCommand],
 })
 export class ErrorsLocalCatchModule {}

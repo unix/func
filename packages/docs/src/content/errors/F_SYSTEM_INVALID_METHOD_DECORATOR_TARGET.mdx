@@ -1,8 +1,8 @@
 ---
 code: F_SYSTEM_INVALID_METHOD_DECORATOR_TARGET
 title: Invalid method decorator target
-description: '@Handler or @Catch is attached to something other than an instance method.'
-lastModified: '2026-08-08'
+description: 'A method decorator is attached to an unsupported target or handler kind.'
+lastModified: '2026-08-14'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -34,3 +34,5 @@ Method decorators need an instance so func can inject dependencies and invoke th
 Use an instance method:
 
 <CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />
+
+This error also occurs when `@Deprecated()` decorates a default or path handler. `@Deprecated()` supports `@Handler({ flag })` action options; use the `deprecated` parameter on `@Command` to deprecate a default or path-based command surface.

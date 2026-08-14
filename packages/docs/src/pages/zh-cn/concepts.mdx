@@ -10,7 +10,7 @@ import DocsLayout from '@/layouts/docs.astro'
 
 export const conceptModel = [
   '应用定义',
-  '@FuncModule()',
+  '@Module()',
   '├─ 注册命令作用域',
   '│  ├─ @CommandMajor()       没有具名命令时的入口',
   '│  ├─ @Command({ name })    匹配顶层命令',
@@ -37,8 +37,8 @@ export const commandAnatomy = [
 ].join('\n')
 
 export const mappedApplicationCode = [
-  "import { Args, Command, Flag, FuncModule, Handler, Service, Value } from 'func'",
-  "import type { FuncArgs } from 'func'",
+  "import { Args, Command, Flag, Module, Handler, Service, Value } from 'func'",
+  "import type { Args } from 'func'",
   '',
   '@Service()',
   'class ProjectService {',
@@ -58,13 +58,13 @@ export const mappedApplicationCode = [
   '  constructor(private project: ProjectService) {}',
   '',
   "  @Handler({ path: ['member', 'add'] })",
-  '  addMember(@Args() args: FuncArgs) {',
+  '  addMember(@Args() args: Args) {',
   "    const [username = ''] = args.inputs",
   '    console.log(this.project.addMember(username, this.role, this.force))',
   '  }',
   '}',
   '',
-  '@FuncModule({',
+  '@Module({',
   '  commands: [ProjectCommand],',
   '  services: [ProjectService],',
   '})',
@@ -83,7 +83,7 @@ export const mappedApplicationCode = [
 
 Command 是最基础的单元，通常一个工程中包含了多个 Command 衍生类，这些类是最后命令运行的入口。
 
-`@FuncModule()` 定义应用根路由，注册命令作用域和服务。命令作用域负责解释 CLI 输入并选择动作；服务提供可复用的业务能力。每次调用只会从已注册的命令中选择一条执行路径，而不会依次运行多个命令类。
+`@Module()` 定义应用根路由，注册命令作用域和服务。命令作用域负责解释 CLI 输入并选择动作；服务提供可复用的业务能力。每次调用只会从已注册的命令中选择一条执行路径，而不会依次运行多个命令类。
 
 <CodeBlock code={conceptModel} filename="func 心智模型" />
 
@@ -131,7 +131,7 @@ func 只用第一个裸 token 匹配具名命令。对于 `ship project member a
 <CodeBlock code={mappedApplicationCode} filename="src/app.module.ts" lang="ts" />
 <Callout locale="zh-cn" title="并非所有概念都对应输入片段">
 
-`@FuncModule()` 和 `@Service()` 负责组织应用代码，不对应任何 CLI token。命令、处理器和输入描述用户如何调用应用；模块与服务描述应用内部如何组织能力。
+`@Module()` 和 `@Service()` 负责组织应用代码，不对应任何 CLI token。命令、处理器和输入描述用户如何调用应用；模块与服务描述应用内部如何组织能力。
 
 </Callout>
 
