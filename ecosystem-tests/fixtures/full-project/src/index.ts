@@ -1,30 +1,31 @@
 import {
   Args,
   ArrayValue,
-  Catch,
-  CatchAll,
   Command,
   CommandMajor,
   CommandMissing,
+  Context,
   DependsOn,
   Enum,
-  Exception,
   Exclusive,
   Flag,
-  FuncModule,
+  Module,
   Handler,
-  Regs,
+  Injectable,
   Required,
-  Service,
-  SubOptions,
   Value,
   ValueValidate,
   run,
 } from 'func'
-import type { CommandRegistry, FuncArgs, FuncException } from 'func'
+import type {
+  Args as CommandArgs,
+  Exception,
+  ExceptionContext,
+  OnError,
+} from 'func'
 import { projectName } from './config'
 
-@Service()
+@Injectable()
 class ProjectService {
   name() {
     return projectName
@@ -32,8 +33,10 @@ class ProjectService {
 }
 
 @CommandMajor()
-@SubOptions([{ name: 'dry-run', alias: 'd' }])
 class MajorCommand {
+  @Flag({ name: 'dry-run', alias: 'd', aliases: ['D'] })
+  dryRun = false
+
   @Enum(['dev', 'prod'])
   @Value()
   mode: string = 'dev'
@@ -41,13 +44,16 @@ class MajorCommand {
   @ArrayValue({ name: 'tag' })
   tags: string[] = []
 
-  constructor(private project: ProjectService) {}
+  constructor(
+    private project: ProjectService,
+    private context: Context,
+  ) {}
 
   @Handler()
-  run(@Args() args: FuncArgs) {
+  run() {
     console.log(
       JSON.stringify({
-        dryRun: Boolean(args.native['--dry-run']),
+        dryRun: this.dryRun,
         kind: 'major',
         mode: this.mode,
         project: this.project.name(),
@@ -56,27 +62,30 @@ class MajorCommand {
     )
   }
 
-  @Handler({ flag: 'help', alias: 'h' })
-  help(@Regs() registry: CommandRegistry) {
-    const commands = registry.commands.map(command => command.name).sort()
+  @Handler({ flag: 'help', alias: 'h', aliases: ['?'] })
+  help() {
+    const commands = this.context.commands
+      .map(command => command.path.join(' '))
+      .sort()
     console.log(`commands:${commands.join(',')}`)
   }
 }
 
 @Command({
-  name: 'greet',
+  path: 'greet',
   alias: 'g',
+  aliases: ['hello'],
   description: 'print a greeting',
 })
 class GreetCommand {
-  @Value({ alias: 'n' })
+  @Value({ alias: 'n', aliases: ['N'] })
   name: string = 'friend'
 
-  @Flag({ alias: 'u' })
+  @Flag({ alias: 'u', aliases: ['U'] })
   upper = false
 
   @Handler()
-  run(@Args() args: FuncArgs) {
+  run(@Args() args: CommandArgs) {
     const extra = args.inputs.length ? ` ${args.inputs.join(' ')}` : ''
     this.print(`Hello, ${this.name}!${extra}`)
   }
@@ -91,7 +100,7 @@ class GreetCommand {
   }
 }
 
-@Command({ name: 'async' })
+@Command('async')
 class AsyncCommand {
   constructor(private project: ProjectService) {}
 
@@ -102,8 +111,8 @@ class AsyncCommand {
   }
 }
 
-@Command({ name: 'deploy' })
-class DeployCommand {
+@Command('deploy')
+class DeployCommand implements OnError {
   @Required()
   @ValueValidate(value => typeof value === 'string' && value.length >= 3)
   @Value()
@@ -135,40 +144,37 @@ class DeployCommand {
     )
   }
 
-  @Catch()
-  handleError(@Exception() exception: FuncException) {
+  onError(exception: Exception, context: ExceptionContext) {
     console.error(`local:${exception.code}:${exception.message}`)
-    exception.preventDefaultPrint()
+    context.preventDefaultPrint()
   }
 }
 
 @CommandMissing()
 class MissingCommand {
   @Handler()
-  run(@Args() args: FuncArgs) {
+  run(@Args() args: CommandArgs) {
     console.error(`missing:${args.inputs[0]}`)
   }
 }
 
-@CatchAll()
-class GlobalErrorCommand {
-  constructor(@Exception() exception: FuncException) {
-    console.error(`global:${exception.code}:${exception.message}`)
-    exception.preventDefaultPrint()
-  }
-}
-
-@FuncModule({
+@Module({
   commands: [GreetCommand, AsyncCommand, DeployCommand],
-  services: [ProjectService],
+  exports: [ProjectService],
+  providers: [ProjectService],
 })
 class FeatureModule {}
 
-@FuncModule({
-  commands: [MajorCommand, MissingCommand, GlobalErrorCommand],
+@Module({
+  commands: [MajorCommand, MissingCommand],
   imports: [FeatureModule],
 })
-class AppModule {}
+class AppModule implements OnError {
+  onError(exception: Exception, context: ExceptionContext) {
+    console.error(`global:${exception.code}:${exception.message}`)
+    context.preventDefaultPrint()
+  }
+}
 
 run(AppModule).catch(error => {
   console.error(error)
