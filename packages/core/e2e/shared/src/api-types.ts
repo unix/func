@@ -39,6 +39,15 @@ import type {
   JsonPrimitive,
   JsonValue,
 } from 'func/config'
+import type {
+  CompletionFallback,
+  CompletionItem,
+  CompletionItemKind,
+  CompletionRequest,
+  CompletionResult,
+  CompletionRunOptions,
+  CompletionShell,
+} from 'func/completion'
 import type { LogModuleOptions } from 'func/log'
 import type {
   HelpChoice,
@@ -93,6 +102,13 @@ export type PublicApiTypes = [
   ValueDecoratorParams,
   ValueOptionType,
   ValueProvider,
+  CompletionFallback,
+  CompletionItem,
+  CompletionItemKind,
+  CompletionRequest,
+  CompletionResult,
+  CompletionRunOptions,
+  CompletionShell,
   ConfigConstructor,
   ConfigDefaults,
   ConfigFileOptions,

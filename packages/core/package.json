@@ -17,6 +17,10 @@
       "types": "./dist/types/subpath/config/index.d.ts",
       "import": "./dist/config.mjs"
     },
+    "./completion": {
+      "types": "./dist/types/subpath/completion/index.d.ts",
+      "import": "./dist/completion.mjs"
+    },
     "./log": {
       "types": "./dist/types/subpath/log/index.d.ts",
       "import": "./dist/log.mjs"

@@ -56,6 +56,11 @@ interface PackageManifest {
       require?: string
       types?: string
     }
+    './completion'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
     './config'?: {
       import?: string
       require?: string
@@ -297,6 +302,11 @@ describe.each(projects)('$label consumer', project => {
     expect(probe.stdout.trim()).toBe('help-entry')
   })
 
+  test('keeps completion helpers in the completion subpath', () => {
+    const probe = runProject(project, [], 'completion-probe.js')
+    expect(probe.stdout.trim()).toBe('completion-entry')
+  })
+
   test('ships self-contained declarations for every public entry', () => {
     const typesRoot = join(project.root, 'node_modules', 'func', 'dist', 'types')
     const declarations = readdirSync(typesRoot, {
@@ -310,6 +320,7 @@ describe.each(projects)('$label consumer', project => {
     expect(declarationPaths).toEqual(
       expect.arrayContaining([
         'index.d.ts',
+        'subpath/completion/index.d.ts',
         'subpath/config/index.d.ts',
         'subpath/help/index.d.ts',
         'subpath/log/index.d.ts',
@@ -339,6 +350,10 @@ describe.each(projects)('$label consumer', project => {
         './testing': {
           import: './dist/testing.mjs',
           types: './dist/types/subpath/testing/index.d.ts',
+        },
+        './completion': {
+          import: './dist/completion.mjs',
+          types: './dist/types/subpath/completion/index.d.ts',
         },
         './config': {
           import: './dist/config.mjs',

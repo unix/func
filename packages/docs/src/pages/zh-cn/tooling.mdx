@@ -1,7 +1,7 @@
 ---
 title: 工具链
 description: 使用 funcgo 配置、运行、打包并持续构建 func 项目。
-lastModified: '2026-08-04'
+lastModified: '2026-08-15'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -24,6 +24,20 @@ funcgo dev -f src/cli/index.ts -- --help`
 export const buildCode = `funcgo build
 funcgo build -f src/cli/index.ts -o dist/cli
 funcgo build -e react -e ink`
+
+export const completionEntryCode = `import { runWithCompletion } from 'func/completion'
+import { AppModule } from './app.module'
+
+void runWithCompletion(AppModule, { name: 'ship' })`
+
+export const completionSetupCode = `# bash
+eval "$(_SHIP_COMPLETE=bash_source ship)"
+
+# zsh
+source <(_SHIP_COMPLETE=zsh_source ship)
+
+# fish
+_SHIP_COMPLETE=fish_source ship | source`
 
 export const watchCode = `funcgo build --watch
 funcgo build --watch --watch-path 'src/**/*.ts' --watch-path config.json`
@@ -101,6 +115,22 @@ setup 会在存在时识别 `src/index.ts` 或 `index.ts` 。如果找不到入�
 <CodeBlock code={watchCode} lang="shell" />
 
 每个额外文件、目录或正向 glob 都要重复传入 `--watch-path` 。自定义监听路径会替换默认集合。例如，添加配置文件时仍需显式传入 TypeScript glob。 `--watch-path` 必须和 `--watch` 一起使用；不支持负向 glob。输出目录、`node_modules` 和`.git` 会被忽略，以避免构建循环。
+
+## 启用 shell 补全
+
+补全是按需引入的独立子路径。将入口中的 `run` 替换为 `runWithCompletion`，并传入 `package.json#bin` 中的可执行文件名：
+
+<CodeBlock code={completionEntryCode} filename="src/index.ts" lang="ts" />
+
+已有的 command、handler、option、alias、description、constraint 和 `@Enum` 元数据都会被自动复用，不需要补全专用装饰器，也不需要生成命令清单。值选项带有 `@Enum` 时会补全枚举值；其他位置参数则回退到 shell 自带的文件补全。
+
+在用户的 shell profile 中加载生成的适配器。命令可输出 Bash、Zsh、Fish 和 PowerShell 脚本；每次补全都会查询当前可执行文件，因此始终与最新命令图一致：
+
+<CodeBlock code={completionSetupCode} lang="shell" />
+
+PowerShell 中先设置 `$env:_SHIP_COMPLETE = 'powershell_source'`，将 `ship` 的输出通过 `Out-String | Invoke-Expression` 加载，再删除该环境变量。变量名由可执行文件名转为大写、将标点替换为下划线并追加 `_COMPLETE` 得到。
+
+普通 `func` 入口不会导出或导入补全。继续使用 `run` 的应用不会让补全引擎进入生产 bundle；使用 `runWithCompletion` 的应用会额外包含元数据查询和四个轻量 shell 适配器。补全请求只编译命令图，不会实例化模块、初始化 provider 或分发 handler。
 
 ## 理解解析优先级
 

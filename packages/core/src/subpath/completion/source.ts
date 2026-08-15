@@ -1,0 +1,216 @@
+import type { CompletionResult, CompletionShell } from './interfaces'
+
+export const completionEnvironmentVariable = (name: string): string => {
+  validateName(name)
+  return `_${name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_COMPLETE`
+}
+
+export const completionSource = (name: string, shell: CompletionShell): string => {
+  validateName(name)
+  const environment = completionEnvironmentVariable(name)
+  const functionName = `_${name.replace(/[^A-Za-z0-9_]/g, '_')}_completion`
+  switch (shell) {
+    case 'bash':
+      return bashSource(name, environment, functionName)
+    case 'fish':
+      return fishSource(name, environment, functionName)
+    case 'powershell':
+      return powershellSource(name, environment)
+    case 'zsh':
+      return zshSource(name, environment, functionName)
+    default:
+      throw new TypeError(`Unsupported completion shell "${String(shell)}".`)
+  }
+}
+
+export const formatCompletionResult = (
+  result: CompletionResult,
+  shell: CompletionShell,
+): string => {
+  const header = `${result.fallback}\t${result.appendSpace ? '1' : '0'}`
+  const lines = result.items.flatMap(candidate => {
+    if (
+      candidate.value.includes(String.fromCharCode(0)) ||
+      /[\t\r\n]/.test(candidate.value)
+    )
+      return []
+    const description = normalizeDescription(candidate.description)
+    if (shell === 'zsh')
+      return [`${escapeZsh(candidate.value)}:${escapeZsh(description)}`]
+    return [`${candidate.value}\t${description}`]
+  })
+  return `${[header, ...lines].join('\n')}\n`
+}
+
+const bashSource = (
+  name: string,
+  environment: string,
+  functionName: string,
+): string => `# bash completion for ${name}
+${functionName}() {
+  local current="\${COMP_WORDS[COMP_CWORD]}"
+  local -a committed=()
+  local -a response=()
+  local line value fallback append_space index
+
+  if (( COMP_CWORD > 1 )); then
+    committed=("\${COMP_WORDS[@]:1:$((COMP_CWORD - 1))}")
+  fi
+  while IFS= read -r line; do
+    response+=("$line")
+  done < <(env ${environment}=bash_complete ${quotePosix(name)} "\${committed[@]}" "$current" 2>/dev/null)
+  if (( \${#response[@]} == 0 )); then
+    return 0
+  fi
+
+  IFS=$'\\t' read -r fallback append_space <<< "\${response[0]}"
+  COMPREPLY=()
+  for (( index = 1; index < \${#response[@]}; index += 1 )); do
+    IFS=$'\\t' read -r value _ <<< "\${response[index]}"
+    COMPREPLY+=("$value")
+  done
+  if [[ "$fallback" == "file" ]]; then
+    compopt -o default 2>/dev/null
+  else
+    compopt +o default 2>/dev/null
+  fi
+  if [[ "$append_space" == "0" ]]; then
+    compopt -o nospace 2>/dev/null
+  fi
+}
+
+complete -o default -F ${functionName} -- ${quotePosix(name)}
+`
+
+const fishSource = (
+  name: string,
+  environment: string,
+  functionName: string,
+): string => `# fish completion for ${name}
+function ${functionName}
+  set -l committed (commandline -opc)
+  if test (count $committed) -gt 0
+    set -e committed[1]
+  end
+  set -l current (commandline -ct)
+  set -l response (env ${environment}=fish_complete ${quotePosix(name)} $committed "$current" 2>/dev/null)
+  if test (count $response) -eq 0
+    return
+  end
+
+  set -l header (string split (printf '\\t') -- $response[1])
+  if test (count $response) -gt 1
+    printf '%s\\n' $response[2..-1]
+    return
+  end
+  if test "$header[1]" = file
+    __fish_complete_path "$current"
+  end
+end
+
+complete -c ${quotePosix(name)} -f -a '(${functionName})'
+`
+
+const powershellSource = (name: string, environment: string): string =>
+  `# PowerShell completion for ${name}
+Register-ArgumentCompleter -Native -CommandName ${quotePowerShell(name)} -ScriptBlock {
+  param($wordToComplete, $commandAst, $cursorPosition)
+
+  $committed = @()
+  $currentStart = $cursorPosition - $wordToComplete.Length
+  foreach ($element in @($commandAst.CommandElements | Select-Object -Skip 1)) {
+    if ($element.Extent.EndOffset -gt $currentStart) {
+      continue
+    }
+    if ($null -ne $element.Value) {
+      $committed += [string]$element.Value
+      continue
+    }
+    $committed += [string]$element
+  }
+
+  $previous = [Environment]::GetEnvironmentVariable(${quotePowerShell(environment)}, 'Process')
+  try {
+    [Environment]::SetEnvironmentVariable(${quotePowerShell(environment)}, 'powershell_complete', 'Process')
+    $response = @(& ${quotePowerShell(name)} @committed $wordToComplete 2>$null)
+  } finally {
+    [Environment]::SetEnvironmentVariable(${quotePowerShell(environment)}, $previous, 'Process')
+  }
+  if ($response.Count -eq 0) {
+    return
+  }
+
+  $header = @($response[0] -split "\u0060t", 2)
+  if ($response.Count -eq 1 -and $header[0] -eq 'file') {
+    [System.Management.Automation.CompletionCompleters]::CompleteFilename($wordToComplete)
+    return
+  }
+  foreach ($line in @($response | Select-Object -Skip 1)) {
+    $parts = @($line -split "\u0060t", 2)
+    $value = $parts[0]
+    $description = if ($parts.Count -gt 1 -and $parts[1]) { $parts[1] } else { $value }
+    $completionText = if ($value -match '\\s') { "'" + $value.Replace("'", "''") + "'" } else { $value }
+    [System.Management.Automation.CompletionResult]::new(
+      $completionText,
+      $value,
+      [System.Management.Automation.CompletionResultType]::ParameterValue,
+      $description
+    )
+  }
+}
+`
+
+const zshSource = (
+  name: string,
+  environment: string,
+  functionName: string,
+): string => `#compdef ${name}
+${functionName}() {
+  local current_word="\${words[CURRENT]}"
+  local header fallback
+  local -a committed response candidates
+
+  if (( CURRENT > 2 )); then
+    committed=("\${words[2,CURRENT-1]}")
+  fi
+  response=("\${(@f)$(env ${environment}=zsh_complete ${quotePosix(name)} "\${committed[@]}" "$current_word" 2>/dev/null)}")
+  if (( \${#response[@]} == 0 )); then
+    return 0
+  fi
+
+  header="\${response[1]}"
+  fallback="\${header%%$'\\t'*}"
+  if (( \${#response[@]} > 1 )); then
+    candidates=("\${response[2,-1]}")
+    _describe 'values' candidates
+    return
+  fi
+  if [[ "$fallback" == "file" ]]; then
+    _files
+  fi
+}
+
+compdef ${functionName} ${quotePosix(name)}
+`
+
+const normalizeDescription = (value?: string): string =>
+  value?.replace(/\s+/g, ' ').trim() ?? ''
+
+const escapeZsh = (value: string): string =>
+  value.replace(/\\/g, '\\\\').replace(/:/g, '\\:')
+
+const quotePosix = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`
+
+const quotePowerShell = (value: string): string => `'${value.replace(/'/g, "''")}'`
+
+const validateName = (name: string) => {
+  if (
+    typeof name !== 'string' ||
+    !name.length ||
+    name.includes(String.fromCharCode(0)) ||
+    /\s/.test(name)
+  )
+    throw new TypeError(
+      'Completion command name must be a non-empty token without whitespace.',
+    )
+}

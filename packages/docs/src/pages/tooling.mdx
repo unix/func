@@ -1,7 +1,7 @@
 ---
 title: Tooling
 description: Configure, run, bundle, and continuously rebuild func projects with funcgo.
-lastModified: '2026-08-04'
+lastModified: '2026-08-15'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -24,6 +24,20 @@ funcgo dev -f src/cli/index.ts -- --help`
 export const buildCode = `funcgo build
 funcgo build -f src/cli/index.ts -o dist/cli
 funcgo build -e react -e ink`
+
+export const completionEntryCode = `import { runWithCompletion } from 'func/completion'
+import { AppModule } from './app.module'
+
+void runWithCompletion(AppModule, { name: 'ship' })`
+
+export const completionSetupCode = `# bash
+eval "$(_SHIP_COMPLETE=bash_source ship)"
+
+# zsh
+source <(_SHIP_COMPLETE=zsh_source ship)
+
+# fish
+_SHIP_COMPLETE=fish_source ship | source`
 
 export const watchCode = `funcgo build --watch
 funcgo build --watch --watch-path 'src/**/*.ts' --watch-path config.json`
@@ -101,6 +115,22 @@ Use `-f`/`--file` for a custom entry and `-o`/`--out` for an isolated output. Ea
 <CodeBlock code={watchCode} lang="shell" />
 
 Repeat `--watch-path` for every additional file, directory, or positive glob. A custom watch path replaces the default set, so include the TypeScript glob explicitly when adding a configuration file. `--watch-path` requires `--watch`. Negative globs are not supported, and the output directory, `node_modules`, and `.git` are ignored to prevent rebuild loops.
+
+## Enable shell completion
+
+Completion is an opt-in subpath. Replace the entry's `run` call with `runWithCompletion` and pass the executable name from `package.json#bin`:
+
+<CodeBlock code={completionEntryCode} filename="src/index.ts" lang="ts" />
+
+Existing command, handler, option, alias, description, constraint, and `@Enum` metadata is reused automatically. No completion-specific decorators or generated command manifest are required. `@Enum` values are offered after value options; otherwise positional input falls back to the shell's file completion.
+
+Load the generated adapter from the user's shell profile. The command prints adapters for Bash, Zsh, Fish, and PowerShell; these adapters query the executable on each completion so they stay aligned with the current command graph:
+
+<CodeBlock code={completionSetupCode} lang="shell" />
+
+For PowerShell, set `$env:_SHIP_COMPLETE = 'powershell_source'`, pipe `ship` through `Out-String | Invoke-Expression`, then remove the environment variable. The variable name is derived from the executable by uppercasing it, replacing punctuation with underscores, and adding the `_COMPLETE` suffix.
+
+The ordinary `func` entry does not export or import completion. Applications that keep using `run` therefore do not make the completion engine reachable to the production bundler. Applications using `runWithCompletion` pay for the metadata query and four small shell adapters, but completion requests compile only the command graph: they do not construct modules, initialize providers, or dispatch handlers.
 
 ## Understand resolution order
 

@@ -2,6 +2,7 @@ import { defineConfig } from 'rolldown'
 
 export default defineConfig({
   input: {
+    completion: 'src/subpath/completion/index.ts',
     config: 'src/subpath/config/index.ts',
     help: 'src/subpath/help/index.ts',
     index: 'src/index.ts',

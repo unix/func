@@ -4,6 +4,7 @@ import { dts } from 'rolldown-plugin-dts'
 export default defineConfig({
   input: {
     index: 'src/index.ts',
+    'subpath/completion/index': 'src/subpath/completion/index.ts',
     'subpath/config/index': 'src/subpath/config/index.ts',
     'subpath/help/index': 'src/subpath/help/index.ts',
     'subpath/log/index': 'src/subpath/log/index.ts',
