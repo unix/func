@@ -1,6 +1,7 @@
 import { RUNTIME } from '@func/shared/core-errors'
 import type { Readable, Writable } from 'node:stream'
 import type { CompiledApplication } from '../application/module-compiler'
+import { snapshotOptions } from '../arg/option-record'
 import {
   Context,
   ExceptionContext,
@@ -14,12 +15,7 @@ import { hasOnDispose, hasOnError, hasOnInit } from '../di/lifecycle'
 import type { ExecutionOutcome } from '../di/lifecycle'
 import type { ProviderToken, Type } from '../di/provider'
 import { ARGS } from '../injection'
-import type {
-  Args as CommandArgs,
-  ArgsOptionValue,
-  Deprecation,
-  UserOption,
-} from '../interfaces'
+import type { Args as CommandArgs, Deprecation, UserOption } from '../interfaces'
 import { bindFieldOptions, hydrateFieldOptions } from '../options/field-binding'
 import type { Exception } from '../shared/errors'
 import {
@@ -28,7 +24,6 @@ import {
   isException,
   printException,
 } from '../shared/errors'
-import { createDictionary } from '../utils/dictionary'
 import { resolveInvocation } from './invocation-resolver'
 import type { ResolvedInvocation } from './invocation-resolver'
 
@@ -446,20 +441,12 @@ export class Container {
     path: readonly string[],
     options: UserOption,
   ): CommandArgs {
-    const readonlyOptions = createDictionary<ArgsOptionValue>()
-    Object.keys(options).forEach(key => {
-      const value = options[key]
-      readonlyOptions[key] = Array.isArray(value)
-        ? Object.freeze(value.slice())
-        : value
-    })
-
     return Object.freeze({
       inputs: Object.freeze(
         invocation.parsed.positionals.slice(invocation.match.consumed),
       ),
       invokedPath: Object.freeze(invocation.match.invokedPath.slice()),
-      options: Object.freeze(readonlyOptions),
+      options: snapshotOptions(options),
       path: Object.freeze(path.slice()),
       raw: Object.freeze(this.argv.slice()),
     })

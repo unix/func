@@ -1,5 +1,4 @@
 import type { UserOptionValue } from '../interfaces'
-import { createDictionary } from '../utils/dictionary'
 import type {
   ArgOption,
   ArgParseFailure,
@@ -8,18 +7,16 @@ import type {
   ArgToken,
   ParsedArgv,
 } from './interfaces'
+import { createOptionRecord } from './option-record'
 
 export const parseArgv = (
   plan: ArgPlan,
   argv: readonly string[],
 ): ArgParseResult => {
-  const options = createDictionary<UserOptionValue>()
+  const options = createOptionRecord(plan.options)
   const positionals: string[] = []
   const supplied = new Set<string>()
   const unknown: string[] = []
-  plan.options.forEach(option => {
-    options[option.name] = undefined
-  })
   const state: ParseState = { argv, options, plan, supplied, unknown }
 
   for (let index = 0; index < argv.length; index += 1) {
