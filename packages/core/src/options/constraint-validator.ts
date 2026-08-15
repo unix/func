@@ -1,4 +1,3 @@
-import type arg from 'arg'
 import { RUNTIME_PRINT } from '@func/shared/core-errors'
 import type {
   FieldOptionParams,
@@ -9,9 +8,9 @@ import { ErrorScope, InternalException } from '../shared/errors'
 
 export class ConstraintValidator {
   constructor(
-    private fieldOptions: FieldOptionParams[],
-    private args: arg.Result<any>,
-    private option: UserOption,
+    private readonly fieldOptions: readonly FieldOptionParams[],
+    private readonly option: UserOption,
+    private readonly supplied: ReadonlySet<string>,
   ) {}
 
   validate() {
@@ -26,9 +25,7 @@ export class ConstraintValidator {
   private explicitNames(): Set<string> {
     return new Set(
       this.fieldOptions
-        .filter(data =>
-          Object.prototype.hasOwnProperty.call(this.args, `--${data.name}`),
-        )
+        .filter(data => this.supplied.has(data.name))
         .map(data => data.name),
     )
   }

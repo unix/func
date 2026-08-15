@@ -1,4 +1,6 @@
 import { SYSTEM } from '@func/shared/core-errors'
+import { ArgTokenConflict, compileArgPlan } from '../arg'
+import type { ArgPlan } from '../arg'
 import { createCommandInfo } from '../context'
 import type { CommandInfo } from '../context'
 import type { CompiledModule } from '../di/compiler'
@@ -39,7 +41,9 @@ export type CommandEndpoint<Handler extends HandlerParams = HandlerParams> =
   NamedCommandEndpoint<Handler> | SpecialCommandEndpoint<Handler>
 
 type FlagHandlerParams = HandlerParams & { flag: string }
-export type FlagCommandEndpoint = CommandEndpoint<FlagHandlerParams>
+export type FlagCommandEndpoint = CommandEndpoint<FlagHandlerParams> & {
+  option: OptionParams
+}
 
 export interface OptionCommandEndpoint {
   declaration: CompiledOptionCommand
@@ -59,12 +63,14 @@ export interface ProviderOptionBinding {
 
 export interface OptionPlan {
   readonly actions: readonly ActionEndpoint[]
+  readonly argPlan: ArgPlan
   readonly commandBindings: ReadonlyMap<
     HandlerRecord,
     readonly CompiledFieldOption[]
   >
+  readonly commandOptionNames: ReadonlyMap<HandlerRecord, ReadonlySet<string>>
+  readonly commonOptionNames: ReadonlySet<string>
   readonly commonOptions: readonly OptionParams[]
-  readonly options: readonly OptionParams[]
   readonly owner: CompiledModule
   readonly providerBindings: readonly ProviderOptionBinding[]
   readonly providers: readonly CompiledModuleOption[]
@@ -174,7 +180,9 @@ class CommandGraphBuilder {
 
     record.methodHandlers.forEach(handler => {
       if (isFlagHandler(handler)) {
-        const endpoint = namedCommandEndpoint(record, command, handler, command.path)
+        const endpoint = flagCommandEndpoint(
+          namedCommandEndpoint(record, command, handler, command.path),
+        )
         this.registerFlagEndpoint(prefix, endpoint)
         this.registeredCommands.push(endpoint.command)
         return
@@ -194,7 +202,10 @@ class CommandGraphBuilder {
     this.specialRoots.set(kind, root)
     record.methodHandlers.forEach(handler => {
       if (isFlagHandler(handler)) {
-        this.registerFlagEndpoint(root, specialCommandEndpoint(record, handler, []))
+        this.registerFlagEndpoint(
+          root,
+          flagCommandEndpoint(specialCommandEndpoint(record, handler, [])),
+        )
         return
       }
 
@@ -342,6 +353,7 @@ export class CommandGraph {
   private readonly commandInfos: readonly CommandInfo[]
   private readonly commandNodes: readonly CommandNode[]
   private readonly handlerRecords: readonly HandlerRecord[]
+  private readonly namedCommandNodes: readonly CommandNode[]
   private readonly root: CommandNode
   private readonly specialCommandNodes: ReadonlyMap<
     SpecialCommandKind,
@@ -353,6 +365,9 @@ export class CommandGraph {
     const graph = new CommandGraphBuilder(params).build()
     this.commandInfos = graph.commandInfos
     this.commandNodes = graph.nodes
+    this.namedCommandNodes = Object.freeze(
+      graph.nodes.filter(node => node.path.length),
+    )
     this.handlerRecords = Object.freeze(
       params.registry
         .commands()
@@ -371,12 +386,24 @@ export class CommandGraph {
     return this.commandNodes
   }
 
+  namedNodes(): readonly CommandNode[] {
+    return this.namedCommandNodes
+  }
+
   records(): readonly HandlerRecord[] {
     return this.handlerRecords
   }
 
   specialNodes(kind: SpecialCommandKind): readonly CommandNode[] {
     return this.specialCommandNodes.get(kind) ?? []
+  }
+
+  rootNode(): CommandNode {
+    return this.root
+  }
+
+  specialRoot(kind: SpecialCommandKind): CommandNode | undefined {
+    return this.specialRoots.get(kind)
   }
 
   match(argv: readonly string[]): CommandMatch | undefined {
@@ -432,30 +459,32 @@ const compileOptionPlan = (
   const records = executionRecords(node)
   const commandOptions = commandContributions(node, records)
   const compatibleFields = applyCommandScope(table, commandOptions)
-  validateTokens(table.values(), node.path)
-  const providerBindings = providerBindingsFrom(table.values())
-  const commandBindings = commandBindingsFrom(
-    Array.from(table.values()).concat(compatibleFields),
+  const contributions = Array.from(table.values())
+  const argPlan = compilePlan(contributions, node.path)
+  const providerBindings = providerBindingsFrom(contributions)
+  const commandBindings = commandBindingsFrom(contributions.concat(compatibleFields))
+  const commandOptionNames = new Map(
+    Array.from(commandBindings).map(([record, fields]) => [
+      record,
+      new Set(fields.map(field => field.name)),
+    ]),
   )
-  const actions = Array.from(table.values()).flatMap(contribution =>
+  const actions = contributions.flatMap(contribution =>
     contribution.kind === 'action' ? [contribution.action] : [],
+  )
+  const commonOptions = contributions.flatMap(contribution =>
+    contribution.kind === 'command-field'
+      ? []
+      : [Object.freeze({ ...contribution.option })],
   )
 
   return Object.freeze({
     actions: Object.freeze(actions),
+    argPlan,
     commandBindings,
-    commonOptions: Object.freeze(
-      Array.from(table.values()).flatMap(contribution =>
-        contribution.kind === 'command-field'
-          ? []
-          : [Object.freeze({ ...contribution.option })],
-      ),
-    ),
-    options: Object.freeze(
-      Array.from(table.values()).map(contribution =>
-        Object.freeze({ ...contribution.option }),
-      ),
-    ),
+    commandOptionNames,
+    commonOptionNames: new Set(commonOptions.map(option => option.name)),
+    commonOptions: Object.freeze(commonOptions),
     owner,
     providerBindings: Object.freeze(providerBindings),
     providers: Object.freeze(moduleOptions.slice()),
@@ -556,11 +585,10 @@ const commandContributions = (
     })
   })
   node.flagEndpoints.forEach(endpoint => {
-    const option = optionForFlagHandler(endpoint.handler)
     contributions.push({
       action: endpoint,
       kind: 'action',
-      option,
+      option: endpoint.option,
       override: false,
       owner: `${endpoint.record.handler.name}.${endpoint.handler.methodName}`,
     })
@@ -638,36 +666,23 @@ const applyScope = (
   })
 }
 
-const validateTokens = (
-  contributions: Iterable<OptionContribution>,
+const compilePlan = (
+  contributions: readonly OptionContribution[],
   path: readonly string[],
-) => {
-  const tokens = new Map<string, string>()
-  Array.from(contributions).forEach(contribution => {
-    registerToken(tokens, `--${contribution.option.name}`, contribution.owner, path)
-    if (contribution.option.negatable === true) {
-      registerToken(
-        tokens,
-        `--no-${contribution.option.name}`,
-        contribution.owner,
-        path,
-      )
-    }
-    contribution.option.aliases.forEach(alias =>
-      registerToken(tokens, `-${alias}`, contribution.owner, path),
+): ArgPlan => {
+  try {
+    return compileArgPlan(
+      contributions.map(contribution => ({
+        option: contribution.option,
+        owner: contribution.owner,
+      })),
     )
-  })
-}
-
-const registerToken = (
-  tokens: Map<string, string>,
-  token: string,
-  owner: string,
-  path: readonly string[],
-) => {
-  const existing = tokens.get(token)
-  if (existing) throwDuplicateOption(token, existing, owner, path)
-  tokens.set(token, owner)
+  } catch (error) {
+    if (error instanceof ArgTokenConflict) {
+      throwDuplicateOption(error.token, error.firstOwner, error.secondOwner, path)
+    }
+    throw error
+  }
 }
 
 const providerBindingsFrom = (
@@ -792,13 +807,18 @@ const specialCommandEndpoint = <Handler extends HandlerParams>(
   record,
 })
 
+const flagCommandEndpoint = <Endpoint extends CommandEndpoint<FlagHandlerParams>>(
+  endpoint: Endpoint,
+): Endpoint & { option: OptionParams } => {
+  const action = {
+    ...endpoint,
+    option: Object.freeze(optionForFlagHandler(endpoint.handler)),
+  }
+  return Object.freeze(action)
+}
+
 const isFlagHandler = (handler: HandlerParams): handler is FlagHandlerParams =>
   typeof handler.flag === 'string'
-
-export const optionForAction = (action: ActionEndpoint): OptionParams => {
-  if (action.kind === 'option-command') return action.option
-  return optionForFlagHandler(action.handler)
-}
 
 const optionForFlagHandler = (handler: FlagHandlerParams): OptionParams => ({
   aliases: handler.aliases,

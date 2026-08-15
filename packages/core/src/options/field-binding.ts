@@ -1,4 +1,3 @@
-import type arg from 'arg'
 import { RUNTIME_PRINT } from '@func/shared/core-errors'
 import type { UserOption } from '../interfaces'
 import { ErrorScope, InternalException, isException } from '../shared/errors'
@@ -6,48 +5,46 @@ import { ConstraintValidator } from './constraint-validator'
 import type { CompiledFieldOption } from './field-metadata'
 
 interface FieldBindingParams {
-  args: arg.Result<any>
-  fieldOptions: CompiledFieldOption[]
+  fieldOptions: readonly CompiledFieldOption[]
   instance: any
-  nativeOption: UserOption
+  options: UserOption
+  supplied: ReadonlySet<string>
 }
 
 export const bindFieldOptions = ({
-  args,
   fieldOptions,
   instance,
-  nativeOption,
+  options,
+  supplied,
 }: FieldBindingParams) => {
-  bindFieldValues(fieldOptions, instance, args, nativeOption)
-  validateRequiredFields(fieldOptions, nativeOption)
-  validateFieldValues(fieldOptions, nativeOption)
-  new ConstraintValidator(fieldOptions, args, nativeOption).validate()
+  bindFieldValues(fieldOptions, instance, options, supplied)
+  validateRequiredFields(fieldOptions, options)
+  validateFieldValues(fieldOptions, options)
+  new ConstraintValidator(fieldOptions, options, supplied).validate()
 }
 
 export const hydrateFieldOptions = ({
-  args,
   fieldOptions,
   instance,
-  nativeOption,
+  options,
+  supplied,
 }: FieldBindingParams) => {
-  bindFieldValues(fieldOptions, instance, args, nativeOption)
+  bindFieldValues(fieldOptions, instance, options, supplied)
 }
 
 const bindFieldValues = (
-  fieldOptions: CompiledFieldOption[],
+  fieldOptions: readonly CompiledFieldOption[],
   instance: any,
-  args: arg.Result<any>,
-  nativeOption: UserOption,
+  options: UserOption,
+  supplied: ReadonlySet<string>,
 ) => {
   fieldOptions.forEach(data => {
-    const key = `--${data.name}`
-    const hasValue = Object.prototype.hasOwnProperty.call(args, key)
     const hasDefault = Object.prototype.hasOwnProperty.call(
       instance,
       data.propertyKey,
     )
-    const value = hasValue
-      ? args[key]
+    const value = supplied.has(data.name)
+      ? options[data.name]
       : hasDefault
         ? instance[data.propertyKey]
         : undefined
@@ -57,16 +54,16 @@ const bindFieldValues = (
       value,
       writable: true,
     })
-    nativeOption[data.name] = value
+    options[data.name] = value
   })
 }
 
 const validateRequiredFields = (
-  fieldOptions: CompiledFieldOption[],
-  nativeOption: UserOption,
+  fieldOptions: readonly CompiledFieldOption[],
+  options: UserOption,
 ) => {
   fieldOptions.forEach(data => {
-    if (data.required && nativeOption[data.name] === undefined) {
+    if (data.required && options[data.name] === undefined) {
       throw new InternalException(RUNTIME_PRINT.VALIDATION, {
         details: { option: data.name },
         message: `Option "--${data.name}" is required.`,
@@ -77,16 +74,16 @@ const validateRequiredFields = (
 }
 
 const validateFieldValues = (
-  fieldOptions: CompiledFieldOption[],
-  nativeOption: UserOption,
+  fieldOptions: readonly CompiledFieldOption[],
+  options: UserOption,
 ) => {
   fieldOptions.forEach(data => {
     data.validators.forEach(fn => {
       try {
-        const result = fn(nativeOption[data.name], nativeOption)
+        const result = fn(options[data.name], options)
         if (result === false || typeof result === 'string') {
           throw new InternalException(RUNTIME_PRINT.VALIDATION, {
-            details: { option: data.name, value: nativeOption[data.name] },
+            details: { option: data.name, value: options[data.name] },
             message:
               typeof result === 'string'
                 ? result
@@ -99,7 +96,7 @@ const validateFieldValues = (
 
         throw new InternalException(RUNTIME_PRINT.VALIDATION, {
           cause: error instanceof Error ? error : undefined,
-          details: { option: data.name, value: nativeOption[data.name] },
+          details: { option: data.name, value: options[data.name] },
           message: error instanceof Error ? error.message : String(error),
           scope: ErrorScope.RUNTIME_PRINT,
         })

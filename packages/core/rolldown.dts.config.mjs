@@ -9,7 +9,7 @@ export default defineConfig({
     'subpath/log/index': 'src/subpath/log/index.ts',
     'subpath/testing/index': 'src/subpath/testing/index.ts',
   },
-  external: ['arg', 'reflect-metadata/lite', /^node:/],
+  external: ['reflect-metadata/lite', /^node:/],
   platform: 'node',
   plugins: [
     dts({

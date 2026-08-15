@@ -56,3 +56,51 @@ test('should reject the negative form of a regular flag', async () => {
     stderr: 'Unknown option: --no-color.\n',
   })
 })
+
+test('should reject attached boolean values', async () => {
+  @CommandMajor()
+  class Major {
+    @Flag()
+    color = false
+
+    @Handler()
+    run() {}
+  }
+
+  const result = await createTestingApp(testModule({ commands: [Major] })).invoke([
+    '--color=false',
+  ])
+
+  expect(result).toMatchObject({
+    error: undefined,
+    exitCode: 1,
+    stderr: 'Option "--color" does not accept a value.\n',
+  })
+})
+
+test('should parse known short flag groups and preserve unknown groups', async () => {
+  let values: [boolean, boolean] | undefined
+
+  @CommandMajor()
+  class Major {
+    @Flag({ alias: 'f' })
+    force = false
+
+    @Flag({ alias: 'v' })
+    verbose = false
+
+    @Handler()
+    run() {
+      values = [this.force, this.verbose]
+    }
+  }
+
+  const app = createTestingApp(testModule({ commands: [Major] }))
+  expect((await app.invoke(['-vf'])).exitCode).toBe(0)
+  expect(values).toEqual([true, true])
+  expect(await app.invoke(['-vx'])).toMatchObject({
+    error: undefined,
+    exitCode: 1,
+    stderr: 'Unknown option: -vx.\n',
+  })
+})

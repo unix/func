@@ -12,7 +12,6 @@ import type {
   CommandNode,
   OptionPlan,
 } from '../../containers/command-graph'
-import { optionForAction } from '../../containers/command-graph'
 import { handlers } from '../../utils/metadata'
 import type {
   HelpCommandMeta,
@@ -65,9 +64,7 @@ export class HelpContext {
     graph: CommandGraph,
     selectedNode: CommandNode,
   ): readonly HelpCommandMeta[] {
-    const nodes = selectedNode.path.length
-      ? [selectedNode]
-      : this.rootNodes(graph, selectedNode)
+    const nodes = selectedNode.path.length ? [selectedNode] : this.rootNodes(graph)
     const commands = new Map<string, HelpCommandMeta>()
 
     nodes.forEach(node => {
@@ -140,13 +137,11 @@ export class HelpContext {
   }
 
   private majorRoot(graph: CommandGraph): CommandNode | undefined {
-    return graph.specialNodes(handlers.MAJOR).find(node => node.path.length === 0)
+    return graph.specialRoot(handlers.MAJOR)
   }
 
   private options(plan: OptionPlan, node: CommandNode): readonly HelpOptionMeta[] {
-    const actions = new Map(
-      plan.actions.map(action => [optionForAction(action).name, action]),
-    )
+    const actions = new Map(plan.actions.map(action => [action.option.name, action]))
     const sources: HelpOptionSource[] = plan.commonOptions.slice()
     if (node.endpoint) {
       sources.push(...(plan.commandBindings.get(node.endpoint.record) ?? []))
@@ -186,9 +181,8 @@ export class HelpContext {
     })
   }
 
-  private rootNodes(graph: CommandGraph, selectedNode: CommandNode): CommandNode[] {
-    const normalRoot = graph.nodes().find(node => node.path.length === 0)
-    return [normalRoot ?? selectedNode, this.majorRoot(graph)].filter(
+  private rootNodes(graph: CommandGraph): CommandNode[] {
+    return [graph.rootNode(), this.majorRoot(graph)].filter(
       (node, index, nodes): node is CommandNode =>
         Boolean(node) && nodes.indexOf(node) === index,
     )

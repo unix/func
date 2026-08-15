@@ -1,4 +1,3 @@
-import type arg from 'arg'
 import { RUNTIME } from '@func/shared/core-errors'
 import type { Readable, Writable } from 'node:stream'
 import type { CompiledApplication } from '../application/module-compiler'
@@ -20,7 +19,6 @@ import type {
   ArgsOptionValue,
   Deprecation,
   UserOption,
-  UserOptionValue,
 } from '../interfaces'
 import { bindFieldOptions, hydrateFieldOptions } from '../options/field-binding'
 import type { Exception } from '../shared/errors'
@@ -31,7 +29,6 @@ import {
   printException,
 } from '../shared/errors'
 import { createDictionary } from '../utils/dictionary'
-import type { OptionPlan } from './command-graph'
 import { resolveInvocation } from './invocation-resolver'
 import type { ResolvedInvocation } from './invocation-resolver'
 
@@ -64,7 +61,7 @@ interface ErrorResolution {
 interface DispatchParams {
   injector: RuntimeInjector
   invocation: ResolvedInvocation
-  nativeOption: UserOption
+  options: UserOption
   scopes: ActivatedScope[]
   skipsValidation: boolean
   values: Map<ProviderToken, unknown>
@@ -104,7 +101,7 @@ export class Container {
     let result: unknown
 
     try {
-      const rootPlan = this.application.commandGraph.nodes()[0].optionPlan
+      const rootPlan = this.application.commandGraph.rootNode().optionPlan
       injector.allowOptions(rootPlan.providers.map(option => option.record))
       const rootScope = await this.activateModule(
         injector,
@@ -120,12 +117,12 @@ export class Container {
         owner === this.application.graph.root
           ? undefined
           : await this.activateModule(injector, owner, scopes, false)
-      const nativeOption = this.nativeOption(invocation.plan, invocation.args)
+      const options = invocation.parsed.options
       const skipsValidation = Boolean(invocation.action)
       await this.activateProviderOptions(
         injector,
         invocation,
-        nativeOption,
+        options,
         owner,
         skipsValidation,
       )
@@ -135,7 +132,7 @@ export class Container {
       result = await this.dispatch({
         injector,
         invocation,
-        nativeOption,
+        options,
         scopes,
         skipsValidation,
         values,
@@ -181,8 +178,7 @@ export class Container {
     const warned = new Set<string>()
     invocation.effectiveOptions.forEach(option => {
       if (!option.deprecated || warned.has(option.name)) return
-      if (!Object.prototype.hasOwnProperty.call(invocation.args, `--${option.name}`))
-        return
+      if (!invocation.parsed.supplied.has(option.name)) return
       warned.add(option.name)
       this.stderr.write(
         deprecationNotice(`Option "--${option.name}"`, option.deprecated),
@@ -199,7 +195,7 @@ export class Container {
   private async activateProviderOptions(
     injector: RuntimeInjector,
     invocation: ResolvedInvocation,
-    nativeOption: UserOption,
+    options: UserOption,
     owner: CompiledModule,
     skipsValidation: boolean,
   ) {
@@ -211,10 +207,10 @@ export class Container {
         continue
       await injector.activateOption(binding.provider.record, instance => {
         const params = {
-          args: invocation.args,
-          fieldOptions: binding.fieldOptions.slice(),
+          fieldOptions: binding.fieldOptions,
           instance,
-          nativeOption,
+          options,
+          supplied: invocation.parsed.supplied,
         }
         if (skipsValidation) {
           hydrateFieldOptions(params)
@@ -228,7 +224,7 @@ export class Container {
   private async dispatch({
     injector,
     invocation,
-    nativeOption,
+    options,
     scopes,
     skipsValidation,
     values,
@@ -236,7 +232,7 @@ export class Container {
     const target = invocation.action ?? invocation.endpoint
     if (!target) return undefined
     if (target.kind === 'option-command') {
-      values.set(ARGS, this.commandArgs(invocation, target.path, nativeOption))
+      values.set(ARGS, this.commandArgs(invocation, target.path, options))
       const instance = await injector.activateOption(
         target.declaration.record,
         () => {},
@@ -266,14 +262,14 @@ export class Container {
     })
     const fieldOptions = invocation.plan.commandBindings.get(record) ?? []
     const params = {
-      args: invocation.args,
-      fieldOptions: fieldOptions.slice(),
+      fieldOptions,
       instance,
-      nativeOption,
+      options,
+      supplied: invocation.parsed.supplied,
     }
     if (skipsValidation) hydrateFieldOptions(params)
     else bindFieldOptions(params)
-    values.set(ARGS, this.commandArgs(invocation, target.path, nativeOption))
+    values.set(ARGS, this.commandArgs(invocation, target.path, options))
     if (hasOnInit(instance)) await instance.onInit()
 
     const methodParams = await injector.parameters(
@@ -432,17 +428,6 @@ export class Container {
     return disposeErrors[0]
   }
 
-  private nativeOption(plan: OptionPlan, args: arg.Result<any>): UserOption {
-    const options = createDictionary<UserOptionValue>()
-    plan.options.forEach(option => {
-      const key = `--${option.name}`
-      options[option.name] = Object.prototype.hasOwnProperty.call(args, key)
-        ? args[key]
-        : undefined
-    })
-    return options
-  }
-
   private invocationContext(): Context {
     return new Context(
       this.application.commandCatalog,
@@ -470,7 +455,9 @@ export class Container {
     })
 
     return Object.freeze({
-      inputs: Object.freeze(invocation.args._.slice(invocation.match.consumed)),
+      inputs: Object.freeze(
+        invocation.parsed.positionals.slice(invocation.match.consumed),
+      ),
       invokedPath: Object.freeze(invocation.match.invokedPath.slice()),
       options: Object.freeze(readonlyOptions),
       path: Object.freeze(path.slice()),

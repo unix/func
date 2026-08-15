@@ -76,7 +76,6 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "arg": "^5.0.2",
     "reflect-metadata": "^0.2.2"
   }
 }

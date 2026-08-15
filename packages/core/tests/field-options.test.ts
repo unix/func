@@ -228,6 +228,30 @@ test('should reject invalid field targets and invalid option params', () => {
       code: systemErrorCode(SYSTEM.INVALID_OPTION_ALIAS),
     }),
   )
+
+  expect(() => {
+    class InvalidEqualsNameOptions {
+      @Value({ name: 'config=value' })
+      config: string = ''
+    }
+
+    return InvalidEqualsNameOptions
+  }).toThrow(
+    expect.objectContaining({ code: systemErrorCode(SYSTEM.INVALID_TOKEN) }),
+  )
+
+  expect(() => {
+    class InvalidNumericAliasOptions {
+      @Flag({ alias: '1' })
+      verbose = false
+    }
+
+    return InvalidNumericAliasOptions
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_OPTION_ALIAS),
+    }),
+  )
 })
 
 test('should require explicit type when value type cannot be inferred', () => {

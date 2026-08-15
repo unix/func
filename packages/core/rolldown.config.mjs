@@ -8,7 +8,7 @@ export default defineConfig({
     log: 'src/subpath/log/index.ts',
     testing: 'src/subpath/testing/index.ts',
   },
-  external: ['arg', 'reflect-metadata/lite'],
+  external: ['reflect-metadata/lite'],
   platform: 'node',
   preserveEntrySignatures: 'strict',
   transform: {

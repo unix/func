@@ -23,16 +23,22 @@ export const commandAlias = (value: string | undefined, key: string) => {
 export const optionName = (value: string, key: string) => {
   requireKey(value, key)
   token(value, key)
+  if (!value.includes('=')) return
+
+  throw new InternalException(SYSTEM.INVALID_TOKEN, {
+    details: { key, value },
+    message: `Param \`${key}\` cannot contain "=".`,
+  })
 }
 
 export const optionAlias = (value: string | undefined, key: string) => {
   if (value === undefined) return
   token(value, key)
-  if (value.length === 1) return
+  if (value.length === 1 && value !== '=' && !/^\d$/.test(value)) return
 
   throw new InternalException(SYSTEM.INVALID_OPTION_ALIAS, {
     details: { key, value },
-    message: `Param \`${key}\` must be a single character.`,
+    message: `Param \`${key}\` must be a non-numeric single character other than "=".`,
   })
 }
 

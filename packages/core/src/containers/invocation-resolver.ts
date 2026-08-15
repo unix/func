@@ -1,9 +1,9 @@
-import arg from 'arg'
 import { RUNTIME_PRINT, SYSTEM } from '@func/shared/core-errors'
-import * as filter from '../utils/filter'
-import { handlers } from '../utils/metadata'
-import { ErrorScope, InternalException } from '../shared/errors'
+import { parseArgv } from '../arg'
+import type { ArgParseFailure, ParsedArgv } from '../arg'
 import type { OptionParams } from '../interfaces'
+import { ErrorScope, InternalException } from '../shared/errors'
+import { handlers } from '../utils/metadata'
 import type {
   ActionEndpoint,
   CommandEndpoint,
@@ -12,11 +12,11 @@ import type {
   CommandNode,
   OptionPlan,
 } from './command-graph'
-import { optionForAction } from './command-graph'
+import type { HandlerRecord } from './handler-registry'
 
 interface InvocationCandidate {
-  args: arg.Result<any>
   match: CommandMatch
+  parsed: ParsedArgv
   plan: OptionPlan
 }
 
@@ -33,34 +33,33 @@ class InvocationResolver {
   ) {}
 
   resolve(): ResolvedInvocation {
-    const errors: Error[] = []
+    const errors: ArgParseFailure[] = []
     const normal = this.candidates(
-      this.commandGraph.nodes().filter(node => node.path.length),
+      this.commandGraph.namedNodes(),
       args => this.commandGraph.match(args),
       errors,
     )
-    const rootNode = this.commandGraph.nodes().find(node => !node.path.length)
-    if (!rootNode) throw new TypeError('Command graph root is missing.')
-    const rootArgs = this.tryParse(rootNode.optionPlan, errors)
-    const rootCandidate = rootArgs
+    const rootNode = this.commandGraph.rootNode()
+    const rootParsed = this.tryParse(rootNode.optionPlan, errors)
+    const rootCandidate = rootParsed
       ? {
-          args: rootArgs,
           match: {
             consumed: 0,
             invokedPath: Object.freeze([]),
             node: rootNode,
           },
+          parsed: rootParsed,
           plan: rootNode.optionPlan,
         }
       : undefined
-    if (normal.length && rootCandidate && !rootCandidate.args._.length) {
+    if (normal.length && rootCandidate && !rootCandidate.parsed.positionals.length) {
       this.uniqueCandidate(normal.concat([rootCandidate]))
     }
     const named = this.uniqueCandidate(normal, true)
     if (named) return this.selectTarget(named)
     if (
       rootCandidate &&
-      !rootCandidate.args._.length &&
+      !rootCandidate.parsed.positionals.length &&
       this.matchedActions(rootCandidate).length
     ) {
       return this.selectTarget(rootCandidate)
@@ -80,10 +79,7 @@ class InvocationResolver {
       this.commandGraph.specialNodes(handlers.MISSING),
       args => this.commandGraph.matchSpecial(handlers.MISSING, args),
       errors,
-    ).filter(candidate => {
-      const first = candidate.args._[0]
-      return first && !first.startsWith('-')
-    })
+    ).filter(candidate => candidate.parsed.positionals.length)
     const matchedMissing = this.uniqueCandidate(missing, true)
     if (matchedMissing) return this.selectTarget(matchedMissing)
 
@@ -93,44 +89,48 @@ class InvocationResolver {
         .filter(node => !node.path.length),
       args => this.commandGraph.matchSpecial(handlers.MAJOR, args),
       errors,
-    ).filter(candidate => !candidate.args._.length)
+    ).filter(candidate => !candidate.parsed.positionals.length)
     const defaultMajor = this.uniqueCandidate(majorRoot)
     if (defaultMajor) return this.selectTarget(defaultMajor)
-    if (rootCandidate && !rootCandidate.args._.length) {
+    if (
+      rootCandidate &&
+      !rootCandidate.parsed.positionals.length &&
+      !rootCandidate.parsed.unknown.length
+    ) {
       return {
         ...rootCandidate,
         effectiveOptions: rootCandidate.plan.commonOptions,
       }
     }
-    if (errors.length) throw errors[0]
-    return this.throwUnknownInvocation(rootArgs?._ ?? this.argv)
+    if (errors.length) return throwParseFailure(errors[0])
+    return this.throwUnknownInvocation(
+      rootParsed?.positionals ?? [],
+      rootParsed?.unknown ?? this.argv,
+    )
   }
 
   private candidates(
     nodes: readonly CommandNode[],
     match: (args: readonly string[]) => CommandMatch | undefined,
-    errors: Error[],
+    errors: ArgParseFailure[],
   ): InvocationCandidate[] {
     return nodes.flatMap(node => {
-      const args = this.tryParse(node.optionPlan, errors)
-      if (!args) return []
-      const matched = match(args._)
+      const parsed = this.tryParse(node.optionPlan, errors)
+      if (!parsed) return []
+      const matched = match(parsed.positionals)
       if (matched?.node !== node) return []
-      return [{ args, match: matched, plan: node.optionPlan }]
+      return [{ match: matched, parsed, plan: node.optionPlan }]
     })
   }
 
-  private tryParse(plan: OptionPlan, errors: Error[]): arg.Result<any> | undefined {
-    try {
-      const argv = filter.normalizeNumberArrayArguments(plan.options, this.argv)
-      const args = parse(filter.optionsToKeyValue(plan.options), argv)
-      filter.normalizeNegatableOptions(plan.options, args)
-      validateNumberOptions(plan.options, args)
-      return args
-    } catch (error) {
-      errors.push(normalizeError(error))
-      return undefined
-    }
+  private tryParse(
+    plan: OptionPlan,
+    errors: ArgParseFailure[],
+  ): ParsedArgv | undefined {
+    const result = parseArgv(plan.argPlan, this.argv)
+    if (result.success) return result.parsed
+    errors.push(result.failure)
+    return undefined
   }
 
   private uniqueCandidate(
@@ -163,9 +163,9 @@ class InvocationResolver {
     const actions = this.matchedActions(candidate)
     if (actions.length > 1) {
       throw new InternalException(RUNTIME_PRINT.MULTIPLE_OPTIONS, {
-        details: { options: actions.map(action => optionForAction(action).name) },
+        details: { options: actions.map(action => action.option.name) },
         message: `Only one action option can be invoked at a time: ${actions
-          .map(action => `--${optionForAction(action).name}`)
+          .map(action => `--${action.option.name}`)
           .join(', ')}.`,
         scope: ErrorScope.RUNTIME_PRINT,
       })
@@ -178,8 +178,8 @@ class InvocationResolver {
     const targetOptions = candidate.plan.commonOptions.concat(
       commandRecord ? (candidate.plan.commandBindings.get(commandRecord) ?? []) : [],
     )
-    throwUnknownOptions(candidate.args, filter.optionsToKeyValue(targetOptions))
-    const applicationRoot = this.commandGraph.nodes()[0]
+    this.throwUnknownOptions(candidate, commandRecord)
+    const applicationRoot = this.commandGraph.rootNode()
     if (!action && !endpoint && candidate.match.node !== applicationRoot) {
       throw new InternalException(SYSTEM.NO_MATCHING_HANDLER, {
         details: { path: candidate.match.node.path },
@@ -197,16 +197,38 @@ class InvocationResolver {
 
   private matchedActions(candidate: InvocationCandidate): ActionEndpoint[] {
     return candidate.plan.actions.filter(action =>
-      Object.prototype.hasOwnProperty.call(
-        candidate.args,
-        `--${optionForAction(action).name}`,
-      ),
+      candidate.parsed.supplied.has(action.option.name),
     )
   }
 
-  private throwUnknownInvocation(positionals: readonly string[]): never {
+  private throwUnknownOptions(
+    candidate: InvocationCandidate,
+    commandRecord: HandlerRecord | undefined,
+  ) {
+    const commandNames = commandRecord
+      ? candidate.plan.commandOptionNames.get(commandRecord)
+      : undefined
+    const disallowed = Array.from(candidate.parsed.supplied).flatMap(name =>
+      candidate.plan.commonOptionNames.has(name) || commandNames?.has(name)
+        ? []
+        : [`--${name}`],
+    )
+    const options = disallowed.concat(candidate.parsed.unknown)
+    if (!options.length) return
+
+    throw new InternalException(RUNTIME_PRINT.UNKNOWN_OPTION, {
+      details: { options },
+      message: `Unknown option${options.length > 1 ? 's' : ''}: ${options.join(', ')}.`,
+      scope: ErrorScope.RUNTIME_PRINT,
+    })
+  }
+
+  private throwUnknownInvocation(
+    positionals: readonly string[],
+    unknown: readonly string[],
+  ): never {
     const first = positionals[0]
-    if (first && !first.startsWith('-')) {
+    if (first) {
       throw new InternalException(RUNTIME_PRINT.UNKNOWN_COMMAND, {
         details: { command: first, input: this.argv },
         message: `Unknown command "${first}".`,
@@ -215,8 +237,8 @@ class InvocationResolver {
     }
 
     throw new InternalException(RUNTIME_PRINT.UNKNOWN_OPTION, {
-      details: { options: positionals },
-      message: `Unknown option${positionals.length > 1 ? 's' : ''}: ${positionals.join(', ')}.`,
+      details: { options: unknown },
+      message: `Unknown option${unknown.length > 1 ? 's' : ''}: ${unknown.join(', ')}.`,
       scope: ErrorScope.RUNTIME_PRINT,
     })
   }
@@ -227,56 +249,10 @@ export const resolveInvocation = (
   argv: readonly string[],
 ): ResolvedInvocation => new InvocationResolver(commandGraph, argv).resolve()
 
-const parse = (spec: arg.Spec, argv: readonly string[]): arg.Result<any> => {
-  try {
-    return arg(spec, { argv: argv.slice(), permissive: true })
-  } catch (error) {
-    throw new InternalException(RUNTIME_PRINT.PARSE, {
-      cause: error instanceof Error ? error : undefined,
-      details: { error },
-      message: error instanceof Error ? error.message : String(error),
-      scope: ErrorScope.RUNTIME_PRINT,
-    })
-  }
-}
-
-const validateNumberOptions = (
-  options: readonly OptionParams[],
-  args: arg.Result<any>,
-) => {
-  options.forEach(option => {
-    const numberArray = Array.isArray(option.type) && option.type[0] === Number
-    if (option.type !== Number && !numberArray) return
-    const key = `--${option.name}`
-    if (!Object.prototype.hasOwnProperty.call(args, key)) return
-    const value: unknown = args[key]
-    const values = Array.isArray(value) ? value : [value]
-    if (values.every(item => typeof item === 'number' && Number.isFinite(item)))
-      return
-
-    throw new InternalException(RUNTIME_PRINT.PARSE, {
-      details: { option: key, value },
-      message: `Option "${key}" must be a finite number.`,
-      scope: ErrorScope.RUNTIME_PRINT,
-    })
-  })
-}
-
-const throwUnknownOptions = (args: arg.Result<any>, spec: arg.Spec) => {
-  const parsedOptions = Object.keys(args).filter(
-    key => key.startsWith('--') && !Object.prototype.hasOwnProperty.call(spec, key),
-  )
-  const options = parsedOptions.concat(
-    args._.filter(input => input.startsWith('-') && input !== '-'),
-  )
-  if (!options.length) return
-
-  throw new InternalException(RUNTIME_PRINT.UNKNOWN_OPTION, {
-    details: { options },
-    message: `Unknown option${options.length > 1 ? 's' : ''}: ${options.join(', ')}.`,
+const throwParseFailure = (failure: ArgParseFailure): never => {
+  throw new InternalException(RUNTIME_PRINT.PARSE, {
+    details: failure.details,
+    message: failure.message,
     scope: ErrorScope.RUNTIME_PRINT,
   })
 }
-
-const normalizeError = (error: unknown): Error =>
-  error instanceof Error ? error : new Error(String(error))
