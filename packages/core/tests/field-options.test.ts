@@ -1,5 +1,13 @@
 import 'reflect-metadata/lite'
-import { ArrayValue, Enum, Flag, Required, Value, ValueValidate } from '../src'
+import {
+  ArrayNumber,
+  ArrayString,
+  Enum,
+  Flag,
+  Required,
+  Value,
+  ValueValidate,
+} from '../src'
 import { compileFieldOptions } from '../src/options/field-metadata'
 import { SYSTEM, expect, systemErrorCode, test } from './_test'
 
@@ -16,7 +24,7 @@ test('should collect flag, value, and array field options', () => {
     @Value({ name: 'config', aliases: ['c', 'C'] })
     file: string = 'func.config.ts'
 
-    @ArrayValue({ name: 'include', aliases: ['i', 'I'] })
+    @ArrayString({ name: 'include', aliases: ['i', 'I'] })
     includes: string[] = []
   }
 
@@ -53,15 +61,15 @@ test('should collect flag, value, and array field options', () => {
   ])
 })
 
-test('should infer scalar types and allow explicit value types', () => {
+test('should infer scalar types and collect typed arrays', () => {
   class Options {
     @Value()
     count: number = 1
 
-    @Value({ type: String })
-    name: unknown = 'func'
+    @Value()
+    name: string = 'func'
 
-    @ArrayValue({ type: Number })
+    @ArrayNumber()
     ports: number[] = []
   }
 
@@ -72,28 +80,7 @@ test('should infer scalar types and allow explicit value types', () => {
   ])
 })
 
-test('should reject explicit and inferred boolean types for @Value', () => {
-  expect(() => {
-    class ExplicitBoolean {
-      // @ts-expect-error Boolean options must use @Flag.
-      @Value({ type: Boolean })
-      enabled: unknown = false
-    }
-
-    return ExplicitBoolean
-  }).toThrow(
-    expect.objectContaining({
-      code: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
-      details: {
-        className: 'ExplicitBoolean',
-        property: 'enabled',
-        type: 'Boolean',
-      },
-      message:
-        '@Value type "Boolean" is unsupported. Use String or Number. Use @Flag for boolean options.',
-    }),
-  )
-
+test('should reject boolean types for @Value', () => {
   expect(() => {
     class InferredBoolean {
       @Value()
@@ -109,33 +96,13 @@ test('should reject explicit and inferred boolean types for @Value', () => {
         property: 'enabled',
         type: 'Boolean',
       },
+      message:
+        '@Value type "Boolean" is unsupported. Declare the property as string or number. Use @Flag() for boolean options.',
     }),
   )
 })
 
-test('should reject explicit and inferred array types for @Value', () => {
-  const invalidTypes = [Array, [String]]
-
-  invalidTypes.forEach(type => {
-    expect(() => {
-      class Options {
-        // @ts-expect-error Runtime validation protects JavaScript callers too.
-        @Value({ type })
-        tags: string[] = []
-      }
-
-      return Options
-    }).toThrow(
-      expect.objectContaining({
-        code: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
-        details: expect.objectContaining({
-          className: 'Options',
-          property: 'tags',
-        }),
-      }),
-    )
-  })
-
+test('should reject array types for @Value', () => {
   expect(() => {
     class Options {
       @Value()
@@ -151,16 +118,17 @@ test('should reject explicit and inferred array types for @Value', () => {
         property: 'tags',
         type: 'Array',
       },
+      message:
+        '@Value type "Array" is unsupported. Declare the property as string or number. Use @ArrayString() or @ArrayNumber() for repeated options.',
     }),
   )
 })
 
-test('should reject unsupported explicit types for @ArrayValue', () => {
+test('should reject non-array fields for array decorators', () => {
   expect(() => {
     class Options {
-      // @ts-expect-error Boolean arrays are unsupported.
-      @ArrayValue({ type: Boolean })
-      enabled: boolean[] = []
+      @ArrayNumber()
+      count: number = 0
     }
 
     return Options
@@ -169,11 +137,52 @@ test('should reject unsupported explicit types for @ArrayValue', () => {
       code: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
       details: {
         className: 'Options',
-        property: 'enabled',
-        type: 'Boolean',
+        expectedType: 'number[]',
+        property: 'count',
+        type: 'Number',
       },
       message:
-        '@ArrayValue type "Boolean" is unsupported. Use String or Number. Use @Flag for boolean options.',
+        '@ArrayNumber requires an array property, but "count" has runtime type "Number". Declare the property as number[].',
+    }),
+  )
+})
+
+test('should require explicit array property types', () => {
+  expect(() => {
+    class Options {
+      @ArrayString()
+      values = []
+    }
+
+    return Options
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.CANNOT_INFER_VALUE_TYPE),
+      details: expect.objectContaining({
+        className: 'Options',
+        expectedType: 'string[]',
+        property: 'values',
+      }),
+    }),
+  )
+})
+
+test('should reject object metadata when scalar types cannot be inferred', () => {
+  expect(() => {
+    class Options {
+      @Value()
+      name = 'func'
+    }
+
+    return Options
+  }).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.CANNOT_INFER_VALUE_TYPE),
+      details: expect.objectContaining({
+        className: 'Options',
+        expectedType: 'string or number',
+        property: 'name',
+      }),
     }),
   )
 })
@@ -254,7 +263,7 @@ test('should reject invalid field targets and invalid option params', () => {
   )
 })
 
-test('should require explicit type when value type cannot be inferred', () => {
+test('should require a supported property type when value type cannot be inferred', () => {
   expect(() => {
     class Options {
       @Value()
@@ -267,9 +276,12 @@ test('should require explicit type when value type cannot be inferred', () => {
       code: systemErrorCode(SYSTEM.CANNOT_INFER_VALUE_TYPE),
       details: expect.objectContaining({
         className: 'Options',
+        expectedType: 'string or number',
         property: 'when',
         reason: 'cannot-infer-value-type',
       }),
+      message:
+        'Cannot infer value type for "when". Declare the property as string or number and ensure emitDecoratorMetadata is enabled.',
     }),
   )
 })

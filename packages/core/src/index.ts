@@ -7,7 +7,8 @@ export { Deprecated } from './deprecation'
 export { Args, Inject } from './injection'
 
 export {
-  ArrayValue,
+  ArrayNumber,
+  ArrayString,
   DependsOn,
   Enum,
   Exclusive,
@@ -25,7 +26,8 @@ export { Module, Injectable, createApp, createToken, run } from './application'
 export { Container } from './containers/container'
 export type { ContainerOptions, InvocationResult } from './containers/container'
 export type {
-  ArrayValueDecoratorParams,
+  ArrayNumberDecoratorParams,
+  ArrayStringDecoratorParams,
   CommandDecoratorInput,
   CommandDecoratorParams,
   CommandPath,

@@ -11,7 +11,7 @@ export class UsersCommand {
     alias: 'r',
     description: 'filter users by role',
   })
-  role = 'member'
+  role: string = 'member'
 
   constructor(private users: UsersService) {}
 

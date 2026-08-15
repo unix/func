@@ -1,7 +1,7 @@
 import * as func from '../src'
 import {
   Args,
-  ArrayValue,
+  ArrayNumber,
   Command,
   CommandMajor,
   Context,
@@ -67,7 +67,7 @@ test.sequential(
       @Value({ description: 'deployment target' })
       target?: string
 
-      @ArrayValue({ alias: 'p', description: 'deployment ports', type: Number })
+      @ArrayNumber({ alias: 'p', description: 'deployment ports' })
       port: number[] = []
 
       @Handler()

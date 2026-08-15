@@ -54,17 +54,17 @@ describe('dev error formatting', () => {
     expect(isCannotInferValueTypeError(error)).toBe(false)
   })
 
-  test('formats explicit type guidance', () => {
+  test('formats property type guidance', () => {
     const error = {
       details: {
         property: 'name',
       },
     }
 
-    expect(formatCannotInferValueTypeError(error)).toContain(
-      '@Value({ type: String })',
-    )
     expect(formatCannotInferValueTypeError(error)).toContain('name!: string')
+    expect(formatCannotInferValueTypeError(error)).toContain(
+      'ensure emitDecoratorMetadata is enabled',
+    )
   })
 
   test('formats the command class and project source location', () => {
@@ -120,6 +120,6 @@ describe('dev error formatting', () => {
 
     const message = formatCannotInferValueTypeError(error, { cwd: process.cwd() })
     expect(message).toContain('"Greet.name"')
-    expect(message).toContain('@Value({ type: String })')
+    expect(message).toContain('name!: string')
   })
 })

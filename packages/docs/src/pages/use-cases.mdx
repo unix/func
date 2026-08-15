@@ -1,7 +1,7 @@
 ---
 title: Use Cases
 description: Map common CLI workflows to small, predictable func command models.
-lastModified: '2026-08-04'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -53,7 +53,7 @@ export const registerCode = [
   '  dns = false',
   '',
   '  @Required()',
-  '  @Value({ type: String })',
+  '  @Value()',
   '  domain?: string',
   '',
   '  @Handler()',
@@ -91,7 +91,7 @@ export const userSearchCode = [
 ].join('\n')
 
 export const scaleCode = [
-  "import { ArrayValue, Command, Enum, Handler } from 'func'",
+  "import { ArrayString, Command, Enum, Handler } from 'func'",
   '',
   "const MACHINES = ['1x-1024m', '1x-2048m', '2x-1024m', '2x-2048m']",
   '',
@@ -101,7 +101,7 @@ export const scaleCode = [
   '})',
   'export class ScaleCommand {',
   '  @Enum(MACHINES)',
-  "  @ArrayValue({ name: 'machine' })",
+  "  @ArrayString({ name: 'machine' })",
   '  machines: string[] = []',
   '',
   '  @Handler()',
@@ -188,7 +188,7 @@ The user needs to fuzzy-search users by several possible names or aliases, then 
   sourceUrl="/demos/use-cases.ts"
 />
 
-The user needs to resize the deployment to multiple machines in one command, and each machine must use a supported size. `scale` is a static command, but `--machine` can be repeated. Use `@ArrayValue` for repeated input and `@Enum` to reject machine types outside the allowed set.
+The user needs to resize the deployment to multiple machines in one command, and each machine must use a supported size. `scale` is a static command, but `--machine` can be repeated. Use `@ArrayString` for repeated input and `@Enum` to reject machine types outside the allowed set.
 
 <CodeBlock code={scaleCode} filename="src/commands/scale.command.ts" lang="ts" />
 

@@ -5,7 +5,8 @@ import { readJson, runCommand } from './command.mjs'
 
 const expectedFuncApi = {
   Args: 'function',
-  ArrayValue: 'function',
+  ArrayNumber: 'function',
+  ArrayString: 'function',
   Command: 'function',
   CommandMajor: 'function',
   CommandMissing: 'function',

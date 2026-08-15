@@ -1,7 +1,7 @@
 import 'reflect-metadata/lite'
 import {
   Args,
-  ArrayValue,
+  ArrayString,
   CommandMajor,
   Flag,
   Handler,
@@ -28,7 +28,7 @@ test.sequential(
       @Value()
       port: number = 3000
 
-      @ArrayValue()
+      @ArrayString()
       include: string[] = []
 
       @Handler()
@@ -109,7 +109,7 @@ test.sequential(
       @Value({ name: 'mode', aliases: ['m'] })
       runMode: string = 'dev'
 
-      @ArrayValue({ name: 'tag', aliases: ['t'] })
+      @ArrayString({ name: 'tag', aliases: ['t'] })
       tags: string[] = []
 
       @Handler()
@@ -158,13 +158,16 @@ test.sequential(
       }
     }
 
-    Value({ type: String })(Major.prototype, '__proto__')
+    Reflect.defineMetadata('design:type', String, Major.prototype, '__proto__')
+    Value()(Major.prototype, '__proto__')
     ValueValidate((value, options) => {
       expect(value).toBe('safe-prototype')
       expect(Object.getPrototypeOf(options)).toBeNull()
     })(Major.prototype, '__proto__')
-    Value({ type: String })(Major.prototype, 'constructor')
-    Value({ type: String })(Major.prototype, 'toString')
+    Reflect.defineMetadata('design:type', String, Major.prototype, 'constructor')
+    Value()(Major.prototype, 'constructor')
+    Reflect.defineMetadata('design:type', String, Major.prototype, 'toString')
+    Value()(Major.prototype, 'toString')
 
     await runContainer(
       ['', '', '--__proto__', 'safe-prototype', '--constructor', 'safe-constructor'],

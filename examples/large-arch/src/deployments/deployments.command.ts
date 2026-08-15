@@ -12,7 +12,7 @@ export class DeploymentsCommand {
     alias: 'e',
     description: 'target environment',
   })
-  env = 'staging'
+  env: string = 'staging'
 
   @Flag({
     description: 'print the plan without deploying',

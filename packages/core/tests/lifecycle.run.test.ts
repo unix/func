@@ -1,6 +1,6 @@
 import {
   Args,
-  ArrayValue,
+  ArrayString,
   Command,
   CommandMajor,
   Flag,
@@ -141,7 +141,7 @@ test.sequential('should collect array values', async ({ runContainer }) => {
   expect.assertions(1)
   @CommandMajor()
   class Major {
-    @ArrayValue()
+    @ArrayString()
     include: string[] = []
 
     @Handler()

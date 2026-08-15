@@ -13,9 +13,8 @@ export class Greet {
     alias: 'n',
     aliases: ['N'],
     description: 'name to greet',
-    type: String,
   })
-  name = 'friend'
+  name: string = 'friend'
 
   @Flag({
     alias: 'u',

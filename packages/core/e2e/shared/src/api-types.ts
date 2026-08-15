@@ -1,5 +1,6 @@
 import type {
-  ArrayValueDecoratorParams,
+  ArrayNumberDecoratorParams,
+  ArrayStringDecoratorParams,
   ClassProvider,
   Args,
   CommandDecoratorInput,
@@ -62,7 +63,8 @@ import type {
 } from 'func/testing'
 
 export type PublicApiTypes = [
-  ArrayValueDecoratorParams,
+  ArrayNumberDecoratorParams,
+  ArrayStringDecoratorParams,
   ClassProvider,
   ContainerOptions,
   Deprecation,

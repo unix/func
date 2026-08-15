@@ -25,7 +25,7 @@ JavaScript computation:
   canary rollout requirements, file extensions, and artifact references.
 
 `func` expresses its supported behavior through `@Required`, `@Enum`,
-`@ValueValidate`, `@ArrayValue`, `@DependsOn`, `@Exclusive`, lifecycle hooks, and routing
+`@ValueValidate`, `@ArrayString`, `@DependsOn`, `@Exclusive`, lifecycle hooks, and routing
 decorators. Each competing adapter uses its own native API where available and
 implements the remaining policy locally. The generated report records those
 mechanisms explicitly.

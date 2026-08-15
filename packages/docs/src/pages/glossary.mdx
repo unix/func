@@ -1,7 +1,7 @@
 ---
 title: Glossary
 description: Look up CLI input, func model, and runtime terminology without mixing their layers.
-lastModified: '2026-08-04'
+lastModified: '2026-08-15'
 ---
 
 import DocsLayout from '@/layouts/docs.astro'
@@ -22,17 +22,17 @@ These terms belong to different layers and are not interchangeable. Start with [
 
 ## Concepts that define a func CLI
 
-| Term              | Meaning                                                                                      | API                            |
-| ----------------- | -------------------------------------------------------------------------------------------- | ------------------------------ |
-| `Named command`   | The command class selected when the first bare token matches its name or alias.              | `@Command()`                   |
-| `Major command`   | Owns invocations without a named command, including executable-only and option-first input.  | `@CommandMajor()`              |
-| `Missing command` | An optional fallback class for an unmatched first positional token.                          | `@CommandMissing()`            |
-| `Handler`         | A method that performs an action inside a command class; one invocation selects one handler. | `@Handler()`                   |
-| `Default handler` | Runs when no handler path or handler flag matches. A command class may define at most one.   | `@Handler()`                   |
-| `Handler path`    | One or more fixed positional tokens that select a handler; the longest matching path wins.   | `@Handler({ path })`           |
-| `Handler flag`    | An option such as --help that switches execution to another mutually exclusive handler.      | `@Handler({ flag, alias })`    |
-| `Field option`    | A flag, scalar value, or repeated value parsed and assigned to a command instance property.  | `@Flag / @Value / @ArrayValue` |
-| `Input`           | Positional tokens left after removing the named command and selected handler path.           | `Args.inputs`                  |
+| Term              | Meaning                                                                                      | API                                            |
+| ----------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `Named command`   | The command class selected when the first bare token matches its name or alias.              | `@Command()`                                   |
+| `Major command`   | Owns invocations without a named command, including executable-only and option-first input.  | `@CommandMajor()`                              |
+| `Missing command` | An optional fallback class for an unmatched first positional token.                          | `@CommandMissing()`                            |
+| `Handler`         | A method that performs an action inside a command class; one invocation selects one handler. | `@Handler()`                                   |
+| `Default handler` | Runs when no handler path or handler flag matches. A command class may define at most one.   | `@Handler()`                                   |
+| `Handler path`    | One or more fixed positional tokens that select a handler; the longest matching path wins.   | `@Handler({ path })`                           |
+| `Handler flag`    | An option such as --help that switches execution to another mutually exclusive handler.      | `@Handler({ flag, alias })`                    |
+| `Field option`    | A flag, scalar value, or repeated value parsed and assigned to a command instance property.  | `@Flag / @Value / @ArrayString / @ArrayNumber` |
+| `Input`           | Positional tokens left after removing the named command and selected handler path.           | `Args.inputs`                                  |
 
 ## Runtime and application-structure terms
 

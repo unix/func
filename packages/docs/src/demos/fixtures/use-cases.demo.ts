@@ -1,6 +1,6 @@
 import {
   Args,
-  ArrayValue,
+  ArrayString,
   Command,
   CommandMissing,
   Enum,
@@ -9,7 +9,6 @@ import {
   Handler,
   Required,
   Value,
-  type Args,
 } from '../../../../core/src'
 
 @Command({
@@ -46,7 +45,7 @@ class RegisterCommand {
   dns = false
 
   @Required()
-  @Value({ type: String })
+  @Value()
   domain?: string
 
   @Handler()
@@ -86,7 +85,7 @@ const MACHINES = ['1x-1024m', '1x-2048m', '2x-1024m', '2x-2048m']
 })
 class ScaleCommand {
   @Enum(MACHINES)
-  @ArrayValue({ name: 'machine' })
+  @ArrayString({ name: 'machine' })
   machines: string[] = []
 
   @Handler()

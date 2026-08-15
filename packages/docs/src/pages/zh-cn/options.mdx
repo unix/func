@@ -1,7 +1,7 @@
 ---
 title: 字段选项
 description: 定义命令标志、标量值、重复值、默认值、别名和校验。
-lastModified: '2026-08-14'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -36,7 +36,7 @@ export const valueCode = [
   "  @Value({ aliases: ['p', 'P'], description: 'Port to listen on' })",
   '  port: number = 3000',
   '',
-  "  @Value({ name: 'config-file', type: String })",
+  "  @Value({ name: 'config-file' })",
   '  configFile?: string',
   '',
   '  @Handler()',
@@ -47,14 +47,14 @@ export const valueCode = [
 ].join('\n')
 
 export const arrayCode = [
-  "import { ArrayValue, Command, Handler } from 'func'",
+  "import { ArrayNumber, ArrayString, Command, Handler } from 'func'",
   '',
   "@Command({ name: 'build' })",
   'export class BuildCommand {',
-  "  @ArrayValue({ name: 'include', aliases: ['i', 'I'] })",
+  "  @ArrayString({ name: 'include', aliases: ['i', 'I'] })",
   '  includes: string[] = []',
   '',
-  "  @ArrayValue({ name: 'port', type: Number })",
+  "  @ArrayNumber({ name: 'port' })",
   '  ports: number[] = []',
   '',
   '  @Handler()',
@@ -71,14 +71,14 @@ export const validationCode = [
   'export class PublishCommand {',
   '  @Required()',
   "  @Enum(['dev', 'prod'])",
-  '  @Value({ type: String })',
+  '  @Value()',
   '  target?: string',
   '',
   "  @DependsOn(['token'])",
-  '  @Value({ type: String })',
+  '  @Value()',
   '  registry?: string',
   '',
-  '  @Value({ type: String })',
+  '  @Value()',
   '  token?: string',
   '',
   "  @Exclusive(['json'])",
@@ -138,11 +138,11 @@ option class 是普通的 DI 受管依赖，因此其直接 module 和 command �
 
 ## 选择合适的值类型
 
-| 用户需求             | 输入示例                        | 装饰器          | 字段值                 |
-| -------------------- | ------------------------------- | --------------- | ---------------------- |
-| 是或否的开关         | `--verbose 或 -v`               | `@Flag()`       | `boolean`              |
-| 一个字符串或有限数字 | `--port 3000`                   | `@Value()`      | `string \| number`     |
-| 同一选项重复多次     | `--include src --include tests` | `@ArrayValue()` | `string[] \| number[]` |
+| 用户需求             | 输入示例                        | 装饰器                              | 字段值                 |
+| -------------------- | ------------------------------- | ----------------------------------- | ---------------------- |
+| 是或否的开关         | `--verbose 或 -v`               | `@Flag()`                           | `boolean`              |
+| 一个字符串或有限数字 | `--port 3000`                   | `@Value()`                          | `string \| number`     |
+| 同一选项重复多次     | `--include src --include tests` | `@ArrayString()` / `@ArrayNumber()` | `string[] \| number[]` |
 
 ## 布尔标志
 
@@ -158,7 +158,7 @@ negatable flag 还会接受自动生成的 `--no-<name>` 形式，因此 `ship s
 
 ## 标量值
 
-`@Value()` 接收一个值。func 可以根据 TypeScript 发出的装饰器元数据推断 `String` 和 `Number`。布尔选项必须使用 `@Flag()`，从而让存在形式与反向形式保持明确的 CLI 语义。可选属性或其他无法在运行时推断的声明需要显式传入 `type`。
+`@Value()` 接收一个值。func 根据 TypeScript 发出的装饰器元数据推断 `String` 和 `Number`，因此每个值字段都必须显式把属性声明为 `string` 或 `number`，只有初始值并不足够。布尔选项必须使用 `@Flag()`，从而让存在形式与反向形式保持明确的 CLI 语义。
 
 <CodeBlock code={valueCode} filename="src/commands/serve.command.ts" lang="ts" />
 
@@ -168,7 +168,7 @@ negatable flag 还会接受自动生成的 `--no-<name>` 形式，因此 `ship s
 
 ## 重复值
 
-`@ArrayValue()` 会把同一选项的多次输入收集为数组。元素类型默认是 `String`；有限数字需要显式传入 `type: Number`。TypeScript 装饰器元数据只能识别到 `Array`，因此无法自动推断数字数组的元素类型。
+`@ArrayString()` 和 `@ArrayNumber()` 分别把同一选项的多次输入收集为 `string[]` 和 `number[]`。TypeScript 装饰器元数据只能识别到 `Array`，因此由装饰器名称表达元素解析类型，由属性声明确认字段是数组。
 
 <CodeBlock code={arrayCode} filename="src/commands/build.command.ts" lang="ts" />
 
@@ -196,7 +196,7 @@ negatable flag 还会接受自动生成的 `--no-<name>` 形式，因此 `ship s
 
 ## 在不移除选项的情况下标记废弃
 
-将 `@Deprecated()` 与 `@Flag`、`@Value` 或 `@ArrayValue` 放在同一属性上，可以让选项继续工作，同时在结构化帮助中标明，并在用户显式传入时向 stderr 输出不影响退出码的提示。可以传入 `@Deprecated('Use --format instead.')` 这样的迁移说明。默认值不会触发提示；把该装饰器放在普通属性上也不会产生可观察效果。
+将 `@Deprecated()` 与 `@Flag`、`@Value`、`@ArrayString` 或 `@ArrayNumber` 放在同一属性上，可以让选项继续工作，同时在结构化帮助中标明，并在用户显式传入时向 stderr 输出不影响退出码的提示。可以传入 `@Deprecated('Use --format instead.')` 这样的迁移说明。默认值不会触发提示；把该装饰器放在普通属性上也不会产生可观察效果。
 
 module 作用域的动作选项通过 `@OptionCommand` 的 `deprecated` 参数标记。
 

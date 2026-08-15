@@ -113,8 +113,8 @@
         "routing": "@Command + @Handler",
         "required": "@Required",
         "enums": "@Enum",
-        "numericRanges": "@Value(type) + @ValueValidate",
-        "repeatedValues": "@ArrayValue",
+        "numericRanges": "@Value + @ValueValidate",
+        "repeatedValues": "@ArrayString",
         "dependencies": "@DependsOn",
         "exclusivity": "@Exclusive",
         "errorBoundary": "command/module onError"

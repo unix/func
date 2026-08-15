@@ -1,6 +1,6 @@
 import {
   Args,
-  ArrayValue,
+  ArrayString,
   Command,
   CommandMissing,
   DependsOn,
@@ -53,7 +53,7 @@ class ReleaseCommand extends FuncCommand {
 
   @DependsOn(['strategy'])
   @ValueValidate(value => validateOptionalInteger(value, 'canary-percent', 1, 50))
-  @Value({ name: 'canary-percent', type: Number })
+  @Value({ name: 'canary-percent' })
   canaryPercent?: number
 
   @Exclusive(['dry-run'])
@@ -76,22 +76,22 @@ class ReleaseCommand extends FuncCommand {
   region: string = 'us-east-1'
 
   @ValueValidate(value => validateInteger(value, 'replicas', 1, 50))
-  @Value({ alias: 'n', type: Number, description: 'replica count' })
-  replicas = 3
+  @Value({ alias: 'n', description: 'replica count' })
+  replicas: number = 3
 
-  @ArrayValue({ description: 'deployment variable KEY=value' })
+  @ArrayString({ description: 'deployment variable KEY=value' })
   set: string[] = []
 
   @Enum(strategies)
   @Value({ alias: 's', description: 'rollout strategy' })
   strategy: string = 'rolling'
 
-  @ArrayValue({ description: 'release tag key=value' })
+  @ArrayString({ description: 'release tag key=value' })
   tag: string[] = []
 
   @ValueValidate(value => validateInteger(value, 'timeout', 10, 900))
-  @Value({ alias: 't', type: Number, description: 'timeout in seconds' })
-  timeout = 300
+  @Value({ alias: 't', description: 'timeout in seconds' })
+  timeout: number = 300
 
   @Handler({ path: ['plan'] })
   plan(@Args() args: CommandArgs): void {
@@ -170,7 +170,7 @@ class ConfigCommand extends FuncCommand {
   @Flag({ name: 'allow-unknown', description: 'allow unknown configuration keys' })
   allowUnknown = false
 
-  @ArrayValue({ name: 'env', description: 'environment value KEY=value' })
+  @ArrayString({ name: 'env', description: 'environment value KEY=value' })
   environmentValues: string[] = []
 
   @Enum(configFormats)
@@ -181,8 +181,8 @@ class ConfigCommand extends FuncCommand {
   json = false
 
   @ValueValidate(value => validateInteger(value, 'max-warnings', 0, 100))
-  @Value({ name: 'max-warnings', type: Number, description: 'warning limit' })
-  maxWarnings = 0
+  @Value({ name: 'max-warnings', description: 'warning limit' })
+  maxWarnings: number = 0
 
   @Enum(configSchemas)
   @Value({ description: 'validation schema mode' })
@@ -239,7 +239,7 @@ class ArtifactCommand extends FuncCommand {
   @Value({ description: 'signature key path' })
   key?: string
 
-  @ArrayValue({ description: 'artifact metadata key=value' })
+  @ArrayString({ description: 'artifact metadata key=value' })
   metadata: string[] = []
 
   @Enum(platforms)

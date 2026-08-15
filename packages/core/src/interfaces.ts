@@ -100,17 +100,15 @@ export interface FieldOptionDecoratorParams extends AliasDecoratorParams {
   description?: string
 }
 
-export interface ArrayValueDecoratorParams extends FieldOptionDecoratorParams {
-  type?: ValueOptionType
-}
+export type ArrayNumberDecoratorParams = FieldOptionDecoratorParams
+
+export type ArrayStringDecoratorParams = FieldOptionDecoratorParams
 
 export interface FlagDecoratorParams extends FieldOptionDecoratorParams {
   negatable?: boolean
 }
 
-export interface ValueDecoratorParams extends FieldOptionDecoratorParams {
-  type?: ValueOptionType
-}
+export type ValueDecoratorParams = FieldOptionDecoratorParams
 
 export interface HandlerParams {
   aliases: readonly string[]

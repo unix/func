@@ -1,8 +1,8 @@
 ---
 code: F_SYSTEM_INVALID_OPTION_TYPE
 title: Invalid option type
-description: A Value or ArrayValue field uses an unsupported parser type.
-lastModified: '2026-08-14'
+description: A field decorator does not match the property's emitted runtime type.
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -17,22 +17,22 @@ export const reproductionCode = [
 ].join('\n')
 
 export const fixCode = [
-  "import { ArrayValue } from 'func'",
+  "import { ArrayString } from 'func'",
   '',
   'class Options {',
-  '  @ArrayValue()',
+  '  @ArrayString()',
   '  tags: string[] = []',
   '}',
 ].join('\n')
 
 ## Reproduction
 
-`@Value()` accepts only scalar `String` and `Number` types:
+`@Value()` accepts only properties whose emitted runtime type is `String` or `Number`:
 
 <CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
 
 ## How to fix it
 
-Use `@Flag()` for a boolean option, `@ArrayValue()` for repeated `String` or `Number` values, or change the property and explicit `type` to a supported scalar type:
+Use `@Flag()` for a boolean option, `@ArrayString()` for `string[]`, or `@ArrayNumber()` for `number[]`. Otherwise, change the property declaration to a supported scalar type:
 
 <CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />

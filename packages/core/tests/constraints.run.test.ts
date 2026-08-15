@@ -1,5 +1,6 @@
 import {
-  ArrayValue,
+  ArrayNumber,
+  ArrayString,
   CommandMajor,
   DependsOn,
   Enum,
@@ -41,7 +42,7 @@ test.sequential(
 
     @CommandMajor()
     class Major implements OnError {
-      @ArrayValue()
+      @ArrayString()
       @Enum(['js', 'ts'])
       ext: string[] = []
 
@@ -66,7 +67,7 @@ test.sequential(
 
     @CommandMajor()
     class Major implements OnError {
-      @ArrayValue({ type: Number })
+      @ArrayNumber()
       @Enum([1, 2])
       level: number[] = []
 

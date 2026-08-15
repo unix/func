@@ -1,4 +1,4 @@
-import { Args, ArrayValue, Command, Context, Flag, Handler, Inject } from '../src'
+import { Args, ArrayString, Command, Context, Flag, Handler, Inject } from '../src'
 import type { Args as ArgsValue } from '../src'
 import { SYSTEM, expect, random, systemErrorCode, test } from './_test'
 
@@ -38,7 +38,7 @@ test.sequential(
 
     @Command({ alias: 'b', aliases: ['build', 'b'], path: name })
     class BuildCommand {
-      @ArrayValue({ aliases: ['i'] })
+      @ArrayString({ aliases: ['i'] })
       include: string[] = []
 
       constructor(private context: Context) {}

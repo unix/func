@@ -1,7 +1,7 @@
 ---
 title: 使用案例
 description: 了解常见 CLI 需求在 func 中的实现方式。
-lastModified: '2026-08-04'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -53,7 +53,7 @@ export const registerCode = [
   '  dns = false',
   '',
   '  @Required()',
-  '  @Value({ type: String })',
+  '  @Value()',
   '  domain?: string',
   '',
   '  @Handler()',
@@ -91,7 +91,7 @@ export const userSearchCode = [
 ].join('\n')
 
 export const scaleCode = [
-  "import { ArrayValue, Command, Enum, Handler } from 'func'",
+  "import { ArrayString, Command, Enum, Handler } from 'func'",
   '',
   "const MACHINES = ['1x-1024m', '1x-2048m', '2x-1024m', '2x-2048m']",
   '',
@@ -101,7 +101,7 @@ export const scaleCode = [
   '})',
   'export class ScaleCommand {',
   '  @Enum(MACHINES)',
-  "  @ArrayValue({ name: 'machine' })",
+  "  @ArrayString({ name: 'machine' })",
   '  machines: string[] = []',
   '',
   '  @Handler()',
@@ -193,7 +193,7 @@ export const scaleCode = [
   sourceUrl="/demos/use-cases.ts"
 />
 
-假设一次缩放操作可以指定多种机器规格，且每个规格都必须在系统支持的列表中。 `scale` 是顶层命令，`--machine` 可以重复传入。使用 `@ArrayValue` 收集多个值，并用 `@Enum` 拒绝不受支持的机器规格。
+假设一次缩放操作可以指定多种机器规格，且每个规格都必须在系统支持的列表中。 `scale` 是顶层命令，`--machine` 可以重复传入。使用 `@ArrayString` 收集多个值，并用 `@Enum` 拒绝不受支持的机器规格。
 
 <CodeBlock code={scaleCode} filename="src/commands/scale.command.ts" lang="ts" />
 

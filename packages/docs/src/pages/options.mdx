@@ -1,7 +1,7 @@
 ---
 title: Field Options
 description: Define command flags, scalar values, repeated values, defaults, aliases, and validation.
-lastModified: '2026-08-14'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -36,7 +36,7 @@ export const valueCode = [
   "  @Value({ aliases: ['p', 'P'], description: 'Port to listen on' })",
   '  port: number = 3000',
   '',
-  "  @Value({ name: 'config-file', type: String })",
+  "  @Value({ name: 'config-file' })",
   '  configFile?: string',
   '',
   '  @Handler()',
@@ -47,14 +47,14 @@ export const valueCode = [
 ].join('\n')
 
 export const arrayCode = [
-  "import { ArrayValue, Command, Handler } from 'func'",
+  "import { ArrayNumber, ArrayString, Command, Handler } from 'func'",
   '',
   "@Command({ name: 'build' })",
   'export class BuildCommand {',
-  "  @ArrayValue({ name: 'include', aliases: ['i', 'I'] })",
+  "  @ArrayString({ name: 'include', aliases: ['i', 'I'] })",
   '  includes: string[] = []',
   '',
-  "  @ArrayValue({ name: 'port', type: Number })",
+  "  @ArrayNumber({ name: 'port' })",
   '  ports: number[] = []',
   '',
   '  @Handler()',
@@ -71,14 +71,14 @@ export const validationCode = [
   'export class PublishCommand {',
   '  @Required()',
   "  @Enum(['dev', 'prod'])",
-  '  @Value({ type: String })',
+  '  @Value()',
   '  target?: string',
   '',
   "  @DependsOn(['token'])",
-  '  @Value({ type: String })',
+  '  @Value()',
   '  registry?: string',
   '',
-  '  @Value({ type: String })',
+  '  @Value()',
   '  token?: string',
   '',
   "  @Exclusive(['json'])",
@@ -138,11 +138,11 @@ Scope is explicit: feature-module options apply only to commands declared direct
 
 ## Choose the value shape
 
-| User need                      | Example syntax                  | Decorator       | Field value            |
-| ------------------------------ | ------------------------------- | --------------- | ---------------------- |
-| A yes/no switch                | `--verbose or -v`               | `@Flag()`       | `boolean`              |
-| One string or finite number    | `--port 3000`                   | `@Value()`      | `string \| number`     |
-| The same option more than once | `--include src --include tests` | `@ArrayValue()` | `string[] \| number[]` |
+| User need                      | Example syntax                  | Decorator                           | Field value            |
+| ------------------------------ | ------------------------------- | ----------------------------------- | ---------------------- |
+| A yes/no switch                | `--verbose or -v`               | `@Flag()`                           | `boolean`              |
+| One string or finite number    | `--port 3000`                   | `@Value()`                          | `string \| number`     |
+| The same option more than once | `--include src --include tests` | `@ArrayString()` / `@ArrayNumber()` | `string[] \| number[]` |
 
 ## Boolean flags
 
@@ -158,7 +158,7 @@ Use a field flag for data that modifies an action. If the option must select a d
 
 ## Scalar values
 
-`@Value()` consumes one value. func can infer `String` and `Number` from emitted TypeScript decorator metadata. Boolean options must use `@Flag()` so their presence and negated forms have unambiguous CLI semantics. Pass `type` explicitly for an optional property or any declaration whose runtime type cannot be inferred.
+`@Value()` consumes one value. func infers `String` and `Number` from emitted TypeScript decorator metadata, so every value field must explicitly declare its property as `string` or `number`; an initializer by itself is not enough. Boolean options must use `@Flag()` so their presence and negated forms have unambiguous CLI semantics.
 
 <CodeBlock code={valueCode} filename="src/commands/serve.command.ts" lang="ts" />
 
@@ -168,7 +168,7 @@ The property initializer is the default when the user omits the option. Defaults
 
 ## Repeated values
 
-`@ArrayValue()` collects repeated occurrences into an array. Its element type defaults to `String`; pass `type: Number` for finite numbers. TypeScript decorator metadata exposes only `Array`, so number arrays must declare their element type explicitly.
+`@ArrayString()` and `@ArrayNumber()` collect repeated occurrences into `string[]` and `number[]` respectively. TypeScript decorator metadata exposes only `Array`, so the decorator name carries the element parser type while the property declaration confirms that the field is an array.
 
 <CodeBlock code={arrayCode} filename="src/commands/build.command.ts" lang="ts" />
 
@@ -196,7 +196,7 @@ Undeclared option-looking tokens are rejected. Use [Parameters](/parameters) for
 
 ## Deprecate an option without removing it
 
-Place `@Deprecated()` beside `@Flag`, `@Value`, or `@ArrayValue` to keep an option working while marking it in structured help and printing a non-fatal stderr notice when the user explicitly supplies it. Pass a message such as `@Deprecated('Use --format instead.')` to include migration guidance. Defaults do not trigger notices, and placing the decorator on an ordinary property has no observable effect.
+Place `@Deprecated()` beside `@Flag`, `@Value`, `@ArrayString`, or `@ArrayNumber` to keep an option working while marking it in structured help and printing a non-fatal stderr notice when the user explicitly supplies it. Pass a message such as `@Deprecated('Use --format instead.')` to include migration guidance. Defaults do not trigger notices, and placing the decorator on an ordinary property has no observable effect.
 
 Module-scoped action options use the `deprecated` parameter on `@OptionCommand` instead.
 

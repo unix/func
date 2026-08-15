@@ -1,8 +1,8 @@
 ---
 code: F_SYSTEM_CANNOT_INFER_VALUE_TYPE
 title: 无法推断值类型
-description: '@Value 属性没有受支持的运行时类型，也没有显式声明解析类型。'
-lastModified: '2026-08-14'
+description: 值属性没有提供受支持的 TypeScript 装饰器元数据。
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -18,21 +18,21 @@ export const reproductionCode = [
 
 export const fixCode = [
   'class Options {',
-  '  @Value({ type: String })',
-  "  when = ''",
+  '  @Value()',
+  "  when: string = ''",
   '}',
 ].join('\n')
 
 ## 复现
 
-`@Value()` 只能推断受支持的基础运行时类型：
+`@Value()` 只能使用 TypeScript 生成的 `String` 和 `Number` 运行时类型：
 
 <CodeBlock code={reproductionCode} filename="src/options.ts" lang="ts" />
 
 ## 如何修复
 
-显式传入受支持的解析类型，并保持属性类型与它兼容：
+将属性声明为 `string` 或 `number`，让 TypeScript 生成受支持的装饰器元数据：
 
 <CodeBlock code={fixCode} filename="src/options.ts" lang="ts" />
 
-可使用 `String` 或 `Number`；布尔选项应使用 `@Flag()`，重复值应使用 `@ArrayValue()`，数字数组还需要传入 `type: Number`。
+同时确保已启用 `emitDecoratorMetadata`。布尔选项使用 `@Flag()`；重复值分别使用 `string[]` 与 `@ArrayString()`，或 `number[]` 与 `@ArrayNumber()`。

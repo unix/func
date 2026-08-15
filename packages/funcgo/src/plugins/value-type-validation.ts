@@ -19,7 +19,6 @@ interface ValueTypeDiagnostic {
 }
 
 type RuntimeTypeStatus = 'supported' | 'unknown' | 'unsupported'
-type DecoratorTypeStatus = 'present' | 'unknown' | 'missing'
 
 const SOURCE_EXTENSION = /\.(?:[cm]?ts|tsx)$/
 const DECLARATION_EXTENSION = /\.d\.(?:[cm]?ts|tsx)$/
@@ -165,10 +164,7 @@ const validateProperty = (
     .filter((call): call is ts.CallExpression => Boolean(call))
   if (!valueDecorators.length) return []
   const typeStatus = runtimeTypeStatus(property.type)
-  const hasInvalidDecorator = valueDecorators.some(call => {
-    return decoratorTypeStatus(call) === 'missing' && typeStatus === 'unsupported'
-  })
-  if (!hasInvalidDecorator) return []
+  if (typeStatus !== 'unsupported') return []
   const propertyName = staticPropertyName(property.name)
   if (!propertyName) return []
   const position = property.name.getStart(sourceFile)
@@ -200,38 +196,6 @@ const valueDecoratorCall = (
   if (!bindings.namespaces.has(callee.expression.text)) return undefined
   if (callee.name.text !== 'Value') return undefined
   return decorator.expression
-}
-
-const decoratorTypeStatus = (call: ts.CallExpression): DecoratorTypeStatus => {
-  const params = call.arguments.at(0)
-  if (!params) return 'missing'
-  if (!ts.isObjectLiteralExpression(params)) return 'unknown'
-  let lastSpread = -1
-  let lastType = -1
-  let status: DecoratorTypeStatus = 'missing'
-
-  params.properties.forEach((property, index) => {
-    if (ts.isSpreadAssignment(property)) {
-      lastSpread = index
-      return
-    }
-    if (staticPropertyName(property.name) !== 'type') return
-    lastType = index
-    status = explicitTypeStatus(property)
-  })
-  if (lastSpread > lastType) return 'unknown'
-  return lastType >= 0 ? status : lastSpread >= 0 ? 'unknown' : 'missing'
-}
-
-const explicitTypeStatus = (
-  property: ts.ObjectLiteralElementLike,
-): DecoratorTypeStatus => {
-  if (!ts.isPropertyAssignment(property)) return 'present'
-  const value = property.initializer
-  if (value.kind === ts.SyntaxKind.NullKeyword) return 'missing'
-  if (ts.isIdentifier(value) && value.text === 'undefined') return 'missing'
-  if (ts.isVoidExpression(value)) return 'missing'
-  return 'present'
 }
 
 const runtimeTypeStatus = (type: ts.TypeNode | undefined): RuntimeTypeStatus => {
@@ -325,8 +289,9 @@ const formatDiagnostics = (
   return [
     ...content,
     '',
-    'Please specify the type explicitly in the option decorator:',
-    '  @Value({ type: String })',
+    'Use @ArrayString() or @ArrayNumber() for repeated options.',
+    'Please declare the property as string or number and ensure emitDecoratorMetadata is enabled:',
+    '  @Value()',
     `  ${property}!: string`,
   ].join('\n')
 }

@@ -1,4 +1,4 @@
-import { ArrayValue, CommandMajor, Context, Enum, Flag, Handler, Value } from 'func'
+import { ArrayString, CommandMajor, Context, Enum, Flag, Handler, Value } from 'func'
 import pkg from '../../package.json'
 import { appName } from '../config'
 
@@ -18,7 +18,7 @@ export class Major {
   })
   mode: string = 'dev'
 
-  @ArrayValue({
+  @ArrayString({
     name: 'tag',
     description: 'add an output tag',
   })

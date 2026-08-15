@@ -1,4 +1,4 @@
-import { ArrayValue, CommandMajor, Context, Enum, Flag, Handler, Value } from 'func'
+import { ArrayString, CommandMajor, Context, Enum, Flag, Handler, Value } from 'func'
 import pkg from '../../package.json'
 import { appName } from '../config'
 import { ProjectService } from '../services/project.service'
@@ -16,11 +16,10 @@ export class Major {
   @Enum(runtimeModes)
   @Value({
     description: 'runtime mode',
-    type: String,
   })
-  mode = 'dev'
+  mode: string = 'dev'
 
-  @ArrayValue({
+  @ArrayString({
     name: 'tag',
     description: 'add an output tag',
   })

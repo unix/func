@@ -100,7 +100,8 @@ const projects: ConsumerProject[] = projectCases.map(project => {
 
 const runtimeApis = [
   'Args',
-  'ArrayValue',
+  'ArrayNumber',
+  'ArrayString',
   'Command',
   'CommandMajor',
   'CommandMissing',
@@ -130,7 +131,8 @@ const runtimeApis = [
 
 const callableApis = [
   'Args',
-  'ArrayValue',
+  'ArrayNumber',
+  'ArrayString',
   'Command',
   'CommandMajor',
   'CommandMissing',

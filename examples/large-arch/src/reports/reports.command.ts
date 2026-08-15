@@ -11,7 +11,7 @@ export class ReportsCommand {
     alias: 'p',
     description: 'report period',
   })
-  period = 'week'
+  period: string = 'week'
 
   constructor(private reports: ReportsService) {}
 

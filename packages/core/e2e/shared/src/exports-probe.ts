@@ -2,7 +2,8 @@ import * as library from 'func'
 
 const callableApis = [
   'Args',
-  'ArrayValue',
+  'ArrayNumber',
+  'ArrayString',
   'Command',
   'CommandMajor',
   'CommandMissing',

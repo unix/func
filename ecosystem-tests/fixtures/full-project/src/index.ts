@@ -1,6 +1,6 @@
 import {
   Args,
-  ArrayValue,
+  ArrayString,
   Command,
   CommandMajor,
   CommandMissing,
@@ -41,7 +41,7 @@ class MajorCommand {
   @Value()
   mode: string = 'dev'
 
-  @ArrayValue({ name: 'tag' })
+  @ArrayString({ name: 'tag' })
   tags: string[] = []
 
   constructor(

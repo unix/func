@@ -1,7 +1,7 @@
 ---
 title: API 参考
 description: 查阅当前 func 装饰器、运行时类型、模块 API 和 funcgo 命令。
-lastModified: '2026-08-14'
+lastModified: '2026-08-15'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -61,8 +61,9 @@ export const apiExampleCode = [
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `@OptionCommand(params)` | `params = { name: string, alias?: string, aliases?: readonly string[], deprecated?: true \| string, description?: string, overrideAll?: boolean }` | 声明 module 作用域的动作选项；每个 alias 必须为单字符。                 |
 | `@Flag(params?)`         | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, negatable?: boolean }`                               | 声明布尔选项；所有 alias 都是正向形式，`negatable` 注册 `--no-<name>`。 |
-| `@Value(params?)`        | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, type?: String \| Number }`                           | 声明标量值选项。能从 design metadata 推断类型时会自动推断。             |
-| `@ArrayValue(params?)`   | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string, type?: String \| Number }`                           | 声明重复值选项；元素类型默认为 `String`。                               |
+| `@Value(params?)`        | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string }`                                                    | 声明从 design metadata 推断的 `string` 或 `number` 标量选项。           |
+| `@ArrayString(params?)`  | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string }`                                                    | 声明重复字符串选项。                                                    |
+| `@ArrayNumber(params?)`  | `params = { name?: string, alias?: string, aliases?: readonly string[], description?: string }`                                                    | 声明重复数字选项。                                                      |
 | `@Deprecated(message?)`  | `message?: string`                                                                                                                                 | 将字段选项或 `@Handler({ flag })` 动作标记为废弃；普通成员会被忽略。    |
 | `@Required()`            | `-`                                                                                                                                                | 要求选项被显式提供，或已经定义默认值。                                  |
 | `@Enum(values)`          | `values = Array<boolean \| string \| number>`                                                                                                      | 校验标量值或数组中的每一项是否位于允许列表中。                          |

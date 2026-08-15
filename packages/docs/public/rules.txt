@@ -27,7 +27,7 @@ Use these rules when the user has not supplied a stronger repository-specific co
 - Use `@CommandMajor()` for invocation without a named command and for truly top-level options such as `--help` or `--version`.
 - Use `@CommandMissing()` only when unknown first input is meaningful data or when the product needs a custom unknown-command response.
 - Use a default `@Handler()` for the command's normal action. Handler flags select mutually exclusive actions; `@Flag()` fields are boolean data and do not select a handler.
-- Use `@Flag`, `@Value`, and `@ArrayValue` instead of manually parsing known options from `process.argv`.
+- Use `@Flag`, `@Value`, `@ArrayString`, and `@ArrayNumber` instead of manually parsing known options from `process.argv`.
 - Use `@Args()` only for remaining positional input or runtime metadata that field decorators do not represent.
 - Put reusable work in `@Service()` classes and inject them. Command handlers should coordinate input, services, and output.
 - Group large applications with `@Module({ imports })`; do not create a single command registry file that imports every implementation detail across all domains.

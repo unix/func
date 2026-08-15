@@ -58,7 +58,10 @@ describe('Value type build validation', () => {
       expect(message).toContain('3. "Options.tags" (declared as "string[]")')
       expect(message).toContain('src/index.ts:6:3')
       expect(message).toContain("6 |   name = 'friend'")
-      expect(message).toContain('@Value({ type: String })')
+      expect(message).toContain(
+        'Use @ArrayString() or @ArrayNumber() for repeated options.',
+      )
+      expect(message).toContain('ensure emitDecoratorMetadata is enabled')
       expect(errorTrackingUrl(result)).toBe(
         'https://f.witt.im/CANNOT_INFER_VALUE_TYPE',
       )
@@ -114,7 +117,7 @@ describe('Value type build validation', () => {
     }
   })
 
-  test('allows supported, explicit, and statically ambiguous runtime types', async () => {
+  test('allows supported and statically ambiguous runtime types', async () => {
     const tempDir = fs.mkdtempSync(
       path.join(os.tmpdir(), 'funcgo-value-validation-'),
     )
@@ -135,20 +138,20 @@ describe('Value type build validation', () => {
           "import { Value as LocalValue } from './local'",
           '',
           'type Text = string',
-          'const valueOptions = { type: String }',
+          'const valueOptions = { alias: "v" }',
           '',
           'class Options {',
           '  @Value()',
           "  direct: string = 'value'",
           '',
-          '  @Value({ type: String })',
-          "  explicit = 'value'",
+          '  @Value()',
+          "  explicit: string = 'value'",
           '',
           '  @Value()',
           "  alias: Text = 'value'",
           '',
           '  @Value(valueOptions)',
-          "  dynamic = 'value'",
+          "  dynamic: string = 'value'",
           '',
           '  @LocalValue()',
           "  unrelated = 'value'",

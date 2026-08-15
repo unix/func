@@ -1,7 +1,8 @@
 import 'reflect-metadata/lite'
 import { SYSTEM } from '@func/shared/core-errors'
 import type {
-  ArrayValueDecoratorParams,
+  ArrayNumberDecoratorParams,
+  ArrayStringDecoratorParams,
   FieldOptionDecoratorParams,
   FieldOptionKind,
   FieldOptionParams,
@@ -24,11 +25,8 @@ interface FieldOptionBaseParams {
 const fieldOptionFactory =
   (
     kind: FieldOptionKind,
-    params:
-      | ArrayValueDecoratorParams
-      | ValueDecoratorParams
-      | FlagDecoratorParams
-      | FieldOptionDecoratorParams = {},
+    params: ValueDecoratorParams | FlagDecoratorParams | FieldOptionDecoratorParams,
+    arrayType?: ValueOptionType,
   ): PropertyDecorator =>
   (target, propertyKey) => {
     if (typeof target === 'function') throwInvalidFieldTarget(propertyKey)
@@ -41,7 +39,6 @@ const fieldOptionFactory =
       : key
     validator.optionName(name, 'name')
     const aliases = validator.optionAliases(params.alias, params.aliases)
-    const explicitType: unknown = 'type' in params ? params.type : undefined
     const base: FieldOptionBaseParams = {
       aliases,
       name,
@@ -52,7 +49,7 @@ const fieldOptionFactory =
     }
     const negatable =
       kind === 'flag' && 'negatable' in params && params.negatable === true
-    const nextOption = createFieldOption(kind, base, explicitType, negatable, target)
+    const nextOption = createFieldOption(kind, base, negatable, target, arrayType)
     updateFieldMetadata(target, key, field => ({
       ...field,
       options: field.options.concat([nextOption]),
@@ -62,9 +59,9 @@ const fieldOptionFactory =
 const createFieldOption = (
   kind: FieldOptionKind,
   params: FieldOptionBaseParams,
-  explicitType: unknown,
   negatable: boolean,
   target: Object,
+  arrayType?: ValueOptionType,
 ): FieldOptionParams => {
   if (kind === 'flag') {
     return {
@@ -75,40 +72,40 @@ const createFieldOption = (
     }
   }
   if (kind === 'array') {
+    const type = arrayType ?? throwMissingArrayType(params.propertyKey)
+
     return {
       ...params,
       kind,
-      type: [resolveArrayValueType(explicitType, target, params.propertyKey)],
+      type: [resolveArrayValueType(type, target, params.propertyKey)],
     }
   }
 
   return {
     ...params,
     kind,
-    type: resolveValueType(explicitType, target, params.propertyKey),
+    type: resolveValueType(target, params.propertyKey),
   }
 }
 
 const resolveArrayValueType = (
-  explicitType: unknown,
+  type: ValueOptionType,
   target: Object,
   propertyKey: string,
 ): ValueOptionType => {
-  if (explicitType === undefined) return String
-  if (isValueOptionType(explicitType)) return explicitType
-  return throwInvalidValueType(explicitType, target, propertyKey, 'ArrayValue')
+  const designType: unknown = Reflect.getMetadata(
+    metadata.DESIGN_TYPE,
+    target,
+    propertyKey,
+  )
+  if (designType === Array) return type
+  if (designType !== undefined && designType !== Object)
+    return throwInvalidArrayFieldType(designType, type, target, propertyKey)
+
+  return throwCannotInferValueType(target, propertyKey, arrayTypeName(type))
 }
 
-const resolveValueType = (
-  explicitType: unknown,
-  target: Object,
-  propertyKey: string,
-): ValueOptionType => {
-  if (explicitType !== undefined) {
-    if (isValueOptionType(explicitType)) return explicitType
-    throwInvalidValueType(explicitType, target, propertyKey, 'Value')
-  }
-
+const resolveValueType = (target: Object, propertyKey: string): ValueOptionType => {
   const designType: unknown = Reflect.getMetadata(
     metadata.DESIGN_TYPE,
     target,
@@ -116,16 +113,25 @@ const resolveValueType = (
   )
   if (isValueOptionType(designType)) return designType
   if (designType === Boolean || designType === Array) {
-    throwInvalidValueType(designType, target, propertyKey, 'Value')
+    throwInvalidValueType(designType, target, propertyKey)
   }
 
+  return throwCannotInferValueType(target, propertyKey, 'string or number')
+}
+
+const throwCannotInferValueType = (
+  target: Object,
+  propertyKey: string,
+  expectedType: string,
+): never => {
   throw new InternalException(SYSTEM.CANNOT_INFER_VALUE_TYPE, {
     details: {
       className: target.constructor.name,
+      expectedType,
       property: propertyKey,
       reason: 'cannot-infer-value-type',
     },
-    message: `Cannot infer value type for "${propertyKey}". Please pass type explicitly.`,
+    message: `Cannot infer value type for "${propertyKey}". Declare the property as ${expectedType} and ensure emitDecoratorMetadata is enabled.`,
   })
 }
 
@@ -136,14 +142,13 @@ const throwInvalidValueType = (
   value: unknown,
   target: Object,
   propertyKey: string,
-  decorator: 'ArrayValue' | 'Value',
 ): never => {
   const type = optionTypeName(value)
   const hint =
     value === Boolean
-      ? ' Use @Flag for boolean options.'
-      : decorator === 'Value' && (value === Array || Array.isArray(value))
-        ? ' Use @ArrayValue for repeated options.'
+      ? ' Use @Flag() for boolean options.'
+      : value === Array
+        ? ' Use @ArrayString() or @ArrayNumber() for repeated options.'
         : ''
   throw new InternalException(SYSTEM.INVALID_OPTION_TYPE, {
     details: {
@@ -151,9 +156,36 @@ const throwInvalidValueType = (
       property: propertyKey,
       type,
     },
-    message: `@${decorator} type "${type}" is unsupported. Use String or Number.${hint}`,
+    message: `@Value type "${type}" is unsupported. Declare the property as string or number.${hint}`,
   })
 }
+
+const throwInvalidArrayFieldType = (
+  value: unknown,
+  type: ValueOptionType,
+  target: Object,
+  propertyKey: string,
+): never => {
+  const decorator = type === String ? 'ArrayString' : 'ArrayNumber'
+  const expectedType = arrayTypeName(type)
+  const designType = optionTypeName(value)
+  throw new InternalException(SYSTEM.INVALID_OPTION_TYPE, {
+    details: {
+      className: target.constructor.name,
+      expectedType,
+      property: propertyKey,
+      type: designType,
+    },
+    message: `@${decorator} requires an array property, but "${propertyKey}" has runtime type "${designType}". Declare the property as ${expectedType}.`,
+  })
+}
+
+const throwMissingArrayType = (propertyKey: string): never => {
+  throw new TypeError(`Missing array type for "${propertyKey}".`)
+}
+
+const arrayTypeName = (type: ValueOptionType): string =>
+  type === String ? 'string[]' : 'number[]'
 
 const optionTypeName = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(optionTypeName).join(', ')}]`
@@ -174,6 +206,10 @@ export const Flag = (params: FlagDecoratorParams = {}): PropertyDecorator =>
 export const Value = (params: ValueDecoratorParams = {}): PropertyDecorator =>
   fieldOptionFactory('value', params)
 
-export const ArrayValue = (
-  params: ArrayValueDecoratorParams = {},
-): PropertyDecorator => fieldOptionFactory('array', params)
+export const ArrayString = (
+  params: ArrayStringDecoratorParams = {},
+): PropertyDecorator => fieldOptionFactory('array', params, String)
+
+export const ArrayNumber = (
+  params: ArrayNumberDecoratorParams = {},
+): PropertyDecorator => fieldOptionFactory('array', params, Number)

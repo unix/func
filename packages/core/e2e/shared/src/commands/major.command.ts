@@ -1,4 +1,4 @@
-import { ArrayValue, CommandMajor, Context, Enum, Flag, Handler, Value } from 'func'
+import { ArrayString, CommandMajor, Context, Enum, Flag, Handler, Value } from 'func'
 import { ProjectService } from '../services/project.service.js'
 
 @CommandMajor()
@@ -10,7 +10,7 @@ export class MajorCommand {
   @Value()
   mode: string = 'dev'
 
-  @ArrayValue({ name: 'tag' })
+  @ArrayString({ name: 'tag' })
   tags: string[] = []
 
   constructor(

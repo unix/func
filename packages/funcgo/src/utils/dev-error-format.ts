@@ -38,6 +38,10 @@ export const formatCannotInferValueTypeError = (
 ): string => {
   const details = isRecord(error.details) ? error.details : {}
   const property = typeof details.property === 'string' ? details.property : 'value'
+  const expectedType =
+    typeof details.expectedType === 'string'
+      ? details.expectedType
+      : 'string or number'
   const className =
     typeof details.className === 'string' ? details.className : undefined
   const subject = className ? `${className}.${property}` : property
@@ -54,12 +58,17 @@ export const formatCannotInferValueTypeError = (
     ...locationContext,
     '',
     style.warning(
-      'Please specify the type explicitly in the option decorator:',
+      `Please declare the property as ${expectedType} and ensure emitDecoratorMetadata is enabled:`,
       stream,
     ),
-    `  ${style.accent('@Value({ type: String })', stream)}`,
-    `  ${style.accent(`${property}!: string`, stream)}`,
+    `  ${style.accent(`${property}!: ${exampleType(expectedType)}`, stream)}`,
   ].join('\n')
+}
+
+const exampleType = (expectedType: string): string => {
+  if (expectedType === 'number[]') return expectedType
+  if (expectedType === 'string[]') return expectedType
+  return 'string'
 }
 
 const formatLocationContext = (

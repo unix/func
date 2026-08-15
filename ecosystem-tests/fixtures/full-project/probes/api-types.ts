@@ -1,5 +1,6 @@
 import type {
-  ArrayValueDecoratorParams,
+  ArrayNumberDecoratorParams,
+  ArrayStringDecoratorParams,
   ContainerOptions,
   Deprecation,
   Args,
@@ -11,7 +12,8 @@ import type {
 import { main } from 'funcgo'
 
 export type PublishedFuncTypes = [
-  ArrayValueDecoratorParams,
+  ArrayNumberDecoratorParams,
+  ArrayStringDecoratorParams,
   ContainerOptions,
   Deprecation,
   Args,

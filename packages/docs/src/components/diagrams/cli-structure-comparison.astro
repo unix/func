@@ -54,10 +54,10 @@ class ArtifactCommand extends FuncCommand {
 
   @Enum(platforms)
   @Value()
-  platform = 'linux/amd64'
+  platform: string = 'linux/amd64'
 
-  @Value({ type: Number })
-  retries = 2
+  @Value()
+  retries: number = 2
 
   @Flag()
   json = false

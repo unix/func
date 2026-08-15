@@ -1,5 +1,5 @@
 import 'reflect-metadata/lite'
-import { Args, ArrayValue, Command, CommandMajor, Handler, Value } from '../src'
+import { Args, ArrayNumber, Command, CommandMajor, Handler, Value } from '../src'
 import type { Args as ArgsValue } from '../src'
 import { createTestingApp } from '../src/subpath/testing'
 import { expect, test } from 'vitest'
@@ -93,7 +93,7 @@ test('should collect finite number arrays including negative alias values', asyn
 
   @CommandMajor()
   class Major {
-    @ArrayValue({ aliases: ['p'], type: Number })
+    @ArrayNumber({ aliases: ['p'] })
     port: number[] = []
 
     @Handler()
@@ -119,7 +119,7 @@ test('should treat arguments after the option delimiter as inputs', async () => 
 
   @Command('build')
   class Build {
-    @ArrayValue({ type: Number })
+    @ArrayNumber()
     port: number[] = []
 
     @Handler()
@@ -152,7 +152,7 @@ test.each([
 
   @CommandMajor()
   class Major {
-    @ArrayValue({ type: Number })
+    @ArrayNumber()
     count: number[] = []
 
     @Handler()
