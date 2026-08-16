@@ -1,5 +1,6 @@
-import { Command, Handler, Value } from 'func'
+import { Command, Handler, Stdout, Value } from 'func'
 import { UsersService } from './users.service'
+import type { Writable } from 'node:stream'
 
 @Command({
   path: 'users',
@@ -16,12 +17,12 @@ export class UsersCommand {
   constructor(private users: UsersService) {}
 
   @Handler()
-  list() {
-    console.log(this.users.list(this.role).join('\n'))
+  list(@Stdout() stdout: Writable) {
+    stdout.write(`${this.users.list(this.role).join('\n')}\n`)
   }
 
   @Handler({ path: ['invite'] })
-  invite() {
-    console.log(this.users.invite(this.role))
+  invite(@Stdout() stdout: Writable) {
+    stdout.write(`${this.users.invite(this.role)}\n`)
   }
 }

@@ -1,5 +1,6 @@
-import { Args, Command, Flag, Handler, Value } from 'func'
+import { Args, Command, Flag, Handler, Stdout, Value } from 'func'
 import type { Args as CommandArgs } from 'func'
+import type { Writable } from 'node:stream'
 
 @Command({
   path: 'greet',
@@ -24,20 +25,20 @@ export class Greet {
   upper = false
 
   @Handler()
-  run(@Args() args: CommandArgs) {
-    this.print(`Hello, ${this.name}!`)
+  run(@Args() args: CommandArgs, @Stdout() stdout: Writable) {
+    this.print(stdout, `Hello, ${this.name}!`)
 
     if (!args.inputs.length) return
 
-    this.print(`Extra input: ${args.inputs.join(' ')}`)
+    this.print(stdout, `Extra input: ${args.inputs.join(' ')}`)
   }
 
   @Handler({ path: ['shout'] })
-  shout() {
-    this.print(`HELLO, ${this.name.toUpperCase()}!`)
+  shout(@Stdout() stdout: Writable) {
+    this.print(stdout, `HELLO, ${this.name.toUpperCase()}!`)
   }
 
-  private print(message: string) {
-    console.log(this.upper ? message.toUpperCase() : message)
+  private print(stdout: Writable, message: string) {
+    stdout.write(`${this.upper ? message.toUpperCase() : message}\n`)
   }
 }

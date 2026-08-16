@@ -1,6 +1,15 @@
-import { ArrayString, CommandMajor, Enum, Flag, Handler, Value } from 'func'
+import {
+  ArrayString,
+  CommandMajor,
+  Enum,
+  Flag,
+  Handler,
+  Stdout,
+  Value,
+} from 'func'
 import pkg from '../../package.json'
 import { appName } from '../config'
+import type { Writable } from 'node:stream'
 
 const runtimeModes = ['dev', 'prod']
 
@@ -25,7 +34,7 @@ export class Major {
   tags: string[] = []
 
   @Handler()
-  run() {
+  run(@Stdout() stdout: Writable) {
     const data = {
       message: `Welcome to ${appName}`,
       mode: this.mode,
@@ -33,17 +42,17 @@ export class Major {
     }
 
     if (this.json) {
-      console.log(JSON.stringify(data, null, 2))
+      stdout.write(`${JSON.stringify(data, null, 2)}\n`)
       return
     }
 
-    console.log(`${data.message} (${data.mode})`)
+    stdout.write(`${data.message} (${data.mode})\n`)
     if (!data.tags.length) return
-    console.log(`Tags: ${data.tags.join(', ')}`)
+    stdout.write(`Tags: ${data.tags.join(', ')}\n`)
   }
 
   @Handler({ flag: 'version', alias: 'v', description: 'print version' })
-  version() {
-    console.log(pkg.version)
+  version(@Stdout() stdout: Writable) {
+    stdout.write(`${pkg.version}\n`)
   }
 }

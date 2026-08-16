@@ -1,10 +1,11 @@
-import { Command, Module, Handler, createApp } from 'func'
+import { Command, Handler, Module, Stdout, createApp } from 'func'
+import type { Writable } from 'node:stream'
 
 @Command('ping')
 class Ping {
   @Handler()
-  run() {
-    console.log('pong')
+  run(@Stdout() stdout: Writable) {
+    stdout.write('pong\n')
   }
 }
 

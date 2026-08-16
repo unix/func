@@ -1,5 +1,6 @@
-import { Command, Handler, Value } from 'func'
+import { Command, Handler, Stdout, Value } from 'func'
 import { ReportsService } from './reports.service'
+import type { Writable } from 'node:stream'
 
 @Command({
   path: 'reports',
@@ -16,12 +17,12 @@ export class ReportsCommand {
   constructor(private reports: ReportsService) {}
 
   @Handler()
-  summary() {
-    console.log(this.reports.summary(this.period))
+  summary(@Stdout() stdout: Writable) {
+    stdout.write(`${this.reports.summary(this.period)}\n`)
   }
 
   @Handler({ path: ['export'] })
-  export() {
-    console.log(this.reports.export(this.period))
+  export(@Stdout() stdout: Writable) {
+    stdout.write(`${this.reports.export(this.period)}\n`)
   }
 }

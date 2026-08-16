@@ -1,5 +1,6 @@
-import { Command, Flag, Handler, Value } from 'func'
+import { Command, Flag, Handler, Stdout, Value } from 'func'
 import { DeploymentsService } from './deployments.service'
+import type { Writable } from 'node:stream'
 
 @Command({
   path: 'deployments',
@@ -22,12 +23,12 @@ export class DeploymentsCommand {
   constructor(private deployments: DeploymentsService) {}
 
   @Handler()
-  status() {
-    console.log(this.deployments.status(this.env))
+  status(@Stdout() stdout: Writable) {
+    stdout.write(`${this.deployments.status(this.env)}\n`)
   }
 
   @Handler({ path: ['release'] })
-  release() {
-    console.log(this.deployments.release(this.env, this.dryRun))
+  release(@Stdout() stdout: Writable) {
+    stdout.write(`${this.deployments.release(this.env, this.dryRun)}\n`)
   }
 }
