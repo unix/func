@@ -4,7 +4,7 @@ export { Command, CommandMajor, CommandMissing, Handler } from './commands'
 
 export { Deprecated } from './deprecation'
 
-export { Args, Inject } from './injection'
+export { Args, Ctx, Inject, Stderr, Stdout } from './runtime/injection'
 
 export {
   ArrayNumber,
@@ -21,26 +21,31 @@ export {
   ValueValidate,
 } from './options'
 
-export { Module, Injectable, createApp, createToken, run } from './application'
-
-export { Container } from './containers/container'
-export type { ContainerOptions, InvocationResult } from './containers/container'
+export { Module, Injectable, createApp, createToken } from './application'
 export type {
-  ArrayNumberDecoratorParams,
-  ArrayStringDecoratorParams,
+  App,
+  AppOptions,
+  ApplicationFeature,
+  BootstrapOptions,
+} from './application'
+export type {
   CommandDecoratorInput,
   CommandDecoratorParams,
   CommandPath,
-  Deprecation,
   HandlerDecoratorInput,
   HandlerDecoratorParams,
   HandlerPath,
+} from './commands/types'
+export type { Deprecation } from './deprecation'
+export type {
+  ArrayNumberDecoratorParams,
+  ArrayStringDecoratorParams,
   OptionCommandDecoratorParams,
   FieldOptionDecoratorParams,
   FlagDecoratorParams,
   ValueDecoratorParams,
   ValueOptionType,
-} from './interfaces'
+} from './options/types'
 export type {
   ClassProvider,
   FactoryProvider,
@@ -68,5 +73,6 @@ export type {
   ExceptionOptions,
   SerializedException,
 } from './shared/errors'
-export { Context, ExceptionContext } from './context'
-export type { CommandInfo, ContextIO } from './context'
+export { Context, ExceptionContext } from './runtime/context'
+export type { CommandInfo } from './commands/command-info'
+export type { ContextIO } from './runtime/context'

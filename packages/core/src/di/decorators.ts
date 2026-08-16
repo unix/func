@@ -1,8 +1,8 @@
 import 'reflect-metadata/lite'
-import { SYSTEM } from '@func/shared/core-errors'
+import { SYSTEM } from '@func/contracts/core-errors'
 import { InternalException } from '../shared/errors'
-import { metadata } from '../utils/metadata'
-import type { ProviderToken } from './provider'
+import { metadata } from './metadata'
+import type { ProviderToken } from './types'
 import { isProviderToken } from './provider-utils'
 
 export const Injectable = (): ClassDecorator => target => {

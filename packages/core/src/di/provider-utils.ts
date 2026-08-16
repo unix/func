@@ -1,13 +1,14 @@
 import 'reflect-metadata/lite'
-import { SYSTEM } from '@func/shared/core-errors'
+import { SYSTEM } from '@func/contracts/core-errors'
 import { InternalException } from '../shared/errors'
-import { metadata } from '../utils/metadata'
+import { metadata as optionMetadata } from '../options/metadata'
+import { metadata as diMetadata } from './metadata'
 import type {
   ExplicitProvider,
   NormalizedProvider,
   ProviderToken,
   Type,
-} from './provider'
+} from './types'
 import { isInjectionToken } from './token'
 
 export const isProviderToken = (value: unknown): value is ProviderToken =>
@@ -81,11 +82,11 @@ export const normalizeProvider = (provider: unknown): NormalizedProvider => {
 
 const validateInjectable = (target: Type, token: ProviderToken) => {
   const injectable = Reflect.getOwnMetadata(
-    metadata.INJECTABLE_IDENTIFIER,
+    diMetadata.INJECTABLE_IDENTIFIER,
     target,
   ) as boolean | undefined
   const optionCommand = Reflect.hasMetadata(
-    metadata.OPTION_COMMAND_IDENTIFIER,
+    optionMetadata.OPTION_COMMAND_IDENTIFIER,
     target,
   )
   if (injectable || optionCommand) return

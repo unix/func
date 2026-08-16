@@ -5,16 +5,18 @@ import {
   Command,
   CommandMajor,
   Context,
+  Ctx,
   Enum,
   Flag,
   Handler,
-  Inject,
   Module,
   OptionCommand,
   Required,
+  Stdout,
   Value,
 } from '../src'
 import type { Args as CommandArgs } from '../src'
+import type { Writable } from 'node:stream'
 import { stripVTControlCharacters } from 'node:util'
 import { HelpContext, HelpFormatter, HelpOption } from '../src/subpath/help'
 import type { HelpMeta, HelpTransform } from '../src/subpath/help'
@@ -218,10 +220,14 @@ test.sequential(
       }
 
       @Handler()
-      run(@Args() args: CommandArgs, @Inject(Context) context: Context): void {
+      run(
+        @Args() args: CommandArgs,
+        @Ctx() context: Context,
+        @Stdout() stdout: Writable,
+      ): void {
         const helpContext = new HelpContext(args, context)
         const meta = this.transform(helpContext.createMeta(), helpContext)
-        context.io.stdout.write(HelpFormatter.format(meta))
+        stdout.write(HelpFormatter.format(meta))
       }
     }
 

@@ -1,16 +1,13 @@
 import 'reflect-metadata/lite'
 import { Readable, Writable } from 'node:stream'
-import { compileApplication } from '../../application/module-compiler'
-import type { CompiledApplication } from '../../application/module-compiler'
-import { applyProviderOverrides } from '../../application/provider-overrides'
-import type { ProviderOverride } from '../../application/provider-overrides'
-import { Container } from '../../containers/container'
-import type { Type } from '../../di/provider'
+import { compileApplication } from '../../application/compiler'
+import { invokeApplication } from '../../application/invocation'
+import type { CompiledApplication } from '../../application/model'
+import { applyProviderOverrides } from './provider-overrides'
+import type { ProviderOverride } from './provider-overrides'
+import type { Type } from '../../di/types'
 
-export type {
-  ModuleProviderOverride,
-  ProviderOverride,
-} from '../../application/provider-overrides'
+export type { ModuleProviderOverride, ProviderOverride } from './provider-overrides'
 
 export interface TestingAppOptions {
   overrides?: ProviderOverride[]
@@ -46,20 +43,23 @@ class TestingApplication implements TestingApp {
   ): Promise<TestingInvocationResult> {
     const stderr = createCapturedOutput()
     const stdout = createCapturedOutput()
-    const container = new Container(this.application, {
-      argv: [...argv],
+    const invocationOptions = {
       cwd: options.cwd,
       signal: options.signal,
       stderr: stderr.stream,
       stdin: Readable.from([options.stdin ?? '']),
       stdout: stdout.stream,
-    })
+    }
     let exitCode: number
     let error: Error | undefined
     let result: unknown
 
     try {
-      const invocation = await container.run()
+      const invocation = await invokeApplication(
+        this.application,
+        argv,
+        invocationOptions,
+      )
       exitCode = invocation.exitCode
       result = invocation.result
     } catch (cause) {

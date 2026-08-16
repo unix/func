@@ -1,13 +1,17 @@
 import 'reflect-metadata/lite'
-import { RUNTIME, SYSTEM } from '@func/shared/core-errors'
+import { RUNTIME, SYSTEM } from '@func/contracts/core-errors'
 import { ErrorScope, InternalException, isException } from '../shared/errors'
-import { metadata } from '../utils/metadata'
+import { metadata } from './metadata'
 import { parameterTokens } from './decorators'
 import { hasOnDispose, hasOnInit } from './lifecycle'
 import type { ExecutionOutcome } from './lifecycle'
-import { providerRecord } from './compiler'
-import type { CompiledGraph, CompiledModule, ProviderRecord } from './compiler'
-import type { FactoryProvider, ProviderToken, Type } from './provider'
+import { providerRecord } from './module-compiler'
+import type {
+  CompiledGraph,
+  CompiledModule,
+  ProviderRecord,
+} from './module-compiler'
+import type { FactoryProvider, ProviderToken, Type } from './types'
 import { providerTokenName } from './provider-utils'
 
 interface OwnedProvider {

@@ -1,12 +1,12 @@
 export { complete } from './engine'
+export { withCompletion } from './feature'
 export type {
   CompletionFallback,
+  CompletionFeatureOptions,
   CompletionItem,
   CompletionItemKind,
   CompletionRequest,
   CompletionResult,
-  CompletionRunOptions,
   CompletionShell,
 } from './interfaces'
-export { runWithCompletion } from './runtime'
 export { completionEnvironmentVariable, completionSource } from './source'

@@ -8,7 +8,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expectTypeOf } from 'vitest'
-import { CommandMajor, Module, Handler, createApp, run } from '../src'
+import { CommandMajor, Module, Handler, createApp } from '../src'
 import { Config, ConfigFile, ConfigModule } from '../src/subpath/config'
 import type { ConfigDefaults } from '../src/subpath/config'
 import { bindConfig } from '../src/subpath/config/runtime'
@@ -18,6 +18,7 @@ import {
   configRuntimeErrorCode,
   configSystemErrorCode,
   expect,
+  run,
   test,
   testModule,
 } from './_test'

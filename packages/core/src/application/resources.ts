@@ -1,5 +1,5 @@
-import type { ModuleInput } from './module-definition'
-import type { CompiledGraph } from '../di/compiler'
+import type { ModuleInput } from './definition'
+import type { CompiledGraph } from '../di/module-compiler'
 
 export interface ApplicationResource {
   key: string

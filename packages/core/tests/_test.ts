@@ -1,21 +1,26 @@
 import {
   RUNTIME as CONFIG_RUNTIME,
   SYSTEM as CONFIG_SYSTEM,
-} from '@func/shared/config-errors'
-import { RUNTIME, RUNTIME_PRINT, SYSTEM } from '@func/shared/core-errors'
+} from '@func/contracts/config-errors'
+import { RUNTIME, RUNTIME_PRINT, SYSTEM } from '@func/contracts/core-errors'
 import {
   RUNTIME as LOG_RUNTIME,
   SYSTEM as LOG_SYSTEM,
-} from '@func/shared/log-errors'
+} from '@func/contracts/log-errors'
 import { ErrorScope, Module, formatExceptionCode } from '../src'
+import type { ModuleMetadata, Type } from '../src'
+import { createInvoker } from '../src/subpath/invoke'
+import type { InvocationOptions, InvocationResult } from '../src/subpath/invoke'
 import { expect, test as baseTest } from 'vitest'
-import { createApp } from '../src'
-import type { Container, ModuleMetadata, Type } from '../src'
 import { random } from './_utils'
 
 interface Fixtures {
-  runContainer: (argv: string[], handlers: Type[]) => Promise<Container>
+  runContainer: (argv: string[], handlers: Type[]) => Promise<void>
   setArgv: (argv: string[]) => void
+}
+
+interface RunOptions extends InvocationOptions {
+  argv?: readonly string[]
 }
 
 const testModule = (params: ModuleMetadata): Type => {
@@ -38,12 +43,25 @@ const test = baseTest.extend<Fixtures>({
   runContainer: async ({ setArgv }, use) => {
     await use(async (argv, handlers) => {
       setArgv(argv)
-      const container = createApp(testModule({ commands: handlers }))
-      await container.run()
-      return container
+      await run(testModule({ commands: handlers }))
     })
   },
 })
+
+const run = async (
+  input: Type,
+  options: RunOptions = {},
+): Promise<InvocationResult> => {
+  const { argv = process.argv.slice(2), ...invocationOptions } = options
+  try {
+    const result = await createInvoker(input).invoke(argv, invocationOptions)
+    process.exitCode = result.exitCode
+    return result
+  } catch (error) {
+    process.exitCode = 1
+    throw error
+  }
+}
 
 const configRuntimeErrorCode = (code: CONFIG_RUNTIME) =>
   formatExceptionCode(ErrorScope.RUNTIME, code)
@@ -80,6 +98,7 @@ export {
   logRuntimeErrorCode,
   logSystemErrorCode,
   random,
+  run,
   runtimeErrorCode,
   runtimePrintErrorCode,
   systemErrorCode,

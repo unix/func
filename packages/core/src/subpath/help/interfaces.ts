@@ -1,4 +1,4 @@
-import type { Deprecation } from '../../interfaces'
+import type { Deprecation } from '../../deprecation'
 
 export interface HelpCommandMeta {
   readonly aliases: readonly string[]

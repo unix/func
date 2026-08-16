@@ -1,6 +1,6 @@
-import { RUNTIME } from '@func/shared/core-errors'
+import { RUNTIME } from '@func/contracts/core-errors'
 import type { Readable, Writable } from 'node:stream'
-import type { CompiledApplication } from '../application/module-compiler'
+import type { CompiledApplication } from '../application/model'
 import { snapshotOptions } from '../arg/option-record'
 import {
   Context,
@@ -8,15 +8,17 @@ import {
   failContext,
   selectContextCommand,
   selectContextInvocation,
-} from '../context'
-import type { CompiledModule } from '../di/compiler'
+} from './context'
+import type { CompiledModule } from '../di/module-compiler'
 import { RuntimeInjector } from '../di/injector'
 import { hasOnDispose, hasOnError, hasOnInit } from '../di/lifecycle'
 import type { ExecutionOutcome } from '../di/lifecycle'
-import type { ProviderToken, Type } from '../di/provider'
-import { ARGS } from '../injection'
-import type { Args as CommandArgs, Deprecation, UserOption } from '../interfaces'
-import { bindFieldOptions, hydrateFieldOptions } from '../options/field-binding'
+import type { ProviderToken, Type } from '../di/types'
+import { ARGS, STDERR, STDOUT } from './injection'
+import type { HandlerParams } from '../commands/types'
+import type { Deprecation } from '../deprecation'
+import { bindFieldOptions } from '../options/field-binding'
+import type { UserOption } from '../options/types'
 import type { Exception } from '../shared/errors'
 import {
   ErrorScope,
@@ -26,9 +28,10 @@ import {
 } from '../shared/errors'
 import { resolveInvocation } from './invocation-resolver'
 import type { ResolvedInvocation } from './invocation-resolver'
+import type { Args as CommandArgs } from './args'
 
 export interface ContainerOptions {
-  argv?: string[]
+  argv?: readonly string[]
   cwd?: string
   stderr?: Writable
   stdin?: Readable
@@ -58,7 +61,7 @@ interface DispatchParams {
   invocation: ResolvedInvocation
   options: UserOption
   scopes: ActivatedScope[]
-  skipsValidation: boolean
+  validatesFields: boolean
   values: Map<ProviderToken, unknown>
 }
 
@@ -79,7 +82,7 @@ export class Container {
 
   constructor(application: CompiledApplication, options: ContainerOptions = {}) {
     this.application = application
-    this.argv = options.argv ?? process.argv.slice(2)
+    this.argv = [...(options.argv ?? process.argv.slice(2))]
     this.cwd = options.cwd ?? process.cwd()
     this.stderr = options.stderr ?? process.stderr
     this.stdin = options.stdin ?? process.stdin
@@ -89,7 +92,11 @@ export class Container {
 
   async run(): Promise<InvocationResult> {
     const context = this.invocationContext()
-    const values = new Map<ProviderToken, unknown>([[Context, context]])
+    const values = new Map<ProviderToken, unknown>([
+      [Context, context],
+      [STDERR, context.io.stderr],
+      [STDOUT, context.io.stdout],
+    ])
     const injector = new RuntimeInjector(this.application.graph, values)
     const scopes: ActivatedScope[] = []
     let executionError: unknown
@@ -104,22 +111,26 @@ export class Container {
         scopes,
         false,
       )
-      const invocation = this.resolveInvocation()
+      const invocation = resolveInvocation(this.application.commandGraph, this.argv)
       this.printDeprecations(invocation)
-      injector.allowOptions(invocation.plan.providers.map(option => option.record))
+      injector.allowOptions(
+        invocation.plan.providers
+          .filter(option => option.owner !== this.application.graph.root)
+          .map(option => option.record),
+      )
       const owner = this.executionOwner(invocation)
       const ownerScope =
         owner === this.application.graph.root
           ? undefined
           : await this.activateModule(injector, owner, scopes, false)
       const options = invocation.parsed.options
-      const skipsValidation = Boolean(invocation.action)
+      const validatesFields = !invocation.action
       await this.activateProviderOptions(
         injector,
         invocation,
         options,
         owner,
-        skipsValidation,
+        validatesFields,
       )
       await this.initializeScope(rootScope)
       await this.initializeScope(ownerScope)
@@ -129,7 +140,7 @@ export class Container {
         invocation,
         options,
         scopes,
-        skipsValidation,
+        validatesFields,
         values,
       })
     } catch (error) {
@@ -150,10 +161,6 @@ export class Container {
     }
 
     return { exitCode: context.exitCode, result }
-  }
-
-  private resolveInvocation(): ResolvedInvocation {
-    return resolveInvocation(this.application.commandGraph, this.argv)
   }
 
   private printDeprecations(invocation: ResolvedInvocation) {
@@ -192,7 +199,7 @@ export class Container {
     invocation: ResolvedInvocation,
     options: UserOption,
     owner: CompiledModule,
-    skipsValidation: boolean,
+    validatesFields: boolean,
   ) {
     for (const binding of invocation.plan.providerBindings) {
       if (
@@ -206,10 +213,7 @@ export class Container {
           instance,
           options,
           supplied: invocation.parsed.supplied,
-        }
-        if (skipsValidation) {
-          hydrateFieldOptions(params)
-          return
+          validate: validatesFields,
         }
         bindFieldOptions(params)
       })
@@ -221,7 +225,7 @@ export class Container {
     invocation,
     options,
     scopes,
-    skipsValidation,
+    validatesFields,
     values,
   }: DispatchParams): Promise<unknown> {
     const target = invocation.action ?? invocation.endpoint
@@ -238,14 +242,7 @@ export class Container {
         managedByInjector: true,
         name: target.declaration.target.name || '(anonymous option command)',
       })
-      const methodParams = await injector.parameters(
-        Object.getPrototypeOf(instance) as object,
-        target.handler.methodName,
-        target.owner,
-      )
-      return Promise.resolve(
-        (instance as any)[target.handler.methodName](...methodParams),
-      )
+      return this.invokeHandler(injector, instance, target.handler, target.owner)
     }
 
     const record = target.record
@@ -261,20 +258,26 @@ export class Container {
       instance,
       options,
       supplied: invocation.parsed.supplied,
+      validate: validatesFields,
     }
-    if (skipsValidation) hydrateFieldOptions(params)
-    else bindFieldOptions(params)
+    bindFieldOptions(params)
     values.set(ARGS, this.commandArgs(invocation, target.path, options))
     if (hasOnInit(instance)) await instance.onInit()
+    return this.invokeHandler(injector, instance, target.handler, record.owner)
+  }
 
+  private async invokeHandler(
+    injector: RuntimeInjector,
+    instance: unknown,
+    handler: HandlerParams,
+    owner: CompiledModule,
+  ): Promise<unknown> {
     const methodParams = await injector.parameters(
       Object.getPrototypeOf(instance) as object,
-      target.handler.methodName,
-      record.owner,
+      handler.methodName,
+      owner,
     )
-    return Promise.resolve(
-      (instance as any)[target.handler.methodName](...methodParams),
-    )
+    return (instance as any)[handler.methodName](...methodParams)
   }
 
   private async activateModule(
@@ -316,7 +319,7 @@ export class Container {
     context: Context,
   ): Promise<{
     outcome: ExecutionOutcome
-    pendingError?: Error
+    pendingError?: Exception
   }> {
     if (error === undefined) {
       return {
@@ -329,7 +332,7 @@ export class Container {
     }
 
     failContext(context)
-    const resolution = await this.resolveError(error, scopes, context)
+    const resolution = await this.resolveError(error, scopes)
     return {
       outcome: Object.freeze({
         error: resolution.exception,
@@ -344,7 +347,6 @@ export class Container {
   private async resolveError(
     error: unknown,
     scopes: ActivatedScope[],
-    context: Context,
   ): Promise<ErrorResolution> {
     let exception = normalizeRuntimeError(error)
     let exceptionContext = new ExceptionContext()
@@ -368,7 +370,6 @@ export class Container {
       if (!exceptionContext.printPrevented) printException(exception, this.stderr)
       handled = true
     }
-    if (!handled) failContext(context)
     return { exception, handled }
   }
 
@@ -411,11 +412,11 @@ export class Container {
   }
 
   private finalError(
-    pendingError: Error | undefined,
+    pendingError: Exception | undefined,
     disposeErrors: Error[],
   ): Error | undefined {
     if (pendingError) {
-      if (disposeErrors.length && isException(pendingError)) {
+      if (disposeErrors.length) {
         pendingError.details.disposeErrors = disposeErrors
       }
       return pendingError
@@ -425,7 +426,7 @@ export class Container {
 
   private invocationContext(): Context {
     return new Context(
-      this.application.commandCatalog,
+      this.application.commandGraph.commands(),
       {
         stderr: this.stderr,
         stdin: this.stdin,

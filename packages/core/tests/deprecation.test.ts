@@ -2,7 +2,8 @@ import 'reflect-metadata/lite'
 import { Command, Deprecated, Handler, OptionCommand, Value } from '../src'
 import { compileMethodHandlers } from '../src/deprecation'
 import { compileFieldOptions } from '../src/options/field-metadata'
-import { metadata } from '../src/utils/metadata'
+import { metadata as commandMetadata } from '../src/commands/metadata'
+import { metadata as optionMetadata } from '../src/options/metadata'
 import { SYSTEM, expect, systemErrorCode, test } from './_test'
 
 test('should normalize command and OptionCommand deprecations', () => {
@@ -12,13 +13,18 @@ test('should normalize command and OptionCommand deprecations', () => {
   @OptionCommand({ deprecated: true, name: 'legacy' })
   class LegacyOptionCommand {}
 
-  expect(Reflect.getMetadata(metadata.COMMAND_IDENTIFIER, LegacyCommand)).toEqual({
+  expect(
+    Reflect.getMetadata(commandMetadata.COMMAND_IDENTIFIER, LegacyCommand),
+  ).toEqual({
     aliases: [],
     deprecated: 'Use build instead.',
     path: ['legacy'],
   })
   expect(
-    Reflect.getMetadata(metadata.OPTION_COMMAND_IDENTIFIER, LegacyOptionCommand),
+    Reflect.getMetadata(
+      optionMetadata.OPTION_COMMAND_IDENTIFIER,
+      LegacyOptionCommand,
+    ),
   ).toEqual({
     aliases: [],
     deprecated: true,

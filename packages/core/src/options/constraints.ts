@@ -1,9 +1,5 @@
-import { RUNTIME_PRINT } from '@func/shared/core-errors'
-import type {
-  FieldOptionParams,
-  UserOption,
-  UserOptionEnumValue,
-} from '../interfaces'
+import { RUNTIME_PRINT } from '@func/contracts/core-errors'
+import type { FieldOptionParams, UserOption, UserOptionEnumValue } from './types'
 import { ErrorScope, InternalException } from '../shared/errors'
 
 export class ConstraintValidator {

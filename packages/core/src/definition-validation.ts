@@ -1,5 +1,5 @@
-import { SYSTEM } from '@func/shared/core-errors'
-import { InternalException } from '../shared/errors'
+import { SYSTEM } from '@func/contracts/core-errors'
+import { InternalException } from './shared/errors'
 
 export const requireKey = (value: any, key: string) => {
   if (!value) {
@@ -69,12 +69,10 @@ const normalizeAliases = (
   validate: AliasValidator,
 ): readonly string[] => {
   if (alias !== undefined) validate(alias, 'alias')
-  if (aliases === undefined) return Object.freeze(alias === undefined ? [] : [alias])
+  if (aliases === undefined) return alias === undefined ? [] : [alias]
   mustBeArray(aliases, 'aliases')
   aliases.forEach(value => validate(value, 'aliases'))
-  return Object.freeze(
-    Array.from(new Set(alias === undefined ? aliases : [alias, ...aliases])),
-  )
+  return Array.from(new Set(alias === undefined ? aliases : [alias, ...aliases]))
 }
 
 const token = (value: string, key: string) => {

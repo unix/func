@@ -5,10 +5,9 @@ import {
   Inject,
   Injectable,
   createToken,
-  run,
 } from '../src'
 import type { OnDispose, OnError, OnInit } from '../src'
-import { RUNTIME, expect, runtimeErrorCode, test, testModule } from './_test'
+import { RUNTIME, expect, run, runtimeErrorCode, test, testModule } from './_test'
 
 test.sequential(
   'should initialize lazily and dispose in reverse order',

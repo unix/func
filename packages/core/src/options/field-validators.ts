@@ -1,7 +1,7 @@
-import { SYSTEM } from '@func/shared/core-errors'
-import type { UserOptionEnumValue, ValueValidator } from '../interfaces'
+import { SYSTEM } from '@func/contracts/core-errors'
+import type { UserOptionEnumValue, ValueValidator } from './types'
 import { InternalException } from '../shared/errors'
-import * as validator from '../utils/validator'
+import * as validator from '../definition-validation'
 import type { FieldConstraints } from './field-metadata'
 import { updateFieldMetadata } from './field-metadata'
 

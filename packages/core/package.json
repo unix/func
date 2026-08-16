@@ -13,6 +13,10 @@
       "types": "./dist/types/subpath/testing/index.d.ts",
       "import": "./dist/testing.mjs"
     },
+    "./invoke": {
+      "types": "./dist/types/subpath/invoke/index.d.ts",
+      "import": "./dist/invoke.mjs"
+    },
     "./config": {
       "types": "./dist/types/subpath/config/index.d.ts",
       "import": "./dist/config.mjs"
@@ -24,6 +28,10 @@
     "./log": {
       "types": "./dist/types/subpath/log/index.d.ts",
       "import": "./dist/log.mjs"
+    },
+    "./signals": {
+      "types": "./dist/types/subpath/signals/index.d.ts",
+      "import": "./dist/signals.mjs"
     },
     "./help": {
       "types": "./dist/types/subpath/help/index.d.ts",
@@ -63,7 +71,7 @@
   },
   "prettier": "@unix/prettier",
   "devDependencies": {
-    "@func/shared": "workspace:*",
+    "@func/contracts": "workspace:*",
     "@swc/core": "^1.15.47",
     "@types/node": "^26.1.2",
     "@typescript/native": "npm:typescript@^7.0.2",

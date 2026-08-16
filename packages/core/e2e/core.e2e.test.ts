@@ -56,6 +56,11 @@ interface PackageManifest {
       require?: string
       types?: string
     }
+    './invoke'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
     './completion'?: {
       import?: string
       require?: string
@@ -67,6 +72,11 @@ interface PackageManifest {
       types?: string
     }
     './log'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
+    './signals'?: {
       import?: string
       require?: string
       types?: string
@@ -110,28 +120,32 @@ const runtimeApis = [
   'Command',
   'CommandMajor',
   'CommandMissing',
-  'Container',
   'Context',
-  'Deprecated',
+  'Ctx',
   'DependsOn',
+  'Deprecated',
   'Enum',
+  'ErrorScope',
+  'Exception',
+  'ExceptionContext',
   'Exclusive',
   'Flag',
-  'Exception',
-  'ErrorScope',
-  'ExceptionContext',
-  'Module',
   'Handler',
   'Inject',
   'Injectable',
+  'Module',
+  'Option',
+  'OptionCommand',
+  'Override',
   'Required',
+  'Stderr',
+  'Stdout',
   'Value',
   'ValueValidate',
   'createApp',
   'createToken',
   'formatExceptionCode',
   'isException',
-  'run',
 ]
 
 const callableApis = [
@@ -141,7 +155,7 @@ const callableApis = [
   'Command',
   'CommandMajor',
   'CommandMissing',
-  'Container',
+  'Ctx',
   'Deprecated',
   'DependsOn',
   'Enum',
@@ -151,12 +165,16 @@ const callableApis = [
   'Handler',
   'Inject',
   'Injectable',
+  'Option',
+  'OptionCommand',
+  'Override',
   'Required',
+  'Stderr',
+  'Stdout',
   'Value',
   'ValueValidate',
   'createApp',
   'createToken',
-  'run',
 ]
 
 const commandText = (command: string, args: string[]) => {
@@ -287,6 +305,11 @@ describe.each(projects)('$label consumer', project => {
     expect(probe.stdout.trim()).toBe('testing-entry')
   })
 
+  test('keeps imperative invocation in the invoke subpath', () => {
+    const probe = runProject(project, [], 'invoke-probe.js')
+    expect(probe.stdout.trim()).toBe('invoke-entry')
+  })
+
   test('keeps logging helpers in the log subpath', () => {
     const probe = runProject(project, [], 'log-probe.js')
     expect(probe.stdout.trim()).toBe('log-entry')
@@ -307,6 +330,11 @@ describe.each(projects)('$label consumer', project => {
     expect(probe.stdout.trim()).toBe('completion-entry')
   })
 
+  test('keeps process signal handling in the signals subpath', () => {
+    const probe = runProject(project, [], 'signals-probe.js')
+    expect(probe.stdout.trim()).toBe('signals-entry')
+  })
+
   test('ships self-contained declarations for every public entry', () => {
     const typesRoot = join(project.root, 'node_modules', 'func', 'dist', 'types')
     const declarations = readdirSync(typesRoot, {
@@ -323,14 +351,16 @@ describe.each(projects)('$label consumer', project => {
         'subpath/completion/index.d.ts',
         'subpath/config/index.d.ts',
         'subpath/help/index.d.ts',
+        'subpath/invoke/index.d.ts',
         'subpath/log/index.d.ts',
+        'subpath/signals/index.d.ts',
         'subpath/testing/index.d.ts',
       ]),
     )
     expect(declarationPaths).not.toContain('di/index.d.ts')
     declarations.forEach(file => {
       expect(readFileSync(join(typesRoot, file), 'utf8')).not.toContain(
-        '@func/shared',
+        '@func/contracts',
       )
     })
   })
@@ -351,6 +381,10 @@ describe.each(projects)('$label consumer', project => {
           import: './dist/testing.mjs',
           types: './dist/types/subpath/testing/index.d.ts',
         },
+        './invoke': {
+          import: './dist/invoke.mjs',
+          types: './dist/types/subpath/invoke/index.d.ts',
+        },
         './completion': {
           import: './dist/completion.mjs',
           types: './dist/types/subpath/completion/index.d.ts',
@@ -362,6 +396,10 @@ describe.each(projects)('$label consumer', project => {
         './log': {
           import: './dist/log.mjs',
           types: './dist/types/subpath/log/index.d.ts',
+        },
+        './signals': {
+          import: './dist/signals.mjs',
+          types: './dist/types/subpath/signals/index.d.ts',
         },
         './help': {
           import: './dist/help.mjs',

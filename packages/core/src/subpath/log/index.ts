@@ -4,4 +4,4 @@ export type { LogModuleOptions } from './interfaces'
 export {
   RUNTIME as LOG_RUNTIME,
   SYSTEM as LOG_SYSTEM,
-} from '@func/shared/log-errors'
+} from '@func/contracts/log-errors'

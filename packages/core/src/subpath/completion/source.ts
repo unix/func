@@ -1,23 +1,22 @@
 import type { CompletionResult, CompletionShell } from './interfaces'
 
-export const completionEnvironmentVariable = (name: string): string => {
-  validateName(name)
-  return `_${name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_COMPLETE`
+export const completionEnvironmentVariable = (bin: string): string => {
+  validateBin(bin)
+  return `_${bin.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_COMPLETE`
 }
 
-export const completionSource = (name: string, shell: CompletionShell): string => {
-  validateName(name)
-  const environment = completionEnvironmentVariable(name)
-  const functionName = `_${name.replace(/[^A-Za-z0-9_]/g, '_')}_completion`
+export const completionSource = (bin: string, shell: CompletionShell): string => {
+  const environment = completionEnvironmentVariable(bin)
+  const functionName = `_${bin.replace(/[^A-Za-z0-9_]/g, '_')}_completion`
   switch (shell) {
     case 'bash':
-      return bashSource(name, environment, functionName)
+      return bashSource(bin, environment, functionName)
     case 'fish':
-      return fishSource(name, environment, functionName)
+      return fishSource(bin, environment, functionName)
     case 'powershell':
-      return powershellSource(name, environment)
+      return powershellSource(bin, environment)
     case 'zsh':
-      return zshSource(name, environment, functionName)
+      return zshSource(bin, environment, functionName)
     default:
       throw new TypeError(`Unsupported completion shell "${String(shell)}".`)
   }
@@ -43,10 +42,10 @@ export const formatCompletionResult = (
 }
 
 const bashSource = (
-  name: string,
+  bin: string,
   environment: string,
   functionName: string,
-): string => `# bash completion for ${name}
+): string => `# bash completion for ${bin}
 ${functionName}() {
   local current="\${COMP_WORDS[COMP_CWORD]}"
   local -a committed=()
@@ -58,7 +57,7 @@ ${functionName}() {
   fi
   while IFS= read -r line; do
     response+=("$line")
-  done < <(env ${environment}=bash_complete ${quotePosix(name)} "\${committed[@]}" "$current" 2>/dev/null)
+  done < <(env ${environment}=bash_complete ${quotePosix(bin)} "\${committed[@]}" "$current" 2>/dev/null)
   if (( \${#response[@]} == 0 )); then
     return 0
   fi
@@ -79,21 +78,21 @@ ${functionName}() {
   fi
 }
 
-complete -o default -F ${functionName} -- ${quotePosix(name)}
+complete -o default -F ${functionName} -- ${quotePosix(bin)}
 `
 
 const fishSource = (
-  name: string,
+  bin: string,
   environment: string,
   functionName: string,
-): string => `# fish completion for ${name}
+): string => `# fish completion for ${bin}
 function ${functionName}
   set -l committed (commandline -opc)
   if test (count $committed) -gt 0
     set -e committed[1]
   end
   set -l current (commandline -ct)
-  set -l response (env ${environment}=fish_complete ${quotePosix(name)} $committed "$current" 2>/dev/null)
+  set -l response (env ${environment}=fish_complete ${quotePosix(bin)} $committed "$current" 2>/dev/null)
   if test (count $response) -eq 0
     return
   end
@@ -108,12 +107,12 @@ function ${functionName}
   end
 end
 
-complete -c ${quotePosix(name)} -f -a '(${functionName})'
+complete -c ${quotePosix(bin)} -f -a '(${functionName})'
 `
 
-const powershellSource = (name: string, environment: string): string =>
-  `# PowerShell completion for ${name}
-Register-ArgumentCompleter -Native -CommandName ${quotePowerShell(name)} -ScriptBlock {
+const powershellSource = (bin: string, environment: string): string =>
+  `# PowerShell completion for ${bin}
+Register-ArgumentCompleter -Native -CommandName ${quotePowerShell(bin)} -ScriptBlock {
   param($wordToComplete, $commandAst, $cursorPosition)
 
   $committed = @()
@@ -132,7 +131,7 @@ Register-ArgumentCompleter -Native -CommandName ${quotePowerShell(name)} -Script
   $previous = [Environment]::GetEnvironmentVariable(${quotePowerShell(environment)}, 'Process')
   try {
     [Environment]::SetEnvironmentVariable(${quotePowerShell(environment)}, 'powershell_complete', 'Process')
-    $response = @(& ${quotePowerShell(name)} @committed $wordToComplete 2>$null)
+    $response = @(& ${quotePowerShell(bin)} @committed $wordToComplete 2>$null)
   } finally {
     [Environment]::SetEnvironmentVariable(${quotePowerShell(environment)}, $previous, 'Process')
   }
@@ -161,10 +160,10 @@ Register-ArgumentCompleter -Native -CommandName ${quotePowerShell(name)} -Script
 `
 
 const zshSource = (
-  name: string,
+  bin: string,
   environment: string,
   functionName: string,
-): string => `#compdef ${name}
+): string => `#compdef ${bin}
 ${functionName}() {
   local current_word="\${words[CURRENT]}"
   local header fallback
@@ -173,7 +172,7 @@ ${functionName}() {
   if (( CURRENT > 2 )); then
     committed=("\${words[2,CURRENT-1]}")
   fi
-  response=("\${(@f)$(env ${environment}=zsh_complete ${quotePosix(name)} "\${committed[@]}" "$current_word" 2>/dev/null)}")
+  response=("\${(@f)$(env ${environment}=zsh_complete ${quotePosix(bin)} "\${committed[@]}" "$current_word" 2>/dev/null)}")
   if (( \${#response[@]} == 0 )); then
     return 0
   fi
@@ -190,7 +189,7 @@ ${functionName}() {
   fi
 }
 
-compdef ${functionName} ${quotePosix(name)}
+compdef ${functionName} ${quotePosix(bin)}
 `
 
 const normalizeDescription = (value?: string): string =>
@@ -203,14 +202,14 @@ const quotePosix = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'
 
 const quotePowerShell = (value: string): string => `'${value.replace(/'/g, "''")}'`
 
-const validateName = (name: string) => {
+const validateBin = (bin: string) => {
   if (
-    typeof name !== 'string' ||
-    !name.length ||
-    name.includes(String.fromCharCode(0)) ||
-    /\s/.test(name)
+    typeof bin !== 'string' ||
+    !bin.length ||
+    bin.includes(String.fromCharCode(0)) ||
+    /\s/.test(bin)
   )
     throw new TypeError(
-      'Completion command name must be a non-empty token without whitespace.',
+      'Completion bin must be a non-empty token without whitespace.',
     )
 }

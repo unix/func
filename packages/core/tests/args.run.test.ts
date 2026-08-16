@@ -1,4 +1,13 @@
-import { Args, ArrayString, Command, Context, Flag, Handler, Inject } from '../src'
+import {
+  Args,
+  ArrayString,
+  Command,
+  Context,
+  Ctx,
+  Flag,
+  Handler,
+  Inject,
+} from '../src'
 import type { Args as ArgsValue } from '../src'
 import { SYSTEM, expect, random, systemErrorCode, test } from './_test'
 
@@ -81,6 +90,20 @@ test.sequential(
     await runContainer(['', '', 'build'], [BuildCommand])
   },
 )
+
+test.sequential('should inject context by Ctx alias', async ({ runContainer }) => {
+  expect.assertions(1)
+
+  @Command('build')
+  class BuildCommand {
+    @Handler()
+    run(@Ctx() context: Context) {
+      expect(context.command?.path).toEqual(['build'])
+    }
+  }
+
+  await runContainer(['', '', 'build'], [BuildCommand])
+})
 
 test.sequential(
   'should reject undecorated parameters as missing providers',

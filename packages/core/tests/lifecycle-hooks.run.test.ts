@@ -1,6 +1,6 @@
-import { Command, Exception, Module, Handler, Injectable, run } from '../src'
+import { Command, Exception, Module, Handler, Injectable } from '../src'
 import type { ExecutionOutcome, OnDispose, OnError, OnInit } from '../src'
-import { expect, test } from './_test'
+import { expect, run, test } from './_test'
 
 test.sequential(
   'should run module, command, and provider lifecycle in activation order',

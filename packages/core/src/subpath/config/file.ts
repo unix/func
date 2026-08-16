@@ -1,4 +1,4 @@
-import { SYSTEM } from '@func/shared/config-errors'
+import { SYSTEM } from '@func/contracts/config-errors'
 import { InternalException } from '../../shared/errors'
 import type { ConfigConstructor, ConfigFileOptions } from './interfaces'
 import { isConfigConstructor } from './runtime'
@@ -16,7 +16,7 @@ export const ConfigFile = (options: ConfigFileOptions): ClassDecorator => {
       })
     }
 
-    configFiles.set(target, Object.freeze({ ...options }))
+    configFiles.set(target, { ...options })
   }
 }
 

@@ -1,11 +1,12 @@
-import { Context } from '../../context'
-import { Args, Inject } from '../../injection'
-import type { Args as CommandArgs } from '../../interfaces'
+import { Context } from '../../runtime/context'
+import { Args, Ctx, Stdout } from '../../runtime/injection'
+import type { Args as CommandArgs } from '../../runtime/args'
 import { Handler } from '../../commands'
 import { OptionCommand } from '../../options'
 import { HelpContext } from './context'
 import { HelpFormatter } from './formatter'
 import type { HelpMeta } from './interfaces'
+import type { Writable } from 'node:stream'
 
 export interface HelpTransform {
   transform(meta: HelpMeta, context: HelpContext): HelpMeta | Promise<HelpMeta>
@@ -21,10 +22,11 @@ export class HelpOption implements HelpTransform {
   @Handler()
   private async handle(
     @Args() args: CommandArgs,
-    @Inject(Context) context: Context,
+    @Ctx() context: Context,
+    @Stdout() stdout: Writable,
   ): Promise<void> {
     const helpContext = new HelpContext(args, context)
     const meta = await this.transform(helpContext.createMeta(), helpContext)
-    context.io.stdout.write(HelpFormatter.format(meta))
+    stdout.write(HelpFormatter.format(meta))
   }
 }

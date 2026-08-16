@@ -1,8 +1,8 @@
-import { Args, Command, CommandMissing, Handler, createApp } from '../src'
+import { Args, Command, CommandMissing, Handler } from '../src'
 import type { Args as ArgsValue } from '../src'
 import { createTestingApp } from '../src/subpath/testing'
 import { expect, test } from 'vitest'
-import { testModule } from './_test'
+import { run, testModule } from './_test'
 
 test('should report an unknown command as a failed invocation', async () => {
   @Command('build')
@@ -52,9 +52,9 @@ test('should preserve positional inputs after a matched command', async () => {
     }
   }
 
-  const invocation = await createApp(testModule({ commands: [DeployCommand] }), {
+  const invocation = await run(testModule({ commands: [DeployCommand] }), {
     argv: ['deploy', 'production'],
-  }).run()
+  })
 
   expect(invocation.exitCode).toBe(0)
   expect(inputs).toEqual(['production'])

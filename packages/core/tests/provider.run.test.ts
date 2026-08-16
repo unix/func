@@ -4,12 +4,11 @@ import {
   Handler,
   Inject,
   Injectable,
-  createApp,
   createToken,
-  run,
 } from '../src'
 import type { OnError } from '../src'
-import { expect, test, testModule } from './_test'
+import { createInvoker } from '../src/subpath/invoke'
+import { expect, run, test, testModule } from './_test'
 
 test.sequential('should resolve every provider definition', async () => {
   expect.assertions(3)
@@ -148,9 +147,9 @@ test.sequential(
     })
     class AppModule {}
 
-    const application = createApp(AppModule, { argv: [] })
-    await application.run()
-    await application.run()
+    const invoker = createInvoker(AppModule)
+    await invoker.invoke([])
+    await invoker.invoke([])
     expect(created).toBe(2)
   },
 )

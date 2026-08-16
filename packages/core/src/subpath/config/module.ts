@@ -1,10 +1,11 @@
-import { SYSTEM } from '@func/shared/config-errors'
+import { SYSTEM } from '@func/contracts/config-errors'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import type { ModuleMetadata } from '../../application/module-definition'
+import type { ModuleMetadata } from '../../application/definition'
 import { defineApplicationResources } from '../../application/resources'
-import type { Provider } from '../../di/provider'
+import type { Provider } from '../../di/types'
 import { InternalException } from '../../shared/errors'
+import { isSafePathSegment } from '../../shared/path-segment'
 import { configFileOptions } from './file'
 import type { ConfigConstructor, ConfigModuleOptions } from './interfaces'
 import { bindConfig, isConfigConstructor } from './runtime'
@@ -116,19 +117,9 @@ const duplicateFileError = (file: ResolvedConfigFile) =>
   })
 
 const assertSafeSegment = (value: unknown, label: string) => {
-  if (
-    typeof value !== 'string' ||
-    !value.trim() ||
-    value !== value.trim() ||
-    value === '.' ||
-    value === '..' ||
-    value.includes('/') ||
-    value.includes('\\') ||
-    value.includes('\0')
-  ) {
-    throw new InternalException(SYSTEM.DEFINITION, {
-      details: { value },
-      message: `${label} must be a safe path segment.`,
-    })
-  }
+  if (isSafePathSegment(value)) return
+  throw new InternalException(SYSTEM.DEFINITION, {
+    details: { value },
+    message: `${label} must be a safe path segment.`,
+  })
 }

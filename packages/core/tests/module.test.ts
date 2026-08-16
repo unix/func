@@ -6,9 +6,8 @@ import {
   Handler,
   Injectable,
   createApp,
-  run,
 } from '../src'
-import { SYSTEM, expect, random, systemErrorCode, test } from './_test'
+import { SYSTEM, expect, random, run, systemErrorCode, test } from './_test'
 
 test.sequential('should run commands from a Module', async () => {
   let invoked = false
@@ -129,7 +128,7 @@ test('should require subclasses to declare their own module metadata', () => {
   )
 })
 
-test.sequential('should create a low-level container from a Module', async () => {
+test.sequential('should create a bootstrap application from a Module', async () => {
   @CommandMajor()
   class Major {
     @Handler()
@@ -142,8 +141,35 @@ test.sequential('should create a low-level container from a Module', async () =>
   class AppModule {}
 
   expect(createApp(AppModule)).toEqual(
-    expect.objectContaining({ run: expect.any(Function) }),
+    expect.objectContaining({ bootstrap: expect.any(Function) }),
   )
+})
+
+test.sequential('should bootstrap a process application only once', async () => {
+  let invoked = false
+  const previousExitCode = process.exitCode
+
+  @CommandMajor()
+  class Major {
+    @Handler()
+    run() {
+      invoked = true
+    }
+  }
+
+  @Module({ commands: [Major] })
+  class AppModule {}
+
+  const app = createApp(AppModule)
+  try {
+    await expect(app.bootstrap({ argv: [] })).resolves.toBeUndefined()
+    expect(invoked).toBe(true)
+    await expect(app.bootstrap({ argv: [] })).rejects.toThrow(
+      'An application can only be bootstrapped once.',
+    )
+  } finally {
+    process.exitCode = previousExitCode
+  }
 })
 
 test.sequential(

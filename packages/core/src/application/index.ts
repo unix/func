@@ -7,9 +7,11 @@ export type {
   ProviderToken,
   Type,
   ValueProvider,
-} from '../di/provider'
+} from '../di/types'
 export type { InjectionToken } from '../di/token'
 export { createToken } from '../di/token'
-export type { ModuleMetadata } from './module-definition'
-export { Module } from './module-definition'
-export { createApp, run } from './module'
+export type { ModuleMetadata } from './definition'
+export { Module } from './definition'
+export { createApp } from './app'
+export type { App, AppOptions, BootstrapOptions } from './app'
+export type { ApplicationFeature } from './features'

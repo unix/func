@@ -13,4 +13,4 @@ export {
 export {
   RUNTIME as CONFIG_RUNTIME,
   SYSTEM as CONFIG_SYSTEM,
-} from '@func/shared/config-errors'
+} from '@func/contracts/config-errors'

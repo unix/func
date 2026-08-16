@@ -1,8 +1,8 @@
-import { SYSTEM } from '@func/shared/core-errors'
-import { hasModuleMetadata, moduleMetadata } from '../application/module-definition'
-import type { ModuleInput } from '../application/module-definition'
+import { SYSTEM } from '@func/contracts/core-errors'
+import { hasModuleMetadata, moduleMetadata } from '../application/definition'
+import type { ModuleInput } from '../application/definition'
 import { InternalException, isException } from '../shared/errors'
-import type { ExplicitProvider, Provider, ProviderToken } from './provider'
+import type { ExplicitProvider, Provider, ProviderToken } from './types'
 import {
   isProviderToken,
   normalizeProvider,
@@ -43,7 +43,7 @@ export const compileModules = (input: ModuleInput): CompiledGraph => {
     stack: [],
   }
   const root = compileModule(input, state)
-  return { modules: Object.freeze(state.modules.slice()), root }
+  return { modules: state.modules, root }
 }
 
 const compileModule = (input: ModuleInput, state: CompilerState): CompiledModule => {

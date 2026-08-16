@@ -1,4 +1,5 @@
-import type { ArgsOptionValue, UserOption } from '../interfaces'
+import type { UserOption } from '../options/types'
+import type { ArgsOptionValue } from '../runtime/args'
 
 export const createOptionRecord = (
   definitions: readonly { readonly name: string }[],

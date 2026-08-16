@@ -6,12 +6,12 @@ import {
   Injectable,
   createApp,
   createToken,
-  run,
 } from '../src'
 import {
   RUNTIME,
   SYSTEM,
   expect,
+  run,
   runtimeErrorCode,
   systemErrorCode,
   test,

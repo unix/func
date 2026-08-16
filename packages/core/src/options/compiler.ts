@@ -1,14 +1,19 @@
-import { SYSTEM } from '@func/shared/core-errors'
-import { moduleMetadata } from '../application/module-definition'
+import { SYSTEM } from '@func/contracts/core-errors'
+import { moduleMetadata } from '../application/definition'
 import { compileMethodHandlers } from '../deprecation'
-import type { CompiledGraph, CompiledModule, ProviderRecord } from '../di/compiler'
-import { registerProviders } from '../di/compiler'
-import type { Type } from '../di/provider'
-import type { HandlerParams, OptionCommandParams } from '../interfaces'
+import type {
+  CompiledGraph,
+  CompiledModule,
+  ProviderRecord,
+} from '../di/module-compiler'
+import { registerProviders } from '../di/module-compiler'
+import type { Type } from '../di/types'
+import type { HandlerParams } from '../commands/types'
 import { InternalException } from '../shared/errors'
-import { metadata } from '../utils/metadata'
+import { metadata } from './metadata'
 import { compileFieldOptions } from './field-metadata'
 import type { CompiledFieldOption } from './field-metadata'
+import type { OptionCommandParams } from './types'
 
 interface CompiledOptionBase {
   owner: CompiledModule
@@ -58,12 +63,12 @@ export const compileModuleOptions = (
       owners.set(target, module)
       return compileModuleOption(target, module, records[index])
     })
-    byModule.set(module, Object.freeze(options))
+    byModule.set(module, options)
   })
 
   return {
     byModule,
-    root: byModule.get(graph.root) ?? Object.freeze([]),
+    root: byModule.get(graph.root) ?? [],
   }
 }
 

@@ -1,4 +1,4 @@
-import type { UserOptionValue } from '../interfaces'
+import type { UserOptionValue } from '../options/types'
 import type {
   ArgOption,
   ArgParseFailure,
@@ -37,12 +37,12 @@ export const parseArgv = (
     index = parsed.nextIndex
   }
 
-  const parsed: ParsedArgv = Object.freeze({
+  const parsed: ParsedArgv = {
     options,
-    positionals: Object.freeze(positionals),
+    positionals,
     supplied,
-    unknown: Object.freeze(unknown),
-  })
+    unknown,
+  }
   return { parsed, success: true }
 }
 
@@ -199,7 +199,7 @@ const failure = (
   message: string,
   details: Record<string, unknown>,
 ): { readonly failure: ArgParseFailure; success: false } => ({
-  failure: Object.freeze({ details: Object.freeze(details), message }),
+  failure: { details, message },
   success: false,
 })
 

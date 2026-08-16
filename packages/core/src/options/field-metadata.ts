@@ -1,14 +1,14 @@
 import 'reflect-metadata/lite'
 import type {
   CompiledFieldOptionParams,
-  Deprecation,
   FieldOptionParams,
   UserOptionEnumValue,
   ValueValidator,
-} from '../interfaces'
-import { SYSTEM } from '@func/shared/core-errors'
+} from './types'
+import { SYSTEM } from '@func/contracts/core-errors'
+import type { Deprecation } from '../deprecation'
 import { InternalException } from '../shared/errors'
-import { metadata } from '../utils/metadata'
+import { metadata } from './metadata'
 
 export interface FieldConstraints {
   enum?: UserOptionEnumValue[]

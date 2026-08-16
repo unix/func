@@ -9,12 +9,11 @@ import {
   Injectable,
   Value,
   createApp,
-  run,
 } from '../src'
 import type { Args as ArgsValue, OnError } from '../src'
 import { Writable } from 'node:stream'
-import { compileApplication } from '../src/application/module-compiler'
-import { SYSTEM, expect, systemErrorCode, test, testModule } from './_test'
+import { compileApplication } from '../src/application/compiler'
+import { SYSTEM, expect, run, systemErrorCode, test, testModule } from './_test'
 
 test('should discard command graph build state after compilation', () => {
   @Command({ aliases: ['u', 'user'], path: 'users' })

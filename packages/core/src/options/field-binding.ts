@@ -1,7 +1,7 @@
-import { RUNTIME_PRINT } from '@func/shared/core-errors'
-import type { UserOption } from '../interfaces'
+import { RUNTIME_PRINT } from '@func/contracts/core-errors'
+import type { UserOption } from './types'
 import { ErrorScope, InternalException, isException } from '../shared/errors'
-import { ConstraintValidator } from './constraint-validator'
+import { ConstraintValidator } from './constraints'
 import type { CompiledFieldOption } from './field-metadata'
 
 interface FieldBindingParams {
@@ -9,6 +9,7 @@ interface FieldBindingParams {
   instance: any
   options: UserOption
   supplied: ReadonlySet<string>
+  validate?: boolean
 }
 
 export const bindFieldOptions = ({
@@ -16,20 +17,13 @@ export const bindFieldOptions = ({
   instance,
   options,
   supplied,
+  validate = true,
 }: FieldBindingParams) => {
   bindFieldValues(fieldOptions, instance, options, supplied)
+  if (!validate) return
   validateRequiredFields(fieldOptions, options)
   validateFieldValues(fieldOptions, options)
   new ConstraintValidator(fieldOptions, options, supplied).validate()
-}
-
-export const hydrateFieldOptions = ({
-  fieldOptions,
-  instance,
-  options,
-  supplied,
-}: FieldBindingParams) => {
-  bindFieldValues(fieldOptions, instance, options, supplied)
 }
 
 const bindFieldValues = (

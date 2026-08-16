@@ -1,8 +1,8 @@
-import type { CompiledModule } from '../di/compiler'
-import type { Type } from '../di/provider'
-import type { CommandParams, HandlerParams } from '../interfaces'
-import type { CompiledFieldOption } from '../options/field-metadata'
-import { handlers } from '../utils/metadata'
+import type { CompiledModule } from '../../di/module-compiler'
+import type { Type } from '../../di/types'
+import type { CommandParams, HandlerParams } from '../types'
+import type { CompiledFieldOption } from '../../options/field-metadata'
+import { handlers } from '../metadata'
 
 export interface HandlerRecord {
   command?: CommandParams

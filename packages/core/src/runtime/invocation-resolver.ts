@@ -1,9 +1,7 @@
-import { RUNTIME_PRINT, SYSTEM } from '@func/shared/core-errors'
+import { RUNTIME_PRINT, SYSTEM } from '@func/contracts/core-errors'
 import { parseArgv } from '../arg'
 import type { ArgParseFailure, ParsedArgv } from '../arg'
-import type { OptionParams } from '../interfaces'
-import { ErrorScope, InternalException } from '../shared/errors'
-import { handlers } from '../utils/metadata'
+import { handlers } from '../commands/metadata'
 import type {
   ActionEndpoint,
   CommandEndpoint,
@@ -11,8 +9,10 @@ import type {
   CommandMatch,
   CommandNode,
   OptionPlan,
-} from './command-graph'
-import type { HandlerRecord } from './handler-registry'
+} from '../commands/graph/compiler'
+import type { HandlerRecord } from '../commands/graph/registry'
+import type { OptionParams } from '../options/types'
+import { ErrorScope, InternalException } from '../shared/errors'
 
 interface InvocationCandidate {
   match: CommandMatch
@@ -45,7 +45,7 @@ class InvocationResolver {
       ? {
           match: {
             consumed: 0,
-            invokedPath: Object.freeze([]),
+            invokedPath: [],
             node: rootNode,
           },
           parsed: rootParsed,
@@ -190,7 +190,7 @@ class InvocationResolver {
     return {
       ...candidate,
       ...(action ? { action } : {}),
-      effectiveOptions: Object.freeze(targetOptions.slice()),
+      effectiveOptions: targetOptions,
       ...(endpoint ? { endpoint } : {}),
     }
   }

@@ -2,7 +2,7 @@ import {
   ErrorScope,
   formatErrorCode,
   type ErrorCode,
-} from '@func/shared/core-errors'
+} from '@func/contracts/core-errors'
 import type { Writable } from 'node:stream'
 
 export { ErrorScope }

@@ -8,10 +8,9 @@ import {
   Module,
   Handler,
   Value,
-  run,
 } from '../src'
 import type { OnError } from '../src'
-import { expect, random, test } from './_test'
+import { expect, random, run, test } from './_test'
 
 test.sequential('should stop error propagation at the command hook', async () => {
   expect.assertions(5)

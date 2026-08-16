@@ -1,18 +1,15 @@
 import type { ArgToken } from '../../arg/interfaces'
-import { compileApplication } from '../../application/module-compiler'
+import { compileApplication } from '../../application/compiler'
 import type {
   ActionEndpoint,
   CommandGraph,
   CommandNode,
   OptionPlan,
-} from '../../containers/command-graph'
-import type { Type } from '../../di/provider'
-import type {
-  Deprecation,
-  OptionParams,
-  UserOptionEnumValue,
-} from '../../interfaces'
-import { handlers } from '../../utils/metadata'
+} from '../../commands/graph/compiler'
+import type { Type } from '../../di/types'
+import type { Deprecation } from '../../deprecation'
+import type { OptionParams, UserOptionEnumValue } from '../../options/types'
+import { handlers } from '../../commands/metadata'
 import type {
   CompletionItem,
   CompletionRequest,

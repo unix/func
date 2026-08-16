@@ -1,9 +1,10 @@
-import { SYSTEM } from '@func/shared/log-errors'
+import { SYSTEM } from '@func/contracts/log-errors'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import type { ModuleMetadata } from '../../application/module-definition'
-import { Context } from '../../context'
+import type { ModuleMetadata } from '../../application/definition'
+import { Context } from '../../runtime/context'
 import { InternalException } from '../../shared/errors'
+import { isSafePathSegment } from '../../shared/path-segment'
 import type { LogModuleOptions } from './interfaces'
 import { Logger, bindLog } from './runtime'
 
@@ -54,19 +55,7 @@ const assertOptions = (options: unknown) => {
 }
 
 const assertSafeSegment = (value: unknown) => {
-  if (
-    typeof value === 'string' &&
-    value.trim() &&
-    value === value.trim() &&
-    value !== '.' &&
-    value !== '..' &&
-    !value.includes('/') &&
-    !value.includes('\\') &&
-    !value.includes('\0')
-  ) {
-    return
-  }
-
+  if (isSafePathSegment(value)) return
   throw new InternalException(SYSTEM.DEFINITION, {
     details: { value },
     message: 'Log appName must be a safe path segment.',

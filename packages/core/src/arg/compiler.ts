@@ -1,4 +1,4 @@
-import type { OptionParams } from '../interfaces'
+import type { OptionParams } from '../options/types'
 import type { ArgOption, ArgPlan, ArgToken, ArgValueType } from './interfaces'
 
 export interface ArgPlanDefinition {
@@ -43,7 +43,7 @@ export const compileArgPlan = (
     })
   })
 
-  return Object.freeze({ options: Object.freeze(options), tokens })
+  return { options, tokens }
 }
 
 const compileOption = (option: OptionParams): ArgOption => {
@@ -53,7 +53,7 @@ const compileOption = (option: OptionParams): ArgOption => {
   let type: ArgValueType = 'string'
   if (constructor === Boolean) type = 'boolean'
   if (constructor === Number) type = 'number'
-  return Object.freeze({ multiple, name: option.name, type })
+  return { multiple, name: option.name, type }
 }
 
 const registerToken = (
@@ -65,6 +65,6 @@ const registerToken = (
 ) => {
   const existing = owners.get(token)
   if (existing) throw new ArgTokenConflict(token, existing, owner)
-  tokens.set(token, Object.freeze(value))
+  tokens.set(token, value)
   owners.set(token, owner)
 }

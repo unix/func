@@ -1,33 +1,27 @@
 import 'reflect-metadata/lite'
-import { SYSTEM } from '@func/shared/core-errors'
-import { CommandCatalog } from '../context'
-import { compileModules } from '../di/compiler'
-import type { CompiledGraph, CompiledModule } from '../di/compiler'
-import type { Type } from '../di/provider'
+import { SYSTEM } from '@func/contracts/core-errors'
+import { compileModules } from '../di/module-compiler'
+import type { CompiledGraph, CompiledModule } from '../di/module-compiler'
+import type { Type } from '../di/types'
 import { providerTokenName } from '../di/provider-utils'
-import { HandlerRegistry } from '../containers/handler-registry'
-import type { HandlerRecord } from '../containers/handler-registry'
-import { CommandGraph } from '../containers/command-graph'
+import { HandlerRegistry } from '../commands/graph/registry'
+import type { HandlerRecord } from '../commands/graph/registry'
+import { CommandGraph } from '../commands/graph/compiler'
 import { compileMethodHandlers } from '../deprecation'
-import type { CommandParams } from '../interfaces'
+import type { CommandParams } from '../commands/types'
 import { compileModuleOptions } from '../options/compiler'
 import { isOptionCommand } from '../options/compiler'
 import { compileFieldOptions } from '../options/field-metadata'
 import { InternalException } from '../shared/errors'
-import { metadata } from '../utils/metadata'
-import type { handlers } from '../utils/metadata'
-import { isBuiltInToken } from '../injection'
-import { moduleMetadata } from './module-definition'
-import type { ModuleInput } from './module-definition'
+import { metadata } from '../commands/metadata'
+import type { handlers } from '../commands/metadata'
+import { isBuiltInToken } from '../runtime/injection'
+import { moduleMetadata } from './definition'
+import type { ModuleInput } from './definition'
+import type { CompiledApplication } from './model'
 import { validateApplicationResources } from './resources'
 
 export type RegisteredHandler = HandlerRecord
-
-export interface CompiledApplication {
-  commandCatalog: CommandCatalog
-  commandGraph: CommandGraph
-  graph: CompiledGraph
-}
 
 export const compileApplication = (input: Type): CompiledApplication => {
   if (typeof input !== 'function') {
@@ -58,10 +52,8 @@ export const compileApplication = (input: Type): CompiledApplication => {
     registry,
     root: graph.root,
   })
-  const commandCatalog = new CommandCatalog(commandGraph.commands())
 
   return {
-    commandCatalog,
     commandGraph,
     graph,
   }

@@ -1,18 +1,18 @@
+import type { Deprecation } from '../../deprecation'
 import type {
-  Args,
-  Deprecation,
   FieldOptionKind,
   OptionParams,
   UserOptionEnumValue,
-} from '../../interfaces'
-import { contextInvocation } from '../../context'
-import type { Context } from '../../context'
+} from '../../options/types'
+import type { Args } from '../../runtime/args'
+import { contextInvocation } from '../../runtime/context'
+import type { Context } from '../../runtime/context'
 import type {
   CommandGraph,
   CommandNode,
   OptionPlan,
-} from '../../containers/command-graph'
-import { handlers } from '../../utils/metadata'
+} from '../../commands/graph/compiler'
+import { handlers } from '../../commands/metadata'
 import type {
   HelpCommandMeta,
   HelpMeta,

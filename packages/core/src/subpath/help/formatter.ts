@@ -1,5 +1,5 @@
 import { stripVTControlCharacters } from 'node:util'
-import type { Deprecation } from '../../interfaces'
+import type { Deprecation } from '../../deprecation'
 import type {
   HelpCommandMeta,
   HelpMeta,

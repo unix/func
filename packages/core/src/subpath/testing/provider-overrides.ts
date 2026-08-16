@@ -1,10 +1,10 @@
-import { SYSTEM } from '@func/shared/core-errors'
-import type { ProviderRecord } from '../di/compiler'
-import type { ExplicitProvider, Provider, ProviderToken, Type } from '../di/provider'
-import { normalizeProvider, providerTokenName } from '../di/provider-utils'
-import { isBuiltInToken } from '../injection'
-import { InternalException } from '../shared/errors'
-import type { CompiledApplication } from './module-compiler'
+import { SYSTEM } from '@func/contracts/core-errors'
+import type { ProviderRecord } from '../../di/module-compiler'
+import type { ExplicitProvider, Provider, ProviderToken, Type } from '../../di/types'
+import { normalizeProvider, providerTokenName } from '../../di/provider-utils'
+import { isBuiltInToken } from '../../runtime/injection'
+import { InternalException } from '../../shared/errors'
+import type { CompiledApplication } from '../../application/model'
 
 export interface ModuleProviderOverride {
   module: Type

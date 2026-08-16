@@ -1,17 +1,15 @@
 import 'reflect-metadata/lite'
-import { SYSTEM } from '@func/shared/core-errors'
-import type {
-  OptionCommandDecoratorParams,
-  OptionCommandParams,
-} from '../interfaces'
+import { SYSTEM } from '@func/contracts/core-errors'
+import type { OptionCommandDecoratorParams, OptionCommandParams } from './types'
 import { normalizeDeprecation } from '../deprecation'
 import { InternalException } from '../shared/errors'
-import * as validator from '../utils/validator'
-import { metadata } from '../utils/metadata'
+import * as validator from '../definition-validation'
+import { metadata as diMetadata } from '../di/metadata'
 import { updateFieldMetadata } from './field-metadata'
+import { metadata } from './metadata'
 
 export const Option = (): ClassDecorator => target => {
-  Reflect.defineMetadata(metadata.INJECTABLE_IDENTIFIER, true, target)
+  Reflect.defineMetadata(diMetadata.INJECTABLE_IDENTIFIER, true, target)
   Reflect.defineMetadata(metadata.OPTION_IDENTIFIER, true, target)
 }
 
@@ -21,17 +19,17 @@ export const OptionCommand = (
   validator.optionName(params.name, 'name')
   const aliases = validator.optionAliases(params.alias, params.aliases)
   const deprecated = normalizeDeprecation(params.deprecated)
-  const metadataParams: OptionCommandParams = Object.freeze({
+  const metadataParams: OptionCommandParams = {
     aliases,
     ...(deprecated ? { deprecated } : {}),
     ...(params.description ? { description: params.description } : {}),
     ...(params.overrideAll ? { overrideAll: true } : {}),
     name: params.name,
     type: Boolean,
-  })
+  }
 
   return target => {
-    Reflect.defineMetadata(metadata.INJECTABLE_IDENTIFIER, true, target)
+    Reflect.defineMetadata(diMetadata.INJECTABLE_IDENTIFIER, true, target)
     Reflect.defineMetadata(
       metadata.OPTION_COMMAND_IDENTIFIER,
       metadataParams,

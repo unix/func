@@ -1,4 +1,4 @@
-import type { UserOption } from '../interfaces'
+import type { UserOption } from '../options/types'
 
 export type ArgValueType = 'boolean' | 'number' | 'string'
 

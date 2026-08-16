@@ -1,11 +1,13 @@
 import 'reflect-metadata/lite'
-import { SYSTEM } from '@func/shared/core-errors'
-import type { Deprecation, HandlerParams } from './interfaces'
+import { SYSTEM } from '@func/contracts/core-errors'
+import type { HandlerParams } from './commands/types'
 import { updateFieldMetadata } from './options/field-metadata'
 import { InternalException } from './shared/errors'
-import { metadata } from './utils/metadata'
+import { metadata } from './commands/metadata'
 
 type DeprecatedDecorator = MethodDecorator & PropertyDecorator
+
+export type Deprecation = true | string
 
 export const Deprecated = (message?: string): DeprecatedDecorator => {
   const deprecated = normalizeDeprecation(message ?? true) ?? true

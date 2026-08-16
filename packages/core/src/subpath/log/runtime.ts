@@ -1,4 +1,4 @@
-import { RUNTIME } from '@func/shared/log-errors'
+import { RUNTIME } from '@func/contracts/log-errors'
 import { randomUUID } from 'node:crypto'
 import {
   closeSync,

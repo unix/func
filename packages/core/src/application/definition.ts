@@ -1,6 +1,6 @@
 import 'reflect-metadata/lite'
-import type { Provider, ProviderToken, Type } from '../di/provider'
-import { metadata as metadataKeys } from '../utils/metadata'
+import type { Provider, ProviderToken, Type } from '../di/types'
+import { metadata as metadataKeys } from './metadata'
 
 export interface ModuleMetadata {
   commands?: Type[]
@@ -32,8 +32,8 @@ export const hasModuleMetadata = (target: Function): boolean =>
 
 export const moduleMetadata = (input: ModuleInput): ModuleMetadata => {
   if (typeof input !== 'function') return input
-  return (
-    (Reflect.getOwnMetadata(metadataKeys.MODULE_IDENTIFIER, input) as
-      ModuleMetadata | undefined) ?? {}
-  )
+  return Reflect.getOwnMetadata(
+    metadataKeys.MODULE_IDENTIFIER,
+    input,
+  ) as ModuleMetadata
 }

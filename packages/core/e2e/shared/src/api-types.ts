@@ -1,12 +1,15 @@
 import type {
   ArrayNumberDecoratorParams,
   ArrayStringDecoratorParams,
+  App,
+  ApplicationFeature,
+  AppOptions,
+  BootstrapOptions,
   ClassProvider,
   Args,
   CommandDecoratorInput,
   CommandDecoratorParams,
   CommandPath,
-  ContainerOptions,
   Deprecation,
   FactoryProvider,
   FieldOptionDecoratorParams,
@@ -41,13 +44,14 @@ import type {
 } from 'func/config'
 import type {
   CompletionFallback,
+  CompletionFeatureOptions,
   CompletionItem,
   CompletionItemKind,
   CompletionRequest,
   CompletionResult,
-  CompletionRunOptions,
   CompletionShell,
 } from 'func/completion'
+import type { InvocationOptions, InvocationResult, Invoker } from 'func/invoke'
 import type { LogModuleOptions } from 'func/log'
 import type {
   HelpChoice,
@@ -74,8 +78,11 @@ import type {
 export type PublicApiTypes = [
   ArrayNumberDecoratorParams,
   ArrayStringDecoratorParams,
+  App,
+  ApplicationFeature,
+  AppOptions,
+  BootstrapOptions,
   ClassProvider,
-  ContainerOptions,
   Deprecation,
   CommandDecoratorInput,
   CommandDecoratorParams,
@@ -103,12 +110,15 @@ export type PublicApiTypes = [
   ValueOptionType,
   ValueProvider,
   CompletionFallback,
+  CompletionFeatureOptions,
   CompletionItem,
   CompletionItemKind,
   CompletionRequest,
   CompletionResult,
-  CompletionRunOptions,
   CompletionShell,
+  InvocationOptions,
+  InvocationResult,
+  Invoker,
   ConfigConstructor,
   ConfigDefaults,
   ConfigFileOptions,

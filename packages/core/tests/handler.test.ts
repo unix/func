@@ -1,6 +1,6 @@
 import 'reflect-metadata/lite'
 import { CommandMajor, Handler, createApp } from '../src'
-import { metadata } from '../src/utils/metadata'
+import { metadata } from '../src/commands/metadata'
 import { SYSTEM, expect, systemErrorCode, test, testModule } from './_test'
 
 test('should collect default and flag method handlers', () => {

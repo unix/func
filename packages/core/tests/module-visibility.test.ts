@@ -7,10 +7,9 @@ import {
   Injectable,
   createApp,
   createToken,
-  run,
 } from '../src'
 import type { ModuleMetadata, OnError } from '../src'
-import { SYSTEM, expect, systemErrorCode, test } from './_test'
+import { SYSTEM, expect, run, systemErrorCode, test } from './_test'
 
 test.sequential('should expose only explicitly exported providers', async () => {
   expect.assertions(1)

@@ -1,14 +1,7 @@
-import {
-  Args,
-  Command,
-  CommandMajor,
-  CommandMissing,
-  Handler,
-  createApp,
-} from '../src'
+import { Args, Command, CommandMajor, CommandMissing, Handler } from '../src'
 import type { Args as ArgsValue } from '../src'
 import { Writable } from 'node:stream'
-import { expect, random, test, testModule } from './_test'
+import { expect, random, run, test, testModule } from './_test'
 
 test.sequential(
   'should select a handler by path before default handler',
@@ -102,10 +95,10 @@ test.sequential('should scope major flags to the root endpoint', async () => {
   }
 
   const output = capturedOutput()
-  const invocation = await createApp(testModule({ commands: [Major] }), {
+  const invocation = await run(testModule({ commands: [Major] }), {
     argv: ['config', '--help'],
     stderr: output.stream,
-  }).run()
+  })
   expect(invocation.exitCode).toBe(1)
   expect(output.text()).toBe('Unknown option: --help.\n')
   expect(selected).toBe('')
@@ -128,10 +121,10 @@ test.sequential('should scope missing flags to the root endpoint', async () => {
   }
 
   const output = capturedOutput()
-  const invocation = await createApp(testModule({ commands: [Missing] }), {
+  const invocation = await run(testModule({ commands: [Missing] }), {
     argv: ['search', '--help'],
     stderr: output.stream,
-  }).run()
+  })
   expect(invocation.exitCode).toBe(1)
   expect(output.text()).toBe('Unknown option: --help.\n')
   expect(selected).toBe('')

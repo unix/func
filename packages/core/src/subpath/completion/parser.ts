@@ -43,12 +43,12 @@ export const parseCompletionArgs = (
       : parseShortOptions(plan, input, supplied)
   }
 
-  return Object.freeze({
+  return {
     endOfOptions,
     ...(expected ? { expected } : {}),
-    positionals: Object.freeze(positionals),
+    positionals,
     supplied,
-  })
+  }
 }
 
 const parseLongOption = (

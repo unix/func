@@ -6,10 +6,9 @@ import {
   Handler,
   Injectable,
   createApp,
-  run,
 } from '../src'
 import type { Args as ArgsValue, Exception, OnError } from '../src'
-import { SYSTEM, expect, systemErrorCode, test, testModule } from './_test'
+import { SYSTEM, expect, run, systemErrorCode, test, testModule } from './_test'
 
 test.sequential(
   'should run an async missing handler with options and providers',

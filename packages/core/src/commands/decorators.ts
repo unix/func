@@ -1,17 +1,32 @@
 import 'reflect-metadata/lite'
-import { SYSTEM } from '@func/shared/core-errors'
+import { SYSTEM } from '@func/contracts/core-errors'
+import { normalizeDeprecation } from '../deprecation'
+import * as validator from '../definition-validation'
+import { InternalException } from '../shared/errors'
+import { handlers, metadata } from './metadata'
 import type {
+  CommandDecoratorInput,
+  CommandDecoratorParams,
+  CommandParams,
+  CommandPath,
   HandlerDecoratorInput,
   HandlerDecoratorParams,
   HandlerParams,
   HandlerPath,
-} from '../interfaces'
-import { InternalException } from '../shared/errors'
-import * as validator from '../utils/validator'
-import { metadata } from '../utils/metadata'
+} from './types'
+
+interface CommandDecorator {
+  (input: CommandDecoratorInput): ClassDecorator
+}
 
 interface HandlerDecorator {
   (input?: HandlerDecoratorInput): MethodDecorator
+}
+
+export const Command: CommandDecorator = input => target => {
+  const command = normalizeCommand(input)
+  Reflect.defineMetadata(metadata.COMMAND_IDENTIFIER, command, target)
+  Reflect.defineMetadata(metadata.HANDLER_IDENTIFIER, handlers.COMMAND, target)
 }
 
 export const Handler: HandlerDecorator = (input: HandlerDecoratorInput = {}) => {
@@ -25,12 +40,12 @@ export const Handler: HandlerDecorator = (input: HandlerDecoratorInput = {}) => 
       })
     }
 
-    const handlers: HandlerParams[] =
+    const methodHandlers: HandlerParams[] =
       Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, target.constructor) ??
       []
     Reflect.defineMetadata(
       metadata.METHOD_HANDLER_IDENTIFIER,
-      handlers.concat([
+      methodHandlers.concat([
         {
           ...params,
           methodName: propertyKey,
@@ -40,6 +55,40 @@ export const Handler: HandlerDecorator = (input: HandlerDecoratorInput = {}) => 
       target.constructor,
     )
   }
+}
+
+export const CommandMajor = (): ClassDecorator => target => {
+  Reflect.defineMetadata(metadata.HANDLER_IDENTIFIER, handlers.MAJOR, target)
+}
+
+export const CommandMissing = (): ClassDecorator => target => {
+  Reflect.defineMetadata(metadata.HANDLER_IDENTIFIER, handlers.MISSING, target)
+}
+
+const normalizeCommand = (input: CommandDecoratorInput): CommandParams => {
+  const params = isCommandParams(input) ? input : { path: input }
+  const path = normalizeCommandPath(params.path)
+  const aliases = validator.commandAliases(params.alias, params.aliases)
+  const deprecated = normalizeDeprecation(params.deprecated)
+
+  return {
+    aliases,
+    ...(deprecated ? { deprecated } : {}),
+    ...(params.description ? { description: params.description } : {}),
+    path,
+  }
+}
+
+const isCommandParams = (
+  input: CommandDecoratorInput,
+): input is CommandDecoratorParams =>
+  typeof input === 'object' && !Array.isArray(input)
+
+const normalizeCommandPath = (input: CommandPath): string[] => {
+  const path: string[] = typeof input === 'string' ? [input] : [...input]
+  if (!path.length) validator.commandName('', 'path')
+  path.forEach(segment => validator.commandName(segment, 'path'))
+  return path
 }
 
 const normalizeHandler = (input: HandlerDecoratorInput): HandlerParams => {

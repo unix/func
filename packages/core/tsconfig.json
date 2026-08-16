@@ -21,7 +21,9 @@
     "src/subpath/completion/index.ts",
     "src/subpath/config/index.ts",
     "src/subpath/help/index.ts",
+    "src/subpath/invoke/index.ts",
     "src/subpath/log/index.ts",
+    "src/subpath/signals/index.ts",
     "src/subpath/testing/index.ts"
   ],
   "exclude": ["node_modules", "dist"]

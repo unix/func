@@ -1,5 +1,3 @@
-import type { ContainerOptions } from '../../containers/container'
-
 export type CompletionFallback = 'file' | 'none'
 
 export type CompletionItemKind = 'command' | 'option' | 'value'
@@ -23,6 +21,6 @@ export interface CompletionResult {
   readonly items: readonly CompletionItem[]
 }
 
-export interface CompletionRunOptions extends ContainerOptions {
-  name: string
+export interface CompletionFeatureOptions {
+  readonly bin: string
 }

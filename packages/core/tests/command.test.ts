@@ -1,6 +1,6 @@
 import 'reflect-metadata/lite'
 import { Command, Handler, createApp } from '../src'
-import { handlers, metadata } from '../src/utils/metadata'
+import { handlers, metadata } from '../src/commands/metadata'
 import { SYSTEM, expect, random, systemErrorCode, test, testModule } from './_test'
 
 test('should define command metadata and handler type', () => {

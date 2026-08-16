@@ -1,21 +1,22 @@
 import {
   CommandMajor,
   Context,
+  Ctx,
   Exception,
   ExceptionContext,
   Module,
   Handler,
-  Inject,
   Injectable,
   Required,
+  Stderr,
+  Stdout,
   Value,
   createApp,
-  run,
 } from '../src'
 import type { OnError } from '../src'
 import { Writable } from 'node:stream'
 import { createTestingApp } from '../src/subpath/testing'
-import { SYSTEM, expect, systemErrorCode, test, testModule } from './_test'
+import { SYSTEM, expect, run, systemErrorCode, test, testModule } from './_test'
 
 const captureOutput = () => {
   const chunks: Buffer[] = []
@@ -39,18 +40,21 @@ const captureOutput = () => {
 test.sequential(
   'should inject configured output streams across module boundaries',
   async () => {
-    expect.assertions(8)
+    expect.assertions(10)
     const output = captureOutput()
     const errorOutput = captureOutput()
     const signal = new AbortController().signal
 
     @Injectable()
     class Printer {
-      constructor(private context: Context) {}
+      constructor(
+        @Stdout() private stdout: Writable,
+        @Stderr() private stderr: Writable,
+      ) {}
 
       print() {
-        this.context.io.stdout.write('\u001b[32mcompleted\u001b[0m\n')
-        this.context.io.stderr.write('warning\n')
+        this.stdout.write('\u001b[32mcompleted\u001b[0m\n')
+        this.stderr.write('warning\n')
       }
     }
 
@@ -62,9 +66,15 @@ test.sequential(
       constructor(private printer: Printer) {}
 
       @Handler()
-      run(@Inject(Context) context: Context) {
+      run(
+        @Ctx() context: Context,
+        @Stdout() stdout: Writable,
+        @Stderr() stderr: Writable,
+      ) {
         expect(context.io.stdout).toBe(output.stream)
         expect(context.io.stderr).toBe(errorOutput.stream)
+        expect(stdout).toBe(context.io.stdout)
+        expect(stderr).toBe(context.io.stderr)
         expect(context.cwd).toBe('/workspace')
         expect(context.signal).toBe(signal)
         this.printer.print()
@@ -131,10 +141,10 @@ test.sequential('should allow error handlers to prevent output', async () => {
     }
   }
 
-  const result = await createApp(AppModule, {
+  const result = await run(AppModule, {
     argv: [],
     stderr: errorOutput.stream,
-  }).run()
+  })
   expect(errorOutput.text()).toBe('')
   expect(result.exitCode).toBe(1)
 })
@@ -160,7 +170,7 @@ test.sequential(
       }
     }
 
-    const result = await createApp(AppModule, { argv: [] }).run()
+    const result = await run(AppModule, { argv: [] })
     expect(result.exitCode).toBe(0)
   },
 )
@@ -176,9 +186,9 @@ test.sequential('should expose the final exit code from context', async () => {
     }
   }
 
-  const result = await createApp(testModule({ commands: [Major] }), {
+  const result = await run(testModule({ commands: [Major] }), {
     argv: [],
-  }).run()
+  })
   expect(result.exitCode).toBe(2)
 })
 
@@ -193,9 +203,9 @@ test.sequential('should reject invalid context exit codes', async () => {
     }
   }
 
-  await expect(
-    createApp(testModule({ commands: [Major] }), { argv: [] }).run(),
-  ).rejects.toThrow('Context.exitCode must be an integer between 0 and 255.')
+  await expect(run(testModule({ commands: [Major] }), { argv: [] })).rejects.toThrow(
+    'Context.exitCode must be an integer between 0 and 255.',
+  )
 })
 
 test.sequential('should inject process streams by default', async () => {
@@ -203,12 +213,10 @@ test.sequential('should inject process streams by default', async () => {
 
   @CommandMajor()
   class Major {
-    constructor(private context: Context) {}
-
     @Handler()
-    run() {
-      expect(this.context.io.stdout).toBe(process.stdout)
-      expect(this.context.io.stderr).toBe(process.stderr)
+    run(@Stdout() stdout: Writable, @Stderr() stderr: Writable) {
+      expect(stdout).toBe(process.stdout)
+      expect(stderr).toBe(process.stderr)
     }
   }
 

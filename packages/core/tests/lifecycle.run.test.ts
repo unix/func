@@ -12,7 +12,6 @@ import {
   Value,
   ValueValidate,
   createApp,
-  run,
 } from '../src'
 import type { Args as ArgsValue, OnError } from '../src'
 import {
@@ -20,6 +19,7 @@ import {
   SYSTEM,
   expect,
   random,
+  run,
   runtimePrintErrorCode,
   systemErrorCode,
   test,
@@ -211,7 +211,7 @@ test.sequential('should throw when no handler matches the invocation', async () 
   }
 
   await expect(
-    createApp(testModule({ commands: [Major] }), { argv: [] }).run(),
+    run(testModule({ commands: [Major] }), { argv: [] }),
   ).rejects.toMatchObject({
     code: systemErrorCode(SYSTEM.NO_MATCHING_HANDLER),
   })

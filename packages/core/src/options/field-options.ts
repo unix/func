@@ -1,5 +1,5 @@
 import 'reflect-metadata/lite'
-import { SYSTEM } from '@func/shared/core-errors'
+import { SYSTEM } from '@func/contracts/core-errors'
 import type {
   ArrayNumberDecoratorParams,
   ArrayStringDecoratorParams,
@@ -9,10 +9,10 @@ import type {
   FlagDecoratorParams,
   ValueOptionType,
   ValueDecoratorParams,
-} from '../interfaces'
+} from './types'
 import { InternalException } from '../shared/errors'
-import * as validator from '../utils/validator'
-import { metadata } from '../utils/metadata'
+import * as validator from '../definition-validation'
+import { metadata } from './metadata'
 import { updateFieldMetadata } from './field-metadata'
 
 interface FieldOptionBaseParams {

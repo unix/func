@@ -9,6 +9,7 @@ import {
   Handler,
   Module,
   Value,
+  createApp,
 } from '../src'
 import type { OnInit } from '../src'
 import { spawnSync } from 'node:child_process'
@@ -17,7 +18,7 @@ import {
   complete,
   completionEnvironmentVariable,
   completionSource,
-  runWithCompletion,
+  withCompletion,
 } from '../src/subpath/completion'
 import type { CompletionItemKind, CompletionResult } from '../src/subpath/completion'
 import { expect, test } from './_test'
@@ -73,6 +74,7 @@ class AppModule {}
 test('should keep completion helpers out of the main entry', () => {
   expect('complete' in func).toBe(false)
   expect('completionSource' in func).toBe(false)
+  expect('withCompletion' in func).toBe(false)
   expect('runWithCompletion' in func).toBe(false)
 })
 
@@ -187,36 +189,78 @@ test.sequential(
   'should serve source and query modes before normal execution',
   async () => {
     const environment = completionEnvironmentVariable('ship')
-    const previousEnvironment = process.env[environment]
     const previousExitCode = process.exitCode
     try {
       const sourceOutput = captureOutput()
-      process.env[environment] = 'bash_source'
-      class Undecorated {}
-      const source = await runWithCompletion(Undecorated, {
-        name: 'ship',
+      const sourceApp = createApp(AppModule, {
+        features: [withCompletion({ bin: 'ship' })],
+      })
+      await sourceApp.bootstrap({
+        env: { [environment]: 'bash_source' },
         stdout: sourceOutput.stream,
       })
-      expect(source.exitCode).toBe(0)
+      expect(process.exitCode).toBe(0)
       expect(sourceOutput.text()).toContain('complete -o default')
       const queryOutput = captureOutput()
-      process.env[environment] = 'bash_complete'
-      const query = await runWithCompletion(AppModule, {
+      const queryApp = createApp(AppModule, {
+        features: [withCompletion({ bin: 'ship' })],
+      })
+      await queryApp.bootstrap({
         argv: ['deploy', '--target', 'pr'],
-        name: 'ship',
+        env: { [environment]: 'bash_complete' },
         stdout: queryOutput.stream,
       })
-      expect(query.exitCode).toBe(0)
+      expect(process.exitCode).toBe(0)
       expect(queryOutput.text()).toContain('preview\tdeployment target')
       expect(queryOutput.text()).toContain('production\tdeployment target')
     } finally {
-      if (previousEnvironment === undefined)
-        Reflect.deleteProperty(process.env, environment)
-      else process.env[environment] = previousEnvironment
       process.exitCode = previousExitCode
     }
   },
 )
+
+test('should reject duplicate completion features', () => {
+  expect(() =>
+    createApp(AppModule, {
+      features: [withCompletion({ bin: 'ship' }), withCompletion({ bin: 'ship' })],
+    }),
+  ).toThrow('Application feature "completion" is registered more than once.')
+})
+
+test.sequential(
+  'should continue normal bootstrap without a completion mode',
+  async () => {
+    let invoked = false
+    const previousExitCode = process.exitCode
+
+    @CommandMajor()
+    class Major {
+      @Handler()
+      run() {
+        invoked = true
+      }
+    }
+
+    @Module({ commands: [Major] })
+    class FeatureAppModule {}
+
+    const app = createApp(FeatureAppModule, {
+      features: [withCompletion({ bin: 'ship' })],
+    })
+    try {
+      await app.bootstrap({ argv: [], env: {} })
+      expect(invoked).toBe(true)
+    } finally {
+      process.exitCode = previousExitCode
+    }
+  },
+)
+
+test('should validate the completion bin at feature creation', () => {
+  expect(() => withCompletion({ bin: '' })).toThrow(
+    'Completion bin must be a non-empty token without whitespace.',
+  )
+})
 
 const values = (result: CompletionResult, kind: CompletionItemKind): string[] =>
   result.items

@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Writable } from 'node:stream'
 import { afterEach } from 'vitest'
-import { CommandMajor, Module, Handler, run } from '../src'
+import { CommandMajor, Module, Handler } from '../src'
 import { Logger, LogModule } from '../src/subpath/log'
 import { bindLog } from '../src/subpath/log/runtime'
 import {
@@ -21,6 +21,7 @@ import {
   logRuntimeErrorCode,
   logSystemErrorCode,
   random,
+  run,
   test,
 } from './_test'
 

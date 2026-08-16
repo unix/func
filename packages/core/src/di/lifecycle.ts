@@ -1,4 +1,4 @@
-import type { ExceptionContext } from '../context'
+import type { ExceptionContext } from '../runtime/context'
 import type { Exception } from '../shared/errors'
 
 export interface OnInit {

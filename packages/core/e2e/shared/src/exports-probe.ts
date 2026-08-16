@@ -7,7 +7,7 @@ const callableApis = [
   'Command',
   'CommandMajor',
   'CommandMissing',
-  'Container',
+  'Ctx',
   'Deprecated',
   'DependsOn',
   'Enum',
@@ -17,12 +17,16 @@ const callableApis = [
   'Handler',
   'Inject',
   'Injectable',
+  'Option',
+  'OptionCommand',
+  'Override',
   'Required',
+  'Stderr',
+  'Stdout',
   'Value',
   'ValueValidate',
   'createApp',
   'createToken',
-  'run',
 ] as const
 
 console.log(

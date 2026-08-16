@@ -1,15 +1,15 @@
-import { Container, createApp } from 'func'
-import type { ContainerOptions } from 'func'
+import { createApp } from 'func'
+import type { BootstrapOptions } from 'func'
 import { AppModule } from './app.module.js'
 
-const options: ContainerOptions = {
+const options: BootstrapOptions = {
   argv: ['greet', '--name', 'probe'],
 }
-const app = createApp(AppModule, options)
+const app = createApp(AppModule)
 
-if (!(app instanceof Container)) {
-  throw new Error('createApp did not return a Container')
+if (typeof app.bootstrap !== 'function') {
+  throw new Error('createApp did not return a bootstrap application')
 }
 
 console.log(import.meta.resolve('func'))
-app.run()
+await app.bootstrap(options)
