@@ -11,7 +11,7 @@
     "build": "funcgo build",
     "test": "pnpm build && vitest run",
     "format": "prettier --write .",
-    "prettier": "prettier --write . --ignore-path ../../.prettierignore"
+    "prettier": "prettier --write . --ignore-path ../.prettierignore"
   },
   "files": [
     "src",

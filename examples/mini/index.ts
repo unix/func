@@ -1,4 +1,4 @@
-import { Command, Module, Handler, run } from 'func'
+import { Command, Module, Handler, createApp } from 'func'
 
 @Command('ping')
 class Ping {
@@ -11,4 +11,6 @@ class Ping {
 @Module({ commands: [Ping] })
 class AppModule {}
 
-run(AppModule)
+const app = createApp(AppModule)
+
+void app.bootstrap()

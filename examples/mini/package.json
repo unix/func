@@ -12,7 +12,7 @@
     "mini": "./bin.js"
   },
   "dependencies": {
-    "func": "latest"
+    "func": "workspace:*"
   },
   "devDependencies": {
     "@typescript/native": "npm:typescript@^7.0.2",

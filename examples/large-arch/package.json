@@ -20,11 +20,11 @@
     "outDir": "dist"
   },
   "dependencies": {
-    "func": "latest"
+    "func": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
-    "funcgo": "latest",
+    "funcgo": "workspace:*",
     "typescript": "^7.0.2"
   },
   "bin": {

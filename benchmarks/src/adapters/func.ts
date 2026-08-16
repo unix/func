@@ -14,7 +14,7 @@ import {
   Required,
   Value,
   ValueValidate,
-  run,
+  createApp,
 } from 'func'
 import type { Args as CommandArgs, OnError } from 'func'
 
@@ -408,4 +408,6 @@ class AppModule implements OnError {
   }
 }
 
-await run(AppModule)
+const app = createApp(AppModule)
+
+await app.bootstrap()

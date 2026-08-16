@@ -1,4 +1,6 @@
-import { run } from 'func'
+import { createApp } from 'func'
 import { AppModule } from './app.module'
 
-run(AppModule)
+const app = createApp(AppModule)
+
+void app.bootstrap()
