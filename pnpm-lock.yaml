@@ -4,6 +4,8 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+pnpmfileChecksum: sha256-9ou1MNT8seCjU1JRqMOR9vJxNvNql7kVSKfOaH2SPfg=
+
 importers:
 
   .:
@@ -26,6 +28,134 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+
+  apps/alias:
+    dependencies:
+      '@func/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^5.20260808.1
+        version: 5.20260808.1
+      '@types/node':
+        specifier: ^26.1.2
+        version: 26.1.2
+      '@unix/eslint':
+        specifier: ^1.3.0
+        version: 1.3.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@unix/prettier':
+        specifier: ^0.1.0
+        version: 0.1.0
+      eslint:
+        specifier: ^10.8.1
+        version: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
+      globals:
+        specifier: ^17.9.0
+        version: 17.9.0
+      prettier:
+        specifier: ^3.9.6
+        version: 3.9.6
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.1.2)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0))
+      wrangler:
+        specifier: ^4.120.0
+        version: 4.120.0(@cloudflare/workers-types@5.20260808.1)
+
+  apps/docs:
+    dependencies:
+      '@astrojs/cloudflare':
+        specifier: ^14.2.0
+        version: 14.2.0(@types/node@26.1.2)(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))(esbuild@0.28.1)(jiti@2.7.0)(wrangler@4.119.0(@cloudflare/workers-types@5.20260808.1))
+      '@astrojs/markdown-remark':
+        specifier: ^7.2.2
+        version: 7.2.2(supports-color@10.2.2)
+      '@astrojs/mdx':
+        specifier: ^7.0.5
+        version: 7.0.5(@astrojs/markdown-satteri@0.3.5)(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))(supports-color@10.2.2)
+      '@fontsource-variable/geist':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/noto-sans-sc':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@tailwindcss/vite':
+        specifier: ^4.3.3
+        version: 4.3.3(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0))
+      astro:
+        specifier: ^7.2.0
+        version: 7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)
+      astro-join-line:
+        specifier: ^0.1.0
+        version: 0.1.1(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))
+      astro-no-image-endpoint:
+        specifier: ^0.1.0
+        version: 0.1.0(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))
+      astro-vite-cache-isolation:
+        specifier: ^0.1.0
+        version: 0.1.0(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))
+      shiki:
+        specifier: ^4.4.1
+        version: 4.4.2
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
+    devDependencies:
+      '@func/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@typescript/native':
+        specifier: npm:typescript@^7.0.2
+        version: typescript@7.0.2
+      '@unix/eslint':
+        specifier: ^1.3.0
+        version: 1.3.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      '@unix/prettier':
+        specifier: ^0.1.0
+        version: 0.1.0
+      eslint:
+        specifier: ^10.8.1
+        version: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
+      globals:
+        specifier: ^17.9.0
+        version: 17.9.0
+      prettier:
+        specifier: ^3.8.3
+        version: 3.9.6
+      prettier-plugin-astro:
+        specifier: ^0.14.1
+        version: 0.14.1
+      typescript:
+        specifier: npm:@typescript/typescript6@^6.0.2
+        version: '@typescript/typescript6@6.0.2'
+      vite:
+        specifier: ^8.2.0
+        version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)
+      wrangler:
+        specifier: ^4.118.0
+        version: 4.119.0(@cloudflare/workers-types@5.20260808.1)
+
+  apps/redirect:
+    devDependencies:
+      '@unix/eslint':
+        specifier: ^1.3.0
+        version: 1.3.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@unix/prettier':
+        specifier: ^0.1.0
+        version: 0.1.0
+      eslint:
+        specifier: ^10.8.1
+        version: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
+      globals:
+        specifier: ^17.9.0
+        version: 17.9.0
+      prettier:
+        specifier: ^3.9.6
+        version: 3.9.6
 
   benchmarks:
     dependencies:
@@ -79,18 +209,62 @@ importers:
         specifier: ^4.1.7
         version: 4.1.10(@types/node@25.9.5)(vite@8.2.0(@types/node@25.9.5)(esbuild@0.27.7)(jiti@2.7.0))
 
-  packages/alias:
+  examples/large-arch:
     dependencies:
-      '@func/shared':
+      func:
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/core
     devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^5.20260808.1
-        version: 5.20260808.1
       '@types/node':
         specifier: ^26.1.2
         version: 26.1.2
+      funcgo:
+        specifier: workspace:*
+        version: link:../../packages/funcgo
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  examples/mini:
+    dependencies:
+      func:
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      '@typescript/native':
+        specifier: npm:typescript@^7.0.2
+        version: typescript@7.0.2
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@swc/core@1.15.47)(@types/node@26.1.2)(@typescript/typescript6@6.0.2)
+      typescript:
+        specifier: npm:@typescript/typescript6@^6.0.2
+        version: '@typescript/typescript6@6.0.2'
+
+  examples/popular:
+    dependencies:
+      func:
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.2
+        version: 26.1.2
+      funcgo:
+        specifier: workspace:*
+        version: link:../../packages/funcgo
+      prettier:
+        specifier: ^3.9.6
+        version: 3.9.6
+      typescript:
+        specifier: npm:@typescript/typescript6@^6.0.2
+        version: '@typescript/typescript6@6.0.2'
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.1.2)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0))
+
+  packages/contracts:
+    devDependencies:
       '@unix/eslint':
         specifier: ^1.3.0
         version: 1.3.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
@@ -109,12 +283,6 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.1.2)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0))
-      wrangler:
-        specifier: ^4.120.0
-        version: 4.120.0(@cloudflare/workers-types@5.20260808.1)
 
   packages/core:
     dependencies:
@@ -122,9 +290,9 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
     devDependencies:
-      '@func/shared':
+      '@func/contracts':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../contracts
       '@swc/core':
         specifier: ^1.15.47
         version: 1.15.47
@@ -168,87 +336,11 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.2)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0))
 
-  packages/docs:
-    dependencies:
-      '@astrojs/cloudflare':
-        specifier: ^14.2.0
-        version: 14.2.0(@types/node@26.1.2)(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))(esbuild@0.28.1)(jiti@2.7.0)(wrangler@4.119.0(@cloudflare/workers-types@5.20260808.1))
-      '@astrojs/markdown-remark':
-        specifier: ^7.2.2
-        version: 7.2.2(supports-color@10.2.2)
-      '@astrojs/mdx':
-        specifier: ^7.0.5
-        version: 7.0.5(@astrojs/markdown-satteri@0.3.5)(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))(supports-color@10.2.2)
-      '@fontsource-variable/geist':
-        specifier: ^5.3.0
-        version: 5.3.0
-      '@fontsource-variable/noto-sans-sc':
-        specifier: ^5.3.0
-        version: 5.3.0
-      '@tailwindcss/vite':
-        specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0))
-      astro:
-        specifier: ^7.2.0
-        version: 7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0)
-      astro-join-line:
-        specifier: ^0.1.0
-        version: 0.1.1(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))
-      astro-no-image-endpoint:
-        specifier: ^0.1.0
-        version: 0.1.0(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))
-      astro-vite-cache-isolation:
-        specifier: ^0.1.0
-        version: 0.1.0(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@10.2.2))(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.1.2)(jiti@2.7.0))
-      shiki:
-        specifier: ^4.4.1
-        version: 4.4.2
-      tailwindcss:
-        specifier: ^4.3.3
-        version: 4.3.3
-    devDependencies:
-      '@func/shared':
-        specifier: workspace:*
-        version: link:../shared
-      '@typescript/native':
-        specifier: npm:typescript@^7.0.2
-        version: typescript@7.0.2
-      '@unix/eslint':
-        specifier: ^1.3.0
-        version: 1.3.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
-      '@unix/prettier':
-        specifier: ^0.1.0
-        version: 0.1.0
-      eslint:
-        specifier: ^10.8.1
-        version: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
-      globals:
-        specifier: ^17.9.0
-        version: 17.9.0
-      prettier:
-        specifier: ^3.8.3
-        version: 3.9.6
-      prettier-plugin-astro:
-        specifier: ^0.14.1
-        version: 0.14.1
-      typescript:
-        specifier: npm:@typescript/typescript6@^6.0.2
-        version: '@typescript/typescript6@6.0.2'
-      vite:
-        specifier: ^8.2.0
-        version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)
-      wrangler:
-        specifier: ^4.118.0
-        version: 4.119.0(@cloudflare/workers-types@5.20260808.1)
-
   packages/funcgo:
     dependencies:
       '@parcel/watcher':
         specifier: ^2.6.0
         version: 2.6.0
-      '@vercel/ncc':
-        specifier: ^0.44.1
-        version: 0.44.1
       arg:
         specifier: ^5.0.2
         version: 5.0.2
@@ -265,9 +357,9 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
-      '@func/shared':
+      '@func/contracts':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../contracts
       '@swc/core':
         specifier: ^1.15.47
         version: 1.15.47
@@ -350,70 +442,6 @@ importers:
       vite:
         specifier: ^8.2.0
         version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.1.2)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0))
-
-  packages/redirect:
-    devDependencies:
-      '@unix/eslint':
-        specifier: ^1.3.0
-        version: 1.3.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
-      '@unix/prettier':
-        specifier: ^0.1.0
-        version: 0.1.0
-      eslint:
-        specifier: ^10.8.1
-        version: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
-      globals:
-        specifier: ^17.9.0
-        version: 17.9.0
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
-
-  packages/shared:
-    devDependencies:
-      '@unix/eslint':
-        specifier: ^1.3.0
-        version: 1.3.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
-      '@unix/prettier':
-        specifier: ^0.1.0
-        version: 0.1.0
-      eslint:
-        specifier: ^10.8.1
-        version: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
-      globals:
-        specifier: ^17.9.0
-        version: 17.9.0
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-
-  packages/template:
-    dependencies:
-      func:
-        specifier: latest
-        version: 2.3.1
-    devDependencies:
-      '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
-      '@unix/prettier':
-        specifier: ^0.1.0
-        version: 0.1.0
-      funcgo:
-        specifier: latest
-        version: 1.1.1(@swc/core@1.15.47)(@types/node@26.1.2)
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.2)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0))
@@ -2430,6 +2458,7 @@ packages:
   acorn@8.18.0:
     resolution: {integrity: sha512-lGq+9yr1/GuAWaVYIHRjvvySG5/4VfKIvC8EWxStPdcDh/Ka7FG3twP6v4d5BkravUilhIAsG4Qj83t02LWUPQ==}
     engines: {node: '>=0.4.0'}
+    hasBin: true
 
   ajv@6.15.0:
     resolution: {integrity: sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw==}
@@ -2975,15 +3004,6 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
-
-  func@2.3.1:
-    resolution: {integrity: sha512-TAXqouYujugQwh/d56IZN26VCbW+7Hcq4rR5qIye3sM0TqojbULc1dlmAe42+LgVh0hMRpe/RHr/YcAJJgQpaw==}
-    engines: {node: '>=24.0.0'}
-
-  funcgo@1.1.1:
-    resolution: {integrity: sha512-s7/DlPuEhd7lFRomWXYNCobe6j2UutwXsgRkf0+1XlkoeaHMKj/A/3j17Of/Ok8RSETuU530+LeiuoK9j0Ic0w==}
-    engines: {node: '>=24.0.0'}
-    hasBin: true
 
   get-caller-file@2.0.5:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
@@ -5648,10 +5668,10 @@ snapshots:
     dependencies:
       '@types/yargs-parser': 21.0.3
 
-  '@typescript-eslint/eslint-plugin@8.66.0(@typescript-eslint/parser@8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)':
+  '@typescript-eslint/eslint-plugin@8.66.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
-      '@typescript-eslint/parser': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      '@typescript-eslint/parser': 8.66.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       '@typescript-eslint/scope-manager': 8.66.0
       '@typescript-eslint/type-utils': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       '@typescript-eslint/utils': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
@@ -5664,10 +5684,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/eslint-plugin@8.66.0(@typescript-eslint/parser@8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1))(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)':
+  '@typescript-eslint/eslint-plugin@8.66.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
-      '@typescript-eslint/parser': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
+      '@typescript-eslint/parser': 8.66.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       '@typescript-eslint/scope-manager': 8.66.0
       '@typescript-eslint/type-utils': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
       '@typescript-eslint/utils': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
@@ -5977,7 +5997,7 @@ snapshots:
       '@eslint/js': 10.0.1(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))
       eslint: 10.8.1(jiti@2.7.0)(supports-color@8.1.1)
       eslint-config-prettier: 10.1.8(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))
-      eslint-plugin-prettier: 5.5.6(eslint-config-prettier@10.1.8(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1)))(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(prettier@3.9.6)
+      eslint-plugin-prettier: 5.5.6(eslint-config-prettier@10.1.8(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2)))(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(prettier@3.9.6)
       prettier: 3.9.6
       typescript: '@typescript/typescript6@6.0.2'
       typescript-eslint: 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
@@ -6603,14 +6623,14 @@ snapshots:
     optionalDependencies:
       eslint-config-prettier: 10.1.8(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))
 
-  eslint-plugin-prettier@5.5.6(eslint-config-prettier@10.1.8(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1)))(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(prettier@3.9.6):
+  eslint-plugin-prettier@5.5.6(eslint-config-prettier@10.1.8(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2)))(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(prettier@3.9.6):
     dependencies:
       eslint: 10.8.1(jiti@2.7.0)(supports-color@8.1.1)
       prettier: 3.9.6
       prettier-linter-helpers: 1.0.1
       synckit: 0.11.13
     optionalDependencies:
-      eslint-config-prettier: 10.1.8(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))
+      eslint-config-prettier: 10.1.8(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))
 
   eslint-scope@9.1.2:
     dependencies:
@@ -6810,25 +6830,6 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
-
-  func@2.3.1:
-    dependencies:
-      arg: 5.0.2
-      reflect-metadata: 0.2.2
-
-  funcgo@1.1.1(@swc/core@1.15.47)(@types/node@26.1.2):
-    dependencies:
-      '@parcel/watcher': 2.6.0
-      '@vercel/ncc': 0.44.1
-      arg: 5.0.2
-      picomatch: 4.0.5
-      rolldown: 1.2.3
-      ts-node: 10.9.2(@swc/core@1.15.47)(@types/node@26.1.2)(typescript@6.0.3)
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
 
   get-caller-file@2.0.5: {}
 
@@ -8266,6 +8267,26 @@ snapshots:
     dependencies:
       typescript: 6.0.3
 
+  ts-node@10.9.2(@swc/core@1.15.47)(@types/node@26.1.2)(@typescript/typescript6@6.0.2):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.12
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 26.1.2
+      acorn: 8.18.0
+      acorn-walk: 8.3.5
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.4
+      make-error: 1.3.6
+      typescript: '@typescript/typescript6@6.0.2'
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
+    optionalDependencies:
+      '@swc/core': 1.15.47
+
   ts-node@10.9.2(@swc/core@1.15.47)(@types/node@26.1.2)(typescript@6.0.3):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
@@ -8297,7 +8318,7 @@ snapshots:
 
   typescript-eslint@8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.66.0(@typescript-eslint/parser@8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      '@typescript-eslint/eslint-plugin': 8.66.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       '@typescript-eslint/parser': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       '@typescript-eslint/typescript-estree': 8.66.0(@typescript/typescript6@6.0.2)(supports-color@10.2.2)
       '@typescript-eslint/utils': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
@@ -8308,7 +8329,7 @@ snapshots:
 
   typescript-eslint@8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.66.0(@typescript-eslint/parser@8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1))(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
+      '@typescript-eslint/eslint-plugin': 8.66.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
       '@typescript-eslint/parser': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
       '@typescript-eslint/typescript-estree': 8.66.0(@typescript/typescript6@6.0.2)(supports-color@8.1.1)
       '@typescript-eslint/utils': 8.66.0(@typescript/typescript6@6.0.2)(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
