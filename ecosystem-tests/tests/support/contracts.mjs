@@ -12,6 +12,7 @@ const expectedFuncApi = {
   CommandMissing: 'function',
   Container: 'function',
   Context: 'function',
+  Ctx: 'function',
   Deprecated: 'function',
   DependsOn: 'function',
   Enum: 'function',

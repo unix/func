@@ -7,7 +7,6 @@ import { verifyPublicApis } from './support/contracts.mjs'
 import { printTestOverview, runTestStage } from './support/reporter.mjs'
 import { testWatchBuild } from './support/watch.mjs'
 import {
-  buildNcc,
   buildRolldown,
   installPublishedPackages,
   verifyFuncgoWorkflows,
@@ -45,10 +44,7 @@ test(
     await runTestStage(t, 3, () => {
       buildRolldown(projectRoot, funcgoBin)
     })
-    await runTestStage(t, 4, () => {
-      buildNcc(projectRoot, funcgoBin)
-    })
-    await runTestStage(t, 5, async () => {
+    await runTestStage(t, 4, async () => {
       await testWatchBuild(projectRoot, funcgoBin)
     })
   },

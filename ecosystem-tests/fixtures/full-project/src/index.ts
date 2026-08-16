@@ -15,14 +15,9 @@ import {
   Required,
   Value,
   ValueValidate,
-  run,
+  createApp,
 } from 'func'
-import type {
-  Args as CommandArgs,
-  Exception,
-  ExceptionContext,
-  OnError,
-} from 'func'
+import type { Args as CommandArgs, Exception, ExceptionContext, OnError } from 'func'
 import { projectName } from './config'
 
 @Injectable()
@@ -176,7 +171,9 @@ class AppModule implements OnError {
   }
 }
 
-run(AppModule).catch(error => {
+const app = createApp(AppModule)
+
+app.bootstrap().catch(error => {
   console.error(error)
   throw error
 })

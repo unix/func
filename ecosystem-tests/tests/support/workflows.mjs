@@ -8,17 +8,6 @@ import {
 import { npmCommand, readJson, runCommand } from './command.mjs'
 import { printDownloadedPackages } from './reporter.mjs'
 
-export const buildNcc = (projectRoot, funcgoBin) => {
-  const build = runCommand(
-    'funcgo ncc build',
-    process.execPath,
-    [funcgoBin, 'build-ncc', '-o', 'dist-ncc', '-e', 'func'],
-    projectRoot,
-  )
-  assert.match(build.stdout, /Bundled in/)
-  assertBuiltBehavior(projectRoot, 'dist-ncc', 'func-ecosystem')
-}
-
 export const buildRolldown = (projectRoot, funcgoBin) => {
   const build = runCommand(
     'funcgo Rolldown build',
@@ -78,7 +67,7 @@ export const verifyFuncgoWorkflows = (projectRoot, funcgoBin, latestVersions) =>
     projectRoot,
   )
   assert.match(help.stdout, /FUNCGO/)
-  assert.match(help.stdout, /build-ncc/)
+  assert.doesNotMatch(help.stdout, /build-ncc/)
   assert.match(help.stdout, /setup/)
 
   const version = runCommand(

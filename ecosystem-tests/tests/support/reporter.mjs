@@ -18,10 +18,6 @@ const testStages = [
     name: 'builds and validates the Rolldown artifact',
   },
   {
-    loading: 'Building and testing the ncc artifact',
-    name: 'builds and validates the ncc artifact',
-  },
-  {
     loading: 'Watching files and validating the rebuild',
     name: 'watches, rebuilds, and validates the updated artifact',
   },
@@ -31,7 +27,6 @@ const funcToolchainPackages = [
   'func',
   'funcgo',
   'rolldown',
-  '@vercel/ncc',
   '@parcel/watcher',
   'typescript',
 ]
