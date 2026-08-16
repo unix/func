@@ -38,11 +38,15 @@ export type {
 } from './commands/types'
 export type { Deprecation } from './deprecation'
 export type {
+  ArrayNumberDecoratorInput,
   ArrayNumberDecoratorParams,
+  ArrayStringDecoratorInput,
   ArrayStringDecoratorParams,
   OptionCommandDecoratorParams,
   FieldOptionDecoratorParams,
+  FlagDecoratorInput,
   FlagDecoratorParams,
+  ValueDecoratorInput,
   ValueDecoratorParams,
   ValueOptionType,
 } from './options/types'

@@ -1,5 +1,7 @@
 import type {
+  ArrayNumberDecoratorInput,
   ArrayNumberDecoratorParams,
+  ArrayStringDecoratorInput,
   ArrayStringDecoratorParams,
   App,
   ApplicationFeature,
@@ -13,6 +15,7 @@ import type {
   Deprecation,
   FactoryProvider,
   FieldOptionDecoratorParams,
+  FlagDecoratorInput,
   FlagDecoratorParams,
   ExecutionOutcome,
   ExceptionCode,
@@ -29,6 +32,7 @@ import type {
   Provider,
   ProviderToken,
   Type,
+  ValueDecoratorInput,
   ValueDecoratorParams,
   ValueOptionType,
   ValueProvider,
@@ -76,7 +80,9 @@ import type {
 } from 'func/testing'
 
 export type PublicApiTypes = [
+  ArrayNumberDecoratorInput,
   ArrayNumberDecoratorParams,
+  ArrayStringDecoratorInput,
   ArrayStringDecoratorParams,
   App,
   ApplicationFeature,
@@ -89,6 +95,7 @@ export type PublicApiTypes = [
   CommandPath,
   FactoryProvider,
   FieldOptionDecoratorParams,
+  FlagDecoratorInput,
   FlagDecoratorParams,
   ExecutionOutcome,
   Args,
@@ -106,6 +113,7 @@ export type PublicApiTypes = [
   Provider,
   ProviderToken,
   Type,
+  ValueDecoratorInput,
   ValueDecoratorParams,
   ValueOptionType,
   ValueProvider,

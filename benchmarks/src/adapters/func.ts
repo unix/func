@@ -53,7 +53,7 @@ class ReleaseCommand extends FuncCommand {
 
   @DependsOn(['strategy'])
   @ValueValidate(value => validateOptionalInteger(value, 'canary-percent', 1, 50))
-  @Value({ name: 'canary-percent' })
+  @Value('canary-percent')
   canaryPercent?: number
 
   @Exclusive(['dry-run'])

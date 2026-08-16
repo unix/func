@@ -1,14 +1,13 @@
 import 'reflect-metadata/lite'
 import { SYSTEM } from '@func/contracts/core-errors'
 import type {
-  ArrayNumberDecoratorParams,
-  ArrayStringDecoratorParams,
-  FieldOptionDecoratorParams,
+  ArrayNumberDecoratorInput,
+  ArrayStringDecoratorInput,
   FieldOptionKind,
   FieldOptionParams,
-  FlagDecoratorParams,
+  FlagDecoratorInput,
+  ValueDecoratorInput,
   ValueOptionType,
-  ValueDecoratorParams,
 } from './types'
 import { InternalException } from '../shared/errors'
 import * as validator from '../definition-validation'
@@ -22,13 +21,20 @@ interface FieldOptionBaseParams {
   description?: string
 }
 
+type FieldOptionDecoratorInput =
+  | ArrayNumberDecoratorInput
+  | ArrayStringDecoratorInput
+  | FlagDecoratorInput
+  | ValueDecoratorInput
+
 const fieldOptionFactory =
   (
     kind: FieldOptionKind,
-    params: ValueDecoratorParams | FlagDecoratorParams | FieldOptionDecoratorParams,
+    input: FieldOptionDecoratorInput,
     arrayType?: ValueOptionType,
   ): PropertyDecorator =>
   (target, propertyKey) => {
+    const params = typeof input === 'string' ? { name: input } : input
     if (typeof target === 'function') throwInvalidFieldTarget(propertyKey)
     const key =
       typeof propertyKey === 'string'
@@ -200,16 +206,16 @@ const throwInvalidFieldTarget = (propertyKey: string | symbol): never => {
   })
 }
 
-export const Flag = (params: FlagDecoratorParams = {}): PropertyDecorator =>
-  fieldOptionFactory('flag', params)
+export const Flag = (input: FlagDecoratorInput = {}): PropertyDecorator =>
+  fieldOptionFactory('flag', input)
 
-export const Value = (params: ValueDecoratorParams = {}): PropertyDecorator =>
-  fieldOptionFactory('value', params)
+export const Value = (input: ValueDecoratorInput = {}): PropertyDecorator =>
+  fieldOptionFactory('value', input)
 
 export const ArrayString = (
-  params: ArrayStringDecoratorParams = {},
-): PropertyDecorator => fieldOptionFactory('array', params, String)
+  input: ArrayStringDecoratorInput = {},
+): PropertyDecorator => fieldOptionFactory('array', input, String)
 
 export const ArrayNumber = (
-  params: ArrayNumberDecoratorParams = {},
-): PropertyDecorator => fieldOptionFactory('array', params, Number)
+  input: ArrayNumberDecoratorInput = {},
+): PropertyDecorator => fieldOptionFactory('array', input, Number)

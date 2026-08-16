@@ -61,6 +61,49 @@ test('should collect flag, value, and array field options', () => {
   ])
 })
 
+test('should accept field option names as strings', () => {
+  class Options {
+    @Flag('dry-run')
+    dryRun = false
+
+    @Value('config-file')
+    configFile: string = ''
+
+    @ArrayString('tag')
+    tags: string[] = []
+
+    @ArrayNumber('port')
+    ports: number[] = []
+  }
+
+  expect(compileFieldOptions(Options)).toEqual([
+    expect.objectContaining({
+      kind: 'flag',
+      name: 'dry-run',
+      propertyKey: 'dryRun',
+      type: Boolean,
+    }),
+    expect.objectContaining({
+      kind: 'value',
+      name: 'config-file',
+      propertyKey: 'configFile',
+      type: String,
+    }),
+    expect.objectContaining({
+      kind: 'array',
+      name: 'tag',
+      propertyKey: 'tags',
+      type: [String],
+    }),
+    expect.objectContaining({
+      kind: 'array',
+      name: 'port',
+      propertyKey: 'ports',
+      type: [Number],
+    }),
+  ])
+})
+
 test('should infer scalar types and collect typed arrays', () => {
   class Options {
     @Value()

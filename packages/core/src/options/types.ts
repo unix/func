@@ -75,13 +75,21 @@ export interface FieldOptionDecoratorParams extends AliasDecoratorParams {
 
 export type ArrayNumberDecoratorParams = FieldOptionDecoratorParams
 
+export type ArrayNumberDecoratorInput = string | ArrayNumberDecoratorParams
+
 export type ArrayStringDecoratorParams = FieldOptionDecoratorParams
+
+export type ArrayStringDecoratorInput = string | ArrayStringDecoratorParams
 
 export interface FlagDecoratorParams extends FieldOptionDecoratorParams {
   negatable?: boolean
 }
 
+export type FlagDecoratorInput = string | FlagDecoratorParams
+
 export type ValueDecoratorParams = FieldOptionDecoratorParams
+
+export type ValueDecoratorInput = string | ValueDecoratorParams
 
 export type ValueValidatorResult = boolean | string | void | undefined
 

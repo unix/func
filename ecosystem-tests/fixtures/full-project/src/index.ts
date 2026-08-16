@@ -36,7 +36,7 @@ class MajorCommand {
   @Value()
   mode: string = 'dev'
 
-  @ArrayString({ name: 'tag' })
+  @ArrayString('tag')
   tags: string[] = []
 
   constructor(
