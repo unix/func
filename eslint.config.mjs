@@ -14,8 +14,8 @@ export default [
       '**/.github/**',
       'ecosystem-tests/**',
       'examples/**',
-      'packages/docs/**',
-      'packages/template/**',
+      'apps/docs/**',
+      'templates/**',
     ],
   },
   {

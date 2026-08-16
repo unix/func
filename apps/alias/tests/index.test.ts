@@ -1,4 +1,4 @@
-import { ErrorScope, SYSTEM, formatErrorCode } from '@func/shared/core-errors'
+import { ErrorScope, SYSTEM, formatErrorCode } from '@func/contracts/core-errors'
 import { describe, expect, test } from 'vitest'
 import { handleRequest } from '../src'
 

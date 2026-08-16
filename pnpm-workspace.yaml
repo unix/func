@@ -1,13 +1,13 @@
 packages:
   - benchmarks
+  - examples/*
+  - apps/alias
+  - apps/docs
+  - apps/redirect
   - packages/core
-  - packages/docs
-  - packages/alias
+  - packages/contracts
   - packages/funcgo
   - packages/init
-  - packages/redirect
-  - packages/shared
-  - packages/template
 
 allowBuilds:
   '@parcel/watcher': true

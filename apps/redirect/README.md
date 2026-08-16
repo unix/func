@@ -2,7 +2,7 @@
 
 Vercel 301 redirect config.
 
-Set the Vercel project Root Directory to `packages/redirect`.
+Set the Vercel project Root Directory to `apps/redirect`.
 
 The `public/index.html` file exists only to give Vercel a static output directory; `vercel.json` handles the 301 redirects.
 

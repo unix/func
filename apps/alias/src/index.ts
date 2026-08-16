@@ -3,7 +3,7 @@ import {
   SYSTEM,
   formatErrorCode,
   type SystemErrorCode,
-} from '@func/shared/core-errors'
+} from '@func/contracts/core-errors'
 
 const NOT_FOUND_CACHE_TTL_SECONDS = 24 * 60 * 60
 const REDIRECT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60

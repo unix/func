@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@func/shared": "workspace:*"
+    "@func/contracts": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260808.1",
