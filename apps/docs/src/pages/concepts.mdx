@@ -13,7 +13,7 @@ export const conceptModel = [
   '@Module()',
   '├─ registers command scopes',
   '│  ├─ @CommandMajor()       entry without a named command',
-  '│  ├─ @Command({ name })    matches a top-level command',
+  "│  ├─ @Command('<name>')   matches a top-level command",
   '│  └─ @CommandMissing()     optional fallback for no match',
   '└─ registers @Service()     reusable business capabilities',
   '',
@@ -31,8 +31,8 @@ export const commandAnatomy = [
   '│    │           │      │          │          └─ @Flag()',
   '│    │           │      │          └─ @Value()',
   '│    │           │      └─ @Args().inputs',
-  "│    │           └─ @Handler({ path: ['member', 'add'] })",
-  "│    └─ @Command({ name: 'project' })",
+  "│    │           └─ @Handler(['member', 'add'])",
+  "│    └─ @Command('project')",
   '└─ package.json#bin',
 ].join('\n')
 
@@ -47,7 +47,7 @@ export const mappedApplicationCode = [
   '  }',
   '}',
   '',
-  "@Command({ name: 'project' })",
+  "@Command('project')",
   'export class ProjectCommand {',
   '  @Value()',
   '  role?: string',
@@ -57,7 +57,7 @@ export const mappedApplicationCode = [
   '',
   '  constructor(private project: ProjectService) {}',
   '',
-  "  @Handler({ path: ['member', 'add'] })",
+  "  @Handler(['member', 'add'])",
   '  addMember(@Args() args: Args) {',
   "    const [username = ''] = args.inputs",
   '    console.log(this.project.addMember(username, this.role, this.force))',
@@ -94,7 +94,7 @@ A command scope is the decorated class that ultimately owns an invocation. It ow
 | Command scope   | Selection rule                                           | func API                       |
 | --------------- | -------------------------------------------------------- | ------------------------------ |
 | Major command   | There is no input token, or the first token is an option | `@CommandMajor()`              |
-| Named command   | The first bare token matches a name or alias             | `@Command({ name })`           |
+| Named command   | The first bare token matches a name or alias             | `@Command('<name>')`           |
 | Missing command | The first bare token matches no named command            | `@CommandMissing() (optional)` |
 
 <Callout title="A command represents only the top-level scope" variant="decision">
@@ -123,7 +123,7 @@ A `--force` declared with `@Flag()` supplies boolean data to the action already 
 
 ## Map a command to func concepts
 
-The following example uses one invocation to connect all of the concepts, so it matches only `@Command({ name: 'project' })`. It first selects the `project` command scope, then the `member add` handler. The remaining parts provide positional and named data:
+The following example uses one invocation to connect all of the concepts, so it matches only `@Command('project')`. It first selects the `project` command scope, then the `member add` handler. The remaining parts provide positional and named data:
 
 <CodeBlock code={commandAnatomy} filename="Input parts and func APIs" />
 

@@ -1,0 +1,243 @@
+---
+title: 模块
+description: 使用 module 把相关命令与 provider 组织成完整功能，并组合出清晰的应用结构。
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const projectModuleCode = [
+  "import { Command, Handler, Injectable, Module } from 'func'",
+  '',
+  '@Injectable()',
+  'class ProjectService {',
+  '  list() {',
+  "    return ['func']",
+  '  }',
+  '}',
+  '',
+  "@Command('project')",
+  'class ProjectCommand {',
+  '  constructor(private readonly projects: ProjectService) {}',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.projects.list())',
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  commands: [ProjectCommand],',
+  '  providers: [ProjectService],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const appModuleCode = [
+  "import { Module } from 'func'",
+  "import { HelpOption } from 'func/help'",
+  "import { ProjectModule } from './projects/project.module'",
+  "import { ReleaseModule } from './releases/release.module'",
+  '',
+  '@Module({',
+  '  imports: [ProjectModule, ReleaseModule],',
+  '  options: [HelpOption],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const sharedProviderCode = [
+  "import { Module } from 'func'",
+  "import { ProjectCommand } from './commands/project.command'",
+  "import { ProjectService } from './providers/project.service'",
+  '',
+  '@Module({',
+  '  commands: [ProjectCommand],',
+  '  providers: [ProjectService],',
+  '  exports: [ProjectService],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const consumerModuleCode = [
+  "import { Injectable, Module } from 'func'",
+  '',
+  "import { ReleaseCommand } from './commands/release.command'",
+  "import { ProjectModule } from '../projects/project.module'",
+  "import { ProjectService } from '../projects/providers/project.service'",
+  '',
+  '@Injectable()',
+  'class ReleaseService {',
+  '  constructor(private readonly projects: ProjectService) {}',
+  '}',
+  '',
+  '@Module({',
+  '  imports: [ProjectModule],',
+  '  commands: [ReleaseCommand],',
+  '  providers: [ReleaseService],',
+  '})',
+  'export class ReleaseModule {}',
+].join('\n')
+
+export const configurableModuleCode = [
+  "import { Module } from 'func'",
+  "import { LogModule } from 'func/log'",
+  "import { ReleaseCommand } from './commands/release.command'",
+  "import { ReleaseService } from './providers/release.service'",
+  '',
+  '@Module({',
+  "  imports: [LogModule.register({ appName: 'ship' })],",
+  '  commands: [ReleaseCommand],',
+  '  providers: [ReleaseService],',
+  '})',
+  'export class ReleaseModule {}',
+].join('\n')
+
+export const projectStructure = [
+  'src/',
+  '├─ app.module.ts',
+  '├─ index.ts',
+  '├─ projects/',
+  '│  ├─ project.module.ts',
+  '│  ├─ commands/',
+  '│  └─ providers/',
+  '├─ releases/',
+  '│  ├─ release.module.ts',
+  '│  ├─ commands/',
+  '│  └─ providers/',
+  '└─ infrastructure/',
+  '   ├─ storage.module.ts',
+  '   └─ storage.provider.ts',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="modules">
+
+module 用来把一组相关的 commands、providers 和共享 options 组织成完整功能。用户从 module 可以直接看出：这个功能提供哪些命令、内部依赖哪些能力、又使用了哪些其他功能。
+
+每个 func 应用至少有一个根 module。小型应用可以把所有声明都放在根 `AppModule`；随着工程增长，再把项目管理、发布、账号等业务分别整理为 feature modules，最后由根 module 组合起来。
+
+## 定义一个 module
+
+module 是使用 `@Module()` 装饰的 class。下面的 `ProjectModule` 把项目命令和它需要的业务能力放在一起：
+
+<CodeBlock
+  code={projectModuleCode}
+  filename="src/projects/project.module.ts"
+  lang="ts"
+/>
+
+`ProjectCommand` 与 `ProjectService` 都属于项目功能。command 负责接收 CLI 输入并选择动作，provider 负责可复用的业务逻辑。因为它们位于同一个 module，command 可以直接注入这里注册的 provider。
+
+module class 通常可以保持为空；`@Module()` 中的声明才是阅读应用结构的主要入口。只有当这一组功能需要自己的生命周期或错误处理时，才需要在 class 中实现对应 hook。
+
+## 认识 @Module() 中的字段
+
+| 字段        | 用途                                                                  |
+| ----------- | --------------------------------------------------------------------- |
+| `commands`  | 当前功能对用户提供的命令。                                            |
+| `providers` | 当前功能使用的业务能力，例如 service、repository 或 client。          |
+| `imports`   | 当前功能依赖的其他 modules。                                          |
+| `exports`   | 允许其他 modules 使用的 providers；未导出的 provider 保持为内部实现。 |
+| `options`   | 多个命令共享的字段或动作，例如 `--help`、`--profile`。                |
+
+不需要为了“填满字段”而声明空数组。一个只组合其他功能的根 module 可以只有 `imports`，一个简单 feature module 也可能只有 `commands` 和 `providers`。
+
+## 根 module 组合整个应用
+
+根 module 是 `createApp()` 或 `createInvoker()` 接收的应用入口。它适合表达应用由哪些功能组成，并承载真正作用于整个 CLI 的 options 与 hooks：
+
+<CodeBlock code={appModuleCode} filename="src/app.module.ts" lang="ts" />
+
+这里导入 `ProjectModule` 与 `ReleaseModule` 后，它们声明的命令都会加入当前应用。根 module 不需要重新列出 feature 内部的 commands 和 providers。
+
+<Callout locale="zh-cn" title="module 不会生成命令路径" variant="decision">
+
+`ProjectModule` 只是组织代码，不会自动给命令添加 `project` 前缀。用户看到的路径仍然由 `@Command(path)` 与 `@Handler(path)` 声明。不同 modules 中的命令也需要避免 path 冲突。
+
+</Callout>
+
+## 用 feature module 组织功能
+
+feature module 围绕一个业务领域或工作流组织代码，例如项目管理、发布流程、账号认证或配置管理。一个好的 feature module 通常具备这些特征：
+
+- commands 面向同一类用户任务；
+- providers 主要服务这些 commands；
+- options、错误处理和生命周期策略可以由这组命令共同理解；
+- module 名称能够自然说明它负责什么。
+
+按功能组织后，新增发布命令时可以先进入 `releases/`，而不必在全局 commands、services 和 repositories 目录之间来回寻找：
+
+<CodeBlock code={projectStructure} filename="按功能组织的工程" />
+
+这是一种推荐结构，不是强制目录规范。代码量很小时，先使用单个 `AppModule` 通常更清楚；当某组代码已经形成独立职责时，再提取 feature module。
+
+## 在 modules 之间共享 provider
+
+provider 默认服务声明它的 module。只被 `ProjectCommand` 使用的 `ProjectService` 不需要导出；即使根 module 导入了 `ProjectModule`，项目命令仍然可以正常使用自己的 provider。
+
+当另一个 feature 也需要直接注入 `ProjectService` 时，在提供方的 `exports` 中公开它，并在使用方的 `imports` 中导入提供方：
+
+<CodeBlock
+  code={sharedProviderCode}
+  filename="src/projects/project.module.ts"
+  lang="ts"
+/>
+<CodeBlock
+  code={consumerModuleCode}
+  filename="src/releases/release.module.ts"
+  lang="ts"
+/>
+
+此时 `ReleaseModule` 中的 command 和 provider 可以注入 `ProjectService`。导出的是一项跨 module 能力，不是整个 module 的所有内部实现。
+
+<Callout locale="zh-cn" title="只导出真正共享的能力">
+
+文件中的 `export class ProjectService` 让 TypeScript 可以 import 这个类；`Module.exports` 才允许导入方在运行时注入它。只在当前 feature 内使用的 provider 应保持私有，避免把 `providers` 原样复制到 `exports`。
+
+</Callout>
+
+如果一个 module 只是转接其他 module 的 provider，导入方不会自动看到更深层的能力。让实际使用 provider 的 feature 直接导入提供方，通常比建立很长的转发链更容易理解。
+
+## 导入可配置的 module
+
+部分通用能力需要在导入时接收配置。它们通常提供 `register()` 方法，并像普通 module 一样放入 `imports`：
+
+<CodeBlock
+  code={configurableModuleCode}
+  filename="src/releases/release.module.ts"
+  lang="ts"
+/>
+
+`LogModule.register()` 返回一个已经按 `appName` 配置好的 module。当前 feature 可以使用它导出的 `Logger`，同时保持日志的创建方式集中在 `func/log` 内。配置文件也可以通过相同方式使用 `ConfigModule.register()`。
+
+## Options 和 hooks 放在哪里
+
+根 module 注册的 options 面向整个应用，适合帮助、全局配置等能力。feature module 注册的 options 只面向它直接声明的 commands，适合一组业务命令共享的字段和动作。具体写法见[共享字段](/zh-cn/shared-fields)。
+
+错误格式化、应用级日志与清理放在根 module；只属于某个 feature 的错误处理与生命周期策略放在直接声明相关 commands 的 feature module。完整 hook 规则见[错误处理](/zh-cn/error-handler)。
+
+## 什么时候应该拆分 module
+
+出现下面任一情况时，可以考虑提取 feature module：
+
+- 根 module 中已经混合了多组无关 commands；
+- 一组 commands 共享多项 provider 或 options；
+- 某项能力需要被另一个 feature 明确导入；
+- 希望单独测试、替换或维护一组完整功能；
+- 团队可以按照业务领域分别负责不同目录。
+
+不要机械地让每个 command 或 provider 都拥有一个 module。module 应表示内聚的功能，而不是额外的文件层级。provider 只被一个 feature 使用时直接留在该 feature；被多个 features 复用时，再提取小型基础设施 module 并导出稳定能力。
+
+## 推荐做法
+
+- 从简单的根 module 开始，随着职责出现再拆分；
+- feature module 同时拥有自己的 commands 和内部 providers；
+- 根 module 保持精简，主要负责 imports 和应用级策略；
+- providers 默认私有，只导出其他 modules 确实需要的能力；
+- 保持单向、清晰的 imports，避免 modules 互相循环依赖。
+
+接下来可以阅读[共享字段](/zh-cn/shared-fields)了解 module options，或阅读[深入了解运行时](/zh-cn/runtime)了解 func 如何使用这些声明执行一次调用。精确字段和 provider 定义见 [API 参考](/zh-cn/apis)。
+
+</DocsLayout>

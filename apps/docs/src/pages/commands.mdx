@@ -16,7 +16,7 @@ export const modelingChoices = [
     example: 'ship deploy',
   },
   {
-    choice: '@Handler({ path })',
+    choice: '@Handler(path)',
     when: 'Fixed nested words select one action inside the chosen command.',
     example: 'ship config profile get',
   },
@@ -82,12 +82,12 @@ export const projectCommandCode = [
   "    console.log('List projects')",
   '  }',
   '',
-  "  @Handler({ path: ['create'] })",
+  "  @Handler('create')",
   '  create() {',
   "    console.log('Create project')",
   '  }',
   '',
-  "  @Handler({ path: ['member', 'add'] })",
+  "  @Handler(['member', 'add'])",
   '  addMember() {',
   "    console.log('Add project member')",
   '  }',
@@ -101,7 +101,7 @@ export const projectCommandCode = [
 
 <DocsLayout frontmatter={frontmatter} page="commands">
 
-A command is a stable word a user types after the executable name to choose a business area or action. In `git commit`, `git` is the executable and `commit` is the command. In func, that command is modeled by a class decorated with `@Command({ name: 'commit' })`.
+A command is a stable word a user types after the executable name to choose a business area or action. In `git commit`, `git` is the executable and `commit` is the command. In func, that command is modeled by a class decorated with `@Command('commit')`.
 
 func reads only the first input token when choosing a named command. If it matches a name or alias, that command owns the invocation; if it begins with a hyphen, the major scope owns it. After the scope is selected, the command's handlers and fields decide how to interpret the remaining tokens.
 

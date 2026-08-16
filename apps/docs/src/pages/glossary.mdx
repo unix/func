@@ -29,7 +29,7 @@ These terms belong to different layers and are not interchangeable. Start with [
 | `Missing command` | An optional fallback class for an unmatched first positional token.                          | `@CommandMissing()`                            |
 | `Handler`         | A method that performs an action inside a command class; one invocation selects one handler. | `@Handler()`                                   |
 | `Default handler` | Runs when no handler path or handler flag matches. A command class may define at most one.   | `@Handler()`                                   |
-| `Handler path`    | One or more fixed positional tokens that select a handler; the longest matching path wins.   | `@Handler({ path })`                           |
+| `Handler path`    | One or more fixed positional tokens that select a handler; the longest matching path wins.   | `@Handler(path)`                               |
 | `Handler flag`    | An option such as --help that switches execution to another mutually exclusive handler.      | `@Handler({ flag, alias })`                    |
 | `Field option`    | A flag, scalar value, or repeated value parsed and assigned to a command instance property.  | `@Flag / @Value / @ArrayString / @ArrayNumber` |
 | `Input`           | Positional tokens left after removing the named command and selected handler path.           | `Args.inputs`                                  |

@@ -13,7 +13,7 @@ export const argsCode = [
   '',
   "@Command('config')",
   'export class ConfigCommand {',
-  "  @Handler('profile set')",
+  "  @Handler(['profile', 'set'])",
   '  setProfile(@Args() args: CommandArgs) {',
   "    console.log(args.invokedPath) // ['config', 'profile', 'set']",
   '    console.log(args.inputs) // positional input after the path',

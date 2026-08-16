@@ -22,8 +22,8 @@ Use these rules when the user has not supplied a stronger repository-specific co
 
 3. Model the CLI deliberately
 
-- Use `@Command({ name })` for a stable top-level word such as `build`, `deploy`, or `config`.
-- Use one `@Command` class per top-level business area. Add fixed actions inside it with `@Handler({ path: [...] })`.
+- Use `@Command('<name>')` for a stable top-level word such as `build`, `deploy`, or `config`.
+- Use one `@Command` class per top-level business area. Add fixed actions inside it with `@Handler([...])`.
 - Use `@CommandMajor()` for invocation without a named command and for truly top-level options such as `--help` or `--version`.
 - Use `@CommandMissing()` only when unknown first input is meaningful data or when the product needs a custom unknown-command response.
 - Use a default `@Handler()` for the command's normal action. Handler flags select mutually exclusive actions; `@Flag()` fields are boolean data and do not select a handler.

@@ -10,7 +10,7 @@ import DocsLayout from '@/layouts/docs.astro'
 export const flagCode = [
   "import { Command, Flag, Handler } from 'func'",
   '',
-  "@Command({ name: 'serve' })",
+  "@Command('serve')",
   'export class ServeCommand {',
   "  @Flag({ alias: 'v', aliases: ['V'], description: 'Print request logs' })",
   '  verbose = false',
@@ -28,7 +28,7 @@ export const flagCode = [
 export const valueCode = [
   "import { Command, Handler, Value } from 'func'",
   '',
-  "@Command({ name: 'serve' })",
+  "@Command('serve')",
   'export class ServeCommand {',
   "  @Value({ description: 'Interface to bind' })",
   "  host: string = 'localhost'",
@@ -36,7 +36,7 @@ export const valueCode = [
   "  @Value({ aliases: ['p', 'P'], description: 'Port to listen on' })",
   '  port: number = 3000',
   '',
-  "  @Value({ name: 'config-file' })",
+  "  @Value('config-file')",
   '  configFile?: string',
   '',
   '  @Handler()',
@@ -49,12 +49,12 @@ export const valueCode = [
 export const arrayCode = [
   "import { ArrayNumber, ArrayString, Command, Handler } from 'func'",
   '',
-  "@Command({ name: 'build' })",
+  "@Command('build')",
   'export class BuildCommand {',
   "  @ArrayString({ name: 'include', aliases: ['i', 'I'] })",
   '  includes: string[] = []',
   '',
-  "  @ArrayNumber({ name: 'port' })",
+  "  @ArrayNumber('port')",
   '  ports: number[] = []',
   '',
   '  @Handler()',
@@ -67,7 +67,7 @@ export const arrayCode = [
 export const validationCode = [
   "import { Command, DependsOn, Enum, Exclusive, Flag, Handler, Required, Value, ValueValidate } from 'func'",
   '',
-  "@Command({ name: 'publish' })",
+  "@Command('publish')",
   'export class PublishCommand {',
   '  @Required()',
   "  @Enum(['dev', 'prod'])",
@@ -129,7 +129,7 @@ Use a field flag for data that modifies an action. If the option must select a d
 
 <CodeBlock code={valueCode} filename="src/commands/serve.command.ts" lang="ts" />
 
-`ship serve --host 0.0.0.0 -P 4000 --config-file ./dev.json` assigns a string, a number, and a string to the three fields. A property name is the default public option name. For camel-case fields that should use conventional kebab case, set `name` explicitly as shown by `configFile`.
+`ship serve --host 0.0.0.0 -P 4000 --config-file ./dev.json` assigns a string, a number, and a string to the three fields. A property name is the default public option name. For camel-case fields that should use conventional kebab case, pass the name directly as shown by `configFile`.
 
 The property initializer is the default when the user omits the option. Defaults are application behavior, so choose them intentionally and include them in help output when users need to know them.
 

@@ -3,6 +3,7 @@ export type DocPage =
   | 'guide'
   | 'guide/agent-setup'
   | 'concepts'
+  | 'modules'
   | 'use-cases'
   | 'commands'
   | 'options'
@@ -48,6 +49,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     guide: 'Quick Start',
     'guide/agent-setup': 'Work with Agent',
     concepts: 'Concepts',
+    modules: 'Modules',
     'use-cases': 'Examples',
     commands: 'Commands',
     options: 'Field Options',
@@ -74,6 +76,7 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     guide: '快速起步',
     'guide/agent-setup': '使用 Agent 操作 func',
     concepts: '概念',
+    modules: '模块',
     'use-cases': '示例',
     commands: '命令',
     options: '字段选项',
@@ -110,7 +113,14 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     },
     {
       label: 'Deep Dive',
-      pages: ['concepts', 'shared-fields', 'input-output', 'tooling', 'runtime'],
+      pages: [
+        'concepts',
+        'modules',
+        'shared-fields',
+        'input-output',
+        'tooling',
+        'runtime',
+      ],
     },
     {
       label: 'Optional Capabilities',
@@ -137,7 +147,14 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     },
     {
       label: '深入学习',
-      pages: ['concepts', 'shared-fields', 'input-output', 'tooling', 'runtime'],
+      pages: [
+        'concepts',
+        'modules',
+        'shared-fields',
+        'input-output',
+        'tooling',
+        'runtime',
+      ],
     },
     {
       label: '可选能力',

@@ -10,11 +10,11 @@ import CodeBlock from '@/components/content/code-block.astro'
 export const reproductionCode = [
   "import { Command } from 'func'",
   '',
-  "@Command({ path: '-build' })",
+  "@Command('-build')",
   'class BuildCommand {}',
 ].join('\n')
 
-export const fixCode = ["@Command({ path: 'build' })", 'class BuildCommand {}'].join(
+export const fixCode = ["@Command('build')", 'class BuildCommand {}'].join(
   '\n',
 )
 

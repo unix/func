@@ -31,7 +31,7 @@ export const domainAddCode = [
   "  description: 'Manage custom domains',",
   '})',
   'export class DomainCommand {',
-  "  @Handler({ path: ['add'] })",
+  "  @Handler('add')",
   '  add() {',
   "    console.log('Adding domain')",
   '  }',
@@ -101,7 +101,7 @@ export const scaleCode = [
   '})',
   'export class ScaleCommand {',
   '  @Enum(MACHINES)',
-  "  @ArrayString({ name: 'machine' })",
+  "  @ArrayString('machine')",
   '  machines: string[] = []',
   '',
   '  @Handler()',
@@ -137,7 +137,7 @@ The user needs a quick health check for the SaaS service, such as whether the AP
   sourceUrl="/demos/use-cases.ts"
 />
 
-The user needs to manage domains, and adding a domain is one fixed action under that domain workflow. `domain` is the command, and `add` is a static action under that command. Use `@Handler({ path: ['add'] })` when the action is a fixed path inside an already selected command.
+The user needs to manage domains, and adding a domain is one fixed action under that domain workflow. `domain` is the command, and `add` is a static action under that command. Use `@Handler('add')` when the action is a fixed path inside an already selected command.
 
 <CodeBlock
   code={domainAddCode}

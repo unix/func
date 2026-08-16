@@ -10,13 +10,13 @@ import CodeBlock from '@/components/content/code-block.astro'
 export const reproductionCode = [
   "import { Command, Handler, createApp } from 'func'",
   '',
-  "@Command({ name: 'build' })",
+  "@Command('build')",
   'class BuildCommand {',
   '  @Handler()',
   '  run() {}',
   '}',
   '',
-  "@Command({ name: 'build' })",
+  "@Command('build')",
   'class RebuildCommand {',
   '  @Handler()',
   '  run() {}',
@@ -26,13 +26,13 @@ export const reproductionCode = [
 ].join('\n')
 
 export const fixCode = [
-  "@Command({ name: 'build' })",
+  "@Command('build')",
   'class BuildCommand {',
   '  @Handler()',
   '  run() {}',
   '}',
   '',
-  "@Command({ name: 'rebuild' })",
+  "@Command('rebuild')",
   'class RebuildCommand {',
   '  @Handler()',
   '  run() {}',

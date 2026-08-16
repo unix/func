@@ -27,7 +27,7 @@ class StatusCommand {
   description: 'Manage custom domains',
 })
 class DomainCommand {
-  @Handler({ path: ['add'] })
+  @Handler('add')
   add() {
     console.log('Adding domain')
   }
@@ -85,7 +85,7 @@ const MACHINES = ['1x-1024m', '1x-2048m', '2x-1024m', '2x-2048m']
 })
 class ScaleCommand {
   @Enum(MACHINES)
-  @ArrayString({ name: 'machine' })
+  @ArrayString('machine')
   machines: string[] = []
 
   @Handler()

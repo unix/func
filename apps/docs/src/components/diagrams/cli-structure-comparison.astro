@@ -45,7 +45,7 @@ artifact
     inspectArtifact(options.reference, options)
   })`
 
-const funcCode = `@Command({ path: 'artifact' })
+const funcCode = `@Command('artifact')
 class ArtifactCommand {
   @Required()
   @ValueValidate(isDigestReference)
@@ -62,7 +62,7 @@ class ArtifactCommand {
   @Flag()
   json = false
 
-  @Handler({ path: ['inspect'] })
+  @Handler('inspect')
   inspect(): void {
     inspectArtifact(this.reference!, this)
   }

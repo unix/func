@@ -10,7 +10,7 @@ import CodeBlock from '@/components/content/code-block.astro'
 export const reproductionCode = [
   "import { Command, Module, createApp } from 'func'",
   '',
-  "@Command({ name: 'build' })",
+  "@Command('build')",
   'class BuildCommand {}',
   '',
   '@Module({ commands: [BuildCommand] })',

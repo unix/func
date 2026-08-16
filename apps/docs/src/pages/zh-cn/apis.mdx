@@ -11,7 +11,7 @@ import DocsLayout from '@/layouts/docs.astro'
 export const apiExampleCode = [
   "import { Command, Handler, Required, Value } from 'func'",
   '',
-  "@Command({ path: 'deploy' })",
+  "@Command('deploy')",
   'export class DeployCommand {',
   '  @Required()',
   '  @Value()',
@@ -52,10 +52,10 @@ command path 与 command alias token 不能以 `-` 开头、包含空白或为�
 | 签名                    | 参数                                                    | 描述                                                 |
 | ----------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | `@Option()`             | `-`                                                     | 将 class 注册为可注入的 module option provider。     |
-| `@Flag(params?)`        | `{ name?, alias?, aliases?, description?, negatable? }` | 声明布尔选项；`negatable` 追加 `--no-<name>`。       |
-| `@Value(params?)`       | `{ name?, alias?, aliases?, description? }`             | 声明从装饰器元数据推断的 `string` 或有限 `number`。  |
-| `@ArrayString(params?)` | `{ name?, alias?, aliases?, description? }`             | 收集重复字符串选项。                                 |
-| `@ArrayNumber(params?)` | `{ name?, alias?, aliases?, description? }`             | 收集重复有限数字选项。                               |
+| `@Flag(input?)`         | `string \| { name?, alias?, aliases?, description?, negatable? }` | 声明布尔选项；`negatable` 追加 `--no-<name>`。       |
+| `@Value(input?)`        | `string \| { name?, alias?, aliases?, description? }`             | 声明从装饰器元数据推断的 `string` 或有限 `number`。  |
+| `@ArrayString(input?)`  | `string \| { name?, alias?, aliases?, description? }`             | 收集重复字符串选项。                                 |
+| `@ArrayNumber(input?)`  | `string \| { name?, alias?, aliases?, description? }`             | 收集重复有限数字选项。                               |
 | `@Override()`           | `-`                                                     | 让较内层字段显式替换同名上层 module option 字段。    |
 | `@Required()`           | `-`                                                     | 要求字段不是 `undefined`；属性初始值可以满足此规则。 |
 | `@Enum(values)`         | `Array<boolean \| string \| number>`                    | 校验标量值或数组中的每一项。                         |

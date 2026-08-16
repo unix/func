@@ -24,7 +24,7 @@ export const commandCode = [
   "import { Command, Context, Ctx, Handler } from 'func'",
   "import { watchProject } from '../watch-project'",
   '',
-  "@Command({ path: 'watch' })",
+  "@Command('watch')",
   'export class WatchCommand {',
   '  @Handler()',
   '  async run(@Ctx() context: Context) {',

@@ -47,7 +47,7 @@ func 的运行时分为两个时期。`createApp` 首先把 module 声明编译�
 
 ## 编译应用
 
-传给 `createApp` 或 `run` 的根输入必须是显式带有 `@Module()` 的 class。func 递归展开 `imports`，为每个 module 建立独立的 provider 可见性边界，并收集 `commands`、`options`、`providers` 与 `exports`。
+无论根 module 交给 `createApp` 启动进程应用，还是交给 `func/invoke` 导出的 `createInvoker` 进行可重复的命令式调用，它都必须是显式带有 `@Module()` 的 class。func 递归展开 `imports`，为每个 module 建立独立的 provider 可见性边界，并收集 `commands`、`options`、`providers` 与 `exports`。
 
 同一个 module 内的 provider token 必须唯一；imported provider 只有显式 export 后才对导入方可见，也不会穿过中间 module 自动传递。循环 module import、无效 export、无效 provider 和重复 provider 都会在这一阶段阻止应用编译。
 

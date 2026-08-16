@@ -31,7 +31,7 @@ export const domainAddCode = [
   "  description: 'Manage custom domains',",
   '})',
   'export class DomainCommand {',
-  "  @Handler({ path: ['add'] })",
+  "  @Handler('add')",
   '  add() {',
   "    console.log('Adding domain')",
   '  }',
@@ -102,7 +102,7 @@ export const scaleCode = [
   '})',
   'export class ScaleCommand {',
   '  @Enum(MACHINES)',
-  "  @ArrayString({ name: 'machine' })",
+  "  @ArrayString('machine')",
   '  machines: string[] = []',
   '',
   '  @Handler()',
@@ -140,7 +140,7 @@ export const scaleCode = [
   sourceUrl="/demos/use-cases.ts"
 />
 
-域名管理功能包含一个固定的“添加”动作。`domain` 作为顶层命令， `add` 作为该命令下的处理器路径，使用 `@Handler({ path: ['add'] })` 定义即可，无需在处理器中手动解析输入。
+域名管理功能包含一个固定的“添加”动作。`domain` 作为顶层命令， `add` 作为该命令下的处理器路径，使用 `@Handler('add')` 定义即可，无需在处理器中手动解析输入。
 
 <CodeBlock
   code={domainAddCode}

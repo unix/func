@@ -1,7 +1,7 @@
 ---
 title: 核心概念
 description: 参考 func 的设计思路，理解框架如何组织命令、模块与 provider。
-lastModified: '2026-08-15'
+lastModified: '2026-08-16'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -13,7 +13,7 @@ export const conceptModel = [
   '@Module()',
   '├─ 注册命令图',
   '│  ├─ @CommandMajor()       没有具名路径时的入口',
-  '│  ├─ @Command({ path })    匹配一段或多段命令路径',
+  "│  ├─ @Command('<name>')   匹配一段或多段命令路径",
   '│  └─ @CommandMissing()     无法匹配时的可选后备',
   '├─ 注册 options             跨命令字段与动作',
   '└─ 注册 providers           可复用的业务能力',
@@ -32,8 +32,8 @@ export const commandAnatomy = [
   '│    │           │      │          │          └─ @Flag()',
   '│    │           │      │          └─ @Value()',
   '│    │           │      └─ @Args().inputs',
-  "│    │           └─ @Handler({ path: ['member', 'add'] })",
-  "│    └─ @Command({ path: 'project' })",
+  "│    │           └─ @Handler(['member', 'add'])",
+  "│    └─ @Command('project')",
   '└─ package.json#bin',
 ].join('\n')
 
@@ -48,7 +48,7 @@ export const mappedApplicationCode = [
   '  }',
   '}',
   '',
-  "@Command({ path: 'project' })",
+  "@Command('project')",
   'export class ProjectCommand {',
   '  @Value()',
   '  role?: string',
@@ -58,7 +58,7 @@ export const mappedApplicationCode = [
   '',
   '  constructor(private project: ProjectService) {}',
   '',
-  "  @Handler({ path: ['member', 'add'] })",
+  "  @Handler(['member', 'add'])",
   '  addMember(@Args() args: CommandArgs) {',
   "    const [username = ''] = args.inputs",
   '    console.log(this.project.addMember(username, this.role, this.force))',
@@ -93,7 +93,7 @@ Command 是最基础的单元，通常一个工程中包含多个 Command 类，
 | 命令入口 | 选择条件                                            | func API                    |
 | -------- | --------------------------------------------------- | --------------------------- |
 | 主命令   | 没有匹配具名路径，可执行其默认或 path handler       | `@CommandMajor()`           |
-| 具名命令 | 位置 token 最长匹配 command path 与 handler path    | `@Command({ path })`        |
+| 具名命令 | 位置 token 最长匹配 command path 与 handler path    | `@Command('<name>')`        |
 | 缺失命令 | 位置 token 无法匹配具名路径，并且仍有未消费位置输入 | `@CommandMissing()（可选）` |
 
 <Callout locale="zh-cn" title="命令路径可以共享前缀" variant="decision">
@@ -120,7 +120,7 @@ Command 是最基础的单元，通常一个工程中包含多个 Command 类，
 
 ## 命令对应的 func 概念
 
-下面只使用一个调用贯穿所有概念：它命中 `@Command({ path: 'project' })` 与 `member add` 处理器，其余片段分别提供位置数据和具名数据：
+下面只使用一个调用贯穿所有概念：它命中 `@Command('project')` 与 `member add` 处理器，其余片段分别提供位置数据和具名数据：
 
 <CodeBlock code={commandAnatomy} filename="输入片段与 func API" />
 
@@ -135,6 +135,7 @@ Command 是最基础的单元，通常一个工程中包含多个 Command 类，
 
 ## 接下来读什么
 
+- [模块](/zh-cn/modules)：组织 feature、控制 provider 可见性，并划分 options 与 hooks 的作用域。
 - [命令](/zh-cn/commands)：定义命令路径、别名、默认处理器和处理器路径。
 - [字段选项](/zh-cn/options)：接收标志、值、重复值并执行校验。
 - [参数注入](/zh-cn/parameters)：读取位置输入、运行时上下文和其他 provider。

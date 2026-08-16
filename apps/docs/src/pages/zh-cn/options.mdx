@@ -10,7 +10,7 @@ import DocsLayout from '@/layouts/docs.astro'
 export const flagCode = [
   "import { Command, Flag, Handler } from 'func'",
   '',
-  "@Command({ path: 'serve' })",
+  "@Command('serve')",
   'export class ServeCommand {',
   "  @Flag({ alias: 'v', aliases: ['V'], description: 'Print request logs' })",
   '  verbose = false',
@@ -28,7 +28,7 @@ export const flagCode = [
 export const valueCode = [
   "import { Command, Handler, Value } from 'func'",
   '',
-  "@Command({ path: 'serve' })",
+  "@Command('serve')",
   'export class ServeCommand {',
   "  @Value({ description: 'Interface to bind' })",
   "  host: string = 'localhost'",
@@ -36,7 +36,7 @@ export const valueCode = [
   "  @Value({ aliases: ['p', 'P'], description: 'Port to listen on' })",
   '  port: number = 3000',
   '',
-  "  @Value({ name: 'config-file' })",
+  "  @Value('config-file')",
   '  configFile?: string',
   '',
   '  @Handler()',
@@ -49,12 +49,12 @@ export const valueCode = [
 export const arrayCode = [
   "import { ArrayNumber, ArrayString, Command, Handler } from 'func'",
   '',
-  "@Command({ path: 'build' })",
+  "@Command('build')",
   'export class BuildCommand {',
   "  @ArrayString({ name: 'include', aliases: ['i', 'I'] })",
   '  includes: string[] = []',
   '',
-  "  @ArrayNumber({ name: 'port' })",
+  "  @ArrayNumber('port')",
   '  ports: number[] = []',
   '',
   '  @Handler()',
@@ -67,7 +67,7 @@ export const arrayCode = [
 export const validationCode = [
   "import { Command, DependsOn, Enum, Exclusive, Flag, Handler, Required, Value, ValueValidate } from 'func'",
   '',
-  "@Command({ path: 'publish' })",
+  "@Command('publish')",
   'export class PublishCommand {',
   '  @Required()',
   "  @Enum(['dev', 'prod'])",
@@ -129,7 +129,7 @@ negatable flag 还会接受自动生成的 `--no-<name>` 形式，因此 `ship s
 
 <CodeBlock code={valueCode} filename="src/commands/serve.command.ts" lang="ts" />
 
-`ship serve --host 0.0.0.0 -P 4000 --config-file ./dev.json` 会分别为三个字段赋予字符串、数字和字符串。属性名默认作为对外选项名。驼峰字段如果需要常见的 kebab-case 时，应像 `configFile` 一样显式设置 `name`。
+`ship serve --host 0.0.0.0 -P 4000 --config-file ./dev.json` 会分别为三个字段赋予字符串、数字和字符串。属性名默认作为对外选项名。驼峰字段如果需要常见的 kebab-case，应像 `configFile` 一样直接传入名称。
 
 用户省略选项时，属性初始值就是默认值。默认值会直接影响应用行为；如果用户需要知道 它，帮助信息中也应注明。
 

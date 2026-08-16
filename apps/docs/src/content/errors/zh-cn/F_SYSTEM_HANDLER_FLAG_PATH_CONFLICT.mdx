@@ -18,7 +18,7 @@ export const reproductionCode = [
 
 export const fixCode = [
   'class ProjectCommand {',
-  "  @Handler({ path: ['project', 'list'] })",
+  "  @Handler(['project', 'list'])",
   '  list() {}',
   '}',
 ].join('\n')
