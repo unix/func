@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "func": ["../src/index.ts"],
+      "func/*": ["../src/subpath/*/index.ts"]
+    },
+    "rootDirs": ["esm/src", "shared/src"]
+  },
+  "files": [],
+  "include": ["**/*.ts"],
+  "exclude": ["**/dist", "**/node_modules"]
+}

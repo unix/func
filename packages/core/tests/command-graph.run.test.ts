@@ -13,7 +13,15 @@ import {
 import type { Args as ArgsValue, OnError } from '../src'
 import { Writable } from 'node:stream'
 import { compileApplication } from '../src/application/compiler'
-import { SYSTEM, expect, run, systemErrorCode, test, testModule } from './_test'
+import {
+  SYSTEM,
+  expect,
+  objectContaining,
+  run,
+  systemErrorCode,
+  test,
+  testModule,
+} from './_test'
 
 test('should discard command graph build state after compilation', () => {
   @Command({ aliases: ['u', 'user'], path: 'users' })
@@ -56,7 +64,7 @@ test('should reject method and controller declarations for the same endpoint', (
   ).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.DUPLICATE_COMMAND_TOKEN),
-      details: expect.objectContaining({ token: 'users self' }),
+      details: objectContaining({ token: 'users self' }),
     }),
   )
 })
@@ -200,7 +208,7 @@ test.sequential(
 test('should reject incompatible field schemas at one command node', () => {
   @Command('users')
   class UsersCommand {
-    @Value({ name: 'format' })
+    @Value('format')
     format: string = 'text'
 
     @Handler()
@@ -209,7 +217,7 @@ test('should reject incompatible field schemas at one command node', () => {
 
   @Command('users')
   class UsersHelpCommand {
-    @Flag({ name: 'format' })
+    @Flag('format')
     formatted = false
 
     @Handler({ flag: 'help' })
@@ -221,7 +229,7 @@ test('should reject incompatible field schemas at one command node', () => {
   ).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
-      details: expect.objectContaining({ token: '--format' }),
+      details: objectContaining({ token: '--format' }),
     }),
   )
 })

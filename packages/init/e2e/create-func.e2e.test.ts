@@ -56,7 +56,8 @@ describe('built create-func package', () => {
     expect(create.stderr).toContain('Downloading')
     expect(create.stderr).toContain('done')
     const packagePath = join(projectRoot, 'package.json')
-    const pkg = JSON.parse(readFileSync(packagePath, 'utf8')) as ProjectPackage
+    const pkg: unknown = JSON.parse(readFileSync(packagePath, 'utf8'))
+    if (!isProjectPackage(pkg)) throw new TypeError('Invalid project package.')
     expect(pkg).toMatchObject({
       bin: {
         [projectName]: './dist/bin.js',
@@ -71,3 +72,6 @@ describe('built create-func package', () => {
     expect(existsSync(join(projectRoot, 'tests'))).toBe(true)
   })
 })
+
+const isProjectPackage = (value: unknown): value is ProjectPackage =>
+  typeof value === 'object' && value !== null

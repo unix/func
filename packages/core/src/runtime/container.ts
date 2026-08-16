@@ -13,7 +13,7 @@ import type { CompiledModule } from '../di/module-compiler'
 import { RuntimeInjector } from '../di/injector'
 import { hasOnDispose, hasOnError, hasOnInit } from '../di/lifecycle'
 import type { ExecutionOutcome } from '../di/lifecycle'
-import type { ProviderToken, Type } from '../di/types'
+import type { ProviderToken } from '../di/types'
 import { ARGS, STDERR, STDOUT } from './injection'
 import type { HandlerParams } from '../commands/types'
 import type { Deprecation } from '../deprecation'
@@ -273,11 +273,13 @@ export class Container {
     owner: CompiledModule,
   ): Promise<unknown> {
     const methodParams = await injector.parameters(
-      Object.getPrototypeOf(instance) as object,
+      objectPrototype(instance),
       handler.methodName,
       owner,
     )
-    return (instance as any)[handler.methodName](...methodParams)
+    const method = handlerMethod(instance, handler.methodName)
+    const result: unknown = Reflect.apply(method, instance, methodParams)
+    return result
   }
 
   private async activateModule(
@@ -287,7 +289,7 @@ export class Container {
     initialize = true,
   ): Promise<ActivatedScope | undefined> {
     if (typeof module.input !== 'function') return undefined
-    const instance = await injector.instantiate(module.input as Type, module)
+    const instance = await injector.instantiate(module.input, module)
     const scope: ActivatedScope = {
       instance,
       kind: 'module',
@@ -467,6 +469,32 @@ const normalizeRuntimeError = (error: unknown): Exception => {
 
 const normalizeError = (error: unknown): Error =>
   error instanceof Error ? error : new Error(String(error))
+
+type RuntimeMethod = (...args: never[]) => unknown
+
+const objectPrototype = (value: unknown): object => {
+  if (!isObjectLike(value)) {
+    throw new TypeError('Handler instance must be an object.')
+  }
+  const prototype: unknown = Object.getPrototypeOf(value)
+  if (isObjectLike(prototype)) return prototype
+  throw new TypeError('Handler instance must have an object prototype.')
+}
+
+const handlerMethod = (value: unknown, methodName: string): RuntimeMethod => {
+  if (!isObjectLike(value)) {
+    throw new TypeError('Handler instance must be an object.')
+  }
+  const method: unknown = Reflect.get(value, methodName)
+  if (isRuntimeMethod(method)) return method
+  throw new TypeError(`Handler "${methodName}" must be a function.`)
+}
+
+const isObjectLike = (value: unknown): value is object =>
+  (typeof value === 'object' && value !== null) || typeof value === 'function'
+
+const isRuntimeMethod = (value: unknown): value is RuntimeMethod =>
+  typeof value === 'function'
 
 const deprecationNotice = (subject: string, deprecated: Deprecation): string => {
   const detail = deprecated === true ? '' : ` ${deprecated}`

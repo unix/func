@@ -32,8 +32,12 @@ export const hasModuleMetadata = (target: Function): boolean =>
 
 export const moduleMetadata = (input: ModuleInput): ModuleMetadata => {
   if (typeof input !== 'function') return input
-  return Reflect.getOwnMetadata(
+  const value: unknown = Reflect.getOwnMetadata(
     metadataKeys.MODULE_IDENTIFIER,
     input,
-  ) as ModuleMetadata
+  )
+  return isModuleMetadata(value) ? value : {}
 }
+
+const isModuleMetadata = (value: unknown): value is ModuleMetadata =>
+  typeof value === 'object' && value !== null

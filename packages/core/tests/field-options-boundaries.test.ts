@@ -10,7 +10,14 @@ import {
   createApp,
 } from '../src'
 import type { Args as ArgsValue } from '../src'
-import { SYSTEM, expect, systemErrorCode, test, testModule } from './_test'
+import {
+  SYSTEM,
+  expect,
+  objectContaining,
+  systemErrorCode,
+  test,
+  testModule,
+} from './_test'
 
 test.sequential(
   'should run with multiple field options together',
@@ -190,7 +197,7 @@ test('should throw when multiple decorators use the same property option name', 
   expect(() => createApp(testModule({ commands: [Major] }))).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
-      details: expect.objectContaining({ token: '--target' }),
+      details: objectContaining({ token: '--target' }),
     }),
   )
 })
@@ -198,10 +205,10 @@ test('should throw when multiple decorators use the same property option name', 
 test('should throw when field options duplicate names or aliases', () => {
   @CommandMajor()
   class DuplicateName {
-    @Flag({ name: 'debug' })
+    @Flag('debug')
     first = false
 
-    @Value({ name: 'debug' })
+    @Value('debug')
     second: string = ''
 
     @Handler()
@@ -223,13 +230,13 @@ test('should throw when field options duplicate names or aliases', () => {
   expect(() => createApp(testModule({ commands: [DuplicateName] }))).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
-      details: expect.objectContaining({ token: '--debug' }),
+      details: objectContaining({ token: '--debug' }),
     }),
   )
   expect(() => createApp(testModule({ commands: [DuplicateAlias] }))).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
-      details: expect.objectContaining({ token: '-x' }),
+      details: objectContaining({ token: '-x' }),
     }),
   )
 })
@@ -250,7 +257,7 @@ test('should throw when field options conflict with handler flags', () => {
   expect(() => createApp(testModule({ commands: [DuplicateHandlerFlag] }))).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
-      details: expect.objectContaining({ token: '-h' }),
+      details: objectContaining({ token: '-h' }),
     }),
   )
 })
@@ -261,7 +268,7 @@ test('should reserve generated negative flag tokens', () => {
     @Flag({ name: 'cache', negatable: true })
     cache = true
 
-    @Flag({ name: 'no-cache' })
+    @Flag('no-cache')
     noCache = false
 
     @Handler()
@@ -271,7 +278,7 @@ test('should reserve generated negative flag tokens', () => {
   expect(() => createApp(testModule({ commands: [Major] }))).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.DUPLICATE_OPTION_TOKEN),
-      details: expect.objectContaining({ token: '--no-cache' }),
+      details: objectContaining({ token: '--no-cache' }),
     }),
   )
 })

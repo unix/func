@@ -36,8 +36,13 @@ export const resolveEntry = (file?: string): string | undefined => {
 }
 
 export const readPackage = (): ProjectPackage => {
-  return JSON.parse(fs.readFileSync(packagePath, 'utf-8')) as ProjectPackage
+  const value: unknown = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+  if (isProjectPackage(value)) return value
+  throw new TypeError(`Invalid package metadata in "${packagePath}".`)
 }
+
+const isProjectPackage = (value: unknown): value is ProjectPackage =>
+  typeof value === 'object' && value !== null
 
 export const writePackage = (pkg: ProjectPackage): void => {
   fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`)

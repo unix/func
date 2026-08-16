@@ -13,11 +13,13 @@ const throwInvalidFieldTarget = (propertyKey: string | symbol): never => {
 }
 
 export const Required = (): PropertyDecorator => (target, propertyKey) => {
-  if (typeof target === 'function' || typeof propertyKey !== 'string') {
-    throwInvalidFieldTarget(propertyKey)
-  }
+  if (typeof target === 'function') throwInvalidFieldTarget(propertyKey)
+  const key =
+    typeof propertyKey === 'string'
+      ? propertyKey
+      : throwInvalidFieldTarget(propertyKey)
 
-  updateFieldMetadata(target, propertyKey as string, field => ({
+  updateFieldMetadata(target, key, field => ({
     ...field,
     required: true,
   }))
@@ -49,11 +51,13 @@ export const Exclusive =
 export const ValueValidate =
   (fn: ValueValidator): PropertyDecorator =>
   (target, propertyKey) => {
-    if (typeof target === 'function' || typeof propertyKey !== 'string') {
-      throwInvalidFieldTarget(propertyKey)
-    }
+    if (typeof target === 'function') throwInvalidFieldTarget(propertyKey)
+    const key =
+      typeof propertyKey === 'string'
+        ? propertyKey
+        : throwInvalidFieldTarget(propertyKey)
 
-    updateFieldMetadata(target, propertyKey as string, field => ({
+    updateFieldMetadata(target, key, field => ({
       ...field,
       validators: field.validators.concat([fn]),
     }))
@@ -64,11 +68,13 @@ const defineFieldConstraint = (
   propertyKey: string | symbol,
   params: FieldConstraints,
 ) => {
-  if (typeof target === 'function' || typeof propertyKey !== 'string') {
-    throwInvalidFieldTarget(propertyKey)
-  }
+  if (typeof target === 'function') throwInvalidFieldTarget(propertyKey)
+  const key =
+    typeof propertyKey === 'string'
+      ? propertyKey
+      : throwInvalidFieldTarget(propertyKey)
 
-  updateFieldMetadata(target, propertyKey as string, field => ({
+  updateFieldMetadata(target, key, field => ({
     ...field,
     constraints: { ...field.constraints, ...params },
   }))

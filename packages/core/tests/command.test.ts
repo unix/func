@@ -1,7 +1,16 @@
 import 'reflect-metadata/lite'
 import { Command, Handler, createApp } from '../src'
 import { handlers, metadata } from '../src/commands/metadata'
-import { SYSTEM, expect, random, systemErrorCode, test, testModule } from './_test'
+import {
+  SYSTEM,
+  applyClassDecorator,
+  expect,
+  objectContaining,
+  random,
+  systemErrorCode,
+  test,
+  testModule,
+} from './_test'
 
 test('should define command metadata and handler type', () => {
   const params = {
@@ -87,8 +96,12 @@ test('should reject invalid command paths and aliases', () => {
   )
 
   expect(() => {
-    @Command({ path: random(), aliases: 'invalid' } as any)
     class NonArrayAliasesCommand {}
+    applyClassDecorator(
+      Command,
+      { aliases: 'invalid', path: random() },
+      NonArrayAliasesCommand,
+    )
 
     return NonArrayAliasesCommand
   }).toThrow(
@@ -171,7 +184,7 @@ test('should reject duplicate command tokens', () => {
   ).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.DUPLICATE_COMMAND_TOKEN),
-      details: expect.objectContaining({ token: 'run' }),
+      details: objectContaining({ token: 'run' }),
     }),
   )
 })

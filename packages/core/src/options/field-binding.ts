@@ -1,12 +1,12 @@
 import { RUNTIME_PRINT } from '@func/contracts/core-errors'
-import type { UserOption } from './types'
+import type { UserOption, UserOptionValue } from './types'
 import { ErrorScope, InternalException, isException } from '../shared/errors'
 import { ConstraintValidator } from './constraints'
 import type { CompiledFieldOption } from './field-metadata'
 
 interface FieldBindingParams {
   fieldOptions: readonly CompiledFieldOption[]
-  instance: any
+  instance: unknown
   options: UserOption
   supplied: ReadonlySet<string>
   validate?: boolean
@@ -28,21 +28,19 @@ export const bindFieldOptions = ({
 
 const bindFieldValues = (
   fieldOptions: readonly CompiledFieldOption[],
-  instance: any,
+  instance: unknown,
   options: UserOption,
   supplied: ReadonlySet<string>,
 ) => {
+  const target = fieldTarget(instance)
   fieldOptions.forEach(data => {
-    const hasDefault = Object.prototype.hasOwnProperty.call(
-      instance,
-      data.propertyKey,
-    )
+    const hasDefault = Object.prototype.hasOwnProperty.call(target, data.propertyKey)
     const value = supplied.has(data.name)
       ? options[data.name]
       : hasDefault
-        ? instance[data.propertyKey]
+        ? target[data.propertyKey]
         : undefined
-    Object.defineProperty(instance, data.propertyKey, {
+    Object.defineProperty(target, data.propertyKey, {
       configurable: true,
       enumerable: true,
       value,
@@ -51,6 +49,18 @@ const bindFieldValues = (
     options[data.name] = value
   })
 }
+
+interface FieldTarget {
+  [propertyKey: string]: UserOptionValue
+}
+
+const fieldTarget = (value: unknown): FieldTarget => {
+  if (isFieldTarget(value)) return value
+  throw new TypeError('Field options can only be bound to an object instance.')
+}
+
+const isFieldTarget = (value: unknown): value is FieldTarget =>
+  typeof value === 'object' && value !== null
 
 const validateRequiredFields = (
   fieldOptions: readonly CompiledFieldOption[],

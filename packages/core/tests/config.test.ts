@@ -18,6 +18,7 @@ import {
   configRuntimeErrorCode,
   configSystemErrorCode,
   expect,
+  objectContaining,
   run,
   test,
   testModule,
@@ -60,7 +61,7 @@ test('should reject duplicate default config file names', () => {
   ).toThrow(
     expect.objectContaining({
       code: configSystemErrorCode(CONFIG_SYSTEM.DUPLICATE_FILE),
-      details: expect.objectContaining({
+      details: objectContaining({
         appName: 'func-config-test',
         fileName: 'config.json',
         name: 'config',
@@ -85,7 +86,7 @@ test('should reject the same file path across config module registrations', () =
   expect(() => createApp(testModule({ imports: [first, second] }))).toThrow(
     expect.objectContaining({
       code: configSystemErrorCode(CONFIG_SYSTEM.DUPLICATE_FILE),
-      details: expect.objectContaining({
+      details: objectContaining({
         appName: 'func-config-test',
         fileName: 'config.json',
         name: 'config',

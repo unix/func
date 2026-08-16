@@ -16,11 +16,11 @@ export const rewriteDownloadedTemplate = (
 const updatePackageMetadata = (targetDir: string, packageName: string): void => {
   const packagePath = path.join(targetDir, 'package.json')
   if (!fs.existsSync(packagePath)) return
-
-  const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf-8')) as Record<
-    string,
-    unknown
-  >
+  const value: unknown = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+  if (!isUnknownRecord(value)) {
+    throw new TypeError(`Invalid package metadata in "${packagePath}".`)
+  }
+  const pkg = value
   const bin = resolveBinEntry(pkg.bin)
   pkg.name = packageName
   pkg.version = '0.0.0'
@@ -33,6 +33,9 @@ const updatePackageMetadata = (targetDir: string, packageName: string): void => 
 
   fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`)
 }
+
+const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
 
 const updateAppName = (targetDir: string, packageName: string): void => {
   const configPath = path.join(targetDir, ...APP_CONFIG_PATH)

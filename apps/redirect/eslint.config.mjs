@@ -20,6 +20,15 @@ export default [
       globals: globals.node,
     },
     rules: {
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       'no-use-before-define': [
         'error',
         { classes: true, functions: false, variables: false },

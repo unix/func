@@ -12,11 +12,12 @@ const module = ConfigModule.register({
   appName: 'func-core-e2e',
   configs: [ProbeConfig],
 })
+const isExpectedValue = (actual: string, expected: string) => actual === expected
 
 if (
   module.exports?.[0] !== ProbeConfig ||
-  CONFIG_RUNTIME.UNKNOWN_KEY !== 'UNKNOWN_KEY' ||
-  CONFIG_SYSTEM.DEFINITION !== 'DEFINITION'
+  !isExpectedValue(CONFIG_RUNTIME.UNKNOWN_KEY, 'UNKNOWN_KEY') ||
+  !isExpectedValue(CONFIG_SYSTEM.DEFINITION, 'DEFINITION')
 ) {
   throw new Error('config subpath is incomplete')
 }

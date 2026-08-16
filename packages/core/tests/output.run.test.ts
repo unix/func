@@ -37,6 +37,18 @@ const captureOutput = () => {
   }
 }
 
+const createContext = () =>
+  new Context(
+    [],
+    {
+      stderr: process.stderr,
+      stdin: process.stdin,
+      stdout: process.stdout,
+    },
+    process.cwd(),
+    new AbortController().signal,
+  )
+
 test.sequential(
   'should inject configured output streams across module boundaries',
   async () => {
@@ -227,7 +239,7 @@ test('should reject context as a module provider', () => {
   expect(() =>
     createApp(
       testModule({
-        providers: [{ provide: Context, useValue: {} as Context }],
+        providers: [{ provide: Context, useValue: createContext() }],
       }),
     ),
   ).toThrow(
@@ -241,7 +253,7 @@ test('should reject context as a module provider', () => {
 test('should reject context as a testing override', () => {
   expect(() =>
     createTestingApp(testModule({}), {
-      overrides: [{ provide: Context, useValue: {} as Context }],
+      overrides: [{ provide: Context, useValue: createContext() }],
     }),
   ).toThrow(
     expect.objectContaining({

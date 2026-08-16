@@ -60,7 +60,7 @@ export const parseDevArgs = (argv: string[]): DevArgs => {
 const resolveTsNodeRegister = (): string => {
   try {
     return require.resolve('ts-node/register', { paths: [cwd] })
-  } catch (error) {
+  } catch {
     return require.resolve('ts-node/register')
   }
 }

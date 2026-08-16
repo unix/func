@@ -1,31 +1,31 @@
 import type { InjectionToken } from './token'
 
-export type Type<T = any> = new (...args: any[]) => T
+export type Type<T = unknown> = new (...args: never[]) => T
 
 export type ProviderToken<T = unknown> = Type<T> | InjectionToken<T>
 
-export interface ClassProvider<T = any> {
+export interface ClassProvider<T = unknown> {
   provide: ProviderToken<T>
   useClass: Type<T>
 }
 
-export interface ValueProvider<T = any> {
+export interface ValueProvider<T = unknown> {
   provide: ProviderToken<T>
   useValue: T
 }
 
-export interface FactoryProvider<T = any> {
+export interface FactoryProvider<T = unknown> {
   provide: ProviderToken<T>
-  useFactory: (...dependencies: any[]) => T | Promise<T>
+  useFactory: (...dependencies: never[]) => T | Promise<T>
   inject?: ProviderToken[]
 }
 
-export type ExplicitProvider<T = any> =
+export type ExplicitProvider<T = unknown> =
   ClassProvider<T> | ValueProvider<T> | FactoryProvider<T>
 
-export type Provider<T = any> = Type<T> | ExplicitProvider<T>
+export type Provider<T = unknown> = Type<T> | ExplicitProvider<T>
 
-export interface NormalizedProvider<T = any> {
+export interface NormalizedProvider<T = unknown> {
   definition: ExplicitProvider<T>
   token: ProviderToken<T>
 }

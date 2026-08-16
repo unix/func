@@ -2,7 +2,7 @@ import { Command, Deprecated, Flag, Handler, Module, OptionCommand } from '../sr
 import { HelpOption } from '../src/subpath/help'
 import type { HelpMeta } from '../src/subpath/help'
 import { createTestingApp } from '../src/subpath/testing'
-import { expect, test } from './_test'
+import { arrayContaining, expect, test } from './_test'
 
 test.sequential(
   'should warn once for selected deprecated commands and options',
@@ -100,7 +100,7 @@ test.sequential('should expose deprecations through structured help', async () =
   @Command({ deprecated: 'Use modern instead.', path: 'legacy' })
   class LegacyCommand {
     @Deprecated('Use --modern instead.')
-    @Flag({ name: 'old' })
+    @Flag('old')
     old = false
 
     @Handler()
@@ -127,7 +127,7 @@ test.sequential('should expose deprecations through structured help', async () =
         name: 'legacy',
       }),
     ],
-    options: expect.arrayContaining([
+    options: arrayContaining([
       expect.objectContaining({ deprecated: true, name: 'legacy-global' }),
     ]),
   })
@@ -139,7 +139,7 @@ test.sequential('should expose deprecations through structured help', async () =
   expect(command.stderr).toBe('')
   expect(captured).toMatchObject({
     deprecated: 'Use modern instead.',
-    options: expect.arrayContaining([
+    options: arrayContaining([
       expect.objectContaining({
         deprecated: 'Use --modern instead.',
         name: 'old',

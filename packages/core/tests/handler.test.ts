@@ -1,7 +1,14 @@
 import 'reflect-metadata/lite'
 import { CommandMajor, Handler, createApp } from '../src'
 import { metadata } from '../src/commands/metadata'
-import { SYSTEM, expect, systemErrorCode, test, testModule } from './_test'
+import {
+  SYSTEM,
+  applyMethodDecorator,
+  expect,
+  systemErrorCode,
+  test,
+  testModule,
+} from './_test'
 
 test('should collect default and flag method handlers', () => {
   class CommandHandler {
@@ -63,10 +70,9 @@ test('should normalize string, array, and empty handler paths', () => {
 test('should reject handler alias without a flag', () => {
   expect(() => {
     class CommandHandler {
-      @Handler({ alias: 'h' } as any)
       help() {}
     }
-
+    applyMethodDecorator(Handler, { alias: 'h' }, CommandHandler.prototype, 'help')
     return CommandHandler
   }).toThrow(
     expect.objectContaining({
@@ -76,10 +82,14 @@ test('should reject handler alias without a flag', () => {
 
   expect(() => {
     class CommandHandler {
-      @Handler({ aliases: ['h', '?'] } as any)
       help() {}
     }
-
+    applyMethodDecorator(
+      Handler,
+      { aliases: ['h', '?'] },
+      CommandHandler.prototype,
+      'help',
+    )
     return CommandHandler
   }).toThrow(
     expect.objectContaining({
@@ -91,10 +101,14 @@ test('should reject handler alias without a flag', () => {
 test('should reject path mixed with flag or alias', () => {
   expect(() => {
     class CommandHandler {
-      @Handler({ flag: 'help', path: ['get'] } as any)
       help() {}
     }
-
+    applyMethodDecorator(
+      Handler,
+      { flag: 'help', path: ['get'] },
+      CommandHandler.prototype,
+      'help',
+    )
     return CommandHandler
   }).toThrow(
     expect.objectContaining({
@@ -104,10 +118,14 @@ test('should reject path mixed with flag or alias', () => {
 
   expect(() => {
     class CommandHandler {
-      @Handler({ path: ['get'], alias: 'g' } as any)
       get() {}
     }
-
+    applyMethodDecorator(
+      Handler,
+      { alias: 'g', path: ['get'] },
+      CommandHandler.prototype,
+      'get',
+    )
     return CommandHandler
   }).toThrow(
     expect.objectContaining({

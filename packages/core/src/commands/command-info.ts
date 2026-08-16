@@ -1,6 +1,6 @@
 import type { RegisterCommandParams } from './types'
 
-type DeepReadonly<T> = T extends (...args: any[]) => unknown
+type DeepReadonly<T> = T extends (...args: never[]) => unknown
   ? T
   : T extends readonly (infer Item)[]
     ? readonly DeepReadonly<Item>[]
@@ -25,8 +25,8 @@ export const createCommandInfo = (command: RegisterCommandParams): CommandInfo =
 const readonlyFieldOption = (
   option: NonNullable<RegisterCommandParams['fieldOptions']>[number],
 ): DeepReadonly<NonNullable<RegisterCommandParams['fieldOptions']>[number]> => {
-  const fieldOption = { ...option } as typeof option & { validators?: unknown }
-  delete fieldOption.validators
+  const fieldOption = { ...option }
+  Reflect.deleteProperty(fieldOption, 'validators')
   const constraints = {
     ...(fieldOption.dependsOn
       ? { dependsOn: Object.freeze(fieldOption.dependsOn.slice()) }

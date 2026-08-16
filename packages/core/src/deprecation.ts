@@ -31,10 +31,11 @@ export const Deprecated = (message?: string): DeprecatedDecorator => {
 }
 
 export const compileMethodHandlers = (target: Function): HandlerParams[] => {
-  const handlers = (Reflect.getMetadata(
+  const value: unknown = Reflect.getMetadata(
     metadata.METHOD_HANDLER_IDENTIFIER,
     target,
-  ) ?? []) as HandlerParams[]
+  )
+  const handlers = isHandlerParamsList(value) ? value : []
   const deprecations = methodDeprecations(target)
 
   return handlers.map(handler => {
@@ -74,9 +75,30 @@ const updateMethodDeprecation = (
 }
 
 const methodDeprecations = (target: Function): ReadonlyMap<string, Deprecation> => {
-  const deprecations = Reflect.getMetadata(
+  const value: unknown = Reflect.getMetadata(
     metadata.METHOD_DEPRECATION_IDENTIFIER,
     target,
-  ) as ReadonlyMap<string, Deprecation> | undefined
-  return deprecations ?? new Map()
+  )
+  return isDeprecationMap(value) ? value : new Map()
 }
+
+const isHandlerParamsList = (value: unknown): value is HandlerParams[] =>
+  isUnknownArray(value) && value.every(isHandlerParams)
+
+const isHandlerParams = (value: unknown): value is HandlerParams =>
+  isUnknownRecord(value) &&
+  isStringList(value.aliases) &&
+  isStringList(value.path) &&
+  typeof value.methodName === 'string'
+
+const isDeprecationMap = (
+  value: unknown,
+): value is ReadonlyMap<string, Deprecation> => value instanceof Map
+
+const isStringList = (value: unknown): value is string[] =>
+  isUnknownArray(value) && value.every(item => typeof item === 'string')
+
+const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
+
+const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null

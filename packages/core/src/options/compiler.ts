@@ -96,17 +96,18 @@ const optionsFor = (module: CompiledModule): Type[] => {
 }
 
 const validateOptionTarget = (target: Type, module: CompiledModule) => {
-  const value = Reflect.getOwnMetadata(metadata.OPTION_IDENTIFIER, target) as
-    boolean | undefined
-  const action = Reflect.getMetadata(metadata.OPTION_COMMAND_IDENTIFIER, target) as
-    OptionCommandParams | undefined
-  if ((value && !action) || (!value && action)) return
+  const value: unknown = Reflect.getOwnMetadata(metadata.OPTION_IDENTIFIER, target)
+  const action = optionCommandMetadata(target)
+  if ((value === true && !action) || (value !== true && action)) return
 
   throw new InternalException(SYSTEM.INVALID_OPTION_DECLARATION, {
     details: {
       module: module.name,
       option: target.name || '(anonymous class)',
-      reason: value && action ? 'multiple-option-kinds' : 'missing-option-decorator',
+      reason:
+        value === true && action
+          ? 'multiple-option-kinds'
+          : 'missing-option-decorator',
     },
     message: `Module option "${target.name || '(anonymous class)'}" must use exactly one of @Option or @OptionCommand.`,
   })
@@ -117,8 +118,7 @@ const compileModuleOption = (
   owner: CompiledModule,
   record: ProviderRecord,
 ): CompiledModuleOption => {
-  const option = Reflect.getMetadata(metadata.OPTION_COMMAND_IDENTIFIER, target) as
-    OptionCommandParams | undefined
+  const option = optionCommandMetadata(target)
   const fieldOptions = compileFieldOptions(target)
   const methodHandlers = compileMethodHandlers(target)
 
@@ -158,6 +158,28 @@ const compileModuleOption = (
     target,
   }
 }
+
+const optionCommandMetadata = (target: Type): OptionCommandParams | undefined => {
+  const value: unknown = Reflect.getMetadata(
+    metadata.OPTION_COMMAND_IDENTIFIER,
+    target,
+  )
+  return isOptionCommandParams(value) ? value : undefined
+}
+
+const isOptionCommandParams = (value: unknown): value is OptionCommandParams =>
+  isUnknownRecord(value) &&
+  isStringList(value.aliases) &&
+  typeof value.name === 'string' &&
+  value.type === Boolean
+
+const isStringList = (value: unknown): value is string[] =>
+  isUnknownArray(value) && value.every(item => typeof item === 'string')
+
+const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
+
+const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
 
 const validateOptionCommand = (
   target: Type,

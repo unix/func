@@ -4,10 +4,24 @@ import { dev } from './actions/dev'
 import { setup } from './actions/setup'
 import { style } from './utils/style'
 
-const pkg = require('../package.json') as {
+interface PackageInfo {
   name: string
   version: string
 }
+
+const isPackageInfo = (value: unknown): value is PackageInfo =>
+  isUnknownRecord(value) &&
+  typeof value.name === 'string' &&
+  typeof value.version === 'string'
+
+const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const packageValue: unknown = require('../package.json')
+if (!isPackageInfo(packageValue)) {
+  throw new TypeError('funcgo package metadata is invalid.')
+}
+const pkg = packageValue
 
 const commands = [
   {

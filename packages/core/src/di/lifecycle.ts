@@ -30,19 +30,22 @@ export const hasOnInit = (value: unknown): value is OnInit =>
   Boolean(
     value &&
     (typeof value === 'object' || typeof value === 'function') &&
-    typeof (value as Partial<OnInit>).onInit === 'function',
+    'onInit' in value &&
+    typeof value.onInit === 'function',
   )
 
 export const hasOnDispose = (value: unknown): value is OnDispose =>
   Boolean(
     value &&
     (typeof value === 'object' || typeof value === 'function') &&
-    typeof (value as Partial<OnDispose>).onDispose === 'function',
+    'onDispose' in value &&
+    typeof value.onDispose === 'function',
   )
 
 export const hasOnError = (value: unknown): value is OnError =>
   Boolean(
     value &&
     (typeof value === 'object' || typeof value === 'function') &&
-    typeof (value as Partial<OnError>).onError === 'function',
+    'onError' in value &&
+    typeof value.onError === 'function',
   )

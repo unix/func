@@ -336,7 +336,11 @@ test.sequential(
         expect(this.context.signal).toBe(signal)
         const chunks: Buffer[] = []
         for await (const chunk of this.context.io.stdin) {
-          chunks.push(Buffer.from(chunk))
+          const value: unknown = chunk
+          if (typeof value !== 'string' && !(value instanceof Uint8Array)) {
+            throw new TypeError('stdin emitted an unsupported chunk type')
+          }
+          chunks.push(Buffer.from(value))
         }
         this.context.io.stdout.write(
           `${this.context.cwd}:${Buffer.concat(chunks).toString('utf8')}`,

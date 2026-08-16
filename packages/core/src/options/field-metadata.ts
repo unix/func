@@ -78,7 +78,13 @@ export const compileFieldOptions = (target: Function): CompiledFieldOption[] =>
 const fieldMetadata = (
   target: Function,
 ): ReadonlyMap<string, FieldMetadataEntry> => {
-  const fields = Reflect.getMetadata(metadata.FIELD_OPTION_IDENTIFIER, target) as
-    ReadonlyMap<string, FieldMetadataEntry> | undefined
-  return fields ?? new Map()
+  const value: unknown = Reflect.getMetadata(
+    metadata.FIELD_OPTION_IDENTIFIER,
+    target,
+  )
+  return isFieldMetadataMap(value) ? value : new Map()
 }
+
+const isFieldMetadataMap = (
+  value: unknown,
+): value is ReadonlyMap<string, FieldMetadataEntry> => value instanceof Map

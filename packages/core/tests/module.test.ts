@@ -7,7 +7,16 @@ import {
   Injectable,
   createApp,
 } from '../src'
-import { SYSTEM, expect, random, run, systemErrorCode, test } from './_test'
+import {
+  SYSTEM,
+  anyValue,
+  expect,
+  invokeUnchecked,
+  random,
+  run,
+  systemErrorCode,
+  test,
+} from './_test'
 
 test.sequential('should run commands from a Module', async () => {
   let invoked = false
@@ -91,7 +100,7 @@ test.sequential(
 )
 
 test('should reject a plain app config', () => {
-  expect(() => createApp({ commands: [] } as never)).toThrow(
+  expect(() => invokeUnchecked(createApp, { commands: [] })).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.INVALID_MODULE_INPUT),
       details: { module: '(module config)' },
@@ -141,7 +150,7 @@ test.sequential('should create a bootstrap application from a Module', async () 
   class AppModule {}
 
   expect(createApp(AppModule)).toEqual(
-    expect.objectContaining({ bootstrap: expect.any(Function) }),
+    expect.objectContaining({ bootstrap: anyValue(Function) }),
   )
 })
 

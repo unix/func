@@ -40,9 +40,11 @@ export const Handler: HandlerDecorator = (input: HandlerDecoratorInput = {}) => 
       })
     }
 
-    const methodHandlers: HandlerParams[] =
-      Reflect.getMetadata(metadata.METHOD_HANDLER_IDENTIFIER, target.constructor) ??
-      []
+    const storedHandlers: unknown = Reflect.getMetadata(
+      metadata.METHOD_HANDLER_IDENTIFIER,
+      target.constructor,
+    )
+    const methodHandlers = isHandlerParamsList(storedHandlers) ? storedHandlers : []
     Reflect.defineMetadata(
       metadata.METHOD_HANDLER_IDENTIFIER,
       methodHandlers.concat([
@@ -134,3 +136,20 @@ const normalizeHandlerPath = (input?: HandlerPath): string[] => {
   path.forEach(segment => validator.commandName(segment, 'path'))
   return path
 }
+
+const isHandlerParamsList = (value: unknown): value is HandlerParams[] =>
+  isUnknownArray(value) && value.every(isHandlerMetadata)
+
+const isHandlerMetadata = (value: unknown): value is HandlerParams =>
+  isUnknownRecord(value) &&
+  isStringList(value.aliases) &&
+  isStringList(value.path) &&
+  typeof value.methodName === 'string'
+
+const isStringList = (value: unknown): value is string[] =>
+  isUnknownArray(value) && value.every(item => typeof item === 'string')
+
+const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
+
+const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null

@@ -6,10 +6,7 @@ export const main = async (argv: string[] = process.argv): Promise<void> => {
     .example('npm init func@latest', 'Prompt for a project name')
     .example('npm init func@latest my-app', 'Create a project without prompting')
 
-  args.parse(argv, {
-    name: 'create-func',
-  } as Parameters<typeof args.parse>[1])
-
+  Reflect.apply(args.parse, args, [argv, { name: 'create-func' }])
   await createProject(resolveProjectName(args.sub))
 }
 

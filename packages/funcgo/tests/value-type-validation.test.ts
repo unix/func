@@ -48,8 +48,8 @@ describe('Value type build validation', () => {
         (caught: unknown) => caught,
       )
 
-      expect(result).toBeInstanceOf(Error)
-      const message = (result as Error).message
+      if (!(result instanceof Error)) throw new TypeError('Expected build to fail.')
+      const message = result.message
       expect(message).toContain(
         'Cannot automatically infer runtime types for 3 @Value properties',
       )
@@ -104,8 +104,8 @@ describe('Value type build validation', () => {
         (caught: unknown) => caught,
       )
 
-      expect(result).toBeInstanceOf(Error)
-      const message = (result as Error).message
+      if (!(result instanceof Error)) throw new TypeError('Expected build to fail.')
+      const message = result.message
       expect(message).toContain(
         'Cannot automatically infer the runtime type for "Greeting.name".',
       )

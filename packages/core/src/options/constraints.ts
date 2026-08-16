@@ -46,7 +46,7 @@ export class ConstraintValidator {
     if (value === undefined) return
     const values = Array.isArray(value) ? value : [value]
     const invalid = values.filter(
-      item => !enumValues.includes(item as UserOptionEnumValue),
+      item => !isUserOptionEnumValue(item) || !enumValues.includes(item),
     )
     if (!invalid.length) return
 
@@ -70,3 +70,8 @@ export class ConstraintValidator {
     })
   }
 }
+
+const isUserOptionEnumValue = (value: unknown): value is UserOptionEnumValue =>
+  typeof value === 'boolean' ||
+  typeof value === 'number' ||
+  typeof value === 'string'

@@ -23,11 +23,66 @@ interface RunOptions extends InvocationOptions {
   argv?: readonly string[]
 }
 
+type RuntimeCallable = (...args: never[]) => unknown
+
 const testModule = (params: ModuleMetadata): Type => {
   @Module(params)
   class TestModule {}
 
   return TestModule
+}
+
+const invokeUnchecked = (callback: RuntimeCallable, ...args: unknown[]): unknown => {
+  const result: unknown = Reflect.apply(callback, undefined, args)
+  return result
+}
+
+const applyClassDecorator = (
+  factory: RuntimeCallable,
+  input: unknown,
+  target: Function,
+) => {
+  const decorator = invokeUnchecked(factory, input)
+  if (!isRuntimeCallable(decorator)) {
+    throw new TypeError('Decorator factory must return a function.')
+  }
+  invokeUnchecked(decorator, target)
+}
+
+const applyMethodDecorator = (
+  factory: RuntimeCallable,
+  input: unknown,
+  target: object,
+  propertyKey: string,
+) => {
+  const decorator = invokeUnchecked(factory, input)
+  if (!isRuntimeCallable(decorator)) {
+    throw new TypeError('Decorator factory must return a function.')
+  }
+  invokeUnchecked(
+    decorator,
+    target,
+    propertyKey,
+    Object.getOwnPropertyDescriptor(target, propertyKey),
+  )
+}
+
+const isRuntimeCallable = (value: unknown): value is RuntimeCallable =>
+  typeof value === 'function'
+
+const objectContaining = (expected: object): unknown => {
+  const matcher: unknown = expect.objectContaining(expected)
+  return matcher
+}
+
+const arrayContaining = (expected: unknown[]): unknown => {
+  const matcher: unknown = expect.arrayContaining(expected)
+  return matcher
+}
+
+const anyValue = (constructor: Function): unknown => {
+  const matcher: unknown = expect.any(constructor)
+  return matcher
 }
 
 const test = baseTest.extend<Fixtures>({
@@ -92,11 +147,17 @@ export {
   RUNTIME,
   RUNTIME_PRINT,
   SYSTEM,
+  anyValue,
+  applyClassDecorator,
+  applyMethodDecorator,
+  arrayContaining,
   configRuntimeErrorCode,
   configSystemErrorCode,
   expect,
+  invokeUnchecked,
   logRuntimeErrorCode,
   logSystemErrorCode,
+  objectContaining,
   random,
   run,
   runtimeErrorCode,

@@ -9,7 +9,7 @@ import {
   ValueValidate,
 } from '../src'
 import { compileFieldOptions } from '../src/options/field-metadata'
-import { SYSTEM, expect, systemErrorCode, test } from './_test'
+import { SYSTEM, expect, objectContaining, systemErrorCode, test } from './_test'
 
 test('should collect flag, value, and array field options', () => {
   class Options {
@@ -201,7 +201,7 @@ test('should require explicit array property types', () => {
   }).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.CANNOT_INFER_VALUE_TYPE),
-      details: expect.objectContaining({
+      details: objectContaining({
         className: 'Options',
         expectedType: 'string[]',
         property: 'values',
@@ -221,7 +221,7 @@ test('should reject object metadata when scalar types cannot be inferred', () =>
   }).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.CANNOT_INFER_VALUE_TYPE),
-      details: expect.objectContaining({
+      details: objectContaining({
         className: 'Options',
         expectedType: 'string or number',
         property: 'name',
@@ -246,7 +246,7 @@ test('should reject invalid field targets and invalid option params', () => {
 
   expect(() => {
     class InvalidNameOptions {
-      @Value({ name: '-config' })
+      @Value('-config')
       config: string = ''
     }
 
@@ -283,7 +283,7 @@ test('should reject invalid field targets and invalid option params', () => {
 
   expect(() => {
     class InvalidEqualsNameOptions {
-      @Value({ name: 'config=value' })
+      @Value('config=value')
       config: string = ''
     }
 
@@ -317,7 +317,7 @@ test('should require a supported property type when value type cannot be inferre
   }).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.CANNOT_INFER_VALUE_TYPE),
-      details: expect.objectContaining({
+      details: objectContaining({
         className: 'Options',
         expectedType: 'string or number',
         property: 'when',

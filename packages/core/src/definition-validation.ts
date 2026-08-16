@@ -1,7 +1,7 @@
 import { SYSTEM } from '@func/contracts/core-errors'
 import { InternalException } from './shared/errors'
 
-export const requireKey = (value: any, key: string) => {
+export const requireKey = (value: unknown, key: string) => {
   if (!value) {
     throw new InternalException(SYSTEM.MISSING_REQUIRED_PARAM, {
       details: { key },
@@ -52,7 +52,7 @@ export const optionAliases = (
   aliases?: readonly string[],
 ): readonly string[] => normalizeAliases(alias, aliases, optionAlias)
 
-export const mustBeArray = (value: any, key: string) => {
+export const mustBeArray = (value: unknown, key: string) => {
   if (!Array.isArray(value)) {
     throw new InternalException(SYSTEM.EXPECTED_ARRAY_PARAM, {
       details: { expected: 'Array', key },

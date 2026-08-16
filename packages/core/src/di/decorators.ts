@@ -38,14 +38,19 @@ export const parameterTokens = (
   target: object,
   propertyKey?: string | symbol,
 ): Partial<Record<number, ProviderToken>> => {
-  if (propertyKey) {
-    return (Reflect.getMetadata(
-      metadata.PARAMETER_TOKENS_IDENTIFIER,
-      target,
-      propertyKey,
-    ) ?? {}) as Partial<Record<number, ProviderToken>>
-  }
-
-  return (Reflect.getMetadata(metadata.PARAMETER_TOKENS_IDENTIFIER, target) ??
-    {}) as Partial<Record<number, ProviderToken>>
+  const value: unknown = propertyKey
+    ? Reflect.getMetadata(metadata.PARAMETER_TOKENS_IDENTIFIER, target, propertyKey)
+    : Reflect.getMetadata(metadata.PARAMETER_TOKENS_IDENTIFIER, target)
+  return isParameterTokenMap(value) ? value : {}
 }
+
+const isParameterTokenMap = (
+  value: unknown,
+): value is Partial<Record<number, ProviderToken>> =>
+  isUnknownRecord(value) &&
+  Object.entries(value).every(
+    ([index, token]) => Number.isInteger(Number(index)) && isProviderToken(token),
+  )
+
+const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null

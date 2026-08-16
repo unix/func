@@ -12,7 +12,7 @@ import type {
   ProviderRecord,
 } from './module-compiler'
 import type { FactoryProvider, ProviderToken, Type } from './types'
-import { providerTokenName } from './provider-utils'
+import { isProviderToken, providerTokenName } from './provider-utils'
 
 interface OwnedProvider {
   instance: unknown
@@ -42,15 +42,15 @@ export class RuntimeInjector {
 
   async instantiate<T>(target: Type<T>, requester = this.graph.root): Promise<T> {
     const params = await this.parameters(target, undefined, requester)
-    return new target(...params)
+    return this.construct(target, params)
   }
 
-  async activateOption<T>(
+  async activateOption(
     record: ProviderRecord,
-    prepare: (instance: T) => Promise<void> | void,
-  ): Promise<T> {
+    prepare: (instance: unknown) => Promise<void> | void,
+  ): Promise<unknown> {
     this.activeOptions.add(record)
-    const instance = (await this.optionInstance(record)) as T
+    const instance = await this.optionInstance(record)
     if (this.initializedOptions.has(record)) return instance
     try {
       await prepare(instance)
@@ -160,14 +160,19 @@ export class RuntimeInjector {
           record.owner,
           nextPath,
         )
-        instance = new definition.useClass(...params) as unknown
+        instance = this.construct(definition.useClass, params)
       } else {
         const dependencies = await this.factoryDependencies(
           definition,
           record,
           nextPath,
         )
-        instance = await definition.useFactory(...dependencies)
+        const result: unknown = Reflect.apply(
+          definition.useFactory,
+          undefined,
+          dependencies,
+        )
+        instance = await result
       }
 
       const owned = this.own(instance, record)
@@ -308,17 +313,10 @@ export class RuntimeInjector {
     target: object | Type,
     propertyKey?: string,
   ): Array<ProviderToken | undefined> {
-    if (propertyKey) {
-      return (Reflect.getMetadata(
-        metadata.DESIGN_PARAM_TYPES,
-        target,
-        propertyKey,
-      ) ?? []) as Array<ProviderToken | undefined>
-    }
-
-    return (Reflect.getMetadata(metadata.DESIGN_PARAM_TYPES, target) ?? []) as Array<
-      ProviderToken | undefined
-    >
+    const value: unknown = propertyKey
+      ? Reflect.getMetadata(metadata.DESIGN_PARAM_TYPES, target, propertyKey)
+      : Reflect.getMetadata(metadata.DESIGN_PARAM_TYPES, target)
+    return isParameterTypeList(value) ? value : []
   }
 
   private declaredParamCount(target: object | Type, propertyKey?: string): number {
@@ -331,11 +329,25 @@ export class RuntimeInjector {
 
   private targetName(target: object | Type, propertyKey?: string): string {
     if (propertyKey) {
-      const name = (target as { constructor?: Type }).constructor?.name
-      return `${name ?? '(anonymous class)'}.${propertyKey}`
+      const name = target.constructor.name
+      return `${name || '(anonymous class)'}.${propertyKey}`
     }
 
     if (typeof target === 'function') return target.name || '(anonymous class)'
     return target.constructor.name || '(anonymous class)'
   }
+
+  private construct<T>(target: Type<T>, params: unknown[]): T {
+    const instance: unknown = Reflect.construct(target, params)
+    if (instance instanceof target) return instance
+    throw new TypeError(`Failed to construct "${target.name}".`)
+  }
 }
+
+const isParameterTypeList = (
+  value: unknown,
+): value is Array<ProviderToken | undefined> =>
+  isUnknownArray(value) &&
+  value.every(item => item === undefined || isProviderToken(item))
+
+const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)

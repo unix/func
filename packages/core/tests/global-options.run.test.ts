@@ -17,7 +17,7 @@ import type {
   OnInit,
 } from '../src'
 import { createTestingApp } from '../src/subpath/testing'
-import { SYSTEM, expect, systemErrorCode, test } from './_test'
+import { SYSTEM, applyClassDecorator, expect, systemErrorCode, test } from './_test'
 
 test.sequential(
   'should bind and inject root module options for every invocation',
@@ -318,10 +318,12 @@ test('should reject explicit provider definitions in module options', () => {
     verbose = false
   }
 
-  @Module({
-    options: [{ provide: AppOptions, useValue: new AppOptions() }] as never,
-  })
   class AppModule {}
+  applyClassDecorator(
+    Module,
+    { options: [{ provide: AppOptions, useValue: new AppOptions() }] },
+    AppModule,
+  )
 
   expect(() => createTestingApp(AppModule)).toThrow(
     expect.objectContaining({

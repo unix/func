@@ -25,11 +25,6 @@ interface ProjectResult {
   stdout: string
 }
 
-interface CommandFailure extends Error {
-  stderr?: string
-  stdout?: string
-}
-
 interface ConsumerProject {
   directory: 'esm'
   distRoot: string
@@ -181,6 +176,33 @@ const commandText = (command: string, args: string[]) => {
   return [command, ...args].join(' ')
 }
 
+const commandFailure = (value: unknown) => ({
+  stderr: stringProperty(value, 'stderr'),
+  stdout: stringProperty(value, 'stdout'),
+})
+
+const stringProperty = (value: unknown, property: string): string | undefined => {
+  if (!isUnknownRecord(value)) return undefined
+  const propertyValue = value[property]
+  return typeof propertyValue === 'string' ? propertyValue : undefined
+}
+
+const isExportProbe = (value: unknown): value is ExportProbe =>
+  isUnknownRecord(value) &&
+  isStringList(value.callableApis) &&
+  isStringList(value.runtimeApis)
+
+const isPackageManifest = (value: unknown): value is PackageManifest =>
+  isUnknownRecord(value)
+
+const isStringList = (value: unknown): value is string[] =>
+  isUnknownArray(value) && value.every(item => typeof item === 'string')
+
+const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
+
+const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
 const runCommand = (stage: string, command: string, args: string[], cwd: string) => {
   try {
     return execFileSync(command, args, {
@@ -192,7 +214,7 @@ const runCommand = (stage: string, command: string, args: string[], cwd: string)
       timeout: commandTimeout,
     })
   } catch (error) {
-    const failure = error as CommandFailure
+    const failure = commandFailure(error)
     const details = [
       `${stage} failed`,
       `command: ${commandText(command, args)}`,
@@ -284,7 +306,8 @@ afterAll(() => {
 describe.each(projects)('$label consumer', project => {
   test('exposes the complete public runtime API', () => {
     const probe = runProject(project, [], 'exports-probe.js')
-    const result = JSON.parse(probe.stdout) as ExportProbe
+    const result: unknown = JSON.parse(probe.stdout)
+    if (!isExportProbe(result)) throw new TypeError('Invalid export probe result.')
     expect(result.runtimeApis).toEqual(runtimeApis)
     expect(result.callableApis).toEqual(callableApis)
   })
@@ -367,9 +390,10 @@ describe.each(projects)('$label consumer', project => {
 
   test('publishes the expected ESM-only metadata', () => {
     const manifestPath = join(project.root, 'node_modules', 'func', 'package.json')
-    const manifest = JSON.parse(
-      readFileSync(manifestPath, 'utf8'),
-    ) as PackageManifest
+    const manifest: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    if (!isPackageManifest(manifest)) {
+      throw new TypeError('Invalid package manifest.')
+    }
 
     expect(manifest).toMatchObject({
       exports: {

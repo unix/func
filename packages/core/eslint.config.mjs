@@ -27,6 +27,16 @@ export default [
     },
   },
   {
+    files: ['e2e/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './e2e/tsconfig.eslint.json',
+        projectService: false,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
     files: ['*.config.mts'],
     languageOptions: {
       parserOptions: {
@@ -45,6 +55,15 @@ export default [
     },
     rules: {
       '@typescript-eslint/no-magic-numbers': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/no-use-before-define': [
         'error',
         { classes: true, enums: true, functions: false, variables: false },

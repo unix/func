@@ -36,7 +36,10 @@ export const downloadTemplate = async (destination: string): Promise<void> => {
 }
 
 export const resolveTemplateTarball = (metadata: Buffer): string => {
-  const pkg = JSON.parse(metadata.toString('utf-8')) as PackageMetadata
+  const pkg: unknown = JSON.parse(metadata.toString('utf-8'))
+  if (!isPackageMetadata(pkg)) {
+    throw new Error(`Cannot resolve tarball for ${FUNC_TEMPLATE_URL}.`)
+  }
   const tarball = pkg.dist?.tarball
   if (!tarball) {
     throw new Error(`Cannot resolve tarball for ${FUNC_TEMPLATE_URL}.`)
@@ -65,8 +68,17 @@ const fetchUrl = (url: string): Promise<Buffer> => {
 
         const chunks: Uint8Array[] = []
         response.on('data', chunk => {
-          const data = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
-          chunks.push(new Uint8Array(data))
+          const value: unknown = chunk
+          if (typeof value === 'string') {
+            chunks.push(Buffer.from(value))
+            return
+          }
+          if (value instanceof Uint8Array) {
+            chunks.push(value)
+            return
+          }
+          reject(new TypeError(`Unsupported response chunk from ${url}.`))
+          response.destroy()
         })
         response.on('end', () => {
           resolve(concatBytes(chunks))
@@ -75,6 +87,9 @@ const fetchUrl = (url: string): Promise<Buffer> => {
       .on('error', reject)
   })
 }
+
+const isPackageMetadata = (value: unknown): value is PackageMetadata =>
+  typeof value === 'object' && value !== null
 
 const concatBytes = (chunks: Uint8Array[]): Buffer => {
   const size = chunks.reduce((total, chunk) => total + chunk.byteLength, 0)
