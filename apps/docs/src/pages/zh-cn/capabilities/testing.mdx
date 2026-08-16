@@ -1,0 +1,121 @@
+---
+title: 测试
+description: 使用 func/testing 在内存中隔离调用 CLI，并捕获结果、输出和异常。
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const testingCode = [
+  "import { createTestingApp } from 'func/testing'",
+  "import { AppModule } from '../src/app.module'",
+  '',
+  'const app = createTestingApp(AppModule)',
+  "const result = await app.invoke(['deploy', '--env', 'test'], {",
+  "  cwd: '/workspace',",
+  "  stdin: 'yes',",
+  '})',
+  '',
+  'expect(result.exitCode).toBe(0)',
+  "expect(result.stdout).toContain('deployed')",
+  "expect(result.stderr).toBe('')",
+  'expect(result.error).toBeUndefined()',
+].join('\n')
+
+export const overrideCode = [
+  "import { createTestingApp } from 'func/testing'",
+  "import { AppModule } from '../src/app.module'",
+  "import { FakeRegistryService, RegistryService } from './registry.fixture'",
+  '',
+  'const app = createTestingApp(AppModule, {',
+  '  overrides: [',
+  '    {',
+  '      provide: RegistryService,',
+  '      useClass: FakeRegistryService,',
+  '    },',
+  '  ],',
+  '})',
+].join('\n')
+
+export const scopedOverrideCode = [
+  'const app = createTestingApp(AppModule, {',
+  '  overrides: [',
+  '    {',
+  '      module: DeployModule,',
+  '      provider: {',
+  '        provide: RegistryService,',
+  '        useClass: FakeRegistryService,',
+  '      },',
+  '    },',
+  '  ],',
+  '})',
+].join('\n')
+
+<DocsLayout
+  frontmatter={frontmatter}
+  locale="zh-cn"
+  page="capabilities/testing">
+
+`func/testing` 在内存中执行完整的 func 应用，适合验证命令分发、选项解析、依赖注入、输出和错误处理。它不依赖特定测试框架，也不会启动子进程。
+
+  <Callout locale="zh-cn" title="输出必须经过 Context.io" variant="note">
+
+测试应用会捕获 `@Stdout()`、`@Stderr()` 以及 `Context.io` 暴露的输出流。直接调用全局 `console` 仍会写入当前测试进程的流。选择输出流和测试 IO 的完整原则见[输入与输出](/zh-cn/input-output)。
+
+  </Callout>
+
+## 创建并调用测试应用
+
+`createTestingApp` 编译一次 module；每次 `invoke` 都会创建隔离的容器、IO 和依赖图：
+
+<CodeBlock code={testingCode} filename="tests/deploy.test.ts" lang="ts" />
+
+`invoke` 的第一个参数是省略可执行文件名后的 argv。第二个参数可以覆盖本次调用的运行环境：
+
+| 选项     | 用途                       |
+| -------- | -------------------------- |
+| `cwd`    | 设置 `Context.cwd`。       |
+| `stdin`  | 作为本次调用的标准输入。   |
+| `signal` | 向命令传递 `AbortSignal`。 |
+
+同一个测试应用可以调用多次。每次调用都会重新创建 command、module 和 provider 实例，不会共享上一次调用的生命周期状态。
+
+## 断言调用结果
+
+`invoke` 始终返回结构化结果：
+
+| 字段       | 含义                                 |
+| ---------- | ------------------------------------ |
+| `exitCode` | 本次调用的退出码。未处理异常为 `1`。 |
+| `result`   | handler 的返回值。                   |
+| `stdout`   | 捕获的正常输出。                     |
+| `stderr`   | 捕获的错误输出。                     |
+| `error`    | 逃出应用边界的未处理异常。           |
+
+已被 `onError` 处理的异常不会出现在 `error` 中。`createTestingApp` 和 `invoke` 也不会修改测试进程的 `process.exitCode`。
+
+## 替换 provider
+
+使用 `overrides` 把真实依赖替换为 fake、stub 或测试值：
+
+<CodeBlock code={overrideCode} filename="tests/deploy.test.ts" lang="ts" />
+
+覆盖项使用普通 provider 定义，支持 `useClass`、`useValue` 和 `useFactory`。覆盖不会跳过原始 module 的声明校验，也不会改变 provider 的可见性。
+
+当同一个 token 在多个 module 中分别注册时，通过 `{ module, provider }` 指定目标：
+
+<CodeBlock code={scopedOverrideCode} filename="tests/deploy.test.ts" lang="ts" />
+
+## API 速查
+
+| API                                  | 用途                                             |
+| ------------------------------------ | ------------------------------------------------ |
+| `createTestingApp(module, options?)` | 编译测试应用，并可预先设置 provider 覆盖。       |
+| `TestingApp.invoke(argv?, options?)` | 在隔离的调用上下文中执行一次。                   |
+| `TestingInvocationResult`            | 提供 exitCode、result、stdout、stderr 和 error。 |
+| `ProviderOverride`                   | 使用普通 provider 定义替换唯一 token。           |
+| `ModuleProviderOverride`             | 在指定 module 中替换重复注册的 token。           |
+
+</DocsLayout>

@@ -1,0 +1,32 @@
+---
+code: F_SYSTEM_CIRCULAR_MODULE_IMPORT
+title: 模块循环导入
+description: Module.imports 中的依赖路径回到了已经正在编译的 module。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Module, createApp } from 'func'",
+  "import type { ModuleMetadata } from 'func'",
+  '',
+  'const first: ModuleMetadata = {}',
+  'const second: ModuleMetadata = { imports: [first] }',
+  'first.imports = [second]',
+  '',
+  '@Module({ imports: [first] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## 复现
+
+module import 图包含闭环：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 如何修复
+
+根据 `details.dependencyPath` 找到回到起点的 import。把共享 provider 提取到第三个 module，由原来的两个 module 单向 import；不要让 feature modules 互相 import。仅需要类型时使用 type-only import，不要把它加入 `Module.imports`。

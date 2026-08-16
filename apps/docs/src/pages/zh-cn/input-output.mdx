@@ -1,0 +1,148 @@
+---
+title: 输入与输出
+description: 理解 stdin、stdout 与 stderr 的职责，正确处理管道、诊断信息、退出码和自动化测试。
+lastModified: '2026-08-16'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const outputCode = [
+  "import { Command, Handler, Stderr, Stdout } from 'func'",
+  "import type { Writable } from 'node:stream'",
+  '',
+  "@Command('status')",
+  'export class StatusCommand {',
+  '  @Handler()',
+  '  run(',
+  '    @Stdout() stdout: Writable,',
+  '    @Stderr() stderr: Writable,',
+  '  ) {',
+  '    stdout.write(\'{"status":"ready"}\\n\')',
+  "    stderr.write('Cache is warming up.\\n')",
+  '  }',
+  '}',
+].join('\n')
+
+export const inputCode = [
+  "import { Command, Context, Handler } from 'func'",
+  '',
+  "@Command('import')",
+  'export class ImportCommand {',
+  '  constructor(private readonly context: Context) {}',
+  '',
+  '  @Handler()',
+  '  async run() {',
+  '    const chunks: Buffer[] = []',
+  '    for await (const chunk of this.context.io.stdin) {',
+  '      chunks.push(Buffer.from(chunk))',
+  '    }',
+  '',
+  "    const payload = Buffer.concat(chunks).toString('utf8')",
+  '    this.context.io.stdout.write(`Imported ${payload.length} bytes.\\n`)',
+  '  }',
+  '}',
+].join('\n')
+
+export const testingCode = [
+  "import { CommandMajor, Context, Handler, Module } from 'func'",
+  "import { createTestingApp } from 'func/testing'",
+  '',
+  '@CommandMajor()',
+  'class EchoCommand {',
+  '  constructor(private readonly context: Context) {}',
+  '',
+  '  @Handler()',
+  '  async run() {',
+  "    let input = ''",
+  '    for await (const chunk of this.context.io.stdin) {',
+  '      input += chunk.toString()',
+  '    }',
+  '',
+  '    this.context.io.stdout.write(input.toUpperCase())',
+  '  }',
+  '}',
+  '',
+  '@Module({ commands: [EchoCommand] })',
+  'class AppModule {}',
+  '',
+  "const result = await createTestingApp(AppModule).invoke([], { stdin: 'hello' })",
+  '',
+  "expect(result.stdout).toBe('HELLO')",
+  "expect(result.stderr).toBe('')",
+  'expect(result.exitCode).toBe(0)',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="input-output">
+
+CLI 不只是在终端里打印文字。它通常处在 shell 管道中，上一个程序的输出可能成为它的输入，它的结果也可能交给文件、另一个程序或测试代码。stdin、stdout 和 stderr 是这份可组合契约的三个标准数据流。
+
+| 数据流 | 方向       | func 默认值      | 主要职责                                     |
+| ------ | ---------- | ---------------- | -------------------------------------------- |
+| stdin  | 外部 → CLI | `process.stdin`  | 管道数据、重定向文件或交互输入。             |
+| stdout | CLI → 外部 | `process.stdout` | 命令的正常结果，以及可供后续程序消费的数据。 |
+| stderr | CLI → 外部 | `process.stderr` | 错误、警告、进度和其他诊断信息。             |
+
+位置参数与 stdin 也不是同一种输入。`ship show alice` 中的 `alice` 是较短、参与命令语法的位置参数，通过 `@Args().inputs` 读取；`cat users.json | ship import` 中的 JSON 是内容流，通过 `Context.io.stdin` 读取。
+
+## 区分 stdout 与 stderr
+
+一个实用判断是：如果调用者只保留命令结果，这段内容是否仍然应该存在？应该存在的写入 stdout；帮助用户理解执行过程、但不属于结果本身的写入 stderr。
+
+| 内容                           | 推荐数据流 | 原因                                             |
+| ------------------------------ | ---------- | ------------------------------------------------ |
+| 文本结果、表格、JSON、生成内容 | stdout     | 可以安全地重定向到文件或交给下一个程序。         |
+| 错误详情、警告、废弃提示       | stderr     | 不会污染供机器读取的正常结果。                   |
+| spinner、下载进度、调试诊断    | stderr     | 属于执行过程，不应成为管道数据。                 |
+| 提示符与交互反馈               | stderr     | 保持 stdout 可用于最终结果；具体库可能另有约定。 |
+
+例如 `ship inspect --json > result.json` 只把 stdout 写入文件，stderr 仍显示在终端；`ship inspect --json 2> diagnostic.log` 则单独保存诊断信息。`ship inspect --json | jq '.status'` 只会把 stdout 送给 `jq`。正确分流后，警告和进度不会破坏 JSON。
+
+写入 stderr 不会自动让调用失败，写入 stdout 也不代表一定成功。命令是否成功由 `Context.exitCode` 和错误处理结果表达：默认退出码为 `0`，未处理异常默认为 `1`，应用也可以显式设置 `0` 到 `255` 的整数。
+
+## 为什么不直接使用 console.log
+
+在默认进程环境中，`console.log()` 最终通常也会写入 `process.stdout`，所以手动运行时看起来没有区别。问题在于它绕过了 func 为本次调用配置的 IO：
+
+- `app.bootstrap()`、`invoker.invoke()` 可以为一次调用替换 stdout 和 stderr，`console.log()` 仍使用全局 console。
+- `func/testing` 捕获的是调用上下文中的 streams，直接调用 `console.log()` 会把内容写到测试进程，而不是 `result.stdout`。
+- `console.log()` 会格式化多个参数并自动追加换行；`Writable.write()` 输出的内容更明确，适合稳定的 CLI 文本或 JSON 协议。
+- 依赖注入让业务代码不必绑定到单例进程，因此同一应用更容易嵌入其他 Node.js 程序或在内存中重复调用。
+
+同理，业务命令也应通过注入的 stderr 代替全局 `console.error()`。底层库如果只返回数据或抛出错误，而把最终输出留给 command，通常更容易复用和测试。
+
+## 直接注入输出流
+
+command 只需要输出时，使用 `@Stdout()` 或 `@Stderr()` 注入本次调用的 Node.js `Writable`：
+
+<CodeBlock code={outputCode} filename="src/commands/status.command.ts" lang="ts" />
+
+这两个装饰器可用于 DI 管理的构造函数和 handler 参数。func 不会包装、关闭或自动换行；需要换行时显式写入 `\n`，也不要对注入的 stream 调用 `end()`。对于少量 CLI 输出可以直接 `write()`；持续写入大量内容时，应遵循 Node.js stream 的背压规则，或使用 stream pipeline。
+
+如果 command、module 或 provider 同时需要输入、输出和其他运行信息，直接注入 `Context`，再使用 `context.io.stdout` 与 `context.io.stderr`。
+
+## 从 stdin 读取内容
+
+stdin 只通过 `Context.io.stdin` 暴露，它是本次调用配置的 Node.js `Readable`。可以用异步迭代逐块读取：
+
+<CodeBlock code={inputCode} filename="src/commands/import.command.ts" lang="ts" />
+
+上面的实现会一直读取到输入结束，适合 `cat data.json | ship import` 或 `ship import < data.json`。大文件不应先全部拼接到内存；应逐块解析或把 stdin 接入支持 stream 的解析器。交互式提示还要考虑终端是否可交互、取消信号和无输入时是否会等待，通常交给专门的 prompt 库处理。
+
+## 在应用边界替换 IO
+
+`app.bootstrap(options)` 和 `invoker.invoke(argv, options)` 接受 `stdin`、`stdout` 与 `stderr`。未传入时使用当前进程的标准流；嵌入应用、编写适配器或测试时，可以传入其他 `Readable` 和 `Writable`。
+
+这些 streams 由调用方拥有。func 只读取或写入它们，不负责关闭。一次调用中的 `Context.io`、`@Stdout()` 和 `@Stderr()` 始终指向同一组对象，因此 command 与 provider 可以遵循一致的输出边界。
+
+## 测试输入与输出
+
+`func/testing` 会为每次 `invoke()` 创建隔离 IO。通过 `stdin` 提供输入字符串，并直接断言返回结果中的 `stdout` 和 `stderr`：
+
+<CodeBlock code={testingCode} filename="tests/io.test.ts" lang="ts" />
+
+测试时应至少覆盖正常结果、诊断信息和失败退出码。对于 JSON 输出，可以先断言 stderr 为空，再对 `result.stdout` 使用 `JSON.parse()`；这样能同时验证输出格式没有被警告或调试文本污染。
+
+如果测试看到了终端日志，但 `result.stdout` 为空，通常表示代码仍在调用全局 `console.log()`。把输出改为 `@Stdout()`、`@Stderr()` 或 `Context.io` 后，生产环境替换和测试捕获才会使用同一条路径。完整测试应用和 provider override 方式见[测试](/zh-cn/capabilities/testing)。
+
+</DocsLayout>

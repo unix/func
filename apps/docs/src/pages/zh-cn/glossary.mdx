@@ -1,0 +1,50 @@
+---
+title: 术语索引
+description: 按 CLI 输入、func 定义和运行时结构三个层级查询术语。
+lastModified: '2026-08-15'
+---
+
+import DocsLayout from '@/layouts/docs.astro'
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="glossary">
+
+这些术语属于不同层级，不应互相替换。学习如何定义命令时先读 [核心概念](/zh-cn/concepts)；只有需要确认精确含义时再查本页。
+
+## 用户输入中的普通 CLI 术语
+
+| 术语         | 含义                                                                            | 对应位置或 API                        |
+| ------------ | ------------------------------------------------------------------------------- | ------------------------------------- |
+| `一次调用`   | 用户从启动可执行文件到程序退出的完整执行，例如 ship project --help。            | `完整 argv`                           |
+| `可执行文件` | 用户输入的程序名，例如 ship。它通常由 package.json#bin 指向构建产物。           | `package.json#bin`                    |
+| `token`      | 命令行解析前按顺序读取的一段输入，例如 project、--role 或 owner。               | `process.argv`                        |
+| `选项`       | 普通 CLI 中对 --name、-n 及其值的统称；在 func 中还要区分字段选项和处理器标志。 | `@Flag / @Value / @Handler({ flag })` |
+| `位置输入`   | 不通过选项名标识、其含义由所在位置决定的数据，例如 alice。                      | `@Args().inputs`                      |
+
+## func 中用来定义 CLI 的概念
+
+| 术语         | 含义                                                            | 对应 API                                       |
+| ------------ | --------------------------------------------------------------- | ---------------------------------------------- |
+| `具名命令`   | 一段或多段 path token 与 canonical path 或 alias 匹配的命令类。 | `@Command()`                                   |
+| `主命令`     | 在没有匹配具名命令时提供默认、路径或 flag 入口的特殊命令类。    | `@CommandMajor()`                              |
+| `缺失命令`   | 可选的后备命令类，在位置输入无法匹配具名路径时接收调用。        | `@CommandMissing()`                            |
+| `处理器`     | 命令类中执行具体动作的方法；一次调用只会选择一个处理器。        | `@Handler()`                                   |
+| `默认处理器` | 当前命令节点没有选择 path 或动作选项时执行的方法。              | `@Handler()`                                   |
+| `处理器路径` | 追加在 command path 后的一段或多段固定 token。                  | `@Handler({ path })`                           |
+| `处理器标志` | 通过 --version 一类选项改为执行另一个互斥处理器。               | `@Handler({ flag, alias })`                    |
+| `模块动作`   | 在一个 module 作用域内提供可复用的互斥动作选项。                | `@OptionCommand()`                             |
+| `字段选项`   | 解析并赋值到 command 或 option provider 的标志、单值或重复值。  | `@Flag / @Value / @ArrayString / @ArrayNumber` |
+| `输入`       | 移除匹配 command 与 handler path 后剩余的位置 token。           | `Args.inputs`                                  |
+
+## 运行时与应用结构术语
+
+| 术语              | 含义                                                                   | 对应 API                         |
+| ----------------- | ---------------------------------------------------------------------- | -------------------------------- |
+| `命令图`          | 由 command path、handler path 和 alias 编译出的不可变路由结构。        | 内部运行时结构                   |
+| `运行时上下文`    | 当前调用的命令元数据、IO、cwd、signal 与 exit code。                   | `Context`                        |
+| `模块`            | 组织命令、options、providers 和导入模块的应用边界。                    | `@Module()`                      |
+| `provider`        | 由模块注册并注入的 class、value 或 factory，通常承载可复用能力。       | `@Injectable / Module.providers` |
+| `option provider` | 由 module 注册、带 CLI 字段的可注入类，作用于根或直接拥有的 commands。 | `@Option / Module.options`       |
+
+运行时如何使用这些定义选择类、方法和依赖，见 [深入了解运行时](/zh-cn/runtime)；所有装饰器的参数结构见 [API 参考](/zh-cn/apis)。
+
+</DocsLayout>

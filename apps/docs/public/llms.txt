@@ -1,0 +1,39 @@
+# func
+
+> A typed TypeScript framework for command-line applications.
+
+## Start
+
+- [Introduction](https://func.witt.im/index.md): Framework overview.
+- [Quick Start](https://func.witt.im/guide.md): Create and run a project.
+- [Work with an Agent](https://func.witt.im/guide/agent-setup.md): Reusable agent tasks.
+- [Agent Setup](https://func.witt.im/setup.txt): Project creation instructions.
+- [Project Rules](https://func.witt.im/rules.txt): Structure and testing rules.
+
+## Core
+
+- [Core Concepts](https://func.witt.im/concepts.md): Commands, modules, and providers.
+- [Commands](https://func.witt.im/commands.md): Commands, aliases, and handlers.
+- [Field Options](https://func.witt.im/options.md): Flags, values, and validation.
+- [Parameters](https://func.witt.im/parameters.md): Arguments, context, and injection.
+- [Errors and Lifecycle](https://func.witt.im/error-handler.md): Error and lifecycle hooks.
+- [Tooling](https://func.witt.im/tooling.md): Develop and bundle with funcgo.
+- [Runtime](https://func.witt.im/runtime.md): Runtime execution model.
+
+## Capabilities
+
+- [Help](https://func.witt.im/zh-cn/capabilities/help.md): Generated and custom help.
+- [Testing](https://func.witt.im/zh-cn/capabilities/testing.md): Isolated CLI tests.
+- [Config Files](https://func.witt.im/zh-cn/capabilities/config.md): Typed JSON config files.
+- [Logging](https://func.witt.im/zh-cn/capabilities/log.md): Per-invocation logs.
+- [Shell Completion](https://func.witt.im/zh-cn/capabilities/completion.md): Dynamic shell completion.
+
+## Reference
+
+- [API Reference](https://func.witt.im/apis.md): Public API signatures.
+- [Error Index](https://func.witt.im/errors.md): System error lookup.
+- [Glossary](https://func.witt.im/glossary.md): CLI and runtime terms.
+- [Use Cases](https://func.witt.im/use-cases.md): Common command models.
+- [Ecosystem](https://func.witt.im/ecosystem.md): Related CLI packages.
+- [Changelog](https://func.witt.im/changelog.md): Release history.
+- [中文文档](https://func.witt.im/zh-cn/index.md): Chinese documentation entry.

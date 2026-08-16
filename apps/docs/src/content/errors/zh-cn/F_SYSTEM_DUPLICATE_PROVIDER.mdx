@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_DUPLICATE_PROVIDER
+title: Provider token 重复或不明确
+description: 同一个 module 重复注册 token，或请求方同时看到多个 imported provider。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Module, createApp, createToken } from 'func'",
+  '',
+  "const PROJECT = createToken<string>('PROJECT')",
+  '',
+  '@Module({',
+  '  providers: [',
+  "    { provide: PROJECT, useValue: 'first' },",
+  "    { provide: PROJECT, useValue: 'second' },",
+  '  ],',
+  '})',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## 复现
+
+同一个 module 内的 token 必须唯一：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 如何修复
+
+每个 module 只保留一个定义。不同 modules 可以拥有同名私有 token；但如果它们都 export 给同一个请求方，注入时仍会产生歧义。此时减少 export、在请求方注册明确的本地 provider，或使用不同 token 表达不同职责。
+
+测试覆盖也可能触发此错误：token 在多个 modules 中注册时，使用 `{ module, provider }` 指定唯一覆盖目标。

@@ -1,0 +1,14 @@
+---
+code: F_SYSTEM_CIRCULAR_PROVIDER_DEPENDENCY
+title: Provider 循环依赖
+description: 当前调用解析 provider 时，同一个 token 再次出现在尚未完成的依赖路径中。
+lastModified: '2026-08-15'
+---
+
+## 这个错误是什么
+
+class 构造函数或 factory `inject` 形成闭环，例如 A 依赖 B、B 又依赖 A。func 不会创建只初始化一部分的实例，因此停止解析并把完整闭环写入 `details.dependencyPath`。
+
+## 如何修复
+
+优先重新划分职责，让一个 provider 只依赖更底层的接口。也可以把双方共同需要的状态提取到第三个 provider，或把其中一个同步构造依赖改成 handler 显式传入的数据。不要通过全局变量或构造后手动回填实例隐藏循环。

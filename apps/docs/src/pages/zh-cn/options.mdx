@@ -1,0 +1,170 @@
+---
+title: 字段选项
+description: 定义命令标志、标量值、重复值、默认值、别名和校验。
+lastModified: '2026-08-16'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const flagCode = [
+  "import { Command, Flag, Handler } from 'func'",
+  '',
+  "@Command({ path: 'serve' })",
+  'export class ServeCommand {',
+  "  @Flag({ alias: 'v', aliases: ['V'], description: 'Print request logs' })",
+  '  verbose = false',
+  '',
+  "  @Flag({ aliases: ['c', 'C'], description: 'Use colored output', negatable: true })",
+  '  color = true',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.verbose, this.color)',
+  '  }',
+  '}',
+].join('\n')
+
+export const valueCode = [
+  "import { Command, Handler, Value } from 'func'",
+  '',
+  "@Command({ path: 'serve' })",
+  'export class ServeCommand {',
+  "  @Value({ description: 'Interface to bind' })",
+  "  host: string = 'localhost'",
+  '',
+  "  @Value({ aliases: ['p', 'P'], description: 'Port to listen on' })",
+  '  port: number = 3000',
+  '',
+  "  @Value({ name: 'config-file' })",
+  '  configFile?: string',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.host, this.port, this.configFile)',
+  '  }',
+  '}',
+].join('\n')
+
+export const arrayCode = [
+  "import { ArrayNumber, ArrayString, Command, Handler } from 'func'",
+  '',
+  "@Command({ path: 'build' })",
+  'export class BuildCommand {',
+  "  @ArrayString({ name: 'include', aliases: ['i', 'I'] })",
+  '  includes: string[] = []',
+  '',
+  "  @ArrayNumber({ name: 'port' })",
+  '  ports: number[] = []',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.includes, this.ports)',
+  '  }',
+  '}',
+].join('\n')
+
+export const validationCode = [
+  "import { Command, DependsOn, Enum, Exclusive, Flag, Handler, Required, Value, ValueValidate } from 'func'",
+  '',
+  "@Command({ path: 'publish' })",
+  'export class PublishCommand {',
+  '  @Required()',
+  "  @Enum(['dev', 'prod'])",
+  '  @Value()',
+  '  target?: string',
+  '',
+  "  @DependsOn(['token'])",
+  '  @Value()',
+  '  registry?: string',
+  '',
+  '  @Value()',
+  '  token?: string',
+  '',
+  "  @Exclusive(['json'])",
+  '  @Flag()',
+  '  table = false',
+  '',
+  '  @Flag()',
+  '  json = false',
+  '',
+  "  @ValueValidate((value) => Number(value) > 0 || 'retry must be positive')",
+  '  @Value()',
+  '  retry: number = 1',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="options">
+
+字段选项既是命令属性，也定义了 CLI 对外提供的选项。func 会根据当前命令中的装饰字段创建 选项解析器，把解析值或默认值赋给实例，完成校验，然后才调用处理器。
+
+字段选项只属于一个命令作用域。`ServeCommand` 声明的选项可用于 `ship serve`，不会自动出现在主命令或其他具名命令中。完成单个命令的字段设计后，如果多个命令需要复用字段或动作，再阅读[共享字段](/zh-cn/shared-fields)。
+
+## 选择合适的值类型
+
+| 用户需求             | 输入示例                        | 装饰器                              | 字段值                 |
+| -------------------- | ------------------------------- | ----------------------------------- | ---------------------- |
+| 是或否的开关         | `--verbose 或 -v`               | `@Flag()`                           | `boolean`              |
+| 一个字符串或有限数字 | `--port 3000`                   | `@Value()`                          | `string \| number`     |
+| 同一选项重复多次     | `--include src --include tests` | `@ArrayString()` / `@ArrayNumber()` | `string[] \| number[]` |
+
+## 布尔标志
+
+`@Flag()` 创建布尔开关。用户没有传入该选项时，字段保留属性初始值；使用长名称或任一单字符别名时，字段值为 `true`。
+
+<CodeBlock code={flagCode} filename="src/commands/serve.command.ts" lang="ts" />
+
+`ship serve --verbose`、`ship serve -v` 和 `ship serve -V` 都会得到 `this.verbose === true`。多个短形式使用 `aliases`；单数 `alias` 继续兼容，两者同时使用时会合并并去重。
+
+negatable flag 还会接受自动生成的 `--no-<name>` 形式，因此 `ship serve --no-color` 会得到 `this.color === false`。所有短别名都是正向形式：`ship serve --no-color -C` 会得到 `true`。正向和反向形式同时出现时，以最后一个为准；都未出现时保留属性初始值。
+
+字段标志用于向当前动作提供布尔值。如果该选项应该选择另一个方法，请改用处理器标志，详见[命令](/zh-cn/commands)。
+
+## 标量值
+
+`@Value()` 接收一个值。func 根据 TypeScript 发出的装饰器元数据推断 `String` 和 `Number`，因此每个值字段都必须显式把属性声明为 `string` 或 `number`，只有初始值并不足够。布尔选项必须使用 `@Flag()`，从而让存在形式与反向形式保持明确的 CLI 语义。
+
+<CodeBlock code={valueCode} filename="src/commands/serve.command.ts" lang="ts" />
+
+`ship serve --host 0.0.0.0 -P 4000 --config-file ./dev.json` 会分别为三个字段赋予字符串、数字和字符串。属性名默认作为对外选项名。驼峰字段如果需要常见的 kebab-case 时，应像 `configFile` 一样显式设置 `name`。
+
+用户省略选项时，属性初始值就是默认值。默认值会直接影响应用行为；如果用户需要知道 它，帮助信息中也应注明。
+
+## 重复值
+
+`@ArrayString()` 和 `@ArrayNumber()` 分别把同一选项的多次输入收集为 `string[]` 和 `number[]`。TypeScript 装饰器元数据只能识别到 `Array`，因此由装饰器名称表达元素解析类型，由属性声明确认字段是数组。
+
+<CodeBlock code={arrayCode} filename="src/commands/build.command.ts" lang="ts" />
+
+`ship build -i src -I tests --port 3000 --port -1.5` 会把 `['src', 'tests']` 赋给 `this.includes`，并把 `[3000, -1.5]` 赋给 `this.ports`。重复值会保留输入顺序。
+
+## 在业务代码运行前完成校验
+
+字段获得解析值或默认值后，func 会在处理器运行前执行校验器。校验失败会产生 runtime-print 输入错误，处理器不会运行。
+
+<CodeBlock
+  code={validationCode}
+  filename="src/commands/publish.command.ts"
+  lang="ts"
+/>
+
+- `@Required()` 拒绝 `undefined` 。已定义的属性默认值会满足该规则，因此必须由用户提供的选项不要设置默认值。
+- `@Enum(values)` 只接受列表内的标量值；对于数组，则要求每一项都在列表内。
+- `@DependsOn(['token'])` 只在装饰的选项被显式传入时要求同时提供 `--token`。
+- `@Exclusive(['json'])` 会拒绝两个选项都被显式传入的调用。
+- `@ValueValidate(fn)` 接收归一化值和所有选项值。返回 `false` 会产生通用错误，返回字符串会显示自定义信息，没有返回值表示校验通过。
+
+依赖和互斥校验器接收的是不带 `--` 的公开长选项名，不是 TypeScript 属性名或短 alias。
+
+看起来像选项但没有声明的 token 会被拒绝。剩余位置输入和完整运行时上下文见 [参数注入](/zh-cn/parameters)。
+
+## 在不移除选项的情况下标记废弃
+
+将 `@Deprecated()` 与 `@Flag`、`@Value`、`@ArrayString` 或 `@ArrayNumber` 放在同一属性上，可以让选项继续工作，同时在结构化帮助中标明，并在用户显式传入时向 stderr 输出不影响退出码的提示。可以传入 `@Deprecated('Use --format instead.')` 这样的迁移说明。默认值不会触发提示；把该装饰器放在普通属性上也不会产生可观察效果。
+
+module 作用域的动作选项通过 `@OptionCommand` 的 `deprecated` 参数标记。
+
+</DocsLayout>

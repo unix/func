@@ -1,0 +1,122 @@
+---
+title: 错误与生命周期
+description: 使用 module 和 command hooks 处理错误与应用生命周期。
+lastModified: '2026-08-15'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import TerminalDemo from '@/components/demos/terminal-demo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const commandErrorCode = [
+  "import { Command, Handler } from 'func'",
+  "import type { Exception, ExceptionContext, OnError } from 'func'",
+  '',
+  "@Command('publish')",
+  'export class PublishCommand implements OnError {',
+  '  onError(exception: Exception, context: ExceptionContext) {',
+  '    console.error(`发布失败：${exception.message}`)',
+  '    context.preventDefaultPrint()',
+  '  }',
+  '',
+  '  @Handler()',
+  '  async run() {',
+  "    throw new Error('Registry is unavailable')",
+  '  }',
+  '}',
+].join('\n')
+
+export const moduleErrorCode = [
+  "import { ErrorScope, Module } from 'func'",
+  "import type { Exception, ExceptionContext, OnError } from 'func'",
+  "import { PublishCommand } from './commands/publish.command'",
+  '',
+  '@Module({ commands: [PublishCommand] })',
+  'export class AppModule implements OnError {',
+  '  onError(exception: Exception, context: ExceptionContext) {',
+  '    if (exception.scope === ErrorScope.RUNTIME_PRINT) {',
+  '      console.error(`输入无效：${exception.message}`)',
+  '      context.preventDefaultPrint()',
+  '      return',
+  '    }',
+  '',
+  '    console.error(`运行失败：${exception.message}`)',
+  '  }',
+  '}',
+].join('\n')
+
+export const lifecycleCode = [
+  "import { Module } from 'func'",
+  "import type { ExecutionOutcome, OnDispose, OnInit } from 'func'",
+  '',
+  '@Module({})',
+  'export class AppModule implements OnInit, OnDispose {',
+  '  onInit() {',
+  '    // 当前调用的应用已经初始化。',
+  '  }',
+  '',
+  '  onDispose(outcome: ExecutionOutcome) {',
+  "    if (outcome.status === 'error') {",
+  '      console.error(outcome.error.message)',
+  '    }',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="error-handler">
+
+func 使用普通类方法统一生命周期和错误处理。command、`@OptionCommand` 与 module 可以实现 `onInit`、`onError` 和 `onDispose`；普通 provider 与 `@Option` provider 可以实现 `onInit` 和 `onDispose`。请声明对应的 `OnInit`、`OnError` 或 `OnDispose` 接口，让 TypeScript 在编译期校验 hook 签名。不再需要额外的 catch 或 lifecycle 装饰器。
+
+## 错误分类
+
+| 分类              | 含义                  | 处理方式                                                             |
+| ----------------- | --------------------- | -------------------------------------------------------------------- |
+| `F_SYSTEM`        | 应用定义无效          | 立即抛出，不进入 `onError`。                                         |
+| `F_RUNTIME`       | 应用或依赖运行失败    | 进入当前 command 和 module 错误链。                                  |
+| `F_RUNTIME_PRINT` | 用户可修正的 CLI 输入 | 使用相同错误链；未调用 `preventDefaultPrint()` 时最终输出到 stderr。 |
+
+<Callout locale="zh-cn" title="系统错误属于定义缺陷" variant="caution">
+
+重复 token、无效 provider、缺失 handler 等 `F_SYSTEM` 错误应直接修复应用定义。它们不会进入用户错误 hook。
+
+</Callout>
+
+## 优先处理当前命令
+
+需要命令上下文或专属恢复逻辑时，直接在 command 上定义 `onError(exception, context)`。exception 保存稳定的失败信息，context 控制本次调用的处理行为。
+
+<CodeBlock
+  code={commandErrorCode}
+  filename="src/commands/publish.command.ts"
+  lang="ts"
+/>
+<TerminalDemo
+  command="ship publish"
+  demo="errors-local-catch"
+  locale="zh-cn"
+  rows={2}
+  sourceUrl="/demos/errors-local-catch.ts"
+/>
+
+`onError` 正常返回表示错误已处理，并停止继续传播；如果它抛出错误，新错误会继续进入下一个 module hook。
+
+## 将范围策略放入 module
+
+错误顺序固定为：当前 command 或 option action → 直接 owner module → 根 AppModule。owner 与根之间仅用于导入的 module 不会隐式成为全局切面。解析错误发生在 command 与 owner 激活前，因此只进入根 module。
+
+<CodeBlock code={moduleErrorCode} filename="src/app.module.ts" lang="ts" />
+
+真正的应用级格式化、日志、翻译或遥测放在根 module；只属于某组 command 的策略放在直接声明这些 command 的 feature module。
+
+`F_RUNTIME_PRINT` 在 hook 链结束后仍会默认写入 stderr。只有 hook 已输出替代信息时才调用 `preventDefaultPrint()`。
+
+## 使用一个清理 hook
+
+`onDispose(outcome)` 统一替代 finish 与 complete 等不同结束概念。每个已激活的受管实例都会执行它，并收到同一个被冻结的 outcome 对象。
+
+<CodeBlock code={lifecycleCode} filename="src/app.module.ts" lang="ts" />
+
+成功 outcome 包含 `status`、`result` 和 `exitCode`；失败 outcome 包含 `status`、`error`、`handled` 和 `exitCode`。command、option action 与 module 先按激活顺序逆序清理，随后 providers 按创建顺序逆序释放。清理失败会被聚合，也不会重新进入 `onError`。
+
+</DocsLayout>

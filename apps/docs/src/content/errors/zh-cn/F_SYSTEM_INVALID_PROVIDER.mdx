@@ -1,0 +1,31 @@
+---
+code: F_SYSTEM_INVALID_PROVIDER
+title: Provider 定义无效
+description: Module.providers 中的 class 或显式 provider 对象不符合 DI 注册规则。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Module, createApp } from 'func'",
+  '',
+  'class ProjectService {}',
+  '',
+  '@Module({ providers: [ProjectService] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## 复现
+
+直接注册的 class 必须拥有自己的 `@Injectable()` 元数据：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 如何修复
+
+给 class 添加 `@Injectable()`；继承自 injectable base 的子类也必须显式添加。provider 对象必须提供有效 `provide` token，并且恰好使用 `useClass`、`useValue` 或 `useFactory` 一种策略。`useClass` 同样要求 injectable class，`useFactory.inject` 只能包含有效 tokens。
+
+`Context` 与 `Args` 是系统值，不能通过 module provider 或测试 override 替换；请使用 `BootstrapOptions`、`Invoker.invoke` 或 `TestingApp.invoke` 提供对应调用环境。

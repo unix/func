@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_INVALID_OVERRIDE_TARGET
+title: Option override 目标无效
+description: '@Override 没有装饰恰好一个实例字段选项，或被用于不支持的目标。'
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Handler, Module, Override, createApp } from 'func'",
+  '',
+  "@Command('build')",
+  'class BuildCommand {',
+  '  @Override()',
+  '  verbose = false',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## 复现
+
+`@Override()` 本身不会创建选项：
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## 如何修复
+
+将它与恰好一个 `@Flag()`、`@Value()`、`@ArrayString()` 或 `@ArrayNumber()` 放在同一个 command 或 `@Option()` 实例属性上。若没有需要覆盖的上层 option，直接删除 `@Override()`。`@OptionCommand` 使用 `overrideAll: true`，不使用字段装饰器。

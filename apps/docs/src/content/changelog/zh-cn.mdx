@@ -1,0 +1,80 @@
+import ChangelogRelease from '@/components/content/changelog-release.astro'
+import { changelogReleases } from '@/lib/changelog'
+
+<ChangelogRelease {...changelogReleases['3.0.0-canary.0']} locale="zh-cn">
+
+- 引入 v3 module runtime：根应用必须使用 `@Module()`，依赖改为 module 作用域的 providers 与显式 exports，并统一使用 `onInit`、`onError` 和 `onDispose` 生命周期。
+- 将 command 与 handler path 编译为可共享前缀的命令图，加入根/feature module options、`@Option`、`@OptionCommand` 与显式 override。
+- 更新参数模型：`Args` 提供冻结的 `raw`、`invokedPath`、`path`、`inputs` 和 `options`，运行时信息与 IO 通过可注入 `Context` 提供。
+- 将重复值拆为 `@ArrayString()` 与 `@ArrayNumber()`，并加入 negatable flags、multiple aliases 与 deprecation metadata。
+- 核心包改为 ESM-only 入口，并加入独立的 `func/help`、`func/testing`、`func/config`、`func/log` 与 opt-in `func/completion` 子路径。
+- 移除旧的 service、registry、catch 与 error decorator API；结构化 `Exception` 与 module/command hooks 取代旧错误模型。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.3.1']} locale="zh-cn">
+
+- 追加了一些 `F_SYSTEM_*` 错误码，以便更加细致地定位错误。
+- 改进 `funcgo` 诊断能力，增加构建时值类型校验、源码位置、代码片段以及对应错误文档链接。
+- 要求使用 `Node.js 24` 及以上版本，并在工作区统一采用 NodeNext 模块解析。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.3.0']} locale="zh-cn">
+
+- 分别发布 `CommonJS` 和 `ESM` 产物，通过包条件导出提供统一的类型声明入口。
+- `funcgo` 更新至 1.0，默认使用 Rolldown 构建，同时保留 `build-ncc` 作为遗留构建方式。
+- 为 `import` 和 `require` 两种消费方式增加端到端覆盖。
+- 明确支持 `Node.js 20.12` 及以上版本。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.2.2']} locale="zh-cn">
+
+- 精简构建输出内容。
+- 将测试纳入包构建流程；发布包从 2.2.1 的 161 个文件精简到 <a href="https://pkg0.witt.im/?q=func&type=npm&version=2.2.2" rel="noopener noreferrer" target="_blank">61</a> 个文件。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.2.1']} locale="zh-cn">
+
+- 更新核心包的构建与测试工具链，包括 TypeScript 7、Vitest 4、Vite 8 及相关依赖。
+- 更新包元数据和 README，运行时 API 保持不变。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.2.0']} locale="zh-cn">
+
+- 缺失命令类支持基于方法的处理器，可使用异步执行、字段选项、服务注入和局部错误捕获。
+- 当值类型无法推断时，在错误详情中提供稳定的原因标识。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.1.1']} locale="zh-cn">
+
+- 工作区迁移到 pnpm 11，共享格式化配置切换为 @unix/prettier。
+- 纯维护性发布，不改变运行时行为。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.1.0']} locale="zh-cn">
+
+- 引入基于模块的命令运行时，包括 Module、服务、方法处理器、局部错误捕获、字段选项和约束。
+- 新增显式的应用创建与运行 API、注册校验，并支持 TypeScript 6。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.0.1']} locale="zh-cn">
+
+- 修正装饰器工厂的类型声明，统一返回标准 ClassDecorator 类型。
+- 移除装饰器产物中不必要的构造函数返回值。
+
+</ChangelogRelease>
+
+<ChangelogRelease {...changelogReleases['2.0.0']} locale="zh-cn">
+
+- 重构命令校验与解析，严格检查重复注册、类型、必填值、数组和未知选项。
+- 引入结构化的系统、运行时、输入和弃用错误，提供稳定的错误码与详情。
+- 将核心包迁入 pnpm 工作区，并把测试套件迁移到 Vitest。
+
+</ChangelogRelease>

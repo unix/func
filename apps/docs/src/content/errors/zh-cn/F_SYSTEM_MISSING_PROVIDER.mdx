@@ -1,0 +1,56 @@
+---
+code: F_SYSTEM_MISSING_PROVIDER
+title: 缺少注入 provider
+description: 当前 module 看不到构造函数、handler 或 factory 请求的 provider token。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Handler, Injectable, Module, createApp } from 'func'",
+  '',
+  '@Injectable()',
+  'class RegistryClient {}',
+  '',
+  "@Command({ path: 'publish' })",
+  'class PublishCommand {',
+  '  constructor(private registry: RegistryClient) {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({ commands: [PublishCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+export const fixCode = [
+  '@Module({',
+  '  commands: [PublishCommand],',
+  '  providers: [RegistryClient],',
+  '})',
+  'class AppModule {}',
+].join('\n')
+
+## 复现
+
+构造函数请求了带 `@Injectable()` 的 class，但 owner module 没有注册或导入对应 provider：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+运行时已经确定依赖 token，但从请求方 module 看不到对应 provider。`details.token` 是缺失 token，`details.requester` 是请求 module；嵌套依赖还会提供 `dependencyPath`。
+
+module 内的 provider 默认私有。一个 imported module 只有把 token 放入 `exports`，导入方才能解析它；中间 module 还需要再次 export 才能继续传递。当前命令未激活的 feature option provider 也不会作为普通依赖开放。
+
+## 如何修复
+
+在请求方 module 注册 provider：
+
+<CodeBlock code={fixCode} filename="src/app.module.ts" lang="ts" />
+
+如果 provider 位于另一个 module，在声明方同时添加 `providers: [RegistryClient]` 和 `exports: [RegistryClient]`，再由请求方 import 该 module。接口或非 class 依赖使用 `createToken()` 与 `@Inject(token)`，并注册相同 token。

@@ -1,0 +1,133 @@
+---
+title: 配置文件
+description: 使用 func/config 定义类型化 JSON 配置文件，并将配置作为 provider 注入应用。
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const setupCode = [
+  "import { Module } from 'func'",
+  "import { Config, ConfigFile, ConfigModule } from 'func/config'",
+  '',
+  "@ConfigFile({ name: 'profile', maxBytes: 64 * 1024 })",
+  'export class ProfileConfig extends Config({',
+  "  username: '',",
+  "  email: '',",
+  '}) {}',
+  '',
+  '@Module({',
+  '  imports: [',
+  '    ConfigModule.register({',
+  "      appName: 'ship',",
+  '      configs: [ProfileConfig],',
+  '    }),',
+  '  ],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const usageCode = [
+  "import { Command, Handler, Value } from 'func'",
+  "import { ProfileConfig } from '../profile.config'",
+  '',
+  "@Command('login')",
+  'export class LoginCommand {',
+  '  @Value()',
+  '  username?: string',
+  '',
+  '  @Value()',
+  '  email?: string',
+  '',
+  '  constructor(private readonly config: ProfileConfig) {}',
+  '',
+  '  @Handler()',
+  '  login() {',
+  "    const username = this.username ?? this.config.get('username')",
+  "    const email = this.email ?? this.config.get('email')",
+  "    this.config.set('username', username)",
+  "    this.config.set('email', email)",
+  '    console.log(this.config.getAll())',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout
+  frontmatter={frontmatter}
+  locale="zh-cn"
+  page="capabilities/config">
+
+`func/config` 使用 defaults 同时定义配置结构、默认值和 TypeScript 类型，并把每个配置类注册为可注入 provider。配置保存在用户主目录下的 JSON 文件中。下面以 `ship login` 保存用户名和 email 为例。
+
+  <Callout locale="zh-cn" title="适用范围" variant="note">
+
+它适合保存 CLI 自己的用户配置。项目源码配置、凭据或需要跨设备同步的数据应使用更符合其生命周期的存储方式。
+
+  </Callout>
+
+## 定义并注册配置
+
+继承 `Config(defaults)` 创建配置类，再通过 `ConfigModule.register()` 注册：
+
+<CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
+
+上例的文件路径为 `~/.ship/profile.json`。没有使用 `@ConfigFile` 时，文件名默认为 `config.json`。
+
+func 使用 Node.js 识别到的用户主目录，不依赖当前工作目录。以上例为准，各系统通常会把配置文件保存到：
+
+| 系统    | 默认位置                               |
+| ------- | -------------------------------------- |
+| macOS   | `/Users/<用户名>/.ship/profile.json`   |
+| Linux   | `/home/<用户名>/.ship/profile.json`    |
+| Windows | `C:\Users\<用户名>\.ship\profile.json` |
+
+主目录可能受系统账户和运行环境影响；例如 Linux 的 root 用户通常对应 `/root/.ship/profile.json`。
+
+`appName` 和文件名都必须是安全的单个路径片段，不能包含斜杠、反斜杠、空白边界或 `.`、`..`。
+
+## 读取和更新配置
+
+注册后的配置类可以像普通 provider 一样注入 command、module 或其他 provider：
+
+<CodeBlock code={usageCode} filename="src/commands/login.command.ts" lang="ts" />
+
+执行 `ship login --username alice --email alice@example.com` 会更新两个字段；省略其中一个选项时，会从现有配置中读取该字段。这个示例只保存非敏感的用户资料，密码和访问令牌不应直接写入配置文件。
+
+defaults 会把字符串、数字、布尔值、null、数组和嵌套对象映射为对应类型。公开操作包括：
+
+| 方法              | 行为                           |
+| ----------------- | ------------------------------ |
+| `get(key)`        | 读取一个顶层配置值。           |
+| `getAll()`        | 读取完整配置。                 |
+| `set(key, value)` | 更新一个顶层配置值并写入文件。 |
+| `reset(key)`      | 把一个顶层配置值恢复为默认值。 |
+| `resetAll()`      | 把完整配置恢复为 defaults。    |
+
+读取结果是副本，修改返回对象不会改变运行时配置。需要保存变更时必须调用 `set`、`reset` 或 `resetAll`。
+
+## 文件创建与校验
+
+配置文件在第一次 `get`、`getAll`、`set`、`reset` 或 `resetAll` 时才创建。写入会先生成临时文件，再替换原文件，避免留下部分写入的 JSON。
+
+读取时只接受 defaults 中已经声明的 key，并检查每个已知值的 JSON 形状：
+
+- 缺失值使用 defaults 补齐；
+- 未声明的存储字段会被忽略；
+- 类型不匹配、无效 JSON 或非对象根值会产生运行时异常；
+- 失败读取不会自动覆盖原文件。
+
+`maxBytes` 同时限制读取文件和准备写入的 JSON 大小。一个 module 可以注册多个配置类，但相同文件路径不能重复注册。
+
+## API 速查
+
+| API                                           | 用途                                       |
+| --------------------------------------------- | ------------------------------------------ |
+| `Config(defaults)`                            | 创建从 defaults 推断类型的配置基类。       |
+| `@ConfigFile({ name, maxBytes? })`            | 设置文件名与可选大小限制。                 |
+| `ConfigModule.register({ appName, configs })` | 注册并导出一个或多个配置 provider。        |
+| `ConfigInstance`                              | 描述 get、getAll、set、reset 和 resetAll。 |
+| `CONFIG_SYSTEM` / `CONFIG_RUNTIME`            | 配置能力的稳定错误码枚举。                 |
+
+</DocsLayout>

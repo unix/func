@@ -1,0 +1,137 @@
+---
+title: 参数与上下文
+description: 读取不可变 handler 参数，并注入运行上下文或已注册 provider。
+lastModified: '2026-08-16'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const argsCode = [
+  "import { Args, Command, Handler } from 'func'",
+  "import type { Args as CommandArgs } from 'func'",
+  '',
+  "@Command('config')",
+  'export class ConfigCommand {',
+  "  @Handler(['profile', 'set'])",
+  '  setProfile(@Args() args: CommandArgs) {',
+  "    console.log(args.invokedPath) // ['config', 'profile', 'set']",
+  '    console.log(args.inputs) // 路径之后的位置输入',
+  '    console.log(args.options) // 根、module 与 command 的归一化选项',
+  '  }',
+  '}',
+].join('\n')
+
+export const contextCode = [
+  "import { CommandMajor, Context, Handler } from 'func'",
+  '',
+  '@CommandMajor()',
+  'export class MajorCommand {',
+  '  constructor(private readonly context: Context) {}',
+  '',
+  "  @Handler({ flag: 'help', alias: 'h' })",
+  '  help() {',
+  '    this.context.commands.forEach(command => {',
+  "      console.log(command.path.join(' '))",
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const providerCode = [
+  "import { Args, Command, Handler, Injectable } from 'func'",
+  "import type { Args as CommandArgs } from 'func'",
+  '',
+  '@Injectable()',
+  'export class ProjectService {',
+  '  find(name: string) {',
+  '    return { name }',
+  '  }',
+  '}',
+  '',
+  "@Command('inspect')",
+  'export class InspectCommand {',
+  '  constructor(private readonly project: ProjectService) {}',
+  '',
+  '  @Handler()',
+  '  run(@Args() args: CommandArgs) {',
+  '    console.log(this.project.find(args.inputs[0]))',
+  '  }',
+  '}',
+].join('\n')
+
+export const tokenCode = [
+  "import { Command, Handler, Inject, Module, createToken } from 'func'",
+  '',
+  "export const API_URL = createToken<string>('API_URL')",
+  '',
+  "@Command('status')",
+  'export class StatusCommand {',
+  '  constructor(@Inject(API_URL) private readonly apiUrl: string) {}',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(this.apiUrl)',
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  commands: [StatusCommand],',
+  "  providers: [{ provide: API_URL, useValue: 'https://api.example.com' }],",
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="parameters">
+
+func 有两条明确区分的参数路径：`@Args()` 向当前 handler 提供调用数据；构造函数和 handler 的依赖则通过 DI 解析。
+
+## 使用 Args 读取当前调用
+
+`@Args()` 只能用于 command handler 参数。运行时在完成 command 选择与 option 绑定后才创建它，避免应用启动阶段出现只初始化了一部分的参数对象。
+
+<CodeBlock code={argsCode} filename="src/commands/config.command.ts" lang="ts" />
+
+| 字段          | 包含内容                                                    |
+| ------------- | ----------------------------------------------------------- |
+| `raw`         | 应用收到的原始 argv。                                       |
+| `invokedPath` | 用户实际调用的 command 与 handler 路径 token，保留 alias。  |
+| `path`        | 选中 command 与 handler 的标准路径。                        |
+| `inputs`      | 完成 command 与 handler 选择后剩余的位置 token。            |
+| `options`     | 包含根、owner module 与 command option 值的冻结长名称 map。 |
+
+该对象、嵌套数组和 `options` 快照都被冻结。已声明的 CLI 选项优先从 command 或 option provider 字段读取；需要合并视图时再使用 `args.options`。
+
+## 注入运行时 Context
+
+`Context` 是内置 DI 值。可以按类型注入 command、module 和 provider，用于读取当前 command、完整 `commands` 元数据、IO streams、cwd、取消 signal 与当前调用 exit code。
+
+<CodeBlock code={contextCode} filename="src/commands/major.command.ts" lang="ts" />
+
+应用需要指定进程结果时，将 `context.exitCode` 设置为 0 到 255 的整数。执行发生错误后，如果用户代码尚未指定，func 会默认设为 1。
+
+`Context.io` 包含本次调用的 stdin、stdout 和 stderr。命令如何区分正常结果与诊断信息、为什么不应直接使用全局 `console`，以及如何测试输入输出，见[输入与输出](/zh-cn/input-output)。
+
+## 注入已注册 provider
+
+类 provider 使用 `@Injectable()`，并且必须在 command 的 owner module 中可见。普通依赖注册到 `providers`；携带 CLI 字段的 injectable class 注册到 `options`。
+
+<CodeBlock
+  code={providerCode}
+  filename="src/commands/inspect.command.ts"
+  lang="ts"
+/>
+
+module 的 provider 只在本 module 内可见。若导入它的 module 也需要注入，声明方必须把 token 放入 `exports`；中间 module 不会自动传递导出。每次调用按需创建实例，同一个依赖图中的同一 provider 会被复用。
+
+## 使用显式 token 与 provider 策略
+
+class 类型可以直接作为 token。接口、字符串配置或需要替换的实现使用 `createToken<T>(description)` 创建稳定 token，再通过 `@Inject(token)` 指定依赖：
+
+<CodeBlock code={tokenCode} filename="src/app.module.ts" lang="ts" />
+
+`Module.providers` 接受四种形式：带 `@Injectable()` 的 class、`{ provide, useClass }`、`{ provide, useValue }` 和 `{ provide, useFactory, inject? }`。`useFactory` 可以异步返回结果；`inject` 中的依赖按数组顺序传给 factory。依赖缺失、不可见或形成环时属于定义错误，不会静默解析成 `undefined`。
+
+`Exception` 与 `ExceptionContext` 会直接传给 command 和 module 的 `onError(exception, context)`，不通过临时参数注入。详见[错误与生命周期](/zh-cn/error-handler)。
+
+</DocsLayout>

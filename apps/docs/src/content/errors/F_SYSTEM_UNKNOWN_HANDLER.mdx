@@ -1,0 +1,33 @@
+---
+code: F_SYSTEM_UNKNOWN_HANDLER
+title: Unknown registered handler
+description: A class registered with the application does not carry func command metadata.
+lastModified: '2026-08-08'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Module, createApp } from 'func'",
+  '',
+  'class PlainClass {}',
+  '',
+  '@Module({ commands: [PlainClass] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## Reproduction
+
+Plain classes cannot be placed directly in `Module.commands`:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## What this error means
+
+The registration list contains a class that func cannot classify as a named, major, or missing command. The `details.handlers` array contains the class names that failed validation.
+
+## How to fix it
+
+Add `@Command()`, `@CommandMajor()`, or `@CommandMissing()` to every registered command class. If the class is a reusable dependency, mark it with `@Injectable()` and move it to `Module.providers`.

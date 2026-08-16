@@ -1,0 +1,223 @@
+---
+title: 命令
+description: 定义面向用户的 func 命令路径、别名，以及同一命令类中的多个动作。
+lastModified: '2026-08-16'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DecisionTable from '@/components/content/decision-table.astro'
+import TerminalDemo from '@/components/demos/terminal-demo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const modelingChoices = [
+  {
+    choice: '@Command',
+    when: '一段或多段固定单词形成可复用的命令路径。',
+    example: 'ship deploy / ship config profile',
+  },
+  {
+    choice: '@Handler({ path })',
+    when: '固定的后续单词用于选择当前命令类中的一个动作。',
+    example: 'ship project member add',
+  },
+  {
+    choice: '@Flag / @Value',
+    when: '具名数据需要类型、默认值、别名、描述或校验。',
+    example: 'ship deploy --env prod',
+  },
+  {
+    choice: '@Args().inputs',
+    when: '剩余位置 token 是可变用户数据，而不是固定语法。',
+    example: 'ship search alice team-a',
+  },
+]
+
+export const simpleCommandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  path: 'status',",
+  "  description: 'Print service status',",
+  '})',
+  'export class StatusCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    console.log('All systems operational')",
+  '  }',
+  '}',
+].join('\n')
+
+export const registerCode = `import { Major } from './major.command'
+import { Missing } from './missing.command'
+import { StatusCommand } from './status.command'
+
+export const commands = [Major, StatusCommand, Missing]`
+
+export const statusCommands = {
+  npm: 'npm run dev -- status',
+  yarn: 'yarn dev status',
+  pnpm: 'pnpm dev status',
+  bun: 'bun run dev -- status',
+}
+
+export const aliasCode = `@Command({
+  path: 'status',
+  aliases: ['s', 'stat'],
+  description: 'Print service status',
+})
+export class StatusCommand {}`
+
+export const nestedCommandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  path: ['config', 'profile'],",
+  "  aliases: ['p'],",
+  "  description: 'Manage saved profiles',",
+  '})',
+  'export class ProfileCommand {',
+  '  @Handler()',
+  '  list() {',
+  "    console.log('List profiles')",
+  '  }',
+  '',
+  "  @Handler({ path: 'set' })",
+  '  set() {',
+  "    console.log('Set profile')",
+  '  }',
+  '}',
+].join('\n')
+
+export const projectCommandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  path: 'project',",
+  "  aliases: ['p', 'proj'],",
+  "  description: 'Manage projects and members',",
+  '})',
+  'export class ProjectCommand {',
+  '  @Handler()',
+  '  list() {',
+  "    console.log('List projects')",
+  '  }',
+  '',
+  "  @Handler({ path: 'create' })",
+  '  create() {',
+  "    console.log('Create project')",
+  '  }',
+  '',
+  "  @Handler({ path: ['member', 'add'] })",
+  '  addMember() {',
+  "    console.log('Add project member')",
+  '  }',
+  '',
+  "  @Handler({ flag: 'version', alias: 'v', description: 'Print version' })",
+  '  version() {',
+  "    console.log('1.0.0')",
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="commands">
+
+命令是用户在可执行文件名之后输入的固定单词，用来指定业务领域或动作。在 `git commit` 中，`git` 是可执行文件，`commit` 是命令。在 func 中，命令由带有 `@Command({ path: 'commit' })` 的类建模。
+
+`path` 既可以是一个字符串，也可以是字符串数组。多个命令可以共享前缀，func 会把所有 command path 和 handler path 编译成命令图，并按最长路径选择唯一入口。
+
+## 分清一次调用中的每个部分
+
+| 用户输入                      | 命中的路径              | 其余部分的含义                      |
+| ----------------------------- | ----------------------- | ----------------------------------- |
+| `ship status`                 | command `status`        | 没有额外输入，运行默认处理器。      |
+| `ship config profile set dev` | command + handler `set` | dev 是处理器收到的位置输入。        |
+| `ship deploy --env prod`      | command `deploy`        | --env prod 是 deploy 的值选项。     |
+| `ship doctor`                 | major handler `doctor`  | 主命令也可以声明固定 path handler。 |
+| `ship --help`                 | module action `--help`  | 根 module 可以提供全局动作选项。    |
+
+主命令和缺失命令在[概念](/zh-cn/concepts)中介绍；module 作用域动作见[共享字段](/zh-cn/shared-fields)。需要 `--help` 时，请参考[帮助](/zh-cn/capabilities/help)。
+
+## 根据命令格式选择装饰器
+
+写下完整的命令示例，区分其中的固定语法和可变数据，就可以确定各部分应使用的 func 装饰器：
+
+<DecisionTable items={modelingChoices} locale="zh-cn" />
+
+## 添加最小可用命令
+
+最小命令只需要一个类和一个默认处理器。`path` 是用户实际输入的命令路径；`description` 会进入 `Context.commands` 提供的命令元数据。
+
+<CodeBlock
+  code={simpleCommandCode}
+  filename="src/commands/status.command.ts"
+  lang="ts"
+/>
+
+创建文件并添加装饰器后，还要把该类加入 module 的命令列表：
+
+<CodeBlock code={registerCode} filename="src/commands/index.ts" lang="ts" />
+<TerminalDemo
+  command={statusCommands.npm}
+  demo="guide-status"
+  locale="zh-cn"
+  packageManagerCommands={statusCommands}
+  rows={2}
+  sourceUrl="/demos/guide-status.ts"
+/>
+
+func 匹配到 `StatusCommand` 后会创建实例，并调用默认处理器 `run()`。每个命令至少需要一个处理器；同一个命令节点最多只能有一个默认处理器。
+
+如果需要让帮助或 Shell 补全复用这些命令信息，请分别参考[帮助](/zh-cn/capabilities/help)和 [Shell 补全](/zh-cn/capabilities/completion)。
+
+## 只在确实节省输入时添加别名
+
+别名是命令 path 最后一段的其他名称，不会创建新节点，也不会调用其他处理器：
+
+<CodeBlock code={aliasCode} lang="ts" />
+
+`ship status`、`ship s` 和 `ship stat` 现在都会选择 `StatusCommand`。多个别名使用 `aliases`；单数 `alias` 与其合并并去重。命令别名可以超过一个字符，且只需要在同一父路径中保持唯一；`-h` 这样的选项别名则必须是非数字的单个字符。
+
+## 声明多段命令路径
+
+当多个类需要共享一个固定前缀，或某个子路径需要独立的 provider 与模块边界时，可以直接把数组传给 `@Command`：
+
+<CodeBlock
+  code={nestedCommandCode}
+  filename="src/config/profile.command.ts"
+  lang="ts"
+/>
+
+上例的默认处理器对应 `ship config profile`，`set` 处理器对应 `ship config profile set`。别名 `p` 替代最后一段，因此 `ship config p` 也会命中同一个命令节点。
+
+## 废弃命令和动作 flag
+
+在 `@Command` 中设置 `deprecated: true` 可以标记整个命令，也可以传入字符串提供迁移说明。废弃命令仍然可以执行，会在结构化帮助中标明，并在实际分派时向 stderr 输出不影响退出码的提示。
+
+在带有 `@Handler({ flag })` 的方法上使用 `@Deprecated()`，可以只废弃该动作选项。默认 handler 和 path handler 不能使用 `@Deprecated()`；这类场景应废弃其所属命令。
+
+## 把相关动作放入同一个命令
+
+同一资源有多个紧密相关的动作时，可以共用一个命令类，通过处理器路径区分具体动作，例如 `project`、`project create` 和 `project member add`：
+
+<CodeBlock
+  code={projectCommandCode}
+  filename="src/commands/project.command.ts"
+  lang="ts"
+/>
+
+- `ship project` 运行默认的 `list()` 处理器。
+- `ship project create` 运行 `create()` 路径处理器。
+- `ship p member add` 通过命令别名和最长路径匹配运行 `addMember()`。
+- `ship project -v` 通过短别名运行 version 方法。
+
+处理器标志用来选择互斥动作；字段 `@Flag()` 只向已选中的处理器提供布尔值。处理器标志同时接受 `alias` 和 `aliases`，但每个别名都必须是非数字的单个字符。path 不能声明 aliases，也不能与处理器 flag 同时使用。
+
+## 组织多个命令
+
+一个应用可以注册多个命令，通常每个业务领域对应一个类。较大的业务领域可以放入独立的 `@Module`，由根模块 import。共享前缀并不要求这些命令位于同一个类中；当不同动作需要不同依赖或团队边界时，可以拆成多个 command class。
+
+一次 CLI 调用只会执行一个 command 或动作入口。需要连续执行多个业务操作时，可以定义一个专用命令，并在处理器中调用共享 provider。
+
+下一步可以用[字段选项](/zh-cn/options)接收标志和值，或通过[示例](/zh-cn/use-cases)了解常见用户需求应如何定义命令。
+
+</DocsLayout>

@@ -1,0 +1,133 @@
+---
+title: 帮助
+description: 使用 func/help 从命令图生成结构化帮助，并按需调整内容与格式。
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const setupCode = [
+  "import { Module } from 'func'",
+  "import { HelpOption } from 'func/help'",
+  "import { commands } from './commands'",
+  '',
+  '@Module({',
+  '  commands,',
+  '  options: [HelpOption],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const customHelpCode = [
+  "import { Module } from 'func'",
+  "import { HelpOption } from 'func/help'",
+  "import type { HelpMeta } from 'func/help'",
+  '',
+  'class AppHelp extends HelpOption {',
+  '  override transform(meta: HelpMeta): HelpMeta {',
+  '    return {',
+  '      ...meta,',
+  "      title: meta.title ? `ship ${meta.title}` : 'ship',",
+  '    }',
+  '  }',
+  '}',
+  '',
+  '@Module({ options: [AppHelp] })',
+  'export class AppModule {}',
+].join('\n')
+
+export const commandOverrideCode = [
+  "import { Command, Flag, Handler, Override } from 'func'",
+  '',
+  "@Command('deploy')",
+  'class DeployCommand {',
+  '  @Override()',
+  "  @Flag({ alias: 'h', description: 'show deploy help' })",
+  '  help = false',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    if (this.help) {',
+  "      console.log('🚀 ship deploy\\n\\nUsage: ship deploy [--help]')",
+  '      return',
+  '    }',
+  '',
+  "    console.log('Deploying...')",
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout
+  frontmatter={frontmatter}
+  locale="zh-cn"
+  page="capabilities/help">
+
+`func/help` 提供基于当前命令图的 `--help` 动作。它读取 command、handler 和字段选项已经声明的元数据，因此不需要另外维护一份命令清单。
+
+  <Callout locale="zh-cn" title="按需引入" variant="note">
+
+帮助能力只从 `func/help` 导出，不会由 `func` 主入口自动引入。只在需要帮助输出的应用中注册它。
+
+  </Callout>
+
+## 启用 `--help`
+
+把 `HelpOption` 注册到根 module 的 `options`：
+
+<CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
+
+根 module 的 option action 对所有命令节点可见，因此 `ship --help`、`ship deploy --help` 等调用会展示对应节点的帮助。帮助动作被选中时不会要求当前业务命令的必填字段通过校验。
+
+## 完善命令元数据
+
+默认输出由已有声明生成：
+
+| 内容             | 来源                                                     |
+| ---------------- | -------------------------------------------------------- |
+| 命令路径与别名   | `@Command()` 和 `@Handler({ path })`                     |
+| 命令说明         | command 或 handler 的 `description`                      |
+| 选项名称与别名   | `@Flag()`、`@Value()` 等字段装饰器                       |
+| 必填、枚举和约束 | `@Required()`、`@Enum()`、`@DependsOn()`、`@Exclusive()` |
+| 废弃信息         | command 的 `deprecated` 或 `@Deprecated()`               |
+
+如果帮助中缺少说明，优先补全对应声明的 `description`，让帮助、补全和运行时元数据共用同一个信息来源。
+
+## 调整帮助内容
+
+继承 `HelpOption` 并覆盖 `transform(meta, context)`，可以在格式化之前修改结构化的 `HelpMeta`：
+
+<CodeBlock code={customHelpCode} filename="src/app.module.ts" lang="ts" />
+
+`transform` 可以同步返回，也可以返回 Promise。`meta` 及其中的集合都是只读值；返回新对象可以调整标题、排序、说明、命令或选项。`context` 提供当前 `Args`、运行时 `Context` 和剩余位置输入。
+
+`HelpFormatter` 会根据可见字符宽度对齐输出，因此标题和选项名称中可以保留 ANSI 颜色。
+
+## 为单个命令覆盖帮助
+
+根 module 注册的 `HelpOption` 默认对所有命令生效。如果某个 command 需要另一套帮助内容，可以在该 command 中声明同名的 `@Flag()`，并由默认 handler 输出自定义帮助：
+
+<CodeBlock
+  code={commandOverrideCode}
+  filename="src/commands/deploy.command.ts"
+  lang="ts"
+/>
+
+`@Override()` 让 `DeployCommand.help` 显式替换从根 module 继承的 `--help`。因此 `ship deploy --help` 进入 `DeployCommand` 的默认 handler 并输出定制内容，`ship status --help` 等其他命令仍使用根 module 注册的 `HelpOption`。
+
+这里直接通过 `console.log()` 输出用户定义的字符串，没有引入 `func/help` 的上下文或格式化实现。`help` 是普通字段 flag，不是独立动作；默认 handler 应先判断它并立即返回，当前 command 的其他字段绑定与校验仍会照常发生。如果没有注册根级 `HelpOption`，则不会产生 token 冲突，也不需要添加 `@Override()`。
+
+这种方式只覆盖当前 command，不需要声明新的 `@OptionCommand()`。
+
+## API 速查
+
+| API                                   | 用途                                                      |
+| ------------------------------------- | --------------------------------------------------------- |
+| `HelpOption`                          | 可直接注册的 `--help` module action。                     |
+| `HelpOption.transform(meta, context)` | 在默认格式化前转换结构化帮助。                            |
+| `HelpContext.createMeta()`            | 采集当前命令节点的 `HelpMeta`。                           |
+| `HelpFormatter.format(meta)`          | 把 `HelpMeta` 格式化为纯文本。                            |
+| `HelpMeta`                            | 描述 title、path、usage、commands 和 options 的只读结构。 |
+
+</DocsLayout>

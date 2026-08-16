@@ -1,0 +1,136 @@
+---
+title: 进程信号
+description: 使用 func/signals 把 SIGINT 和 SIGTERM 转换为命令可观察的取消信号，并获得可控的优雅退出行为。
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const entryCode = [
+  "import { createApp } from 'func'",
+  "import { withProcessSignals } from 'func/signals'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const app = createApp(AppModule, {',
+  '  features: [withProcessSignals()],',
+  '})',
+  '',
+  'void app.bootstrap()',
+].join('\n')
+
+export const commandCode = [
+  "import { Command, Context, Ctx, Handler } from 'func'",
+  "import { watchProject } from '../watch-project'",
+  '',
+  "@Command({ path: 'watch' })",
+  'export class WatchCommand {',
+  '  @Handler()',
+  '  async run(@Ctx() context: Context) {',
+  '    await watchProject({ signal: context.signal })',
+  '  }',
+  '}',
+].join('\n')
+
+export const manualCancellationCode = [
+  "import { createApp } from 'func'",
+  "import { withProcessSignals } from 'func/signals'",
+  '',
+  'const deadline = AbortSignal.timeout(30_000)',
+  'const app = createApp(AppModule, {',
+  '  features: [withProcessSignals()],',
+  '})',
+  '',
+  'await app.bootstrap({ signal: deadline })',
+].join('\n')
+
+<DocsLayout
+  frontmatter={frontmatter}
+  locale="zh-cn"
+  page="capabilities/signals">
+
+`func/signals` 为进程型 CLI 提供可选的 `SIGINT` 和 `SIGTERM` 处理。它把操作系统信号转换为当前命令的 `AbortSignal`，让长时间运行的任务先停止工作并完成清理，而不是收到信号后立即中断整个进程。
+
+  <Callout locale="zh-cn" title="默认不接管进程信号" variant="note">
+
+未注册 `withProcessSignals()` 时，func 不会安装 `SIGINT` 或 `SIGTERM` 监听器。按下 `Ctrl+C` 等操作仍由 Node.js 和操作系统处理，通常会直接结束进程，但不会因此中止 `Context.signal`。
+
+  </Callout>
+
+## 默认情况下如何处理 Signal
+
+每次命令调用都会获得一个 `Context.signal`，但它和进程信号是两个独立来源：
+
+| 启动方式                                 | 行为                                                                                           |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `app.bootstrap()`                        | func 提供一个默认 `AbortSignal`，但不监听进程信号。`SIGINT`、`SIGTERM` 使用 Node.js 默认行为。 |
+| `app.bootstrap({ signal })`              | func 把调用方提供的 signal 传给命令；调用方可以请求取消，但进程信号仍不会自动转发给它。        |
+| `createInvoker()` / `createTestingApp()` | 没有进程信号 feature；需要通过每次 `invoke` 的 `signal` 选项显式控制取消。                     |
+
+因此，即使 handler 已经读取 `Context.signal`，默认情况下按下 `Ctrl+C` 也不会触发它的 `abort` 事件。进程可能在异步清理、`onDispose` 或输出刷新完成之前结束。
+
+## 什么时候需要启用
+
+以下命令适合注册 `withProcessSignals()`：
+
+- watch、dev server、持续构建或轮询任务；
+- 长时间下载、上传、部署和网络请求；
+- 启动了子进程、连接、锁文件或临时资源，需要在退出前释放；
+- 希望 `Ctrl+C` 先请求优雅停止，再允许用户强制结束。
+
+对于执行时间很短、没有待清理资源，并且可以接受 Node.js 直接终止的命令，不必引入该能力。它位于独立的 `func/signals` 入口，不会让所有应用承担对应代码和进程监听成本。
+
+## 启用进程信号处理
+
+在创建进程应用时注册一次 `withProcessSignals()`：
+
+<CodeBlock code={entryCode} filename="src/index.ts" lang="ts" />
+
+启动方式保持不变。监听器只在真正执行命令期间安装，并在调用完成或失败后移除，不会永久留在进程中。重复注册同一个 feature 会在创建应用时被拒绝。
+
+## 让命令响应取消
+
+启用 feature 只负责发出取消信号，不会自动停止 handler 中的业务任务。命令需要读取 `Context.signal`，并把它传给支持 `AbortSignal` 的 API：
+
+<CodeBlock code={commandCode} filename="src/commands/watch.command.ts" lang="ts" />
+
+`fetch`、定时器、文件操作、构建器和子进程封装等 API 如果支持 `signal`，应继续向下传递同一个值。自定义循环则应检查 `signal.aborted` 或监听一次 `abort` 事件，并在取消后尽快返回或抛出取消异常。
+
+当 handler 响应取消并结束后，func 会继续完成本次调用的错误边界和 `onDispose` 生命周期。因此数据库连接、临时文件和子进程等资源仍应在正常生命周期清理逻辑中释放。
+
+  <Callout locale="zh-cn" title="取消是协作式的" variant="caution">
+
+如果 handler 忽略 `Context.signal`、执行无法中断的同步计算，或清理逻辑一直不结束，第一次信号不会立即杀死进程。此时再次发送 `SIGINT` 或 `SIGTERM` 会恢复原生强制终止行为，强制终止不保证执行清理代码。
+
+  </Callout>
+
+## 信号与退出行为
+
+| 输入                   | 结果                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| 第一次 `SIGINT`        | 以 `SIGINT` 作为 reason 中止 `Context.signal`；调用结束后设置退出码 `130`。  |
+| 第一次 `SIGTERM`       | 以 `SIGTERM` 作为 reason 中止 `Context.signal`；调用结束后设置退出码 `143`。 |
+| 清理期间的第二次信号   | 移除 func 监听器，并把本次信号重新交给进程原生行为，立即强制终止。           |
+| 命令正常完成或执行失败 | 移除 `SIGINT` 和 `SIGTERM` 监听器，不影响同一进程中的后续逻辑。              |
+
+如果 handler 因取消抛出异常，进程信号的退出语义优先，不会被普通未处理异常的退出码 `1` 覆盖。
+
+## 与调用方 Signal 组合
+
+应用可以同时接受业务层取消和进程信号：
+
+<CodeBlock code={manualCancellationCode} filename="src/index.ts" lang="ts" />
+
+注册 `withProcessSignals()` 后，func 会组合 `bootstrap({ signal })` 和进程信号。任意一个来源中止，命令中的 `Context.signal` 都会变为 aborted；只有实际收到 `SIGINT` 或 `SIGTERM` 时，才会使用对应的 `130` 或 `143` 退出码。
+
+命令式调用和测试不会自动监听宿主进程。对 `createInvoker()` 或 `createTestingApp()`，继续使用 `invoke(argv, { signal })`，避免库代码或测试进程意外接管全局退出信号。
+
+## API 速查
+
+| API                    | 用途                                                                      |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `withProcessSignals()` | 创建接入 `createApp({ features })` 的进程信号 feature；当前无需配置参数。 |
+| `Context.signal`       | 命令观察和向下传递取消请求的 `AbortSignal`。                              |
+
+</DocsLayout>

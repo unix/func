@@ -1,0 +1,44 @@
+---
+code: F_SYSTEM_OPTION_OVERRIDE_REQUIRED
+title: Option 需要显式覆盖
+description: 较内层作用域声明了与上层 module option 同名的字段或动作，但没有确认覆盖意图。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Flag, Handler, Module, Option, createApp } from 'func'",
+  '',
+  '@Option()',
+  'class AppOptions {',
+  '  @Flag()',
+  '  verbose = false',
+  '}',
+  '',
+  "@Command('build')",
+  'class BuildCommand {',
+  '  @Flag()',
+  '  verbose = false',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({ commands: [BuildCommand], options: [AppOptions] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## 复现
+
+command 字段会遮蔽上层 option provider 的同名字段，但没有显式确认：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 如何修复
+
+普通重复声明应重命名或删除。确实需要由 command 或 feature `@Option()` 字段替换上层字段时，在该字段上同时使用 `@Override()`；替换根 module 的 `@OptionCommand` 时，在 feature action 上设置 `overrideAll: true`。
+
+覆盖只改变公开 token 的绑定目标，不会把用户值同时写入被遮蔽的上层字段。

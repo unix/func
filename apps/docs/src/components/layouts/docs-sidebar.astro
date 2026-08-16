@@ -1,0 +1,207 @@
+---
+import { defaultLocale, getNavGroups, type DocPage, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+  page: DocPage
+}
+
+const { locale = defaultLocale, page } = Astro.props
+const navGroups = getNavGroups(locale)
+const persistKey = `docs-sidebar-${locale}`
+---
+
+<aside
+  class="docs-sidebar hidden min-w-0 bg-background md:sticky md:top-20 md:block md:h-[calc(100svh-10rem)] md:self-start md:overflow-y-auto"
+  transition:persist={persistKey}>
+  <nav
+    aria-label="Documentation sections"
+    class="flex gap-5 overflow-x-auto py-3 md:flex-col md:gap-6 md:py-10">
+    {
+      navGroups.map((group, groupIndex) => (
+        <div class="shrink-0">
+          {group.label && (
+            <p
+              class="mb-1.5 hidden h-6 items-center px-2 font-mono text-[0.6875rem] font-semibold tracking-[0.14em] text-muted-foreground/70 uppercase md:flex"
+              id={`docs-nav-group-${groupIndex}`}>
+              {group.label}
+            </p>
+          )}
+          <ul
+            aria-labelledby={
+              group.label ? `docs-nav-group-${groupIndex}` : undefined
+            }
+            class:list={['flex gap-1 md:flex-col', group.label && 'md:ml-2']}>
+            {group.items.map(item => (
+              <li>
+                <a
+                  aria-current={item.id === page ? 'page' : undefined}
+                  class="docs-nav-link inline-flex w-full shrink-0 items-center rounded-md px-2 py-1.5 text-sm whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                  data-doc-page={item.id}
+                  href={item.href}>
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </nav>
+</aside>
+
+<style>
+  @property --docs-sidebar-fade-top {
+    syntax: '<length-percentage>';
+    inherits: false;
+    initial-value: 0px;
+  }
+
+  @property --docs-sidebar-fade-bottom {
+    syntax: '<length-percentage>';
+    inherits: false;
+    initial-value: 0px;
+  }
+
+  .docs-sidebar {
+    --docs-sidebar-fade-size: min(12%, 2.5rem);
+
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 22%, transparent)
+      transparent;
+    scrollbar-width: thin;
+  }
+
+  @media (min-width: 48rem) {
+    .docs-sidebar {
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        #000 var(--docs-sidebar-fade-top),
+        #000 calc(100% - var(--docs-sidebar-fade-bottom)),
+        transparent 100%
+      );
+      mask-repeat: no-repeat;
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    @media (min-width: 48rem) {
+      .docs-sidebar {
+        animation:
+          docs-sidebar-reveal-top 1ms ease-in-out both,
+          docs-sidebar-reveal-bottom 1ms ease-in-out both;
+        animation-range:
+          0 6rem,
+          calc(100% - 6rem) 100%;
+        animation-timeline: scroll(self y), scroll(self y);
+      }
+    }
+  }
+
+  @supports not (animation-timeline: scroll()) {
+    @media (min-width: 48rem) {
+      .docs-sidebar {
+        --docs-sidebar-fade-top: var(--docs-sidebar-fade-size);
+        --docs-sidebar-fade-bottom: var(--docs-sidebar-fade-size);
+      }
+    }
+  }
+
+  .docs-sidebar::-webkit-scrollbar {
+    width: 0.5rem;
+  }
+
+  .docs-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .docs-sidebar::-webkit-scrollbar-thumb {
+    border: 0.125rem solid transparent;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--muted-foreground) 22%, transparent);
+    background-clip: padding-box;
+    transition: background-color 150ms ease-out;
+  }
+
+  .docs-sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--muted-foreground) 38%, transparent);
+  }
+
+  @keyframes docs-sidebar-reveal-top {
+    from {
+      --docs-sidebar-fade-top: 0px;
+    }
+
+    to {
+      --docs-sidebar-fade-top: var(--docs-sidebar-fade-size);
+    }
+  }
+
+  @keyframes docs-sidebar-reveal-bottom {
+    from {
+      --docs-sidebar-fade-bottom: var(--docs-sidebar-fade-size);
+    }
+
+    to {
+      --docs-sidebar-fade-bottom: 0px;
+    }
+  }
+</style>
+
+<script>
+  const normalizedPath = (path: string) => {
+    if (path === '/') return path
+
+    return path.replace(/\/$/, '')
+  }
+
+  let sidebarScrollState: { key: string; top: number } | undefined
+
+  const saveSidebarScroll = () => {
+    const sidebar = document.querySelector<HTMLElement>('.docs-sidebar')
+    const key = sidebar?.dataset.astroTransitionPersist
+
+    if (!sidebar || !key) {
+      sidebarScrollState = undefined
+      return
+    }
+
+    sidebarScrollState = { key, top: sidebar.scrollTop }
+  }
+
+  const restoreSidebarScroll = () => {
+    const state = sidebarScrollState
+    sidebarScrollState = undefined
+    if (!state) return
+
+    const sidebar = document.querySelector<HTMLElement>('.docs-sidebar')
+    if (sidebar?.dataset.astroTransitionPersist !== state.key) return
+
+    sidebar.scrollTop = state.top
+  }
+
+  const syncCurrentPage = () => {
+    const currentPath = normalizedPath(window.location.pathname)
+
+    document.querySelectorAll<HTMLAnchorElement>('.docs-nav-link').forEach(link => {
+      const linkPath = normalizedPath(new URL(link.href).pathname)
+      const isErrorDetail =
+        link.dataset.docPage === 'errors' && currentPath.startsWith(`${linkPath}/`)
+      const isCurrent = linkPath === currentPath || isErrorDetail
+
+      if (isCurrent) {
+        link.setAttribute('aria-current', 'page')
+        return
+      }
+
+      link.removeAttribute('aria-current')
+    })
+  }
+
+  document.addEventListener('astro:before-swap', saveSidebarScroll)
+  document.addEventListener('astro:after-swap', () => {
+    restoreSidebarScroll()
+    syncCurrentPage()
+  })
+  syncCurrentPage()
+</script>

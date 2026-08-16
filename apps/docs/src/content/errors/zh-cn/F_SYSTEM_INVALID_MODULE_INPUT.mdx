@@ -1,0 +1,34 @@
+---
+code: F_SYSTEM_INVALID_MODULE_INPUT
+title: 无效的模块输入
+description: 作为模块传入的 class 没有显式模块元数据。
+lastModified: '2026-08-14'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Handler, createApp } from 'func'",
+  '',
+  "@Command('build')",
+  'class BuildCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  'createApp(BuildCommand)',
+].join('\n')
+
+## 复现
+
+命令 class 不能直接作为应用输入传入：
+
+<CodeBlock code={reproductionCode} filename="src/index.ts" lang="ts" />
+
+## 这个错误是什么
+
+class 输入必须带有 `@Module()` 元数据。func 不再自动把未声明为模块的输入当作命令。
+
+## 如何修复
+
+创建使用 `@Module({ commands: [BuildCommand] })` 装饰的 class，再把该模块传给 `createApp`。

@@ -1,0 +1,139 @@
+---
+title: API 参考
+description: 查阅 func 3.0 核心装饰器、模块、运行时类型和 funcgo 命令。
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const apiExampleCode = [
+  "import { Command, Handler, Required, Value } from 'func'",
+  '',
+  "@Command({ path: 'deploy' })",
+  'export class DeployCommand {',
+  '  @Required()',
+  '  @Value()',
+  '  env?: string',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(`Deploying to ${this.env}`)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="apis">
+  <Callout locale="zh-cn" title="查阅完整 API 定义" variant="note">
+
+选择模型时先阅读[命令](/zh-cn/commands)或[核心概念](/zh-cn/concepts)；需要核心装饰器、运行时类型和工具选项的精确签名时，可以查阅本页。
+
+  </Callout>
+  <CodeBlock code={apiExampleCode} filename="src/commands/deploy.command.ts" lang="ts" />
+
+主入口 `func` 只包含核心运行时。可选能力使用独立入口，并由各自的专题文档介绍。
+
+## 命令与动作
+
+| 签名                     | 参数或结构                                                                              | 描述                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `@Command(input)`        | `string \| readonly string[] \| { path, alias?, aliases?, deprecated?, description? }`  | 注册具名 command path；alias 替代 path 最后一段。                      |
+| `@CommandMajor()`        | `-`                                                                                     | 注册主命令，可提供默认、path 或 flag handler。                         |
+| `@CommandMissing()`      | `-`                                                                                     | 注册无法匹配具名路径时的 fallback command。                            |
+| `@Handler(input?)`       | `'' \| string \| readonly string[] \| { path?, flag?, alias?, aliases?, description? }` | 注册默认、路径或 flag handler；path 与 flag/alias 互斥。               |
+| `@OptionCommand(params)` | `{ name, alias?, aliases?, deprecated?, description?, overrideAll? }`                   | 注册 module 作用域的动作选项；class 必须只有一个默认 handler。         |
+| `@Deprecated(message?)`  | `message?: string`                                                                      | 标记字段选项或 flag handler 废弃；command 使用自身 `deprecated` 参数。 |
+
+command path 与 command alias token 不能以 `-` 开头、包含空白或为空。选项 alias 必须是非数字的单个字符，且不能为 `=`。
+
+## 字段选项和校验器
+
+| 签名                    | 参数                                                    | 描述                                                 |
+| ----------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
+| `@Option()`             | `-`                                                     | 将 class 注册为可注入的 module option provider。     |
+| `@Flag(params?)`        | `{ name?, alias?, aliases?, description?, negatable? }` | 声明布尔选项；`negatable` 追加 `--no-<name>`。       |
+| `@Value(params?)`       | `{ name?, alias?, aliases?, description? }`             | 声明从装饰器元数据推断的 `string` 或有限 `number`。  |
+| `@ArrayString(params?)` | `{ name?, alias?, aliases?, description? }`             | 收集重复字符串选项。                                 |
+| `@ArrayNumber(params?)` | `{ name?, alias?, aliases?, description? }`             | 收集重复有限数字选项。                               |
+| `@Override()`           | `-`                                                     | 让较内层字段显式替换同名上层 module option 字段。    |
+| `@Required()`           | `-`                                                     | 要求字段不是 `undefined`；属性初始值可以满足此规则。 |
+| `@Enum(values)`         | `Array<boolean \| string \| number>`                    | 校验标量值或数组中的每一项。                         |
+| `@DependsOn(names)`     | `string[]`                                              | 显式提供当前选项时，要求同时显式提供列出的长名称。   |
+| `@Exclusive(names)`     | `string[]`                                              | 拒绝当前选项与列出的长名称同时显式出现。             |
+| `@ValueValidate(fn)`    | `(value, options) => boolean \| string \| void`         | `false` 或字符串表示失败；无返回值表示通过。         |
+
+## 模块与依赖注入
+
+| 签名                          | 参数或结构                                                                                   | 描述                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `@Module(metadata)`           | `{ name?, commands?, imports?, options?, providers?, exports? }`                             | 定义应用或 feature module；根输入必须是显式带装饰器的 class。       |
+| `@Injectable()`               | `-`                                                                                          | 标记可用于 class/useClass provider 的 class；子类需要自己的装饰器。 |
+| `createToken<T>(description)` | `string`                                                                                     | 创建类型化、按引用比较的 `InjectionToken<T>`。                      |
+| `@Inject(token)`              | `Type \| InjectionToken`                                                                     | 在构造函数或 handler 参数上指定显式 token。                         |
+| `Provider`                    | `Type \| { provide, useClass } \| { provide, useValue } \| { provide, useFactory, inject? }` | module provider 定义；factory 可以异步返回。                        |
+| `Module.exports`              | `ProviderToken[]`                                                                            | 只导出本 module 可见的 provider；导出不会自动穿过中间 module 传递。 |
+
+`imports` 接受 module class 或动态 module 返回的 `ModuleMetadata` 对象。`options` 只接受带 `@Option()` 或 `@OptionCommand()` 的 class，不接受 provider 对象。
+
+## 应用与上下文
+
+| 签名                          | 参数或结构                                                     | 描述                                                                   |
+| ----------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `createApp(module, options?)` | `options = { features?: ApplicationFeature[] }`                | 编译并创建只允许启动一次的进程应用。                                   |
+| `app.bootstrap(options?)`     | `{ argv?, cwd?, env?, stdin?, stdout?, stderr?, signal? }`     | 启动应用并设置 `process.exitCode`，返回 `Promise<void>`。              |
+| `createInvoker(module)`       | 从 `func/invoke` 导入                                          | 创建可重复 `invoke(argv, options?)` 的命令式调用器，不提供 bootstrap。 |
+| `InvocationResult`            | `{ exitCode: number, result: unknown }`，由 `func/invoke` 导出 | handler 返回值与本次命令式调用退出码。                                 |
+| `@Args()` / `Args`            | `{ raw, invokedPath, path, inputs, options }`                  | 仅注入 handler 参数的冻结调用快照。                                    |
+| `@Ctx()`                      | `Context`                                                      | 注入当前调用的完整运行时上下文。                                       |
+| `@Stdout()`                   | `node:stream` 的 `Writable`                                    | 注入配置的 stdout；未覆盖时为 `process.stdout`。                       |
+| `@Stderr()`                   | `node:stream` 的 `Writable`                                    | 注入配置的 stderr；未覆盖时为 `process.stderr`。                       |
+| `Context`                     | `command?, commands, io, cwd, signal, exitCode`                | 内置 DI 上下文；`exitCode` 只接受 0 到 255 的整数。                    |
+| `CommandInfo`                 | `{ path, aliases, description?, deprecated?, fieldOptions? }`  | `Context.command` 与 `Context.commands` 中的深只读命令元数据。         |
+
+`Args.path` 使用 canonical command/handler path，`invokedPath` 保留用户实际输入的 alias，`inputs` 是移除已匹配路径后剩余的位置 token，`options` 使用公开长名称作为 key。
+
+## 生命周期与异常
+
+| 签名或类型                     | 结构                                                                                   | 描述                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `OnInit.onInit()`              | `void \| Promise<void>`                                                                | 在受管实例完成准备后调用。                               |
+| `OnError.onError(error, ctx)`  | `Exception, ExceptionContext`                                                          | command、option action 或 module 的非系统异常 hook。     |
+| `OnDispose.onDispose(outcome)` | `ExecutionOutcome`                                                                     | 已激活的 command、module、option 和 provider 清理 hook。 |
+| `ExecutionOutcome`             | success: `{ status, result, exitCode }`; error: `{ status, error, handled, exitCode }` | 同一次调用共享的冻结完成状态。                           |
+| `Exception`                    | `code, scope, details, message, cause`                                                 | 稳定的结构化 `Error` 子类。                              |
+| `ExceptionContext`             | `printPrevented, preventDefaultPrint()`                                                | 控制 runtime-print 异常的默认 stderr 输出。              |
+| `ErrorScope`                   | `SYSTEM \| RUNTIME \| RUNTIME_PRINT`                                                   | 区分定义错误、运行失败与用户可修正输入。                 |
+| `formatExceptionCode()`        | `(scope, code) => ExceptionCode`                                                       | 生成带 `F_*_` 前缀的完整错误码。                         |
+| `isException()`                | `(value) => value is Exception`                                                        | 判断值是否为 func 结构化异常。                           |
+
+## 可选能力
+
+可选能力不会由主入口重新导出。本页不展开它们的 API；需要启用或定制时，请进入对应专题：
+
+| 入口              | 文档                                         |
+| ----------------- | -------------------------------------------- |
+| `func/help`       | [帮助](/zh-cn/capabilities/help)             |
+| `func/testing`    | [测试](/zh-cn/capabilities/testing)          |
+| `func/invoke`     | 命令式调用                                   |
+| `func/config`     | [配置文件](/zh-cn/capabilities/config)       |
+| `func/log`        | [日志](/zh-cn/capabilities/log)              |
+| `func/completion` | [Shell 补全](/zh-cn/capabilities/completion) |
+| `func/signals`    | [进程信号](/zh-cn/capabilities/signals)      |
+
+## funcgo 与 package 配置
+
+| 签名                        | 结构                                                                                                | 描述                                                                |
+| --------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `funcgo setup`              | `--fix?`                                                                                            | 检查 package.json；默认只读，`--fix` 写入推荐配置。                 |
+| `funcgo dev`                | `-f, --file <entry>; -- <args>`                                                                     | 通过本地 TypeScript 运行时执行入口，并把分隔符后的参数传给 CLI。    |
+| `funcgo build`              | `-f, --file <entry>; -o, --out <dir>; -e, --external <package>; -w, --watch; --watch-path <target>` | 打包入口、创建 bin.js，并可在文件、目录或正向 glob 变化时重新构建。 |
+| `funcgo --help / --version` | `-h; -v`                                                                                            | 输出 funcgo 命令说明或当前版本。                                    |
+
+| package.json 字段 | 描述                                                       |
+| ----------------- | ---------------------------------------------------------- |
+| `func.entry`      | dev 与 build 未提供 `--file` 时使用的 TypeScript 入口。    |
+| `func.outDir`     | build 未提供 `--out` 时使用的构建输出目录，默认为 `dist`。 |
+| `bin`             | 把用户调用的可执行命令名映射到输出目录中的 `bin.js`。      |
+
+</DocsLayout>

@@ -1,0 +1,60 @@
+---
+code: F_SYSTEM_DUPLICATE_OPTION_TOKEN
+title: 选项 token 重复
+description: 同一命令节点中的字段、module option 或动作选项占用了相同 token。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { CommandMajor, Flag, Handler, Module, Value, createApp } from 'func'",
+  '',
+  '@CommandMajor()',
+  'class BuildCommand {',
+  "  @Flag({ name: 'config' })",
+  '  useConfig = false',
+  '',
+  "  @Value({ name: 'config' })",
+  "  config = ''",
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+export const fixCode = [
+  '@CommandMajor()',
+  'class BuildCommand {',
+  "  @Flag({ name: 'use-config' })",
+  '  useConfig = false',
+  '',
+  "  @Value({ name: 'config' })",
+  "  config = ''",
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## 复现
+
+同一命令节点中的选项长名称和短 alias 必须保持唯一；negatable flag 生成的 `--no-<name>` 也会参与冲突检查：
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## 如何修复
+
+重命名其中一个冲突 token，或删除重复声明：
+
+<CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />

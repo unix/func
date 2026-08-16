@@ -1,0 +1,90 @@
+---
+title: Introduction
+description: Build TypeScript CLIs with func that balance developer experience, maintainability, runtime performance, and artifact size.
+lastModified: '2026-08-07'
+---
+
+import CliStructureComparison from '@/components/diagrams/cli-structure-comparison.astro'
+import ComplexityCurve from '@/components/diagrams/complexity-curve.astro'
+import DecisionTable from '@/components/content/decision-table.astro'
+import FrameworkTradeoffPlot from '@/components/diagrams/framework-tradeoff-plot.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const approachChoices = [
+  {
+    choice: 'Performance',
+    when: 'func registers every command in advance through reflection, keeping execution static and complexity low.',
+    example: '✅',
+  },
+  {
+    choice: 'Size',
+    example: '✅',
+  },
+  {
+    choice: 'Developer experience',
+    when: 'Complete type support and editor assistance, backed by thoughtful project architecture and scaffolding.',
+    example: '✅',
+  },
+]
+
+<DocsLayout frontmatter={frontmatter} page="/">
+
+`func` is a lightweight CLI application framework for TypeScript. It uses classes and decorators to declare commands, and provides input definition and validation, command dispatch, error boundaries, service injection, and a range of type-safety features. It is a complete solution for terminal projects, covering the entire workflow from local development to production builds.
+
+You can start small at any time—with a single-command tool or a single-file project—and split out handlers, services, and modules only as commands and business rules grow. The same input model, runtime, and build workflow stay with you throughout, keeping development efficient and predictable.
+Because `func` delivers a strong developer experience, maintainability, and extensibility while remaining fast and producing small bundles, it is a good fit at every stage of your project.
+
+## Why func?
+
+The complexity of a CLI project usually rises quickly. Even a modest extension can make the code difficult to understand and maintain, leaving the project trapped in endless patches and redundant defensive programming. A single input may need a name, type, default, validation rules, and an error message; commands may need to share filesystem access, network requests, and common business rules; after release, existing invocation patterns still need to remain compatible.
+
+If all these responsibilities are packed into argument parsing and command callbacks, changing even one option affects parsing, validation, execution, and error handling at the same time. As features accumulate, every modification requires understanding and verifying an ever-larger portion of the codebase.
+
+<ComplexityCurve />
+
+`func` provides ready-made capabilities for common CLI requirements and requires every handler to strictly follow TypeScript types. This allows a project to support more—and more complex—business modules. Each change concerns only core business code without intruding on the framework; you do not even need to understand how it works internally.
+
+## Overall considerations
+
+<FrameworkTradeoffPlot />
+
+In the current benchmark workload (the sample project used by `benchmarks`), `func` has a mean cold start of 40.13 ms and a raw artifact size of 45.02 KiB. Its startup performance is on par with Commander and cac, while its artifact is substantially smaller than those produced by yargs and oclif—placing it in the top tier for both performance and size. In the same report's proxy evaluation of developer experience and maintainability, `func` scores 86 and 83 respectively, the highest scores in this comparison.
+
+<DecisionTable items={approachChoices}>
+  {'The func framework itself '}
+  <a href="https://github.com/unix/func/blob/main/examples/popular/archived.tar.gz">
+    {'has a small footprint'}
+  </a>
+  {' and includes validation, composition, and common parsers.'}
+</DecisionTable>
+
+The following examples implement the same input rules. `func` keeps types, defaults, and validation on the fields they describe, and the handler receives input only after it has been converted and validated.
+
+### Comparing the same command
+
+The same input rules implement the `artifact inspect` command: a required reference, a platform enum, a numeric retry count, and a JSON flag. Line counts exclude imports and shared business functions.
+
+<CliStructureComparison />
+
+Lines of code are not a criterion for evaluating a framework. These examples simply show that `func` remains fast and lightweight while using clearer, more modern, and developer-friendly engineering practices. This keeps a project healthy, easy to understand at a glance, and ready to extend or maintain at any time.
+
+## Agent support
+
+Beyond the benefits above, `func` also provides excellent support for agents.
+
+Type safety is central to `func`. Clear, rigorous interfaces establish firm boundaries between commands, input, validation, handlers, and services.
+**This allows an agent to follow project rules and generate safe, reliable, stable, and well-structured code that conforms to the architecture. When necessary, you may not need to write code yourself at all—guiding the business logic can be enough to produce a high-quality terminal tool.**
+
+At the same time, `func` provides complete testing support and agent compatibility. An agent can run commands from a user's perspective, verify exit behavior and stable output, and add automated acceptance tests for expected behavior—further safeguarding business logic and project quality through automation.
+
+Open the [Agent guide](/guide/agent-setup). Choose a task that fits the project's current stage, then let an agent create the project, improve its structure, or add CLI behavior tests.
+
+## Where to start next
+
+Choose a documentation entry based on your current goal:
+
+- Using func for the first time: [create a project and run your first command](/guide).
+- Understanding the func runtime model: [understand how commands, handlers, input, and services relate](/concepts).
+- Looking for a specific capability: browse [Commands](/commands), [Field Options](/options), [Parameters](/parameters), or [Error Handling](/error-handler).
+
+</DocsLayout>

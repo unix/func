@@ -1,0 +1,113 @@
+---
+title: 运行时执行模型
+description: 了解 func 如何装配模块、编译命令图，并完成参数解析、入口选择、依赖激活、校验、执行和错误路由。
+lastModified: '2026-08-16'
+---
+
+import FlowDiagram from '@/components/diagrams/flow-diagram.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const runtimeStages = [
+  {
+    label: '编译应用',
+    description:
+      '展开模块，校验 provider 与 option，并把 command 和 handler path 编译成命令图。',
+  },
+  {
+    label: '解析候选',
+    description:
+      '按各命令节点可见的 option 规则解析完整 argv，再用位置 token 匹配命令图。',
+  },
+  {
+    label: '选择入口',
+    description: '优先选择最长且唯一的具名路径，再处理根动作、主命令或缺失命令。',
+  },
+  {
+    label: '激活作用域',
+    description:
+      '创建根 module、直接 owner module、当前 option provider 和所需依赖。',
+  },
+  {
+    label: '绑定与校验',
+    description: '写入字段值，执行 required、enum、自定义校验和跨字段约束。',
+  },
+  {
+    label: '执行与释放',
+    description: '调用唯一入口，路由错误，并按固定顺序执行 onDispose。',
+  },
+]
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="runtime">
+
+func 的运行时分为两个时期。`createApp` 首先把 module 声明编译成完整应用；随后一次性的 `app.bootstrap()` 根据 argv 选择唯一入口并创建本次调用需要的实例。命令式调用则通过 `func/invoke` 创建独立 invoker。装饰器只提供声明与元数据，不会在 import 时执行 handler。
+
+例如 `ship --profile work project member add alice --role owner --force` 会得到 `project member add` 标准路径、用户实际输入的 invoked path、`profile`、`role` 与 `force` 选项，以及剩余的 `alice` 位置输入。option 可以位于 command path 前后；每个阶段只消费自己负责的部分。
+
+<FlowDiagram stages={runtimeStages} title="func 运行时管线" />
+
+## 编译应用
+
+传给 `createApp` 或 `run` 的根输入必须是显式带有 `@Module()` 的 class。func 递归展开 `imports`，为每个 module 建立独立的 provider 可见性边界，并收集 `commands`、`options`、`providers` 与 `exports`。
+
+同一个 module 内的 provider token 必须唯一；imported provider 只有显式 export 后才对导入方可见，也不会穿过中间 module 自动传递。循环 module import、无效 export、无效 provider 和重复 provider 都会在这一阶段阻止应用编译。
+
+command path 与 handler path 随后被合并为命令图。`@Command(['config', 'profile'])` 创建两段路径；其 `@Handler('set')` 对应完整路径 `config profile set`。不同 command class 可以共享前缀，alias 会作为同一节点的另一条边。应用最多注册一个 `@CommandMajor` 和一个 `@CommandMissing`。
+
+编译只生成结构，不创建 command、module 或 provider 实例。需要为应用启用命令补全时，请参考 [Shell 补全](/zh-cn/capabilities/completion)。
+
+## 按候选节点解析 argv
+
+shell 已经完成引号、转义和变量展开后，才把字符串数组交给程序。func 不重新拆分字符串。由于根 module option、feature option 和 command 字段具有不同作用域，运行时会按候选命令节点的有效 option plan 解析完整 argv，然后用解析后的位置 token 匹配命令图。
+
+这意味着 option 可以出现在 command path 前后：`ship --profile work deploy --env prod` 与 `ship deploy --profile work --env prod` 都可以命中 deploy，只要这些选项对 deploy 节点可见。`--` 会停止 option 解析，后续 token 全部保留为位置输入。
+
+已声明的 option 在这一阶段完成 alias 归一化和 Boolean、String、Number、重复 String 或 Number 转换。长值选项支持 `--name value` 与 `--name=value`；已知短标志可以组合。有限数字接受负数；非有限数字与缺失值会产生输入错误。
+
+## 选择唯一入口
+
+运行时从成功解析的候选中选择唯一入口：
+
+1. 选择消费位置 token 最多的具名 command 或 handler path。
+2. 没有具名入口时，检查根 module 的 `@OptionCommand` 动作。
+3. 再尝试 `@CommandMajor` 的 path handler。
+4. 仍有未知位置输入时，尝试 `@CommandMissing`。
+5. 最后使用 `@CommandMajor` 的默认 handler；空应用也可以无操作成功。
+
+如果一个 argv 在不同 option schema 下同时匹配多个作用域，运行时会产生 `F_RUNTIME_PRINT_AMBIGUOUS_INVOCATION`，不会依赖注册顺序猜测。多个动作选项同时显式出现也会被拒绝。
+
+字段 option 提供数据，不会改变入口；`@Handler({ flag })` 与 `@OptionCommand()` 属于动作选项，会替代当前节点的默认 command handler。动作选中时不会要求无关业务字段通过 required 或其他校验，这让 `deploy --help` 可以在缺少 deploy 参数时正常输出帮助。
+
+## 激活 module 与 provider
+
+每次 invocation 都创建新的 `Context` 和依赖图。根 module 参与所有调用；确定命令后，再激活直接声明所选 command 或 option action 的 owner module。仅用于 imports 链接的中间 module 不会自动成为生命周期或错误切面。
+
+provider 按需创建，并在本次调用的依赖图中复用。class provider 必须带有自己的 `@Injectable()` 元数据；value 与 factory provider 使用显式 token。factory 的 `inject` 决定依赖顺序，也可以异步返回实例。当前调用不会使用的 provider 不会构造。
+
+根 option provider 对所有节点可见；feature option provider 只作用于该 module 直接拥有的 commands。它们先接收 CLI 字段值，再执行 `onInit`，因此 option provider 与 module 的 `onInit` 可以读取完成绑定的字段；构造函数不应依赖 argv 已经写入字段。
+
+## 准备并执行所选 command
+
+选中普通 command 后，运行时创建 command 实例，将显式 option 写入字段，未提供的字段保留属性初始值，然后依次执行 required、字段 validator 与跨字段 constraint。校验通过后才解析 handler 参数并调用唯一方法。
+
+`@Args()` 得到冻结的 `raw`、`invokedPath`、标准 `path`、剩余 `inputs` 和归一化 `options` 快照。`Context` 则提供当前 command、所有可发现命令、IO、cwd、signal 和 exit code。同步返回值与 Promise 使用相同的完成语义，最终进入 `InvocationResult.result`。
+
+## 按阶段路由错误
+
+`F_SYSTEM` 始终表示应用声明缺陷，不进入 `onError`。其他异常会规范化为 `Exception`，并在已经激活的作用域中从内到外处理：command 或 option action → 直接 owner module → 根 module。正常返回表示已处理；hook 抛出的新异常继续向外传播。
+
+解析阶段尚未创建 command 与 owner module，因此未知 option、未知 command 或歧义候选只能由根 module 处理。字段绑定、校验和 handler 执行已经拥有 command 实例，会先进入 command 的 `onError`。
+
+无论成功或失败，已激活实例都会接收同一个冻结的 `ExecutionOutcome`。command 与 module 先释放，provider 按创建顺序逆序释放。详细错误分类、默认打印与清理顺序见[错误处理](/zh-cn/error-handler)。
+
+### Q&A
+
+| 问题                                         | 运行时答案                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------- |
+| 根 module 的 option 是全局 option 吗？       | 是。feature module option 只应用于该 module 直接拥有的 commands。           |
+| option 可以写在 command path 前面吗？        | 可以。每个候选使用自己的 option plan 解析完整 argv，再匹配剩余位置 token。  |
+| 一次调用会执行多个处理器吗？                 | 不会。普通 command、handler flag 与 OptionCommand 最终只选择一个入口。      |
+| 匹配 command 与 handler path 后 token 去哪？ | 它们记录到 `path` 与 `invokedPath`，不会出现在最终 `inputs` 中。            |
+| 构造函数中能读取解析后的字段吗？             | 不能依赖。字段绑定发生在实例构造后；`onInit` 与 handler 可以读取。          |
+| command 的 onError 能处理未知 option 吗？    | 不能。解析错误发生在 command 创建前，只会进入已经激活的根 module 错误处理。 |
+
+</DocsLayout>

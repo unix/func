@@ -1,0 +1,118 @@
+---
+title: Shell 补全
+description: 使用 func/completion 为 Bash、Zsh、Fish 和 PowerShell 提供动态命令补全。
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const entryCode = [
+  "import { createApp } from 'func'",
+  "import { withCompletion } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const app = createApp(AppModule, {',
+  "  features: [withCompletion({ bin: 'ship' })],",
+  '})',
+  '',
+  'void app.bootstrap()',
+].join('\n')
+
+export const posixSetupCode = [
+  '# Bash',
+  'eval "$(_SHIP_COMPLETE=bash_source ship)"',
+  '',
+  '# Zsh',
+  'source <(_SHIP_COMPLETE=zsh_source ship)',
+  '',
+  '# Fish',
+  '_SHIP_COMPLETE=fish_source ship | source',
+].join('\n')
+
+export const powershellSetupCode = [
+  "$env:_SHIP_COMPLETE = 'powershell_source'",
+  'ship | Out-String | Invoke-Expression',
+  'Remove-Item Env:_SHIP_COMPLETE',
+].join('\n')
+
+export const directCode = [
+  "import { complete } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const result = complete(AppModule, {',
+  "  args: ['deploy'],",
+  "  incomplete: '--t',",
+  '})',
+].join('\n')
+
+<DocsLayout
+  frontmatter={frontmatter}
+  locale="zh-cn"
+  page="capabilities/completion">
+
+`func/completion` 从现有命令图生成动态候选，不需要补全专用装饰器或额外命令清单。它支持命令路径、别名、字段选项、动作选项和 `@Enum()` 值。
+
+  <Callout locale="zh-cn" title="命令名必须一致" variant="caution">
+
+传给 `withCompletion` 的 `bin` 必须是用户实际输入的可执行文件名，也就是 `package.json#bin` 中的键。
+
+  </Callout>
+
+## 启用补全运行时
+
+在创建应用时注册 `withCompletion`：
+
+<CodeBlock code={entryCode} filename="src/index.ts" lang="ts" />
+
+普通调用仍由同一个 `app.bootstrap()` 执行。只有检测到对应的补全环境变量时，feature 才会在统一启动周期中输出 shell 脚本或候选项，并停止后续命令分发。
+
+命令名会转换为大写、把标点替换为下划线，并添加前后标记。例如 `ship` 对应 `_SHIP_COMPLETE`，`my-cli` 对应 `_MY_CLI_COMPLETE`。
+
+## 在 Shell 中加载适配器
+
+把对应命令加入用户的 shell profile：
+
+<CodeBlock code={posixSetupCode} lang="shell" />
+
+PowerShell 使用环境变量请求适配器，再执行返回的脚本：
+
+<CodeBlock code={powershellSetupCode} lang="powershell" />
+
+每次补全都会查询当前可执行文件，因此命令图更新后不需要重新生成静态清单。修改入口中的 `bin` 或 `package.json#bin` 后，需要同步更新 profile 中的命令和环境变量。
+
+## 候选项来源
+
+补全引擎会根据当前输入位置提供：
+
+| 场景                     | 候选                             |
+| ------------------------ | -------------------------------- |
+| 命令路径尚未完成         | 子命令及其别名。                 |
+| 正在输入 `-` 或 `--`     | 当前节点可见且尚未被排除的选项。 |
+| 值选项带有 `@Enum()`     | 与当前前缀匹配的枚举值。         |
+| 没有 func 候选的位置输入 | 回退到 shell 的文件补全。        |
+
+候选说明复用 command、handler 和 option 的 `description`。已提供的选项、互斥约束和 `--` 结束符也会参与筛选。
+
+补全查询只编译命令图，不会实例化 module、command 或 provider，也不会执行 handler。
+
+## 直接查询结构化候选
+
+编辑器集成或自定义 shell 适配器可以直接调用 `complete`：
+
+<CodeBlock code={directCode} lang="ts" />
+
+返回的 `CompletionResult` 包含 `items`、是否追加空格的 `appendSpace`，以及 `file` 或 `none` 回退策略。
+
+## API 速查
+
+| API                                  | 用途                                                |
+| ------------------------------------ | --------------------------------------------------- |
+| `withCompletion({ bin })`            | 创建接入 `createApp({ features })` 的补全 feature。 |
+| `complete(module, request)`          | 直接生成结构化 `CompletionResult`。                 |
+| `completionEnvironmentVariable(bin)` | 计算指定命令对应的补全环境变量。                    |
+| `completionSource(bin, shell)`       | 生成 Bash、Zsh、Fish 或 PowerShell 适配脚本。       |
+| `CompletionItem`                     | 描述 command、option 或 value 候选。                |
+
+</DocsLayout>

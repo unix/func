@@ -1,0 +1,39 @@
+---
+code: F_SYSTEM_UNKNOWN_HANDLER
+title: 注册了未知处理器
+description: 应用中注册的 command 缺少角色元数据，或 provider 中声明了 @Handler。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Handler, Injectable, Module, createApp } from 'func'",
+  '',
+  '@Injectable()',
+  'class ProjectService {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({ providers: [ProjectService] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## 复现
+
+`@Handler` 不能声明在普通 provider 中：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+func 只允许 command 或 `@OptionCommand` class 持有 `@Handler` 方法。普通 provider 中发现 handler 时，`details.host` 是该 class，`details.handlers` 列出方法名。
+
+将未带 func 角色装饰器的 class 放入 `Module.commands` 也会触发此错误；此时 `details.handlers` 列出无法归类的 command class 名。子类不会继承 command 角色，即使它继承了带 `@Handler` 的方法，也必须显式添加自己的 command 装饰器。
+
+## 如何修复
+
+为每个已注册 command class 添加 `@Command()`、`@CommandMajor()` 或 `@CommandMissing()`。如果这个类是可复用依赖，请使用 `@Injectable()` 并将其放入 `Module.providers`，同时移除 `@Handler`；要向处理器传递能力时，通过构造函数或 handler 参数注入该 provider。

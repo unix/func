@@ -1,0 +1,16 @@
+---
+code: F_SYSTEM_AMBIGUOUS_OPTION_SCOPE
+title: 选项作用域不明确
+description: 一个共享 command path 同时属于多个带 module options 的 feature，无法确定应使用哪一组规则。
+lastModified: '2026-08-15'
+---
+
+## 这个错误是什么
+
+多个 command class 可以共享 path 前缀，但每个命令节点只能有一组确定的 feature option 作用域。当一个只有分支、没有可执行 endpoint 的共享节点来自多个 owner module，且这些 module 中至少一个声明了 `options`，func 无法决定在该节点上公开哪组 option。
+
+`details.path` 是发生歧义的共享路径，`details.modules` 列出参与该节点的 owner modules。
+
+## 如何修复
+
+把共享 path 的 commands 放到同一个 feature module；或把需要共同生效的 option 移到根 module。若这些分支本来就不应共享作用域，也可以调整 command path，使每个 feature 在产生歧义前拥有独立前缀。

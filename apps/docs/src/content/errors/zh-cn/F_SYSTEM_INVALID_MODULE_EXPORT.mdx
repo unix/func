@@ -1,0 +1,30 @@
+---
+code: F_SYSTEM_INVALID_MODULE_EXPORT
+title: 模块导出无效
+description: Module.exports 包含本 module 未注册、未导入或不可见的 provider token。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Injectable, Module, createApp } from 'func'",
+  '',
+  '@Injectable()',
+  'class ProjectService {}',
+  '',
+  '@Module({ exports: [ProjectService] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## 复现
+
+只有当前 module 可见的 provider 才能导出：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 如何修复
+
+如果由当前 module 提供，先把 token 加入 `providers`；如果来自 imported module，确保来源 module 已经 export，并由当前 module import 后再 re-export。command class 不是 provider，不能放入 `exports`。

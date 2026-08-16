@@ -1,0 +1,80 @@
+---
+code: F_SYSTEM_MISSING_PARAM_TYPES
+title: 缺少参数类型元数据
+description: 运行时无法推断构造函数或 handler 参数所请求的 provider token。
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Handler, Injectable, Module, createApp } from 'func'",
+  '',
+  '@Injectable()',
+  'class ProjectService {}',
+  '',
+  "@Command({ path: 'inspect' })",
+  'class InspectCommand {',
+  '  constructor(private project: ProjectService) {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({',
+  '  commands: [InspectCommand],',
+  '  providers: [ProjectService],',
+  '})',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+export const tsconfigCode = [
+  '{',
+  '  "compilerOptions": {',
+  '    "emitDecoratorMetadata": true,',
+  '    "experimentalDecorators": true',
+  '  }',
+  '}',
+].join('\n')
+
+export const explicitCode = [
+  "import { Inject, createToken } from 'func'",
+  '',
+  'interface Project {',
+  '  name: string',
+  '}',
+  '',
+  "const PROJECT = createToken<Project>('PROJECT')",
+  '',
+  'class InspectCommand {',
+  '  constructor(@Inject(PROJECT) private project: Project) {}',
+  '}',
+].join('\n')
+
+## 复现
+
+构造函数或 handler 带参数，但编译产物既没有 design parameter metadata，也没有显式 `@Inject()` token：
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## 这个错误是什么
+
+func 知道参数位置，但无法确定应从 DI 容器请求哪个 token。`details.target` 给出 class 或方法，`details.index` 给出参数位置。
+
+## 如何修复
+
+class 类型注入应在实际构建使用的 TypeScript 配置中启用装饰器与参数元数据：
+
+<CodeBlock code={tsconfigCode} filename="tsconfig.json" lang="json" />
+
+接口、type-only 依赖或不希望依赖反射元数据的参数使用显式 token：
+
+<CodeBlock
+  code={explicitCode}
+  filename="src/commands/inspect.command.ts"
+  lang="ts"
+/>
+
+无论采用哪一种方式，都要在当前 module 注册对应 provider，并确保 imported provider 已显式 export。
