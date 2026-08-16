@@ -16,8 +16,6 @@ Standard tooling for [`func`](https://github.com/unix/func) development.
 
 - build cli project with Rolldown: `funcgo build`
 
-- build cli project with the ncc compatibility bundler: `funcgo build-ncc`
-
 - continuously build when TypeScript files change: `funcgo build --watch`
 
 - continuously build using custom paths or globs:
@@ -33,8 +31,6 @@ Standard tooling for [`func`](https://github.com/unix/func) development.
 
 - `funcgo build`: [-f, 'entry file'] [-o, 'output dir'] [-e, 'external package']
   [--watch] [--watch-path, 'file, directory, or positive glob']
-
-- `funcgo build-ncc`: supports the same parameters as `funcgo build`
 
 <br/>
 

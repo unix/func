@@ -37,6 +37,8 @@ describe('output styles', () => {
     )
     expect(output).toContain('FUNCGO')
     expect(output).toContain('  dev <command> --  run project entry')
+    expect(output).toContain('  build <command> --  bundle project for production')
+    expect(output).not.toContain('build-ncc')
     expect(output).toContain('  --help -h <option> --  help')
   })
 

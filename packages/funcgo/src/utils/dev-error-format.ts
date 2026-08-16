@@ -1,5 +1,5 @@
 import path from 'path'
-import type { SystemErrorCode } from '@func/shared/core-errors'
+import type { SystemErrorCode } from '@func/contracts/core-errors'
 import { formatCodeFrame } from './dev-error-code-frame'
 import { resolveErrorLocation } from './dev-error-location'
 import { style } from './style'

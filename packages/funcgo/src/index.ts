@@ -1,5 +1,5 @@
 import arg from 'arg'
-import { build, buildNcc } from './actions/build'
+import { build } from './actions/build'
 import { dev } from './actions/dev'
 import { setup } from './actions/setup'
 import { style } from './utils/style'
@@ -17,10 +17,6 @@ const commands = [
   {
     name: 'build',
     description: 'bundle project for production with Rolldown',
-  },
-  {
-    name: 'build-ncc',
-    description: 'bundle project for production with ncc compatibility',
   },
   {
     name: 'setup',
@@ -76,11 +72,6 @@ export const main = async (argv: string[] = process.argv): Promise<void> => {
 
   if (command === 'build') {
     await build(commandArgs)
-    return
-  }
-
-  if (command === 'build-ncc') {
-    await buildNcc(commandArgs)
     return
   }
 

@@ -36,7 +36,6 @@
   "prettier": "@unix/prettier",
   "dependencies": {
     "@parcel/watcher": "^2.6.0",
-    "@vercel/ncc": "^0.44.1",
     "arg": "^5.0.2",
     "picomatch": "^4.0.5",
     "rolldown": "^1.2.3",
@@ -44,7 +43,7 @@
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "@func/shared": "workspace:*",
+    "@func/contracts": "workspace:*",
     "@swc/core": "^1.15.47",
     "@types/node": "^26.1.2",
     "@types/picomatch": "^4.0.3",
