@@ -7,7 +7,12 @@
   "exports": {
     "./config-errors": "./src/config-errors.ts",
     "./core-errors": "./src/core-errors.ts",
-    "./log-errors": "./src/log-errors.ts"
+    "./exception": "./src/exception.ts",
+    "./http-errors": "./src/http-errors.ts",
+    "./log-errors": "./src/log-errors.ts",
+    "./net-errors": "./src/net-errors.ts",
+    "./process-errors": "./src/process-errors.ts",
+    "./scaffold-errors": "./src/scaffold-errors.ts"
   },
   "sideEffects": false,
   "scripts": {
