@@ -1,12 +1,9 @@
-import {
-  formatCannotInferValueTypeError,
-  isCannotInferValueTypeError,
-} from './dev-error-format'
-import { errorTrackingHint, withErrorTrackingUrl } from './error-tracking'
+import { withErrorTrackingUrl } from './error-tracking'
+import { formatSystemError, isSystemError } from './system-error-format'
 
 const exitWithError = (error: unknown): never => {
-  if (isCannotInferValueTypeError(error)) {
-    let message = formatCannotInferValueTypeError(error, {
+  if (isSystemError(error)) {
+    let message = formatSystemError(error, {
       cwd: process.cwd(),
       stream: process.stderr,
     })
@@ -17,12 +14,7 @@ const exitWithError = (error: unknown): never => {
     process.exit(1)
   }
 
-  const trackingHint = errorTrackingHint(error)
-  if (!trackingHint) throw error
-  console.error(error)
-  console.error('')
-  console.error(trackingHint)
-  process.exit(1)
+  throw error
 }
 
 process.on('uncaughtException', exitWithError)

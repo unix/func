@@ -1,11 +1,13 @@
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import fs from 'fs'
 import path from 'path'
-import arg from 'arg'
+import { funcgoParser } from '../parser'
 import { valueTypeValidationPlugin } from '../plugins/value-type-validation'
 import { resolveWatchTargets, watchBuild } from '../utils/build-watch'
 import { withErrorTrackingUrl } from '../utils/error-tracking'
 import * as spinner from '../utils/spinner'
 import { cwd, readPackage, resolveEntry } from '../utils/paths'
+import { formatSystemError, isSystemError } from '../utils/system-error-format'
 
 export interface BuildArgs {
   file?: string
@@ -15,8 +17,9 @@ export interface BuildArgs {
   watchPaths: string[]
 }
 
-export const build = async (argv: string[]): Promise<void> => {
-  await runBuild(argv)
+export const build = async (input: string[] | BuildArgs): Promise<void> => {
+  const args = Array.isArray(input) ? parseBuildArgs(input) : input
+  await runBuild(args)
 }
 
 interface ProjectBuildOptions {
@@ -25,12 +28,14 @@ interface ProjectBuildOptions {
   output: string
 }
 
-const runBuild = async (argv: string[]): Promise<void> => {
-  const args = parseBuildArgs(argv)
+const runBuild = async (args: BuildArgs): Promise<void> => {
   const pkg = readPackage()
   const entry = resolveEntry(args.file)
   if (!entry) {
-    throw new Error(`About. Not found entry. Run "funcgo setup" for suggestions.`)
+    throw new ScaffoldException(SCAFFOLD.ENTRY_NOT_FOUND, {
+      details: { entry: args.file },
+      message: 'About. Not found entry. Run "funcgo setup" for suggestions.',
+    })
   }
   const output = path.resolve(cwd, args.out ?? pkg.func?.outDir ?? 'dist')
 
@@ -85,7 +90,7 @@ export const buildWithRolldown = async (
       plugins: [valueTypeValidationPlugin({ cwd })],
       tsconfig: resolveTsconfig(options.entry),
       transform: {
-        target: 'node20.19',
+        target: 'node24.15',
       },
       output: {
         codeSplitting: false,
@@ -103,32 +108,25 @@ export const buildWithRolldown = async (
 }
 
 export const parseBuildArgs = (argv: string[]): BuildArgs => {
-  const args = arg(
-    {
-      '--file': String,
-      '--out': String,
-      '--external': [String],
-      '--watch': Boolean,
-      '--watch-path': [String],
-      '-f': '--file',
-      '-o': '--out',
-      '-e': '--external',
-      '-w': '--watch',
-    },
-    {
-      argv,
-    },
-  )
-
+  const parsed = funcgoParser.parse(['build', ...argv])
+  if (parsed.command !== 'build') {
+    throw new ScaffoldException(SCAFFOLD.INTERNAL_COMMAND_MISMATCH, {
+      details: { actual: parsed.command, expected: 'build' },
+      message: 'Expected build command.',
+    })
+  }
   const result = {
-    file: args['--file'],
-    out: args['--out'],
-    external: args['--external'] ?? [],
-    watch: Boolean(args['--watch']),
-    watchPaths: args['--watch-path'] ?? [],
+    external: parsed.options.external.slice(),
+    file: parsed.options.file,
+    out: parsed.options.out,
+    watch: parsed.options.watch,
+    watchPaths: parsed.options.watchPaths.slice(),
   }
   if (result.watchPaths.length && !result.watch) {
-    throw new Error(`Option "--watch-path" requires "--watch".`)
+    throw new ScaffoldException(SCAFFOLD.WATCH_REQUIRES_WATCH, {
+      details: { watchPaths: result.watchPaths },
+      message: 'Option "--watch-path" requires "--watch".',
+    })
   }
 
   return result
@@ -153,7 +151,11 @@ const writeBin = (output: string): void => {
 }
 
 const printError = (error: unknown): void => {
-  const message = error instanceof Error ? error.message : String(error)
+  const message = isSystemError(error)
+    ? formatSystemError(error)
+    : error instanceof Error
+      ? error.message
+      : String(error)
   spinner.detail(withErrorTrackingUrl(message, error))
 }
 

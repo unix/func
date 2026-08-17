@@ -49,4 +49,19 @@ describe('output styles', () => {
     expect(output).toMatch(/^\d+\.\d+\.\d+/)
     expect(stripVTControlCharacters(output)).toBe(output)
   })
+
+  test('recognizes global options after a command', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await main(['node', 'funcgo', 'build', '--help'])
+    const output = stripVTControlCharacters(
+      log.mock.calls.map(([value]) => String(value)).join('\n'),
+    )
+    expect(output).toContain('FUNCGO')
+  })
+
+  test('rejects unknown commands before dispatch', async () => {
+    await expect(main(['node', 'funcgo', 'deploy'])).rejects.toThrow(
+      'Unknown command "deploy".',
+    )
+  })
 })

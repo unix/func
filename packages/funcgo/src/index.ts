@@ -1,7 +1,8 @@
-import arg from 'arg'
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import { build } from './actions/build'
 import { dev } from './actions/dev'
 import { setup } from './actions/setup'
+import { funcgoParser } from './parser'
 import { style } from './utils/style'
 
 interface PackageInfo {
@@ -19,7 +20,10 @@ const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
 
 const packageValue: unknown = require('../package.json')
 if (!isPackageInfo(packageValue)) {
-  throw new TypeError('funcgo package metadata is invalid.')
+  throw new ScaffoldException(SCAFFOLD.INVALID_PACKAGE_METADATA, {
+    details: { package: packageValue },
+    message: 'funcgo package metadata is invalid.',
+  })
 }
 const pkg = packageValue
 
@@ -53,48 +57,35 @@ const options = [
 
 export const main = async (argv: string[] = process.argv): Promise<void> => {
   const rawArgs = argv.slice(2)
-  const args = arg(
-    {
-      '--help': Boolean,
-      '--version': Boolean,
-      '-h': '--help',
-      '-v': '--version',
-    },
-    {
-      argv: rawArgs,
-      permissive: true,
-    },
-  )
+  const args = funcgoParser.parse(rawArgs)
 
-  if (args['--version']) {
+  if (args.options.version) {
     console.log(pkg.version)
     return
   }
 
-  const command = args._[0]
-  if (args['--help'] || !command) {
+  if (args.options.help || !args.command) {
     printHelp()
     return
   }
 
-  const commandIndex = rawArgs.indexOf(command)
-  const commandArgs = rawArgs.slice(commandIndex + 1)
-  if (command === 'dev') {
-    await dev(commandArgs)
+  if (args.command === 'dev') {
+    await dev({ file: args.options.file, userArgs: args.inputs.slice() })
     return
   }
 
-  if (command === 'build') {
-    await build(commandArgs)
+  if (args.command === 'build') {
+    await build({
+      external: args.options.external.slice(),
+      file: args.options.file,
+      out: args.options.out,
+      watch: args.options.watch,
+      watchPaths: args.options.watchPaths.slice(),
+    })
     return
   }
 
-  if (command === 'setup') {
-    await setup(commandArgs)
-    return
-  }
-
-  throw new Error(`Unknown command "${command}".`)
+  await setup({ fix: args.options.fix })
 }
 
 const printHelp = (): void => {

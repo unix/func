@@ -1,6 +1,7 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { SCAFFOLD, formatScaffoldErrorCode } from '@func/contracts/scaffold-errors'
 import { describe, expect, test, vi } from 'vitest'
 import { resolveWatchTargets, watchBuild } from '../src/utils/build-watch'
 import type {
@@ -87,14 +88,22 @@ describe('resolveWatchTargets', () => {
 
     try {
       expect(() => resolveWatchTargets(['!src/**/*.ts'], { cwd: tempDir })).toThrow(
-        'Negative watch glob is not supported',
+        expect.objectContaining({
+          code: formatScaffoldErrorCode(SCAFFOLD.NEGATIVE_WATCH_GLOB),
+        }),
       )
       expect(() => resolveWatchTargets(['config.json'], { cwd: tempDir })).toThrow(
-        'Watch path does not exist',
+        expect.objectContaining({
+          code: formatScaffoldErrorCode(SCAFFOLD.WATCH_PATH_NOT_FOUND),
+        }),
       )
       expect(() =>
         resolveWatchTargets(['missing/**/*.ts'], { cwd: tempDir }),
-      ).toThrow('Watch glob base directory does not exist')
+      ).toThrow(
+        expect.objectContaining({
+          code: formatScaffoldErrorCode(SCAFFOLD.WATCH_GLOB_BASE_NOT_FOUND),
+        }),
+      )
     } finally {
       fs.rmSync(tempDir, { force: true, recursive: true })
     }

@@ -1,3 +1,4 @@
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import fs from 'fs'
 import path from 'path'
 
@@ -36,10 +37,25 @@ export const resolveEntry = (file?: string): string | undefined => {
 }
 
 export const readPackage = (): ProjectPackage => {
-  const value: unknown = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+  let value: unknown
+  try {
+    value = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+  } catch (error) {
+    throw invalidPackageMetadata(nativeError(error))
+  }
   if (isProjectPackage(value)) return value
-  throw new TypeError(`Invalid package metadata in "${packagePath}".`)
+  throw invalidPackageMetadata()
 }
+
+const invalidPackageMetadata = (cause?: Error): ScaffoldException =>
+  new ScaffoldException(SCAFFOLD.INVALID_PACKAGE_METADATA, {
+    ...(cause ? { cause } : {}),
+    details: { path: packagePath },
+    message: `Invalid package metadata in "${packagePath}".`,
+  })
+
+const nativeError = (error: unknown): Error | undefined =>
+  error instanceof Error ? error : undefined
 
 const isProjectPackage = (value: unknown): value is ProjectPackage =>
   typeof value === 'object' && value !== null

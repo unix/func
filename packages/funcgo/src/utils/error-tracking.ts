@@ -1,12 +1,13 @@
 const ERROR_TRACKING_BASE_URL = 'https://f.witt.im'
+const ERROR_CODE_PATTERN = /^F_(?:SCAFFOLD|SYSTEM)_[A-Z0-9_]+$/
+const ERROR_CODE_PREFIX = 'F_'
 const SYSTEM_ERROR_CODE_PREFIX = 'F_SYSTEM_'
-const SYSTEM_ERROR_CODE_PATTERN = /^F_SYSTEM_[A-Z0-9_]+$/
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
 }
 
-const systemErrorCode = (
+const trackedErrorCode = (
   error: unknown,
   visited = new Set<object>(),
 ): string | undefined => {
@@ -15,24 +16,27 @@ const systemErrorCode = (
   visited.add(error)
   const { cause, code, errors, pluginCode } = error
   const directCode = [code, pluginCode].find(value => {
-    return typeof value === 'string' && SYSTEM_ERROR_CODE_PATTERN.test(value)
+    return typeof value === 'string' && ERROR_CODE_PATTERN.test(value)
   })
   if (typeof directCode === 'string') return directCode
 
   if (Array.isArray(errors)) {
     for (const nestedError of errors) {
-      const nestedCode = systemErrorCode(nestedError, visited)
+      const nestedCode = trackedErrorCode(nestedError, visited)
       if (nestedCode) return nestedCode
     }
   }
 
-  return systemErrorCode(cause, visited)
+  return trackedErrorCode(cause, visited)
 }
 
 export const errorTrackingUrl = (error: unknown): string | undefined => {
-  const code = systemErrorCode(error)
+  const code = trackedErrorCode(error)
   if (!code) return undefined
-  return `${ERROR_TRACKING_BASE_URL}/${code.slice(SYSTEM_ERROR_CODE_PREFIX.length)}`
+  const path = code.startsWith(SYSTEM_ERROR_CODE_PREFIX)
+    ? code.slice(SYSTEM_ERROR_CODE_PREFIX.length)
+    : code.slice(ERROR_CODE_PREFIX.length)
+  return `${ERROR_TRACKING_BASE_URL}/${path}`
 }
 
 export const errorTrackingHint = (error: unknown): string | undefined => {

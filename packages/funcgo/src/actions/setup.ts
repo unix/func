@@ -1,6 +1,7 @@
-import arg from 'arg'
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import fs from 'fs'
 import path from 'path'
+import { funcgoParser } from '../parser'
 import {
   cwd,
   defaultBinName,
@@ -27,10 +28,13 @@ export interface SetupSuggestion {
   apply: (pkg: ProjectPackage) => void
 }
 
-export const setup = async (argv: string[]): Promise<void> => {
-  const args = parseSetupArgs(argv)
+export const setup = async (input: string[] | SetupArgs): Promise<void> => {
+  const args = Array.isArray(input) ? parseSetupArgs(input) : input
   if (!fs.existsSync(packagePath)) {
-    throw new Error(`About. Not found ${packagePath}.`)
+    throw new ScaffoldException(SCAFFOLD.PACKAGE_MANIFEST_NOT_FOUND, {
+      details: { path: packagePath },
+      message: `About. Not found ${packagePath}.`,
+    })
   }
 
   const pkg = readPackage()
@@ -54,17 +58,16 @@ export const setup = async (argv: string[]): Promise<void> => {
 }
 
 export const parseSetupArgs = (argv: string[]): SetupArgs => {
-  const args = arg(
-    {
-      '--fix': Boolean,
-    },
-    {
-      argv,
-    },
-  )
+  const parsed = funcgoParser.parse(['setup', ...argv])
+  if (parsed.command !== 'setup') {
+    throw new ScaffoldException(SCAFFOLD.INTERNAL_COMMAND_MISMATCH, {
+      details: { actual: parsed.command, expected: 'setup' },
+      message: 'Expected setup command.',
+    })
+  }
 
   return {
-    fix: Boolean(args['--fix']),
+    fix: parsed.options.fix,
   }
 }
 

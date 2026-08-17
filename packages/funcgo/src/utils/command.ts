@@ -1,3 +1,4 @@
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import { spawn } from 'child_process'
 
 export interface RunOptions {
@@ -9,33 +10,48 @@ export interface RunOptions {
 
 export interface CommandFailureParams {
   args: string[]
+  cause?: Error
   code: number | null
   command: string
   signal: NodeJS.Signals | null
   silent: boolean
 }
 
-export class CommandFailureError extends Error {
-  args: string[]
-  code: number | null
-  command: string
-  signal: NodeJS.Signals | null
-  silent: boolean
+export interface CommandFailure {
+  readonly exitCode: number | null
+  readonly silent: boolean
+}
+
+class CommandFailureError extends ScaffoldException<SCAFFOLD.COMMAND_FAILED> {
+  readonly args: string[]
+  readonly command: string
+  readonly exitCode: number | null
+  readonly signal: NodeJS.Signals | null
+  readonly silent: boolean
 
   constructor(params: CommandFailureParams) {
-    super(`Command failed: ${params.command} ${params.args.join(' ')}`.trim())
+    super(SCAFFOLD.COMMAND_FAILED, {
+      ...(params.cause ? { cause: params.cause } : {}),
+      details: {
+        args: params.args,
+        command: params.command,
+        exitCode: params.code,
+        signal: params.signal,
+      },
+      message:
+        params.cause?.message ??
+        `Command failed: ${params.command} ${params.args.join(' ')}`.trim(),
+    })
     this.name = 'CommandFailureError'
     this.args = params.args
-    this.code = params.code
     this.command = params.command
+    this.exitCode = params.code
     this.signal = params.signal
     this.silent = params.silent
   }
 }
 
-export const isCommandFailureError = (
-  error: unknown,
-): error is CommandFailureError => {
+export const isCommandFailureError = (error: unknown): error is CommandFailure => {
   return error instanceof CommandFailureError
 }
 
@@ -51,7 +67,18 @@ export const run = (
       stdio: options.stdio ?? 'inherit',
     })
 
-    child.on('error', reject)
+    child.on('error', cause => {
+      reject(
+        new CommandFailureError({
+          args,
+          cause,
+          code: null,
+          command,
+          signal: null,
+          silent: options.silentFailure ?? false,
+        }),
+      )
+    })
     child.on('close', (code, signal) => {
       if (code === 0) {
         resolve()

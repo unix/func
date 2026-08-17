@@ -19,6 +19,12 @@ describe('error tracking', () => {
     ).toBe('https://f.witt.im/CANNOT_INFER_VALUE_TYPE')
   })
 
+  test('builds a tracking URL from a scaffold error code', () => {
+    expect(errorTrackingUrl({ code: 'F_SCAFFOLD_ENTRY_NOT_FOUND' })).toBe(
+      'https://f.witt.im/SCAFFOLD_ENTRY_NOT_FOUND',
+    )
+  })
+
   test('ignores unrelated and malformed codes', () => {
     expect(errorTrackingUrl(new Error('failed'))).toBeUndefined()
     expect(errorTrackingUrl({ code: 'F_RUNTIME_HANDLER_ERROR' })).toBeUndefined()
@@ -74,7 +80,8 @@ describe('error tracking', () => {
     )
 
     expect(result.status).toBe(1)
-    expect(result.stderr).toContain('InternalException: Duplicate handler')
+    expect(result.stderr).toContain('Duplicate handler')
+    expect(result.stderr).toContain('F_SYSTEM_DUPLICATE_COMMAND_TOKEN')
     expect(result.stderr.trimEnd().split('\n').at(-1)).toBe(
       'Learn how to fix this error: https://f.witt.im/DUPLICATE_COMMAND_TOKEN',
     )

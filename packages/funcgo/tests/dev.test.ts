@@ -7,6 +7,7 @@ import {
   formatCannotInferValueTypeError,
   isCannotInferValueTypeError,
 } from '../src/utils/dev-error-format'
+import { formatSystemError, isSystemError } from '../src/utils/system-error-format'
 
 describe('parseDevArgs', () => {
   test('keeps user arguments after delimiter', () => {
@@ -24,8 +25,12 @@ describe('parseDevArgs', () => {
   })
 
   test('treats positional arguments as user arguments without delimiter', () => {
-    const args = parseDevArgs(['hello', 'world'])
-    expect(args.userArgs).toEqual(['hello', 'world'])
+    const args = parseDevArgs(['hello', '--name', 'unix'])
+    expect(args.userArgs).toEqual(['hello', '--name', 'unix'])
+  })
+
+  test('rejects unknown options before passthrough starts', () => {
+    expect(() => parseDevArgs(['--name', 'unix'])).toThrow('Unknown option: --name.')
   })
 })
 
@@ -52,6 +57,22 @@ describe('dev error formatting', () => {
     }
 
     expect(isCannotInferValueTypeError(error)).toBe(false)
+    expect(isSystemError(error)).toBe(true)
+  })
+
+  test('formats system errors from their code and structured details', () => {
+    const message = formatSystemError({
+      code: 'F_SYSTEM_DUPLICATE_COMMAND_TOKEN',
+      details: {
+        handlers: ['FirstCommand', 'SecondCommand'],
+        token: 'status',
+      },
+      message: 'F_SYSTEM_DUPLICATE_COMMAND_TOKEN',
+    })
+
+    expect(message).toContain('A command token is registered more than once.')
+    expect(message).toContain('F_SYSTEM_DUPLICATE_COMMAND_TOKEN')
+    expect(message).toContain("token: 'status'")
   })
 
   test('formats property type guidance', () => {

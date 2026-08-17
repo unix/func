@@ -1,3 +1,4 @@
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import fs from 'fs'
 import path from 'path'
 import parcelWatcher from '@parcel/watcher'
@@ -154,7 +155,10 @@ export const watchBuild = async (options: WatchBuildOptions): Promise<void> => {
 const resolveWatchTarget = (watchPath: string, cwd: string): WatchTarget => {
   const scan = picomatch.scan(normalizePath(watchPath))
   if (scan.negated) {
-    throw new Error(`Negative watch glob is not supported: "${watchPath}".`)
+    throw new ScaffoldException(SCAFFOLD.NEGATIVE_WATCH_GLOB, {
+      details: { watchPath },
+      message: `Negative watch glob is not supported: "${watchPath}".`,
+    })
   }
 
   const absolutePath = path.resolve(cwd, watchPath)
@@ -174,14 +178,20 @@ const resolveWatchTarget = (watchPath: string, cwd: string): WatchTarget => {
   }
 
   if (!scan.isGlob) {
-    throw new Error(`Watch path does not exist: "${watchPath}".`)
+    throw new ScaffoldException(SCAFFOLD.WATCH_PATH_NOT_FOUND, {
+      details: { watchPath },
+      message: `Watch path does not exist: "${watchPath}".`,
+    })
   }
 
   const absolutePattern = normalizePath(path.resolve(cwd, watchPath))
   const absoluteScan = picomatch.scan(absolutePattern)
   const root = path.resolve(absoluteScan.base || cwd)
   if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
-    throw new Error(`Watch glob base directory does not exist: "${watchPath}".`)
+    throw new ScaffoldException(SCAFFOLD.WATCH_GLOB_BASE_NOT_FOUND, {
+      details: { root, watchPath },
+      message: `Watch glob base directory does not exist: "${watchPath}".`,
+    })
   }
 
   const matches = picomatch(absolutePattern, {

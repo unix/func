@@ -1,17 +1,21 @@
-import arg from 'arg'
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
+import { funcgoParser } from '../parser'
 import { isCommandFailureError, run } from '../utils/command'
 import { cwd, resolveEntry } from '../utils/paths'
 
-interface DevArgs {
+export interface DevArgs {
   file?: string
   userArgs: string[]
 }
 
-export const dev = async (argv: string[]): Promise<void> => {
-  const args = parseDevArgs(argv)
+export const dev = async (input: string[] | DevArgs): Promise<void> => {
+  const args = Array.isArray(input) ? parseDevArgs(input) : input
   const entry = resolveEntry(args.file)
   if (!entry) {
-    throw new Error(`About. Not found entry. Run "funcgo setup" for suggestions.`)
+    throw new ScaffoldException(SCAFFOLD.ENTRY_NOT_FOUND, {
+      details: { entry: args.file },
+      message: 'About. Not found entry. Run "funcgo setup" for suggestions.',
+    })
   }
 
   const tsNodeRegister = resolveTsNodeRegister()
@@ -28,7 +32,7 @@ export const dev = async (argv: string[]): Promise<void> => {
     )
   } catch (error) {
     if (isCommandFailureError(error) && error.silent) {
-      process.exitCode = error.code ?? 1
+      process.exitCode = error.exitCode ?? 1
       return
     }
 
@@ -37,23 +41,17 @@ export const dev = async (argv: string[]): Promise<void> => {
 }
 
 export const parseDevArgs = (argv: string[]): DevArgs => {
-  const delimiter = argv.indexOf('--')
-  const ownArgs = delimiter >= 0 ? argv.slice(0, delimiter) : argv
-  const userArgs = delimiter >= 0 ? argv.slice(delimiter + 1) : []
-  const args = arg(
-    {
-      '--file': String,
-      '-f': '--file',
-    },
-    {
-      argv: ownArgs,
-      permissive: true,
-    },
-  )
+  const parsed = funcgoParser.parse(['dev', ...argv])
+  if (parsed.command !== 'dev') {
+    throw new ScaffoldException(SCAFFOLD.INTERNAL_COMMAND_MISMATCH, {
+      details: { actual: parsed.command, expected: 'dev' },
+      message: 'Expected dev command.',
+    })
+  }
 
   return {
-    file: args['--file'],
-    userArgs: delimiter >= 0 ? userArgs : args._,
+    file: parsed.options.file,
+    userArgs: parsed.inputs.slice(),
   }
 }
 
