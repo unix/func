@@ -1,395 +1,251 @@
-import {
-  Argument,
-  Command,
-  CommanderError,
-  InvalidArgumentError,
-  Option,
-} from 'commander'
+import { Command, Option } from 'commander'
 
-const environments = ['development', 'staging', 'production']
-const regions = ['us-east-1', 'eu-west-1', 'ap-southeast-1']
-const strategies = ['rolling', 'blue-green', 'canary']
 const profiles = ['local', 'staging', 'production']
-const formats = ['json', 'yaml', 'toml']
-const schemas = ['strict', 'compatible', 'loose']
-const platforms = ['linux/amd64', 'linux/arm64', 'darwin/arm64']
-const verificationModes = ['none', 'checksum', 'signature']
-const imageReference =
-  /^(?:[a-z0-9.-]+(?::\d+)?\/)?[a-z0-9][a-z0-9._/-]*(?::[A-Za-z0-9._-]+|@sha256:[a-f0-9]{8,})$/
-const digestReference = /^[a-z0-9.-]+\/[a-z0-9][a-z0-9._/-]*@sha256:[a-f0-9]{8,}$/
+const targets = ['development', 'staging', 'production']
+const auditFormats = ['summary', 'detailed']
+const exportFormats = ['json', 'csv']
 
-interface ReleaseOptions {
-  approval?: string
-  artifact: string
-  canaryPercent?: number
-  confirm?: boolean
-  dryRun?: boolean
-  environment: string
-  json?: boolean
-  region: string
-  replicas: number
-  set: string[]
-  strategy: string
-  tag: string[]
-  timeout: number
+interface AppOptions {
+  context: boolean
+  json: boolean
+  profile: string
+  trace: boolean
 }
 
-interface ConfigOptions {
-  allowUnknown?: boolean
-  env: string[]
+interface ProjectOptions extends AppOptions {
+  dryRun: boolean
+  force: boolean
+  label: string[]
+  project?: string
+  target: string
+}
+
+interface AuditOptions extends AppOptions {
   format: string
-  json?: boolean
-  maxWarnings: number
-  schema: string
+  includeSystem: boolean
+  limit: number
 }
 
-interface ArtifactOptions {
-  json?: boolean
-  key?: string
-  metadata: string[]
-  platform: string
-  verify: string
-}
+class ProjectConflict extends Error {}
 
-const collect = (value: string, previous: string[] = []): string[] =>
+const collect = (value: string, previous: string[]): string[] =>
   previous.concat(value)
 
-const integer =
-  (label: string, minimum: number, maximum: number) =>
-  (value: string): number => {
-    const parsed = Number(value)
-    if (Number.isInteger(parsed) && parsed >= minimum && parsed <= maximum)
-      return parsed
-
-    throw new InvalidArgumentError(
-      `${label} must be an integer between ${minimum} and ${maximum}.`,
-    )
-  }
-
-const executeSafely = (action: () => void): void => {
-  try {
-    action()
-  } catch (error) {
-    fail(error)
-  }
+const integer = (value: string): number => {
+  const parsed = Number(value)
+  if (Number.isInteger(parsed)) return parsed
+  throw new Error('limit must be an integer.')
 }
+
+const output = (options: AppOptions, data: object, summary: string): void => {
+  process.stdout.write(`${options.json ? JSON.stringify(data) : summary}\n`)
+}
+
+const commandPath = (command: Command): string => {
+  const names: string[] = []
+  let current = command
+  while (current.parent) {
+    names.unshift(current.name())
+    current = current.parent
+  }
+  return names.join(' ')
+}
+
+const handleContext = (
+  command: Command,
+  options: AppOptions | AuditOptions,
+  scope: 'app' | 'audit' = 'app',
+): boolean => {
+  if (!options.context) return false
+  const path = commandPath(command)
+  if (scope === 'audit') {
+    const audit = options as AuditOptions
+    output(
+      audit,
+      {
+        kind: 'context',
+        scope,
+        command: path,
+        profile: audit.profile,
+        format: audit.format,
+        limit: audit.limit,
+      },
+      `context audit ${path} (${audit.format}/${audit.limit}, ${audit.profile})`,
+    )
+    return true
+  }
+  output(
+    options,
+    {
+      kind: 'context',
+      scope,
+      command: path,
+      profile: options.profile,
+      trace: options.trace,
+    },
+    `context app ${path} (${options.profile}, trace ${options.trace ? 'on' : 'off'})`,
+  )
+  return true
+}
+
+const requiredProject = (options: ProjectOptions): string => {
+  if (options.project) return options.project
+  throw new Error('Option "--project" is required.')
+}
+
+const addProjectOptions = (command: Command): Command =>
+  command
+    .option('--project <name>', 'project name')
+    .addOption(
+      new Option('-t, --target <target>', 'deployment target')
+        .choices(targets)
+        .default('staging'),
+    )
+    .option('--label <label>', 'project label', collect, [])
+    .option('--dry-run', 'preview changes', false)
+    .addOption(
+      new Option('--force', 'force synchronization')
+        .conflicts('dryRun')
+        .default(false),
+    )
+
+const addAuditOptions = (
+  command: Command,
+  formats: string[],
+  defaultFormat: string,
+): Command =>
+  command
+    .addOption(
+      new Option('--format <format>', 'audit output format')
+        .choices(formats)
+        .default(defaultFormat),
+    )
+    .option('--limit <count>', 'maximum audit entries', integer, 20)
+    .option('--include-system', 'include system events', false)
 
 const program = new Command()
   .name('benchmark-commander')
-  .description('CLI framework comparison workload')
+  .description('module scope comparison workload')
   .showSuggestionAfterError()
   .exitOverride()
-
-const release = program
-  .command('release')
-  .alias('r')
-  .description('plan or apply a release')
-
-const addReleaseOptions = (command: Command, action: 'plan' | 'apply'): Command => {
-  command
-    .requiredOption('-a, --artifact <reference>', 'image tag or digest')
-    .addOption(
-      new Option('-e, --environment <environment>', 'target environment')
-        .choices(environments)
-        .default('staging'),
-    )
-    .addOption(
-      new Option('-r, --region <region>', 'target region')
-        .choices(regions)
-        .default('us-east-1'),
-    )
-    .addOption(
-      new Option('-s, --strategy <strategy>', 'rollout strategy')
-        .choices(strategies)
-        .default('rolling'),
-    )
-    .addOption(
-      new Option('-n, --replicas <count>', 'replica count')
-        .argParser(integer('replicas', 1, 50))
-        .default(3),
-    )
-    .addOption(
-      new Option('-t, --timeout <seconds>', 'timeout in seconds')
-        .argParser(integer('timeout', 10, 900))
-        .default(300),
-    )
-    .addOption(
-      new Option(
-        '--canary-percent <percent>',
-        'canary traffic percentage',
-      ).argParser(integer('canary-percent', 1, 50)),
-    )
-    .addOption(
-      new Option('--tag <key=value>', 'release tag').argParser(collect).default([]),
-    )
-    .addOption(
-      new Option('--set <KEY=value>', 'deployment variable')
-        .argParser(collect)
-        .default([]),
-    )
-    .option('--dry-run', 'validate without applying')
-    .option('--json', 'write JSON output')
-
-  if (action === 'apply') {
-    command
-      .addOption(
-        new Option('--confirm', 'confirm release apply').conflicts('dryRun'),
-      )
-      .option('--approval <ticket>', 'approval ticket')
-  }
-
-  return command
-}
-
-addReleaseOptions(
-  release
-    .command('plan <service> [components...]')
-    .description('create a release plan'),
-  'plan',
-).action((service: string, components: string[], options: ReleaseOptions) => {
-  executeSafely(() => executeRelease('plan', service, components, options))
-})
-
-addReleaseOptions(
-  release.command('apply <service> [components...]').description('apply a release'),
-  'apply',
-).action((service: string, components: string[], options: ReleaseOptions) => {
-  executeSafely(() => executeRelease('apply', service, components, options))
-})
-
-const config = program
-  .command('config')
-  .alias('c')
-  .description('validate configuration files')
-config
-  .command('validate')
-  .description('validate configuration files')
-  .addArgument(new Argument('<profile>').choices(profiles))
-  .addArgument(new Argument('<files...>'))
-  .addOption(new Option('--format <format>').choices(formats).default('yaml'))
-  .addOption(new Option('--schema <schema>').choices(schemas).default('compatible'))
-  .addOption(new Option('--env <KEY=value>').argParser(collect).default([]))
   .addOption(
-    new Option('--max-warnings <count>')
-      .argParser(integer('max-warnings', 0, 100))
-      .default(0),
+    new Option('-p, --profile <profile>', 'configuration profile')
+      .choices(profiles)
+      .default('local'),
   )
-  .option('--allow-unknown')
-  .option('--json')
-  .action((profile: string, files: string[], options: ConfigOptions) => {
-    executeSafely(() => {
-      validateFiles(files, options.format)
-      if (options.schema === 'strict' && options.allowUnknown) {
-        throw new Error('--allow-unknown cannot be used with the strict schema.')
-      }
-      const environment = assignments(
-        options.env,
-        'env',
-        /^[A-Z][A-Z0-9_]{0,39}$/,
-        16,
-      )
-      output(
-        {
-          kind: 'config-validation',
-          profile,
-          files,
-          parser: {
-            format: options.format,
-            schema: options.schema,
-            allowUnknown: Boolean(options.allowUnknown),
-            maxWarnings: options.maxWarnings,
-          },
-          environment,
-        },
-        `validate ${files.length} ${options.format} files for ${profile} (${options.schema})`,
-        Boolean(options.json),
-      )
-    })
+  .option('--json', 'write JSON output', false)
+  .option('--trace', 'include trace context', false)
+  .option('-C, --context', 'show invocation context', false)
+
+program
+  .command('status')
+  .description('show application status')
+  .action((_, command: Command) => {
+    const options = command.optsWithGlobals() as AppOptions
+    if (handleContext(command, options)) return
+    output(
+      options,
+      { kind: 'status', profile: options.profile, trace: options.trace },
+      `status ${options.profile} (trace ${options.trace ? 'on' : 'off'})`,
+    )
   })
 
-const artifact = program
-  .command('artifact')
-  .alias('a')
-  .description('inspect an artifact')
-artifact
-  .command('inspect <reference>')
-  .description('inspect an artifact')
-  .addOption(
-    new Option('--platform <platform>').choices(platforms).default('linux/amd64'),
-  )
-  .addOption(
-    new Option('--verify <mode>').choices(verificationModes).default('checksum'),
-  )
-  .option('--key <path>')
-  .addOption(new Option('--metadata <key=value>').argParser(collect).default([]))
-  .option('--json')
-  .action((reference: string, options: ArtifactOptions) => {
-    executeSafely(() => {
-      if (!digestReference.test(reference)) {
-        throw new Error('reference must be a registry image with a sha256 digest.')
-      }
-      if (options.verify === 'signature' && !options.key) {
-        throw new Error('--key is required when --verify is signature.')
-      }
-      if (options.verify !== 'signature' && options.key) {
-        throw new Error('--key is only valid when --verify is signature.')
-      }
-      output(
-        {
-          kind: 'artifact-inspection',
-          reference,
-          platform: options.platform,
-          verification: { mode: options.verify, key: options.key ?? null },
-          metadata: assignments(
-            options.metadata,
-            'metadata',
-            /^[a-z][a-z0-9.-]{0,31}$/,
-            12,
-          ),
-        },
-        `inspect ${reference} for ${options.platform} (${options.verify})`,
-        Boolean(options.json),
-      )
-    })
-  })
+const project = program.command('project').description('inspect and sync projects')
 
-const executeRelease = (
-  action: 'plan' | 'apply',
-  serviceInput: string,
-  componentInputs: string[],
-  options: ReleaseOptions,
-): void => {
-  const service = slug(serviceInput, 'service')
-  const components = uniqueSlugs(componentInputs, 'components', 8)
-  if (!imageReference.test(options.artifact)) {
-    throw new Error('artifact must be an image tag or sha256 digest reference.')
-  }
-  if (
-    options.environment === 'production' &&
-    !options.artifact.includes('@sha256:')
-  ) {
-    throw new Error('production releases require an artifact sha256 digest.')
-  }
-  if (options.strategy === 'canary' && options.canaryPercent === undefined) {
-    throw new Error('--canary-percent is required for the canary strategy.')
-  }
-  if (options.strategy !== 'canary' && options.canaryPercent !== undefined) {
-    throw new Error('--canary-percent is only valid for the canary strategy.')
-  }
-  if (action === 'apply' && !options.dryRun && !options.confirm) {
-    throw new Error('release apply requires --confirm.')
-  }
-  if (
-    action === 'apply' &&
-    options.environment === 'production' &&
-    !options.dryRun &&
-    (!options.approval || !/^DEP-[0-9]{4,}$/.test(options.approval))
-  ) {
-    throw new Error('production release apply requires --approval DEP-<number>.')
-  }
-
+addProjectOptions(
+  project.command('inspect').description('inspect a project'),
+).action((options: ProjectOptions, command: Command) => {
+  const merged = { ...command.optsWithGlobals(), ...options } as ProjectOptions
+  if (handleContext(command, merged)) return
+  const name = requiredProject(merged)
   output(
+    merged,
     {
-      kind: 'release',
-      action,
-      service,
-      components,
-      artifact: options.artifact,
-      target: { environment: options.environment, region: options.region },
-      rollout: {
-        strategy: options.strategy,
-        replicas: options.replicas,
-        timeout: options.timeout,
-        canaryPercent: options.canaryPercent ?? null,
-      },
-      annotations: {
-        tags: assignments(options.tag, 'tag', /^[a-z][a-z0-9.-]{0,31}$/, 8),
-        settings: assignments(options.set, 'set', /^[A-Z][A-Z0-9_]{0,39}$/, 12),
-      },
-      safeguards: {
-        dryRun: Boolean(options.dryRun),
-        confirmed: Boolean(options.confirm),
-        approval: options.approval ?? null,
-      },
+      kind: 'project-inspection',
+      project: name,
+      target: merged.target,
+      labels: merged.label,
+      dryRun: merged.dryRun,
+      profile: merged.profile,
     },
-    `${action} ${service} -> ${options.environment}/${options.region} (${options.strategy}, ${components.length} components)`,
-    Boolean(options.json),
+    `inspect ${name} -> ${merged.target} (${merged.label.length} labels, ${merged.profile})`,
   )
-}
+})
 
-const slug = (value: string, label: string): string => {
-  if (/^[a-z][a-z0-9-]{1,39}$/.test(value)) return value
-  throw new Error(`${label} must be a lowercase slug between 2 and 40 characters.`)
-}
-
-const uniqueSlugs = (values: string[], label: string, maximum: number): string[] => {
-  if (!values.length) throw new Error(`${label} requires a value.`)
-  if (values.length > maximum)
-    throw new Error(`${label} accepts at most ${maximum} values.`)
-  const normalized = values.map(value => slug(value, label))
-  if (new Set(normalized).size !== normalized.length) {
-    throw new Error(`${label} values must be unique.`)
-  }
-
-  return normalized
-}
-
-const assignments = (
-  values: string[],
-  label: string,
-  keyPattern: RegExp,
-  maximum: number,
-): Record<string, string> => {
-  if (values.length > maximum)
-    throw new Error(`${label} accepts at most ${maximum} values.`)
-  const entries: Record<string, string> = {}
-  values.forEach(entry => {
-    const separator = entry.indexOf('=')
-    const key = separator < 0 ? '' : entry.slice(0, separator)
-    const value = separator < 0 ? '' : entry.slice(separator + 1)
-    if (!keyPattern.test(key) || !value) {
-      throw new Error(`${label} value "${entry}" must use a valid key=value pair.`)
+addProjectOptions(project.command('sync').description('sync a project'))
+  .option('--conflict', 'simulate a sync conflict', false)
+  .action((options: ProjectOptions & { conflict: boolean }, command: Command) => {
+    const merged = { ...command.optsWithGlobals(), ...options } as ProjectOptions & {
+      conflict: boolean
     }
-    if (Object.prototype.hasOwnProperty.call(entries, key)) {
-      throw new Error(`${label} contains duplicate key "${key}".`)
+    if (handleContext(command, merged)) return
+    const name = requiredProject(merged)
+    if (merged.conflict) {
+      throw new ProjectConflict(`sync conflict for project "${name}".`)
     }
-    entries[key] = value
+    const mode = merged.dryRun ? 'dry-run' : merged.force ? 'force' : 'safe'
+    output(
+      merged,
+      {
+        kind: 'project-sync',
+        project: name,
+        target: merged.target,
+        labels: merged.label,
+        mode,
+        profile: merged.profile,
+      },
+      `sync ${name} -> ${merged.target} (${mode}, ${merged.profile})`,
+    )
   })
 
-  return Object.fromEntries(
-    Object.entries(entries).sort(([left], [right]) => left.localeCompare(right)),
+const audit = program.command('audit').description('query and export audit events')
+
+addAuditOptions(
+  audit.command('list').description('list audit events'),
+  auditFormats,
+  'summary',
+).action((options: AuditOptions, command: Command) => {
+  const merged = { ...command.optsWithGlobals(), ...options } as AuditOptions
+  if (handleContext(command, merged, 'audit')) return
+  output(
+    merged,
+    {
+      kind: 'audit-list',
+      limit: merged.limit,
+      format: merged.format,
+      includeSystem: merged.includeSystem,
+      profile: merged.profile,
+    },
+    `audit list ${merged.limit} (${merged.format}, system ${merged.includeSystem ? 'on' : 'off'}, ${merged.profile})`,
   )
-}
+})
 
-const validateFiles = (files: string[], format: string): void => {
-  if (files.length > 10) throw new Error('files accepts at most 10 values.')
-  const extensions: Record<string, RegExp> = {
-    json: /\.json$/,
-    yaml: /\.ya?ml$/,
-    toml: /\.toml$/,
-  }
-  const invalid = files.find(file => !extensions[format].test(file))
-  if (invalid)
-    throw new Error(`file "${invalid}" does not match the ${format} format.`)
-}
-
-const output = (data: object, summary: string, json: boolean): void => {
-  process.stdout.write(`${json ? JSON.stringify(data) : summary}\n`)
-}
+addAuditOptions(
+  audit.command('export').description('export audit events'),
+  exportFormats,
+  'json',
+).action((options: AuditOptions, command: Command) => {
+  const merged = { ...command.optsWithGlobals(), ...options } as AuditOptions
+  if (handleContext(command, { ...merged, format: 'summary' }, 'audit')) return
+  output(
+    merged,
+    {
+      kind: 'audit-export',
+      format: merged.format,
+      moduleFormat: 'summary',
+      limit: merged.limit,
+      profile: merged.profile,
+    },
+    `audit export ${merged.format} (limit ${merged.limit}, module summary)`,
+  )
+})
 
 const fail = (error: unknown): void => {
+  const projectError = error instanceof ProjectConflict
   process.stderr.write(
-    `error[CLI_ERROR]: ${error instanceof Error ? error.message : String(error)}\n`,
+    `error[${projectError ? 'project' : 'benchmark'}]: ${error instanceof Error ? error.message : String(error)}\n`,
   )
-  process.exitCode = 2
+  process.exitCode = projectError ? 3 : 2
 }
 
-try {
-  await program.parseAsync(process.argv)
-} catch (error) {
-  if (error instanceof CommanderError) {
-    process.exitCode = error.exitCode
-  } else {
-    fail(error)
-  }
-}
+await program.parseAsync(process.argv).catch(fail)

@@ -11,7 +11,15 @@ describe.each(frameworks)('%s acceptance', framework => {
   test.each(acceptanceCases)('$id', acceptanceCase => {
     const result = spawnSync(
       process.execPath,
-      [join(benchmarkRoot, 'dist', framework, 'bin.mjs'), ...acceptanceCase.args],
+      [
+        join(
+          benchmarkRoot,
+          'dist',
+          framework,
+          framework === 'func' ? 'bin.js' : 'bin.mjs',
+        ),
+        ...acceptanceCase.args,
+      ],
       {
         cwd: benchmarkRoot,
         encoding: 'utf8',

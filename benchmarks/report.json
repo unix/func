@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 3,
-  "generatedAt": "2026-08-07T03:09:11.801Z",
+  "schemaVersion": 5,
+  "generatedAt": "2026-08-17T15:41:45.563Z",
   "environment": {
     "node": "v24.15.0",
     "platform": "darwin",
@@ -9,12 +9,16 @@
     "cpu": "Apple M1 Max",
     "logicalCores": 10,
     "totalMemoryBytes": 68719476736,
-    "freeMemoryBytesAtStart": 2073411584
+    "freeMemoryBytesAtStart": 4691542016
   },
   "frameworks": {
     "func": {
       "package": "func",
-      "version": "2.3.0"
+      "version": "3.0.0-canary.1"
+    },
+    "func-parser": {
+      "package": "func",
+      "version": "3.0.0-canary.1"
     },
     "commander": {
       "package": "commander",
@@ -33,6 +37,12 @@
       "version": "7.0.0"
     }
   },
+  "toolchain": {
+    "func": {
+      "package": "funcgo",
+      "version": "1.2.0-canary.0"
+    }
+  },
   "methodology": {
     "implementation": {
       "runtimeCodeShared": false,
@@ -45,10 +55,10 @@
       ]
     },
     "acceptance": {
-      "caseCount": 27,
-      "successCaseCount": 5,
-      "errorCaseCount": 22,
-      "invocationCount": 135,
+      "caseCount": 18,
+      "successCaseCount": 8,
+      "errorCaseCount": 10,
+      "invocationCount": 108,
       "mode": "Each final bundle is executed as a subprocess against the same black-box cases."
     },
     "authoring": {
@@ -57,9 +67,9 @@
       "scoreFormula": "For each dimension, sum criterion weight × level / 4, then round to an integer from 0 to 100."
     },
     "bundle": {
-      "mode": "esbuild ESM bundle, minified, tree-shaken, target node24",
-      "metric": "Sum of all runtime .mjs files. oclif uses explicit discovery with shared chunks.",
-      "exclusions": "oclif auto-transpilation is disabled and its optional development-only typescript loader is externalized."
+      "mode": "func uses the minified CommonJS output from funcgo/Rolldown; competitors use minified, tree-shaken esbuild ESM targeting Node 24.",
+      "metric": "Sum of the emitted level-9 gzip artifacts for all runtime JavaScript files. oclif uses explicit discovery with shared chunks.",
+      "exclusions": "Build metadata and package manifests are excluded. oclif auto-transpilation is disabled and its optional development-only typescript loader is externalized."
     },
     "source": {
       "mode": "UTF-8 bytes and non-blank lines in each independent adapter implementation.",
@@ -77,87 +87,121 @@
     "contract": [
       {
         "id": "multi-entry-routing",
-        "requirement": "Three command groups, four leaf actions, command aliases, and unknown-command handling."
+        "requirement": "Status plus project inspect/sync and audit list/export leaves, with unknown-command handling."
       },
       {
-        "id": "positional-inputs",
-        "requirement": "Required positional values plus variadic components and configuration files."
+        "id": "application-scope",
+        "requirement": "Profile, JSON, and trace options shared by every command from application scope."
       },
       {
-        "id": "option-parsing",
-        "requirement": "String, integer, boolean, aliased, defaulted, and repeated options across the command groups."
+        "id": "feature-scope",
+        "requirement": "Project and audit option sets each shared by multiple sibling commands without shared runtime benchmark code."
       },
       {
-        "id": "enum-validation",
-        "requirement": "Eight enum domains covering deployment, configuration, platform, and verification choices."
+        "id": "alternate-option-actions",
+        "requirement": "A root --context option replaces normal execution, with audit scope replacing its behavior."
       },
       {
-        "id": "numeric-validation",
-        "requirement": "Integer parsing and inclusive ranges for replicas, timeout, canary percentage, and warning limits."
+        "id": "option-parsing-and-validation",
+        "requirement": "Required, enum, aliased, defaulted, repeated, integer, boolean, and mutually exclusive options."
       },
       {
-        "id": "option-relationships",
-        "requirement": "Dependent and mutually exclusive options, including approval/confirm and confirm/dry-run."
+        "id": "nested-option-override",
+        "requirement": "Audit export replaces the audit module format domain and default while retaining the module value."
       },
       {
-        "id": "business-validation",
-        "requirement": "Cross-field release policy, image formats, unique slugs, repeated key/value maps, and file extensions."
+        "id": "scoped-errors",
+        "requirement": "Project conflicts use feature error policy while parser and other failures use application policy."
       },
       {
-        "id": "error-and-output",
-        "requirement": "Non-zero normalized errors plus deterministic text and JSON success output."
+        "id": "shared-output",
+        "requirement": "Deterministic text and JSON success output through one adapter-owned output boundary."
       }
     ],
     "mechanisms": {
       "func": {
         "routing": "@Command + @Handler",
+        "applicationScope": "AppModule + AppOptions",
+        "featureScope": "ProjectModule/AuditModule option providers",
+        "alternateActions": "@OptionCommand + overrideAll",
         "required": "@Required",
         "enums": "@Enum",
-        "numericRanges": "@Value + @ValueValidate",
+        "numericValues": "@Value typed field conversion",
         "repeatedValues": "@ArrayString",
-        "dependencies": "@DependsOn",
         "exclusivity": "@Exclusive",
-        "errorBoundary": "command/module onError"
+        "override": "@Override",
+        "errorBoundary": "MODULE_FILTER + APP_FILTER",
+        "output": "Output provider + @Stdout"
+      },
+      "func-parser": {
+        "routing": "composed createParser instances + passthrough",
+        "applicationScope": "shared parser option definition + explicit merge",
+        "featureScope": "project/audit parser definitions",
+        "alternateActions": "local handler interception helpers",
+        "required": "local validation",
+        "enums": "local validation",
+        "numericValues": "Number parser + local integer validation",
+        "repeatedValues": "multiple parser options",
+        "exclusivity": "local validation",
+        "override": "command-specific local domains and defaults",
+        "errorBoundary": "ParserError + local catch",
+        "output": "shared local output helper"
       },
       "commander": {
-        "routing": "Command subcommands + Argument",
-        "required": "requiredOption + required arguments",
-        "enums": "Option/Argument.choices",
-        "numericRanges": "Option.argParser",
+        "routing": "Command subcommand tree",
+        "applicationScope": "global options + optsWithGlobals",
+        "featureScope": "reusable option factories + local merges",
+        "alternateActions": "shared handler interception helper",
+        "required": "context-aware local required helper",
+        "enums": "Option.choices",
+        "numericValues": "Option.argParser",
         "repeatedValues": "Option.argParser collector",
-        "dependencies": "command shape + local validation",
         "exclusivity": "Option.conflicts",
-        "errorBoundary": "exitOverride + local catch"
+        "override": "distinct leaf option factory arguments",
+        "errorBoundary": "exitOverride + local catch",
+        "output": "shared local output helper"
       },
       "yargs": {
         "routing": "command builders",
-        "required": "demandOption + required positionals",
+        "applicationScope": "global options",
+        "featureScope": "project/audit builders",
+        "alternateActions": "shared handler interception helpers",
+        "required": "context-aware local required helper",
         "enums": "choices",
-        "numericRanges": "number parsing + check",
+        "numericValues": "number parsing + check",
         "repeatedValues": "array options",
-        "dependencies": "implies + check",
         "exclusivity": "conflicts",
-        "errorBoundary": "fail + local catch"
+        "override": "action-specific builder check and defaults",
+        "errorBoundary": "fail + local catch",
+        "output": "shared local output helper"
       },
       "oclif": {
         "routing": "explicit Command classes",
-        "required": "Args/Flags required",
-        "enums": "Args/Flags options",
-        "numericRanges": "Flags.integer min/max",
-        "repeatedValues": "multiple flags/args",
-        "dependencies": "Flags dependsOn",
+        "applicationScope": "shared appFlags object + base command",
+        "featureScope": "shared feature flag objects",
+        "alternateActions": "base-command interception methods",
+        "required": "context-aware base-command helper",
+        "enums": "Flags options",
+        "numericValues": "Flags.integer",
+        "repeatedValues": "multiple flags",
         "exclusivity": "Flags exclusive",
-        "errorBoundary": "Config catch handler"
+        "override": "distinct export flag definition",
+        "errorBoundary": "entry catch + project error classification",
+        "output": "base-command output method"
       },
       "cac": {
         "routing": "command schemas",
+        "applicationScope": "global options",
+        "featureScope": "flat command option declarations",
+        "alternateActions": "local handler interception helpers",
         "required": "local validation",
         "enums": "local oneOf validation",
-        "numericRanges": "local integer validation",
+        "numericValues": "local integer validation",
         "repeatedValues": "option accumulation + local normalization",
-        "dependencies": "local validation",
         "exclusivity": "local validation",
-        "errorBoundary": "local catch"
+        "override": "action-specific local defaults and domains",
+        "errorBoundary": "local catch",
+        "output": "shared local output helper"
       }
     }
   },
@@ -167,64 +211,64 @@
         {
           "id": "type-continuity",
           "label": "Type continuity",
-          "measurement": "How precisely input declarations flow into handlers without assertions, coercion, or duplicated interfaces.",
-          "weight": 30
+          "measurement": "How precisely shared option declarations flow into handlers without assertions, coercion, or duplicated interfaces.",
+          "weight": 20
+        },
+        {
+          "id": "scope-composition",
+          "label": "Scope composition",
+          "measurement": "How directly application and feature scopes share options and services across multiple commands.",
+          "weight": 25
         },
         {
           "id": "validation-authoring",
           "label": "Validation authoring",
-          "measurement": "How much of the tested input policy is expressed beside the input declaration instead of in local control flow.",
-          "weight": 25
-        },
-        {
-          "id": "command-composition",
-          "label": "Command composition",
-          "measurement": "Whether commands can be isolated, nested, registered, and reused without rebuilding parser state by hand.",
-          "weight": 20
-        },
-        {
-          "id": "error-authoring",
-          "label": "Error authoring",
-          "measurement": "How much normalized validation and error-boundary behavior the framework provides.",
+          "measurement": "How much required, enum, repeated, numeric, and exclusive option behavior stays beside declarations.",
           "weight": 15
         },
         {
-          "id": "isolated-testing",
-          "label": "Isolated testing",
-          "measurement": "How directly a command or parser can be exercised with supplied argv and without process-level side effects.",
-          "weight": 10
+          "id": "alternate-actions",
+          "label": "Alternate option actions",
+          "measurement": "How directly one option can replace normal command execution and be overridden in a nested scope.",
+          "weight": 20
+        },
+        {
+          "id": "boundary-authoring",
+          "label": "Boundary authoring",
+          "measurement": "How directly shared output plus application and feature error boundaries are expressed.",
+          "weight": 20
         }
       ],
       "maintainability": [
         {
-          "id": "rule-locality",
-          "label": "Rule locality",
-          "measurement": "Whether declarations and their validation relationships remain visible in the same local unit.",
-          "weight": 30
+          "id": "shared-option-locality",
+          "label": "Shared option locality",
+          "measurement": "Whether options shared by sibling commands have one explicit owner and one consumption path.",
+          "weight": 25
+        },
+        {
+          "id": "override-locality",
+          "label": "Override locality",
+          "measurement": "Whether nested option and alternate-action overrides are declared where scope changes.",
+          "weight": 20
         },
         {
           "id": "local-glue",
           "label": "Local glue burden",
-          "measurement": "How much parser-specific validation, normalization, and adapter control flow remains after business logic is excluded.",
-          "weight": 30
-        },
-        {
-          "id": "type-escapes",
-          "label": "Type escape burden",
-          "measurement": "How often parsed values cross assertions, broad records, conversions, or manually duplicated type contracts.",
-          "weight": 20
+          "measurement": "How much parser-specific merging, normalization, dispatch, and interception remains.",
+          "weight": 25
         },
         {
           "id": "command-isolation",
           "label": "Command isolation",
-          "measurement": "Whether commands have independent modules or classes with explicit registration boundaries.",
-          "weight": 10
+          "measurement": "Whether command behavior has explicit registration and ownership boundaries.",
+          "weight": 15
         },
         {
-          "id": "error-boundary",
-          "label": "Error boundary",
-          "measurement": "Whether failures converge on one framework-supported boundary instead of per-command catches.",
-          "weight": 10
+          "id": "boundary-locality",
+          "label": "Boundary locality",
+          "measurement": "Whether output and error policy are centralized at the intended application or feature scope.",
+          "weight": 15
         }
       ]
     },
@@ -232,153 +276,205 @@
       "func": {
         "dx": {
           "evidence": {
-            "command-composition": {
-              "evidence": "Command classes and handler paths isolate command groups; the benchmark registers the command classes explicitly.",
-              "level": 3
-            },
-            "error-authoring": {
-              "evidence": "Command and module onError hooks provide framework boundaries; the adapter only normalizes benchmark output.",
+            "alternate-actions": {
+              "evidence": "@OptionCommand replaces normal execution at application scope, and the audit module overrides it with overrideAll.",
               "level": 4
             },
-            "isolated-testing": {
-              "evidence": "Command classes are isolated, while end-to-end parsing still runs through the func runtime.",
+            "boundary-authoring": {
+              "evidence": "An injected @Stdout output service is shared through a module; APP_FILTER and MODULE_FILTER define application and project failure policy.",
               "level": 3
             },
+            "scope-composition": {
+              "evidence": "AppOptions, ProjectOptions, AuditOptions, and Output are injected from their owning modules into sibling commands.",
+              "level": 4
+            },
             "type-continuity": {
-              "evidence": "Decorator-backed class fields retain their declared TypeScript types through handlers without argument casts.",
+              "evidence": "Decorator-backed class fields flow into handlers and services as typed instances without option-record assertions.",
               "level": 4
             },
             "validation-authoring": {
-              "evidence": "Required, enum, numeric, repeated, dependency, and exclusivity rules are adjacent decorators; release policy remains business code.",
-              "level": 3
+              "evidence": "@Required, @Enum, @ArrayString, @Value, @Flag, and @Exclusive keep the tested input policy on fields.",
+              "level": 4
             }
           },
-          "score": 86
+          "score": 95
         },
         "maintainability": {
           "evidence": {
-            "command-isolation": {
-              "evidence": "Each command group is represented by a command class with scoped handlers.",
-              "level": 3
-            },
-            "error-boundary": {
-              "evidence": "Command and module onError hooks converge parsing and command failures.",
+            "boundary-locality": {
+              "evidence": "Output is owned by OutputModule, project conflicts by ProjectModule, and remaining failures by AppModule.",
               "level": 4
             },
+            "command-isolation": {
+              "evidence": "Project handlers share one command class while audit leaves remain explicit commands registered by AuditModule.",
+              "level": 3
+            },
             "local-glue": {
-              "evidence": "Parser adaptation is carried by decorators; local control flow is primarily workload-specific release policy and output assembly.",
+              "evidence": "The adapter has no option-record merging or manual input normalization; output assembly and the project conflict remain local.",
               "level": 3
             },
-            "rule-locality": {
-              "evidence": "Input shape and reusable validation rules sit on the affected fields; cross-field business policy stays in the handler.",
-              "level": 3
+            "override-locality": {
+              "evidence": "@Override is attached to audit export format and the audit OptionCommand override is registered only in AuditModule.",
+              "level": 4
             },
-            "type-escapes": {
-              "evidence": "Handlers consume typed fields and Args without adapter-level assertions.",
+            "shared-option-locality": {
+              "evidence": "Each shared option class is registered once at its owning module and injected into every consumer.",
               "level": 4
             }
           },
-          "score": 83
+          "score": 90
+        }
+      },
+      "func-parser": {
+        "dx": {
+          "evidence": {
+            "alternate-actions": {
+              "evidence": "Root and audit context behavior is implemented through explicit early interception in local dispatch code.",
+              "level": 1
+            },
+            "boundary-authoring": {
+              "evidence": "ParserError supplies structured parse failures, but output, application and feature classification, formatting, and exit status are all implemented locally.",
+              "level": 1
+            },
+            "scope-composition": {
+              "evidence": "Root, project, and audit parsers reuse one app option definition, with values merged explicitly across passthrough boundaries.",
+              "level": 2
+            },
+            "type-continuity": {
+              "evidence": "createParser infers command and option result unions, while AppInvocation and AppValues duplicate the shared application shape at the merge boundary.",
+              "level": 3
+            },
+            "validation-authoring": {
+              "evidence": "Primitive conversion and repeated values are declarative; defaults, required, enums, integers, and exclusivity remain local.",
+              "level": 2
+            }
+          },
+          "score": 45
+        },
+        "maintainability": {
+          "evidence": {
+            "boundary-locality": {
+              "evidence": "One local catch owns failures, but project classification is not attached to a parser scope.",
+              "level": 2
+            },
+            "command-isolation": {
+              "evidence": "Root, project, and audit parsing have separate definitions; execution dispatch remains in one adapter flow.",
+              "level": 2
+            },
+            "local-glue": {
+              "evidence": "Nested routing requires passthrough parsing, application-option merging, dispatch, validation, and interception code.",
+              "level": 1
+            },
+            "override-locality": {
+              "evidence": "Audit format and context overrides are conditional values in local dispatch because parser definitions cannot override merged options.",
+              "level": 1
+            },
+            "shared-option-locality": {
+              "evidence": "Application options have one reusable definition, and project/audit options each have one feature parser owner.",
+              "level": 3
+            }
+          },
+          "score": 45
         }
       },
       "commander": {
         "dx": {
           "evidence": {
-            "command-composition": {
-              "evidence": "The command tree and reusable command factories support separation, with registration performed imperatively.",
-              "level": 3
-            },
-            "error-authoring": {
-              "evidence": "exitOverride captures parser failures, while the adapter supplies local catches and normalized output.",
+            "alternate-actions": {
+              "evidence": "A shared helper checks --context from each action; audit callers explicitly choose the scoped context behavior.",
               "level": 2
             },
-            "isolated-testing": {
-              "evidence": "Command instances can parse supplied argv, although process behavior must be disabled or overridden explicitly.",
-              "level": 3
+            "boundary-authoring": {
+              "evidence": "One output helper and one final catch normalize behavior, while project classification is a local instanceof branch.",
+              "level": 2
+            },
+            "scope-composition": {
+              "evidence": "Reusable option factories model feature scope, but each action merges local and global option records.",
+              "level": 2
             },
             "type-continuity": {
-              "evidence": "The benchmark manually mirrors option declarations with ReleaseOptions, ConfigOptions, and ArtifactOptions interfaces.",
+              "evidence": "Manual interfaces and assertions mirror option declarations at optsWithGlobals boundaries.",
               "level": 2
             },
             "validation-authoring": {
-              "evidence": "Required values, choices, parsers, and conflicts are declarative; dependencies and business relationships remain local.",
-              "level": 2
+              "evidence": "choices, parsers, and conflicts are declarative; context-compatible required handling stays local.",
+              "level": 3
             }
           },
-          "score": 58
+          "score": 54
         },
         "maintainability": {
           "evidence": {
-            "command-isolation": {
-              "evidence": "Subcommands have explicit tree boundaries, but the benchmark keeps registration and handlers in one adapter module.",
+            "boundary-locality": {
+              "evidence": "Output and final error normalization are centralized, but there is no feature-owned error boundary.",
               "level": 2
             },
-            "error-boundary": {
-              "evidence": "Parser errors and action errors require separate local normalization paths.",
+            "command-isolation": {
+              "evidence": "The command tree has explicit leaves, with registration and handlers retained in one adapter module.",
               "level": 2
             },
             "local-glue": {
-              "evidence": "Argument parsers remove some conversion work, while relationship validation and safe execution wrappers remain local.",
+              "evidence": "Each action merges global and local options and invokes local interception or required-option helpers.",
               "level": 2
             },
-            "rule-locality": {
-              "evidence": "Simple rules are adjacent to options; action-dependent and cross-field rules are implemented in action handlers.",
+            "override-locality": {
+              "evidence": "Audit export and audit context overrides are recreated through call-site arguments and replacement values.",
               "level": 2
             },
-            "type-escapes": {
-              "evidence": "Manual option interfaces preserve handler types but duplicate the parser declarations.",
-              "level": 2
+            "shared-option-locality": {
+              "evidence": "Project and audit option factories remove declaration duplication but do not create an owned runtime scope.",
+              "level": 3
             }
           },
-          "score": 50
+          "score": 56
         }
       },
       "yargs": {
         "dx": {
           "evidence": {
-            "command-composition": {
-              "evidence": "CommandModule objects isolate builders and handlers and can be registered independently or through a directory hierarchy.",
-              "level": 4
-            },
-            "error-authoring": {
-              "evidence": "check and fail integrate with parser errors, while the benchmark still supplies a local catch and normalized output.",
+            "alternate-actions": {
+              "evidence": "Handlers call context helpers before normal execution, with audit override behavior selected in the audit handler.",
               "level": 2
             },
-            "isolated-testing": {
-              "evidence": "Command modules and parsers accept supplied argv without requiring process.argv.",
-              "level": 4
+            "boundary-authoring": {
+              "evidence": "Shared output and fail helpers centralize policy; scoped project classification remains a local instanceof branch.",
+              "level": 2
+            },
+            "scope-composition": {
+              "evidence": "Command builders share feature options, while application options are global and feature state remains flat argv data.",
+              "level": 3
             },
             "type-continuity": {
-              "evidence": "Builder return types now flow into CommandModule handlers without handler casts; an inference helper and external @types package remain necessary.",
+              "evidence": "Typed argument interfaces reach handlers, with declarations mirrored manually across builder and interface shapes.",
               "level": 3
             },
             "validation-authoring": {
-              "evidence": "choices, demandOption, conflicts, and implies are declarative; numeric ranges and cross-field policy use three check callbacks.",
-              "level": 2
+              "evidence": "choices, number parsing, arrays, and conflicts are declarative; one audit check selects the action-specific enum.",
+              "level": 3
             }
           },
-          "score": 73
+          "score": 65
         },
         "maintainability": {
           "evidence": {
-            "command-isolation": {
-              "evidence": "Release, config, and artifact are independent CommandModule values with typed builders and handlers.",
-              "level": 4
-            },
-            "error-boundary": {
-              "evidence": "fail integrates parser failures, followed by one local catch for benchmark output.",
+            "boundary-locality": {
+              "evidence": "One final catch owns output, but feature error classification is not attached to a command scope.",
               "level": 2
+            },
+            "command-isolation": {
+              "evidence": "Builders isolate project and audit declarations; action dispatch remains inside their shared handlers.",
+              "level": 3
             },
             "local-glue": {
-              "evidence": "Native relationships remove some glue, but three check callbacks still own numeric and cross-field validation.",
+              "evidence": "Builder inference handles parsing while action dispatch, required handling, and interception remain local.",
               "level": 2
             },
-            "rule-locality": {
-              "evidence": "Each check stays with its command builder, but several unrelated rules accumulate inside the callback.",
+            "override-locality": {
+              "evidence": "Audit format and context differences are conditional values inside one audit builder and handler.",
               "level": 2
             },
-            "type-escapes": {
-              "evidence": "Typed builder inference removes handler assertions and boundary coercions; one helper connects builder and module generics.",
+            "shared-option-locality": {
+              "evidence": "Project and audit builder functions provide one declaration path for their sibling actions.",
               "level": 3
             }
           },
@@ -388,105 +484,105 @@
       "oclif": {
         "dx": {
           "evidence": {
-            "command-composition": {
-              "evidence": "Independent Command classes and explicit discovery provide strong command boundaries with framework registration.",
-              "level": 4
-            },
-            "error-authoring": {
-              "evidence": "The Config catch handler centralizes framework failures; the benchmark adds output normalization.",
-              "level": 3
-            },
-            "isolated-testing": {
-              "evidence": "Command classes are independently addressable but require the oclif config and discovery harness.",
+            "alternate-actions": {
+              "evidence": "A base command supplies interception helpers, but every leaf must call one and export must replace context format manually.",
               "level": 2
             },
-            "type-continuity": {
-              "evidence": "Args and Flags infer parsed values in command methods; the extracted release helper duplicates a ReleaseFlags interface.",
+            "boundary-authoring": {
+              "evidence": "Base-command output and one entry catch centralize behavior; project classification is local to the catch.",
               "level": 3
             },
-            "validation-authoring": {
-              "evidence": "Required values, options, integer ranges, repeated values, dependsOn, and exclusive are declarative; business policy remains local.",
+            "scope-composition": {
+              "evidence": "Shared flag objects and a base command compose application and feature behavior across independent commands.",
               "level": 3
+            },
+            "type-continuity": {
+              "evidence": "Flags infer leaf command values, and shared helpers consume explicit AppFlags and AuditFlags contracts.",
+              "level": 4
+            },
+            "validation-authoring": {
+              "evidence": "options, integer parsing, repeated flags, and exclusivity remain declarative in shared flag definitions.",
+              "level": 4
             }
           },
-          "score": 78
+          "score": 79
         },
         "maintainability": {
           "evidence": {
+            "boundary-locality": {
+              "evidence": "Output lives on the base command and all failures converge at the entry point, without feature-owned registration.",
+              "level": 3
+            },
             "command-isolation": {
-              "evidence": "Every leaf action is an independent Command class discovered through one registry.",
+              "evidence": "Every leaf is an independent Command class registered in the explicit discovery map.",
               "level": 4
             },
-            "error-boundary": {
-              "evidence": "Config supplies a shared catch handler for command failures.",
-              "level": 3
-            },
             "local-glue": {
-              "evidence": "Flag parsing and relationships need little adapter glue; workload-specific release and artifact policy remains local.",
+              "evidence": "Parsing needs little normalization, while context interception is repeated once in every run method.",
               "level": 3
             },
-            "rule-locality": {
-              "evidence": "Most input rules sit in static Args and Flags declarations; business policy sits in command methods or the shared release helper.",
+            "override-locality": {
+              "evidence": "Export owns a distinct flag definition, but scoped context replacement is assembled in the run method.",
               "level": 3
             },
-            "type-escapes": {
-              "evidence": "Parsed args and flags remain typed, with one manually mirrored interface at the shared release helper boundary.",
+            "shared-option-locality": {
+              "evidence": "Application, project, and audit flag objects are reusable, explicit declaration owners.",
               "level": 3
             }
           },
-          "score": 78
+          "score": 79
         }
       },
       "cac": {
         "dx": {
           "evidence": {
-            "command-composition": {
-              "evidence": "Command schemas provide basic grouping, while nested behavior and normalization are assembled locally.",
-              "level": 2
-            },
-            "error-authoring": {
-              "evidence": "The adapter owns validation errors, catching, formatting, and exit status.",
+            "alternate-actions": {
+              "evidence": "Handlers explicitly invoke local interception helpers and select the audit replacement values.",
               "level": 1
             },
-            "isolated-testing": {
-              "evidence": "The parser can receive argv, but command behavior remains coupled to local normalization and execution wrappers.",
-              "level": 2
+            "boundary-authoring": {
+              "evidence": "Local helpers own output, catching, classification, and exit status without scoped framework boundaries.",
+              "level": 1
+            },
+            "scope-composition": {
+              "evidence": "Global options are shared, while project and audit declarations and normalization remain on flat command schemas.",
+              "level": 1
             },
             "type-continuity": {
-              "evidence": "Handlers receive broad option records and locally narrow or convert parsed values.",
+              "evidence": "Handlers receive broad option records and narrow or convert their values locally.",
               "level": 1
             },
             "validation-authoring": {
-              "evidence": "Command schemas describe option presence, while required, enum, numeric, repeated, and relationship validation is local.",
+              "evidence": "Defaults are declared, while enum, required, integer, repeated, and exclusivity behavior is implemented locally.",
               "level": 1
             }
           },
-          "score": 33
+          "score": 25
         },
         "maintainability": {
           "evidence": {
+            "boundary-locality": {
+              "evidence": "One local catch centralizes failures, but project scope is only an instanceof branch.",
+              "level": 1
+            },
             "command-isolation": {
-              "evidence": "Command schemas create named sections, but parsing, validation, and handlers share one adapter module.",
+              "evidence": "Command schemas create named sections, while action dispatch and all normalization remain in their handlers.",
               "level": 2
             },
-            "error-boundary": {
-              "evidence": "A local catch normalizes every parser and handler failure.",
-              "level": 1
-            },
             "local-glue": {
-              "evidence": "Most validation and parsed-value normalization is implemented by adapter helpers and handler control flow.",
+              "evidence": "Broad option records require local enum, integer, list, required, conflict, and interception helpers.",
               "level": 1
             },
-            "rule-locality": {
-              "evidence": "Option schemas and their required, enum, range, and relationship rules are split across declarations and handlers.",
+            "override-locality": {
+              "evidence": "Both audit overrides are recreated as conditional handler values.",
               "level": 1
             },
-            "type-escapes": {
-              "evidence": "Broad records and local conversions form the command-handler boundary.",
+            "shared-option-locality": {
+              "evidence": "Global options have one owner, but feature option behavior is coupled to flat command handlers.",
               "level": 1
             }
           },
-          "score": 28
+          "score": 29
         }
       }
     },
@@ -520,15 +616,18 @@
   },
   "bundle": {
     "func": {
-      "files": ["dist/func/bin.mjs"],
-      "fileCount": 1,
-      "rawBytes": 46096,
-      "gzipBytes": 13704,
-      "brotliBytes": 12311,
+      "artifacts": [
+        "dist/func/bin.js.gz",
+        "dist/func/index.js.gz"
+      ],
+      "fileCount": 2,
+      "gzipBytes": 22605,
       "source": {
-        "files": ["src/adapters/func.ts"],
-        "bytes": 12535,
-        "nonBlankLines": 366,
+        "files": [
+          "src/adapters/func.ts"
+        ],
+        "bytes": 7216,
+        "nonBlankLines": 278,
         "relativeToFunc": {
           "byteDelta": 0,
           "byteRatio": 1,
@@ -537,115 +636,137 @@
         }
       },
       "relativeToFunc": {
-        "rawDeltaBytes": 0,
-        "rawDeltaPercent": 0,
-        "rawRatio": 1,
-        "gzipRatio": 1,
-        "brotliRatio": 1
+        "gzipDeltaBytes": 0,
+        "gzipDeltaPercent": 0,
+        "gzipRatio": 1
+      }
+    },
+    "func-parser": {
+      "artifacts": [
+        "dist/func-parser/bin.mjs.gz"
+      ],
+      "fileCount": 1,
+      "gzipBytes": 4626,
+      "source": {
+        "files": [
+          "src/adapters/func-parser.ts"
+        ],
+        "bytes": 7231,
+        "nonBlankLines": 250,
+        "relativeToFunc": {
+          "byteDelta": 15,
+          "byteRatio": 1.002,
+          "nonBlankLineDelta": -28,
+          "nonBlankLineRatio": 0.899
+        }
+      },
+      "relativeToFunc": {
+        "gzipDeltaBytes": -17979,
+        "gzipDeltaPercent": -79.536,
+        "gzipRatio": 0.205
       }
     },
     "commander": {
-      "files": ["dist/commander/bin.mjs"],
+      "artifacts": [
+        "dist/commander/bin.mjs.gz"
+      ],
       "fileCount": 1,
-      "rawBytes": 45989,
-      "gzipBytes": 13633,
-      "brotliBytes": 12260,
+      "gzipBytes": 12466,
       "source": {
-        "files": ["src/adapters/commander.ts"],
-        "bytes": 12112,
-        "nonBlankLines": 367,
+        "files": [
+          "src/adapters/commander.ts"
+        ],
+        "bytes": 7225,
+        "nonBlankLines": 228,
         "relativeToFunc": {
-          "byteDelta": -423,
-          "byteRatio": 0.966,
-          "nonBlankLineDelta": 1,
-          "nonBlankLineRatio": 1.003
+          "byteDelta": 9,
+          "byteRatio": 1.001,
+          "nonBlankLineDelta": -50,
+          "nonBlankLineRatio": 0.82
         }
       },
       "relativeToFunc": {
-        "rawDeltaBytes": -107,
-        "rawDeltaPercent": -0.232,
-        "rawRatio": 0.998,
-        "gzipRatio": 0.995,
-        "brotliRatio": 0.996
+        "gzipDeltaBytes": -10139,
+        "gzipDeltaPercent": -44.853,
+        "gzipRatio": 0.551
       }
     },
     "yargs": {
-      "files": ["dist/yargs/bin.mjs"],
+      "artifacts": [
+        "dist/yargs/bin.mjs.gz"
+      ],
       "fileCount": 1,
-      "rawBytes": 117884,
-      "gzipBytes": 36744,
-      "brotliBytes": 32161,
+      "gzipBytes": 35667,
       "source": {
-        "files": ["src/adapters/yargs.ts"],
-        "bytes": 11882,
-        "nonBlankLines": 330,
+        "files": [
+          "src/adapters/yargs.ts"
+        ],
+        "bytes": 7666,
+        "nonBlankLines": 283,
         "relativeToFunc": {
-          "byteDelta": -653,
-          "byteRatio": 0.948,
-          "nonBlankLineDelta": -36,
-          "nonBlankLineRatio": 0.902
+          "byteDelta": 450,
+          "byteRatio": 1.062,
+          "nonBlankLineDelta": 5,
+          "nonBlankLineRatio": 1.018
         }
       },
       "relativeToFunc": {
-        "rawDeltaBytes": 71788,
-        "rawDeltaPercent": 155.736,
-        "rawRatio": 2.557,
-        "gzipRatio": 2.681,
-        "brotliRatio": 2.612
+        "gzipDeltaBytes": 13062,
+        "gzipDeltaPercent": 57.784,
+        "gzipRatio": 1.578
       }
     },
     "oclif": {
-      "files": [
-        "dist/oclif/bin.mjs",
-        "dist/oclif/chunks/chunk-2W3NPWFE.mjs",
-        "dist/oclif/commands.mjs"
+      "artifacts": [
+        "dist/oclif/bin.mjs.gz",
+        "dist/oclif/chunks/chunk-IL7G7FVQ.mjs.gz",
+        "dist/oclif/commands.mjs.gz"
       ],
       "fileCount": 3,
-      "rawBytes": 339259,
-      "gzipBytes": 105699,
-      "brotliBytes": 89607,
+      "gzipBytes": 104367,
       "source": {
-        "files": ["src/adapters/oclif.ts", "src/adapters/oclif-commands.ts"],
-        "bytes": 10401,
-        "nonBlankLines": 279,
+        "files": [
+          "src/adapters/oclif.ts",
+          "src/adapters/oclif-commands.ts"
+        ],
+        "bytes": 6953,
+        "nonBlankLines": 236,
         "relativeToFunc": {
-          "byteDelta": -2134,
-          "byteRatio": 0.83,
-          "nonBlankLineDelta": -87,
-          "nonBlankLineRatio": 0.762
+          "byteDelta": -263,
+          "byteRatio": 0.964,
+          "nonBlankLineDelta": -42,
+          "nonBlankLineRatio": 0.849
         }
       },
       "relativeToFunc": {
-        "rawDeltaBytes": 293163,
-        "rawDeltaPercent": 635.984,
-        "rawRatio": 7.36,
-        "gzipRatio": 7.713,
-        "brotliRatio": 7.279
+        "gzipDeltaBytes": 81762,
+        "gzipDeltaPercent": 361.699,
+        "gzipRatio": 4.617
       }
     },
     "cac": {
-      "files": ["dist/cac/bin.mjs"],
+      "artifacts": [
+        "dist/cac/bin.mjs.gz"
+      ],
       "fileCount": 1,
-      "rawBytes": 17455,
-      "gzipBytes": 6469,
-      "brotliBytes": 5848,
+      "gzipBytes": 5174,
       "source": {
-        "files": ["src/adapters/cac.ts"],
-        "bytes": 12608,
-        "nonBlankLines": 335,
+        "files": [
+          "src/adapters/cac.ts"
+        ],
+        "bytes": 6388,
+        "nonBlankLines": 195,
         "relativeToFunc": {
-          "byteDelta": 73,
-          "byteRatio": 1.006,
-          "nonBlankLineDelta": -31,
-          "nonBlankLineRatio": 0.915
+          "byteDelta": -828,
+          "byteRatio": 0.885,
+          "nonBlankLineDelta": -83,
+          "nonBlankLineRatio": 0.701
         }
       },
       "relativeToFunc": {
-        "rawDeltaBytes": -28641,
-        "rawDeltaPercent": -62.133,
-        "rawRatio": 0.379,
-        "gzipRatio": 0.472,
-        "brotliRatio": 0.475
+        "gzipDeltaBytes": -17431,
+        "gzipDeltaPercent": -77.111,
+        "gzipRatio": 0.229
       }
     }
   },
@@ -653,365 +774,393 @@
     "scenarios": {
       "simple-routing": {
         "args": [
-          "artifact",
-          "inspect",
-          "registry.example.com/payments@sha256:0123456789abcdef",
-          "--platform",
-          "linux/amd64",
-          "--verify",
-          "checksum",
-          "--metadata",
-          "source=ci",
+          "status",
+          "--profile",
+          "staging",
           "--json"
         ],
         "expectSuccess": true,
         "results": {
           "func": {
             "samples": 20,
-            "minMs": 33.419,
-            "medianMs": 35.022,
-            "meanMs": 35.738,
-            "p95Ms": 37.659,
-            "maxMs": 39.02,
-            "standardDeviationMs": 1.742,
+            "minMs": 39.059,
+            "medianMs": 42.296,
+            "meanMs": 42.651,
+            "p95Ms": 44.501,
+            "maxMs": 47.704,
+            "standardDeviationMs": 1.766,
             "relativeToFunc": {
               "meanDeltaMs": 0,
               "meanDeltaPercent": 0,
               "meanRatio": 1
             }
           },
+          "func-parser": {
+            "samples": 20,
+            "minMs": 34.143,
+            "medianMs": 35.667,
+            "meanMs": 36.032,
+            "p95Ms": 38.094,
+            "maxMs": 38.43,
+            "standardDeviationMs": 1.287,
+            "relativeToFunc": {
+              "meanDeltaMs": -6.619,
+              "meanDeltaPercent": -15.519,
+              "meanRatio": 0.845
+            }
+          },
           "commander": {
             "samples": 20,
-            "minMs": 34.569,
-            "medianMs": 36.566,
-            "meanMs": 37.625,
-            "p95Ms": 40.974,
-            "maxMs": 41.468,
-            "standardDeviationMs": 2.171,
+            "minMs": 37.925,
+            "medianMs": 40.055,
+            "meanMs": 40.051,
+            "p95Ms": 41.361,
+            "maxMs": 42.146,
+            "standardDeviationMs": 1.078,
             "relativeToFunc": {
-              "meanDeltaMs": 1.887,
-              "meanDeltaPercent": 5.28,
-              "meanRatio": 1.053
+              "meanDeltaMs": -2.6,
+              "meanDeltaPercent": -6.096,
+              "meanRatio": 0.939
             }
           },
           "yargs": {
             "samples": 20,
-            "minMs": 64.791,
-            "medianMs": 68.619,
-            "meanMs": 68.993,
-            "p95Ms": 72.688,
-            "maxMs": 75.231,
-            "standardDeviationMs": 2.729,
+            "minMs": 67.112,
+            "medianMs": 70.735,
+            "meanMs": 70.42,
+            "p95Ms": 72.319,
+            "maxMs": 73.525,
+            "standardDeviationMs": 1.643,
             "relativeToFunc": {
-              "meanDeltaMs": 33.255,
-              "meanDeltaPercent": 93.052,
-              "meanRatio": 1.931
+              "meanDeltaMs": 27.769,
+              "meanDeltaPercent": 65.108,
+              "meanRatio": 1.651
             }
           },
           "oclif": {
             "samples": 20,
-            "minMs": 62.675,
-            "medianMs": 65.686,
-            "meanMs": 66.216,
-            "p95Ms": 69.713,
-            "maxMs": 73.361,
-            "standardDeviationMs": 2.761,
+            "minMs": 67.304,
+            "medianMs": 70.157,
+            "meanMs": 70.422,
+            "p95Ms": 73.578,
+            "maxMs": 76.21,
+            "standardDeviationMs": 2.197,
             "relativeToFunc": {
-              "meanDeltaMs": 30.478,
-              "meanDeltaPercent": 85.282,
-              "meanRatio": 1.853
+              "meanDeltaMs": 27.771,
+              "meanDeltaPercent": 65.112,
+              "meanRatio": 1.651
             }
           },
           "cac": {
             "samples": 20,
-            "minMs": 31.511,
-            "medianMs": 33.354,
-            "meanMs": 33.872,
-            "p95Ms": 37.222,
-            "maxMs": 40.477,
-            "standardDeviationMs": 2.181,
+            "minMs": 33.882,
+            "medianMs": 35.416,
+            "meanMs": 35.241,
+            "p95Ms": 36.654,
+            "maxMs": 37.106,
+            "standardDeviationMs": 0.874,
             "relativeToFunc": {
-              "meanDeltaMs": -1.866,
-              "meanDeltaPercent": -5.221,
+              "meanDeltaMs": -7.41,
+              "meanDeltaPercent": -17.374,
+              "meanRatio": 0.826
+            }
+          }
+        }
+      },
+      "module-scoped-options": {
+        "args": [
+          "project",
+          "inspect",
+          "--project",
+          "payments",
+          "--target",
+          "production",
+          "--label",
+          "owner=platform",
+          "--label",
+          "tier=critical",
+          "--profile",
+          "staging",
+          "--json"
+        ],
+        "expectSuccess": true,
+        "results": {
+          "func": {
+            "samples": 20,
+            "minMs": 40.486,
+            "medianMs": 42.213,
+            "meanMs": 42.354,
+            "p95Ms": 43.633,
+            "maxMs": 44.635,
+            "standardDeviationMs": 0.88,
+            "relativeToFunc": {
+              "meanDeltaMs": 0,
+              "meanDeltaPercent": 0,
+              "meanRatio": 1
+            }
+          },
+          "func-parser": {
+            "samples": 20,
+            "minMs": 34.179,
+            "medianMs": 35.82,
+            "meanMs": 35.877,
+            "p95Ms": 36.875,
+            "maxMs": 39.819,
+            "standardDeviationMs": 1.168,
+            "relativeToFunc": {
+              "meanDeltaMs": -6.477,
+              "meanDeltaPercent": -15.293,
+              "meanRatio": 0.847
+            }
+          },
+          "commander": {
+            "samples": 20,
+            "minMs": 37.696,
+            "medianMs": 40.145,
+            "meanMs": 40.424,
+            "p95Ms": 42.3,
+            "maxMs": 43.924,
+            "standardDeviationMs": 1.351,
+            "relativeToFunc": {
+              "meanDeltaMs": -1.93,
+              "meanDeltaPercent": -4.557,
+              "meanRatio": 0.954
+            }
+          },
+          "yargs": {
+            "samples": 20,
+            "minMs": 71.747,
+            "medianMs": 73.987,
+            "meanMs": 74.338,
+            "p95Ms": 76.723,
+            "maxMs": 76.757,
+            "standardDeviationMs": 1.487,
+            "relativeToFunc": {
+              "meanDeltaMs": 31.984,
+              "meanDeltaPercent": 75.516,
+              "meanRatio": 1.755
+            }
+          },
+          "oclif": {
+            "samples": 20,
+            "minMs": 68.847,
+            "medianMs": 70.386,
+            "meanMs": 70.84,
+            "p95Ms": 73.879,
+            "maxMs": 73.966,
+            "standardDeviationMs": 1.281,
+            "relativeToFunc": {
+              "meanDeltaMs": 28.486,
+              "meanDeltaPercent": 67.257,
+              "meanRatio": 1.673
+            }
+          },
+          "cac": {
+            "samples": 20,
+            "minMs": 34.25,
+            "medianMs": 35.892,
+            "meanMs": 35.895,
+            "p95Ms": 37.608,
+            "maxMs": 38.755,
+            "standardDeviationMs": 1.145,
+            "relativeToFunc": {
+              "meanDeltaMs": -6.459,
+              "meanDeltaPercent": -15.25,
+              "meanRatio": 0.847
+            }
+          }
+        }
+      },
+      "option-command-override": {
+        "args": [
+          "audit",
+          "list",
+          "--context",
+          "--format",
+          "detailed",
+          "--limit",
+          "7"
+        ],
+        "expectSuccess": true,
+        "results": {
+          "func": {
+            "samples": 20,
+            "minMs": 40.84,
+            "medianMs": 42.218,
+            "meanMs": 42.148,
+            "p95Ms": 43.427,
+            "maxMs": 44.186,
+            "standardDeviationMs": 0.883,
+            "relativeToFunc": {
+              "meanDeltaMs": 0,
+              "meanDeltaPercent": 0,
+              "meanRatio": 1
+            }
+          },
+          "func-parser": {
+            "samples": 20,
+            "minMs": 34.184,
+            "medianMs": 35.182,
+            "meanMs": 35.552,
+            "p95Ms": 37.494,
+            "maxMs": 37.51,
+            "standardDeviationMs": 1.028,
+            "relativeToFunc": {
+              "meanDeltaMs": -6.596,
+              "meanDeltaPercent": -15.65,
+              "meanRatio": 0.844
+            }
+          },
+          "commander": {
+            "samples": 20,
+            "minMs": 38.757,
+            "medianMs": 39.604,
+            "meanMs": 40.516,
+            "p95Ms": 41.815,
+            "maxMs": 51.595,
+            "standardDeviationMs": 2.652,
+            "relativeToFunc": {
+              "meanDeltaMs": -1.632,
+              "meanDeltaPercent": -3.872,
+              "meanRatio": 0.961
+            }
+          },
+          "yargs": {
+            "samples": 20,
+            "minMs": 71.073,
+            "medianMs": 72.544,
+            "meanMs": 76.391,
+            "p95Ms": 107.229,
+            "maxMs": 111.694,
+            "standardDeviationMs": 11.083,
+            "relativeToFunc": {
+              "meanDeltaMs": 34.243,
+              "meanDeltaPercent": 81.245,
+              "meanRatio": 1.812
+            }
+          },
+          "oclif": {
+            "samples": 20,
+            "minMs": 68.541,
+            "medianMs": 69.865,
+            "meanMs": 71.466,
+            "p95Ms": 73.782,
+            "maxMs": 95.185,
+            "standardDeviationMs": 5.569,
+            "relativeToFunc": {
+              "meanDeltaMs": 29.318,
+              "meanDeltaPercent": 69.56,
+              "meanRatio": 1.696
+            }
+          },
+          "cac": {
+            "samples": 20,
+            "minMs": 33.9,
+            "medianMs": 35.736,
+            "meanMs": 35.873,
+            "p95Ms": 37.361,
+            "maxMs": 40.237,
+            "standardDeviationMs": 1.378,
+            "relativeToFunc": {
+              "meanDeltaMs": -6.275,
+              "meanDeltaPercent": -14.888,
+              "meanRatio": 0.851
+            }
+          }
+        }
+      },
+      "scoped-error-boundary": {
+        "args": [
+          "project",
+          "sync",
+          "--project",
+          "payments",
+          "--conflict"
+        ],
+        "expectSuccess": false,
+        "results": {
+          "func": {
+            "samples": 20,
+            "minMs": 40.551,
+            "medianMs": 42.335,
+            "meanMs": 42.323,
+            "p95Ms": 43.304,
+            "maxMs": 44.749,
+            "standardDeviationMs": 0.917,
+            "relativeToFunc": {
+              "meanDeltaMs": 0,
+              "meanDeltaPercent": 0,
+              "meanRatio": 1
+            }
+          },
+          "func-parser": {
+            "samples": 20,
+            "minMs": 33.31,
+            "medianMs": 35.154,
+            "meanMs": 35.308,
+            "p95Ms": 36.273,
+            "maxMs": 37.377,
+            "standardDeviationMs": 0.879,
+            "relativeToFunc": {
+              "meanDeltaMs": -7.015,
+              "meanDeltaPercent": -16.575,
+              "meanRatio": 0.834
+            }
+          },
+          "commander": {
+            "samples": 20,
+            "minMs": 38.162,
+            "medianMs": 39.988,
+            "meanMs": 40.118,
+            "p95Ms": 41.472,
+            "maxMs": 41.948,
+            "standardDeviationMs": 0.96,
+            "relativeToFunc": {
+              "meanDeltaMs": -2.205,
+              "meanDeltaPercent": -5.21,
               "meanRatio": 0.948
             }
-          }
-        }
-      },
-      "complex-valid-parse": {
-        "args": [
-          "release",
-          "plan",
-          "payments",
-          "api",
-          "worker",
-          "scheduler",
-          "--environment",
-          "production",
-          "--region",
-          "eu-west-1",
-          "--strategy",
-          "canary",
-          "--replicas",
-          "8",
-          "--timeout",
-          "480",
-          "--artifact",
-          "registry.example.com/payments@sha256:0123456789abcdef",
-          "--canary-percent",
-          "15",
-          "--tag",
-          "owner=platform",
-          "--tag",
-          "tier=critical",
-          "--set",
-          "LOG_LEVEL=info",
-          "--set",
-          "FEATURE_X=true",
-          "--json"
-        ],
-        "expectSuccess": true,
-        "results": {
-          "func": {
-            "samples": 20,
-            "minMs": 41.447,
-            "medianMs": 47.3,
-            "meanMs": 47.24,
-            "p95Ms": 48.846,
-            "maxMs": 54.263,
-            "standardDeviationMs": 2.379,
-            "relativeToFunc": {
-              "meanDeltaMs": 0,
-              "meanDeltaPercent": 0,
-              "meanRatio": 1
-            }
-          },
-          "commander": {
-            "samples": 20,
-            "minMs": 45.68,
-            "medianMs": 49.044,
-            "meanMs": 49.175,
-            "p95Ms": 50.701,
-            "maxMs": 53.114,
-            "standardDeviationMs": 1.578,
-            "relativeToFunc": {
-              "meanDeltaMs": 1.935,
-              "meanDeltaPercent": 4.096,
-              "meanRatio": 1.041
-            }
           },
           "yargs": {
             "samples": 20,
-            "minMs": 69.719,
-            "medianMs": 76.904,
-            "meanMs": 76.078,
-            "p95Ms": 79.154,
-            "maxMs": 80.481,
-            "standardDeviationMs": 2.506,
+            "minMs": 66.225,
+            "medianMs": 67.665,
+            "meanMs": 67.841,
+            "p95Ms": 69.648,
+            "maxMs": 69.672,
+            "standardDeviationMs": 1.002,
             "relativeToFunc": {
-              "meanDeltaMs": 28.838,
-              "meanDeltaPercent": 61.046,
-              "meanRatio": 1.61
+              "meanDeltaMs": 25.518,
+              "meanDeltaPercent": 60.293,
+              "meanRatio": 1.603
             }
           },
           "oclif": {
             "samples": 20,
-            "minMs": 65.554,
-            "medianMs": 71.645,
-            "meanMs": 71.828,
-            "p95Ms": 73.952,
-            "maxMs": 75.317,
-            "standardDeviationMs": 1.931,
+            "minMs": 68.066,
+            "medianMs": 69.697,
+            "meanMs": 69.97,
+            "p95Ms": 71.95,
+            "maxMs": 72.112,
+            "standardDeviationMs": 1.098,
             "relativeToFunc": {
-              "meanDeltaMs": 24.588,
-              "meanDeltaPercent": 52.049,
-              "meanRatio": 1.52
+              "meanDeltaMs": 27.647,
+              "meanDeltaPercent": 65.324,
+              "meanRatio": 1.653
             }
           },
           "cac": {
             "samples": 20,
-            "minMs": 41.618,
-            "medianMs": 44.536,
-            "meanMs": 48.986,
-            "p95Ms": 46.466,
-            "maxMs": 138.212,
-            "standardDeviationMs": 20.509,
+            "minMs": 34.28,
+            "medianMs": 35.123,
+            "meanMs": 35.325,
+            "p95Ms": 36.236,
+            "maxMs": 37.005,
+            "standardDeviationMs": 0.657,
             "relativeToFunc": {
-              "meanDeltaMs": 1.746,
-              "meanDeltaPercent": 3.696,
-              "meanRatio": 1.037
-            }
-          }
-        }
-      },
-      "enum-validation-error": {
-        "args": [
-          "release",
-          "plan",
-          "payments",
-          "api",
-          "--artifact",
-          "registry.example.com/payments:v1",
-          "--environment",
-          "qa",
-          "--json"
-        ],
-        "expectSuccess": false,
-        "results": {
-          "func": {
-            "samples": 20,
-            "minMs": 36.356,
-            "medianMs": 38.67,
-            "meanMs": 39.122,
-            "p95Ms": 42.035,
-            "maxMs": 43.242,
-            "standardDeviationMs": 1.537,
-            "relativeToFunc": {
-              "meanDeltaMs": 0,
-              "meanDeltaPercent": 0,
-              "meanRatio": 1
-            }
-          },
-          "commander": {
-            "samples": 20,
-            "minMs": 38.739,
-            "medianMs": 40.225,
-            "meanMs": 40.611,
-            "p95Ms": 42.455,
-            "maxMs": 42.671,
-            "standardDeviationMs": 1.164,
-            "relativeToFunc": {
-              "meanDeltaMs": 1.489,
-              "meanDeltaPercent": 3.806,
-              "meanRatio": 1.038
-            }
-          },
-          "yargs": {
-            "samples": 20,
-            "minMs": 67.485,
-            "medianMs": 70.098,
-            "meanMs": 71.863,
-            "p95Ms": 87.024,
-            "maxMs": 87.574,
-            "standardDeviationMs": 5.371,
-            "relativeToFunc": {
-              "meanDeltaMs": 32.741,
-              "meanDeltaPercent": 83.689,
-              "meanRatio": 1.837
-            }
-          },
-          "oclif": {
-            "samples": 20,
-            "minMs": 69.259,
-            "medianMs": 72.397,
-            "meanMs": 73.292,
-            "p95Ms": 83.824,
-            "maxMs": 92.568,
-            "standardDeviationMs": 5.366,
-            "relativeToFunc": {
-              "meanDeltaMs": 34.17,
-              "meanDeltaPercent": 87.342,
-              "meanRatio": 1.873
-            }
-          },
-          "cac": {
-            "samples": 20,
-            "minMs": 34.526,
-            "medianMs": 35.94,
-            "meanMs": 36.134,
-            "p95Ms": 37.971,
-            "maxMs": 38.064,
-            "standardDeviationMs": 1.042,
-            "relativeToFunc": {
-              "meanDeltaMs": -2.988,
-              "meanDeltaPercent": -7.638,
-              "meanRatio": 0.924
-            }
-          }
-        }
-      },
-      "cross-option-validation-error": {
-        "args": [
-          "release",
-          "apply",
-          "payments",
-          "api",
-          "--artifact",
-          "registry.example.com/payments:v1",
-          "--confirm",
-          "--dry-run",
-          "--json"
-        ],
-        "expectSuccess": false,
-        "results": {
-          "func": {
-            "samples": 20,
-            "minMs": 36.954,
-            "medianMs": 38.187,
-            "meanMs": 38.409,
-            "p95Ms": 40.232,
-            "maxMs": 40.612,
-            "standardDeviationMs": 1,
-            "relativeToFunc": {
-              "meanDeltaMs": 0,
-              "meanDeltaPercent": 0,
-              "meanRatio": 1
-            }
-          },
-          "commander": {
-            "samples": 20,
-            "minMs": 38.489,
-            "medianMs": 40.702,
-            "meanMs": 40.571,
-            "p95Ms": 42.585,
-            "maxMs": 42.83,
-            "standardDeviationMs": 1.108,
-            "relativeToFunc": {
-              "meanDeltaMs": 2.162,
-              "meanDeltaPercent": 5.629,
-              "meanRatio": 1.056
-            }
-          },
-          "yargs": {
-            "samples": 20,
-            "minMs": 68.337,
-            "medianMs": 69.188,
-            "meanMs": 69.741,
-            "p95Ms": 70.876,
-            "maxMs": 76.159,
-            "standardDeviationMs": 1.64,
-            "relativeToFunc": {
-              "meanDeltaMs": 31.332,
-              "meanDeltaPercent": 81.575,
-              "meanRatio": 1.816
-            }
-          },
-          "oclif": {
-            "samples": 20,
-            "minMs": 69.536,
-            "medianMs": 72.065,
-            "meanMs": 72.038,
-            "p95Ms": 74.005,
-            "maxMs": 75.08,
-            "standardDeviationMs": 1.415,
-            "relativeToFunc": {
-              "meanDeltaMs": 33.629,
-              "meanDeltaPercent": 87.555,
-              "meanRatio": 1.876
-            }
-          },
-          "cac": {
-            "samples": 20,
-            "minMs": 34.996,
-            "medianMs": 36.04,
-            "meanMs": 36.211,
-            "p95Ms": 37.57,
-            "maxMs": 38.02,
-            "standardDeviationMs": 0.948,
-            "relativeToFunc": {
-              "meanDeltaMs": -2.198,
-              "meanDeltaPercent": -5.723,
-              "meanRatio": 0.943
+              "meanDeltaMs": -6.998,
+              "meanDeltaPercent": -16.535,
+              "meanRatio": 0.835
             }
           }
         }
@@ -1019,68 +1168,80 @@
     },
     "overall": {
       "func": {
-        "meanMs": 40.127,
+        "meanMs": 42.369,
         "relativeToFunc": {
           "meanDeltaMs": 0,
           "meanDeltaPercent": 0,
           "meanRatio": 1
         }
       },
-      "commander": {
-        "meanMs": 41.996,
+      "func-parser": {
+        "meanMs": 35.692,
         "relativeToFunc": {
-          "meanDeltaMs": 1.869,
-          "meanDeltaPercent": 4.658,
-          "meanRatio": 1.047
+          "meanDeltaMs": -6.677,
+          "meanDeltaPercent": -15.759,
+          "meanRatio": 0.842
+        }
+      },
+      "commander": {
+        "meanMs": 40.277,
+        "relativeToFunc": {
+          "meanDeltaMs": -2.092,
+          "meanDeltaPercent": -4.938,
+          "meanRatio": 0.951
         }
       },
       "yargs": {
-        "meanMs": 71.669,
+        "meanMs": 72.248,
         "relativeToFunc": {
-          "meanDeltaMs": 31.542,
-          "meanDeltaPercent": 78.605,
-          "meanRatio": 1.786
+          "meanDeltaMs": 29.879,
+          "meanDeltaPercent": 70.521,
+          "meanRatio": 1.705
         }
       },
       "oclif": {
-        "meanMs": 70.843,
+        "meanMs": 70.675,
         "relativeToFunc": {
-          "meanDeltaMs": 30.716,
-          "meanDeltaPercent": 76.547,
-          "meanRatio": 1.765
+          "meanDeltaMs": 28.306,
+          "meanDeltaPercent": 66.808,
+          "meanRatio": 1.668
         }
       },
       "cac": {
-        "meanMs": 38.801,
+        "meanMs": 35.584,
         "relativeToFunc": {
-          "meanDeltaMs": -1.326,
-          "meanDeltaPercent": -3.305,
-          "meanRatio": 0.967
+          "meanDeltaMs": -6.785,
+          "meanDeltaPercent": -16.014,
+          "meanRatio": 0.84
         }
       }
     }
   },
   "rankings": {
-    "bundleRawBytes": [
+    "bundleGzipBytes": [
       {
-        "framework": "cac",
+        "framework": "func-parser",
         "rank": 1
       },
       {
-        "framework": "commander",
+        "framework": "cac",
         "rank": 2
       },
       {
-        "framework": "func",
+        "framework": "commander",
         "rank": 3
       },
       {
-        "framework": "yargs",
+        "framework": "func",
         "rank": 4
       },
       {
-        "framework": "oclif",
+        "framework": "yargs",
         "rank": 5
+      },
+      {
+        "framework": "oclif",
+        "rank": 6
       }
     ],
     "runtimeMeanMs": [
@@ -1089,7 +1250,7 @@
         "rank": 1
       },
       {
-        "framework": "func",
+        "framework": "func-parser",
         "rank": 2
       },
       {
@@ -1097,12 +1258,16 @@
         "rank": 3
       },
       {
-        "framework": "oclif",
+        "framework": "func",
         "rank": 4
       },
       {
-        "framework": "yargs",
+        "framework": "oclif",
         "rank": 5
+      },
+      {
+        "framework": "yargs",
+        "rank": 6
       }
     ]
   }

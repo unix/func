@@ -51,73 +51,73 @@ export const authoringCriteria = {
       id: 'type-continuity',
       label: 'Type continuity',
       measurement:
-        'How precisely input declarations flow into handlers without assertions, coercion, or duplicated interfaces.',
-      weight: 30,
+        'How precisely shared option declarations flow into handlers without assertions, coercion, or duplicated interfaces.',
+      weight: 20,
+    },
+    {
+      id: 'scope-composition',
+      label: 'Scope composition',
+      measurement:
+        'How directly application and feature scopes share options and services across multiple commands.',
+      weight: 25,
     },
     {
       id: 'validation-authoring',
       label: 'Validation authoring',
       measurement:
-        'How much of the tested input policy is expressed beside the input declaration instead of in local control flow.',
-      weight: 25,
-    },
-    {
-      id: 'command-composition',
-      label: 'Command composition',
-      measurement:
-        'Whether commands can be isolated, nested, registered, and reused without rebuilding parser state by hand.',
-      weight: 20,
-    },
-    {
-      id: 'error-authoring',
-      label: 'Error authoring',
-      measurement:
-        'How much normalized validation and error-boundary behavior the framework provides.',
+        'How much required, enum, repeated, numeric, and exclusive option behavior stays beside declarations.',
       weight: 15,
     },
     {
-      id: 'isolated-testing',
-      label: 'Isolated testing',
+      id: 'alternate-actions',
+      label: 'Alternate option actions',
       measurement:
-        'How directly a command or parser can be exercised with supplied argv and without process-level side effects.',
-      weight: 10,
+        'How directly one option can replace normal command execution and be overridden in a nested scope.',
+      weight: 20,
+    },
+    {
+      id: 'boundary-authoring',
+      label: 'Boundary authoring',
+      measurement:
+        'How directly shared output plus application and feature error boundaries are expressed.',
+      weight: 20,
     },
   ],
   maintainability: [
     {
-      id: 'rule-locality',
-      label: 'Rule locality',
+      id: 'shared-option-locality',
+      label: 'Shared option locality',
       measurement:
-        'Whether declarations and their validation relationships remain visible in the same local unit.',
-      weight: 30,
+        'Whether options shared by sibling commands have one explicit owner and one consumption path.',
+      weight: 25,
+    },
+    {
+      id: 'override-locality',
+      label: 'Override locality',
+      measurement:
+        'Whether nested option and alternate-action overrides are declared where scope changes.',
+      weight: 20,
     },
     {
       id: 'local-glue',
       label: 'Local glue burden',
       measurement:
-        'How much parser-specific validation, normalization, and adapter control flow remains after business logic is excluded.',
-      weight: 30,
-    },
-    {
-      id: 'type-escapes',
-      label: 'Type escape burden',
-      measurement:
-        'How often parsed values cross assertions, broad records, conversions, or manually duplicated type contracts.',
-      weight: 20,
+        'How much parser-specific merging, normalization, dispatch, and interception remains.',
+      weight: 25,
     },
     {
       id: 'command-isolation',
       label: 'Command isolation',
       measurement:
-        'Whether commands have independent modules or classes with explicit registration boundaries.',
-      weight: 10,
+        'Whether command behavior has explicit registration and ownership boundaries.',
+      weight: 15,
     },
     {
-      id: 'error-boundary',
-      label: 'Error boundary',
+      id: 'boundary-locality',
+      label: 'Boundary locality',
       measurement:
-        'Whether failures converge on one framework-supported boundary instead of per-command catches.',
-      weight: 10,
+        'Whether output and error policy are centralized at the intended application or feature scope.',
+      weight: 15,
     },
   ],
 } as const satisfies Record<string, readonly AuthoringCriterion[]>
@@ -134,278 +134,336 @@ interface FrameworkAuthoringEvaluation {
 const authoringEvidence: Record<Framework, FrameworkAuthoringEvaluation> = {
   func: {
     dx: {
-      'command-composition': {
+      'alternate-actions': {
         evidence:
-          'Command classes and handler paths isolate command groups; the benchmark registers the command classes explicitly.',
-        level: 3,
-      },
-      'error-authoring': {
-        evidence:
-          'Command and module onError hooks provide framework boundaries; the adapter only normalizes benchmark output.',
+          '@OptionCommand replaces normal execution at application scope, and the audit module overrides it with overrideAll.',
         level: 4,
       },
-      'isolated-testing': {
+      'boundary-authoring': {
         evidence:
-          'Command classes are isolated, while end-to-end parsing still runs through the func runtime.',
+          'An injected @Stdout output service is shared through a module; APP_FILTER and MODULE_FILTER define application and project failure policy.',
         level: 3,
+      },
+      'scope-composition': {
+        evidence:
+          'AppOptions, ProjectOptions, AuditOptions, and Output are injected from their owning modules into sibling commands.',
+        level: 4,
       },
       'type-continuity': {
         evidence:
-          'Decorator-backed class fields retain their declared TypeScript types through handlers without argument casts.',
+          'Decorator-backed class fields flow into handlers and services as typed instances without option-record assertions.',
         level: 4,
       },
       'validation-authoring': {
         evidence:
-          'Required, enum, numeric, repeated, dependency, and exclusivity rules are adjacent decorators; release policy remains business code.',
-        level: 3,
+          '@Required, @Enum, @ArrayString, @Value, @Flag, and @Exclusive keep the tested input policy on fields.',
+        level: 4,
       },
     },
     maintainability: {
+      'boundary-locality': {
+        evidence:
+          'Output is owned by OutputModule, project conflicts by ProjectModule, and remaining failures by AppModule.',
+        level: 4,
+      },
       'command-isolation': {
         evidence:
-          'Each command group is represented by a command class with scoped handlers.',
+          'Project handlers share one command class while audit leaves remain explicit commands registered by AuditModule.',
         level: 3,
-      },
-      'error-boundary': {
-        evidence:
-          'Command and module onError hooks converge parsing and command failures.',
-        level: 4,
       },
       'local-glue': {
         evidence:
-          'Parser adaptation is carried by decorators; local control flow is primarily workload-specific release policy and output assembly.',
+          'The adapter has no option-record merging or manual input normalization; output assembly and the project conflict remain local.',
         level: 3,
       },
-      'rule-locality': {
+      'override-locality': {
         evidence:
-          'Input shape and reusable validation rules sit on the affected fields; cross-field business policy stays in the handler.',
-        level: 3,
-      },
-      'type-escapes': {
-        evidence:
-          'Handlers consume typed fields and Args without adapter-level assertions.',
+          '@Override is attached to audit export format and the audit OptionCommand override is registered only in AuditModule.',
         level: 4,
+      },
+      'shared-option-locality': {
+        evidence:
+          'Each shared option class is registered once at its owning module and injected into every consumer.',
+        level: 4,
+      },
+    },
+  },
+  'func-parser': {
+    dx: {
+      'alternate-actions': {
+        evidence:
+          'Root and audit context behavior is implemented through explicit early interception in local dispatch code.',
+        level: 1,
+      },
+      'boundary-authoring': {
+        evidence:
+          'ParserError supplies structured parse failures, but output, application and feature classification, formatting, and exit status are all implemented locally.',
+        level: 1,
+      },
+      'scope-composition': {
+        evidence:
+          'Root, project, and audit parsers reuse one app option definition, with values merged explicitly across passthrough boundaries.',
+        level: 2,
+      },
+      'type-continuity': {
+        evidence:
+          'createParser infers command and option result unions, while AppInvocation and AppValues duplicate the shared application shape at the merge boundary.',
+        level: 3,
+      },
+      'validation-authoring': {
+        evidence:
+          'Primitive conversion and repeated values are declarative; defaults, required, enums, integers, and exclusivity remain local.',
+        level: 2,
+      },
+    },
+    maintainability: {
+      'boundary-locality': {
+        evidence:
+          'One local catch owns failures, but project classification is not attached to a parser scope.',
+        level: 2,
+      },
+      'command-isolation': {
+        evidence:
+          'Root, project, and audit parsing have separate definitions; execution dispatch remains in one adapter flow.',
+        level: 2,
+      },
+      'local-glue': {
+        evidence:
+          'Nested routing requires passthrough parsing, application-option merging, dispatch, validation, and interception code.',
+        level: 1,
+      },
+      'override-locality': {
+        evidence:
+          'Audit format and context overrides are conditional values in local dispatch because parser definitions cannot override merged options.',
+        level: 1,
+      },
+      'shared-option-locality': {
+        evidence:
+          'Application options have one reusable definition, and project/audit options each have one feature parser owner.',
+        level: 3,
       },
     },
   },
   commander: {
     dx: {
-      'command-composition': {
+      'alternate-actions': {
         evidence:
-          'The command tree and reusable command factories support separation, with registration performed imperatively.',
-        level: 3,
-      },
-      'error-authoring': {
-        evidence:
-          'exitOverride captures parser failures, while the adapter supplies local catches and normalized output.',
+          'A shared helper checks --context from each action; audit callers explicitly choose the scoped context behavior.',
         level: 2,
       },
-      'isolated-testing': {
+      'boundary-authoring': {
         evidence:
-          'Command instances can parse supplied argv, although process behavior must be disabled or overridden explicitly.',
-        level: 3,
+          'One output helper and one final catch normalize behavior, while project classification is a local instanceof branch.',
+        level: 2,
+      },
+      'scope-composition': {
+        evidence:
+          'Reusable option factories model feature scope, but each action merges local and global option records.',
+        level: 2,
       },
       'type-continuity': {
         evidence:
-          'The benchmark manually mirrors option declarations with ReleaseOptions, ConfigOptions, and ArtifactOptions interfaces.',
+          'Manual interfaces and assertions mirror option declarations at optsWithGlobals boundaries.',
         level: 2,
       },
       'validation-authoring': {
         evidence:
-          'Required values, choices, parsers, and conflicts are declarative; dependencies and business relationships remain local.',
-        level: 2,
+          'choices, parsers, and conflicts are declarative; context-compatible required handling stays local.',
+        level: 3,
       },
     },
     maintainability: {
-      'command-isolation': {
+      'boundary-locality': {
         evidence:
-          'Subcommands have explicit tree boundaries, but the benchmark keeps registration and handlers in one adapter module.',
+          'Output and final error normalization are centralized, but there is no feature-owned error boundary.',
         level: 2,
       },
-      'error-boundary': {
+      'command-isolation': {
         evidence:
-          'Parser errors and action errors require separate local normalization paths.',
+          'The command tree has explicit leaves, with registration and handlers retained in one adapter module.',
         level: 2,
       },
       'local-glue': {
         evidence:
-          'Argument parsers remove some conversion work, while relationship validation and safe execution wrappers remain local.',
+          'Each action merges global and local options and invokes local interception or required-option helpers.',
         level: 2,
       },
-      'rule-locality': {
+      'override-locality': {
         evidence:
-          'Simple rules are adjacent to options; action-dependent and cross-field rules are implemented in action handlers.',
+          'Audit export and audit context overrides are recreated through call-site arguments and replacement values.',
         level: 2,
       },
-      'type-escapes': {
+      'shared-option-locality': {
         evidence:
-          'Manual option interfaces preserve handler types but duplicate the parser declarations.',
-        level: 2,
+          'Project and audit option factories remove declaration duplication but do not create an owned runtime scope.',
+        level: 3,
       },
     },
   },
   yargs: {
     dx: {
-      'command-composition': {
+      'alternate-actions': {
         evidence:
-          'CommandModule objects isolate builders and handlers and can be registered independently or through a directory hierarchy.',
-        level: 4,
-      },
-      'error-authoring': {
-        evidence:
-          'check and fail integrate with parser errors, while the benchmark still supplies a local catch and normalized output.',
+          'Handlers call context helpers before normal execution, with audit override behavior selected in the audit handler.',
         level: 2,
       },
-      'isolated-testing': {
+      'boundary-authoring': {
         evidence:
-          'Command modules and parsers accept supplied argv without requiring process.argv.',
-        level: 4,
+          'Shared output and fail helpers centralize policy; scoped project classification remains a local instanceof branch.',
+        level: 2,
+      },
+      'scope-composition': {
+        evidence:
+          'Command builders share feature options, while application options are global and feature state remains flat argv data.',
+        level: 3,
       },
       'type-continuity': {
         evidence:
-          'Builder return types now flow into CommandModule handlers without handler casts; an inference helper and external @types package remain necessary.',
+          'Typed argument interfaces reach handlers, with declarations mirrored manually across builder and interface shapes.',
         level: 3,
       },
       'validation-authoring': {
         evidence:
-          'choices, demandOption, conflicts, and implies are declarative; numeric ranges and cross-field policy use three check callbacks.',
-        level: 2,
+          'choices, number parsing, arrays, and conflicts are declarative; one audit check selects the action-specific enum.',
+        level: 3,
       },
     },
     maintainability: {
+      'boundary-locality': {
+        evidence:
+          'One final catch owns output, but feature error classification is not attached to a command scope.',
+        level: 2,
+      },
       'command-isolation': {
         evidence:
-          'Release, config, and artifact are independent CommandModule values with typed builders and handlers.',
-        level: 4,
-      },
-      'error-boundary': {
-        evidence:
-          'fail integrates parser failures, followed by one local catch for benchmark output.',
-        level: 2,
+          'Builders isolate project and audit declarations; action dispatch remains inside their shared handlers.',
+        level: 3,
       },
       'local-glue': {
         evidence:
-          'Native relationships remove some glue, but three check callbacks still own numeric and cross-field validation.',
+          'Builder inference handles parsing while action dispatch, required handling, and interception remain local.',
         level: 2,
       },
-      'rule-locality': {
+      'override-locality': {
         evidence:
-          'Each check stays with its command builder, but several unrelated rules accumulate inside the callback.',
+          'Audit format and context differences are conditional values inside one audit builder and handler.',
         level: 2,
       },
-      'type-escapes': {
+      'shared-option-locality': {
         evidence:
-          'Typed builder inference removes handler assertions and boundary coercions; one helper connects builder and module generics.',
+          'Project and audit builder functions provide one declaration path for their sibling actions.',
         level: 3,
       },
     },
   },
   oclif: {
     dx: {
-      'command-composition': {
+      'alternate-actions': {
         evidence:
-          'Independent Command classes and explicit discovery provide strong command boundaries with framework registration.',
-        level: 4,
+          'A base command supplies interception helpers, but every leaf must call one and export must replace context format manually.',
+        level: 2,
       },
-      'error-authoring': {
+      'boundary-authoring': {
         evidence:
-          'The Config catch handler centralizes framework failures; the benchmark adds output normalization.',
+          'Base-command output and one entry catch centralize behavior; project classification is local to the catch.',
         level: 3,
       },
-      'isolated-testing': {
+      'scope-composition': {
         evidence:
-          'Command classes are independently addressable but require the oclif config and discovery harness.',
-        level: 2,
+          'Shared flag objects and a base command compose application and feature behavior across independent commands.',
+        level: 3,
       },
       'type-continuity': {
         evidence:
-          'Args and Flags infer parsed values in command methods; the extracted release helper duplicates a ReleaseFlags interface.',
-        level: 3,
+          'Flags infer leaf command values, and shared helpers consume explicit AppFlags and AuditFlags contracts.',
+        level: 4,
       },
       'validation-authoring': {
         evidence:
-          'Required values, options, integer ranges, repeated values, dependsOn, and exclusive are declarative; business policy remains local.',
-        level: 3,
+          'options, integer parsing, repeated flags, and exclusivity remain declarative in shared flag definitions.',
+        level: 4,
       },
     },
     maintainability: {
+      'boundary-locality': {
+        evidence:
+          'Output lives on the base command and all failures converge at the entry point, without feature-owned registration.',
+        level: 3,
+      },
       'command-isolation': {
         evidence:
-          'Every leaf action is an independent Command class discovered through one registry.',
+          'Every leaf is an independent Command class registered in the explicit discovery map.',
         level: 4,
-      },
-      'error-boundary': {
-        evidence: 'Config supplies a shared catch handler for command failures.',
-        level: 3,
       },
       'local-glue': {
         evidence:
-          'Flag parsing and relationships need little adapter glue; workload-specific release and artifact policy remains local.',
+          'Parsing needs little normalization, while context interception is repeated once in every run method.',
         level: 3,
       },
-      'rule-locality': {
+      'override-locality': {
         evidence:
-          'Most input rules sit in static Args and Flags declarations; business policy sits in command methods or the shared release helper.',
+          'Export owns a distinct flag definition, but scoped context replacement is assembled in the run method.',
         level: 3,
       },
-      'type-escapes': {
+      'shared-option-locality': {
         evidence:
-          'Parsed args and flags remain typed, with one manually mirrored interface at the shared release helper boundary.',
+          'Application, project, and audit flag objects are reusable, explicit declaration owners.',
         level: 3,
       },
     },
   },
   cac: {
     dx: {
-      'command-composition': {
+      'alternate-actions': {
         evidence:
-          'Command schemas provide basic grouping, while nested behavior and normalization are assembled locally.',
-        level: 2,
-      },
-      'error-authoring': {
-        evidence:
-          'The adapter owns validation errors, catching, formatting, and exit status.',
+          'Handlers explicitly invoke local interception helpers and select the audit replacement values.',
         level: 1,
       },
-      'isolated-testing': {
+      'boundary-authoring': {
         evidence:
-          'The parser can receive argv, but command behavior remains coupled to local normalization and execution wrappers.',
-        level: 2,
+          'Local helpers own output, catching, classification, and exit status without scoped framework boundaries.',
+        level: 1,
+      },
+      'scope-composition': {
+        evidence:
+          'Global options are shared, while project and audit declarations and normalization remain on flat command schemas.',
+        level: 1,
       },
       'type-continuity': {
         evidence:
-          'Handlers receive broad option records and locally narrow or convert parsed values.',
+          'Handlers receive broad option records and narrow or convert their values locally.',
         level: 1,
       },
       'validation-authoring': {
         evidence:
-          'Command schemas describe option presence, while required, enum, numeric, repeated, and relationship validation is local.',
+          'Defaults are declared, while enum, required, integer, repeated, and exclusivity behavior is implemented locally.',
         level: 1,
       },
     },
     maintainability: {
+      'boundary-locality': {
+        evidence:
+          'One local catch centralizes failures, but project scope is only an instanceof branch.',
+        level: 1,
+      },
       'command-isolation': {
         evidence:
-          'Command schemas create named sections, but parsing, validation, and handlers share one adapter module.',
+          'Command schemas create named sections, while action dispatch and all normalization remain in their handlers.',
         level: 2,
-      },
-      'error-boundary': {
-        evidence: 'A local catch normalizes every parser and handler failure.',
-        level: 1,
       },
       'local-glue': {
         evidence:
-          'Most validation and parsed-value normalization is implemented by adapter helpers and handler control flow.',
+          'Broad option records require local enum, integer, list, required, conflict, and interception helpers.',
         level: 1,
       },
-      'rule-locality': {
+      'override-locality': {
         evidence:
-          'Option schemas and their required, enum, range, and relationship rules are split across declarations and handlers.',
+          'Both audit overrides are recreated as conditional handler values.',
         level: 1,
       },
-      'type-escapes': {
+      'shared-option-locality': {
         evidence:
-          'Broad records and local conversions form the command-handler boundary.',
+          'Global options have one owner, but feature option behavior is coupled to flat command handlers.',
         level: 1,
       },
     },
@@ -429,7 +487,6 @@ export const authoringEvaluation = {
   frameworks: Object.fromEntries(
     frameworks.map(framework => {
       const evidence = authoringEvidence[framework]
-
       return [
         framework,
         {
