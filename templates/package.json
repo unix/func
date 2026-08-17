@@ -4,12 +4,13 @@
   "main": "dist/index.js",
   "license": "MIT",
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=24.15.0"
   },
   "scripts": {
     "dev": "funcgo dev --",
     "build": "funcgo build",
-    "test": "pnpm build && vitest run",
+    "test": "vitest run",
+    "test:cli": "pnpm build && vitest run --config vitest.cli.config.mts",
     "format": "prettier --write .",
     "prettier": "prettier --write . --ignore-path ../.prettierignore"
   },
@@ -18,6 +19,8 @@
     "tests",
     "README.md",
     "tsconfig.json",
+    "vitest.config.mts",
+    "vitest.cli.config.mts",
     ".gitignore"
   ],
   "func": {

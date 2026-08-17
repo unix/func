@@ -1,10 +1,11 @@
 import { expect, test } from 'vitest'
-import { spawnCli } from '../utils/child'
+import { cli } from '../utils/cli'
 
 test('completion mode should reuse registered command metadata', async () => {
-  const data = await spawnCli(['gr'], {
+  const result = await cli.run(['gr'], {
     env: { ...process.env, _FUNC_TEMPLATE_COMPLETE: 'bash_complete' },
   })
 
-  expect(data).toMatch(/greet/)
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toMatch(/greet/)
 })

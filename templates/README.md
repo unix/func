@@ -13,3 +13,15 @@ Create a project from the template:
 ```sh
 npm init func
 ```
+
+Run fast in-memory command tests during development:
+
+```sh
+pnpm test
+```
+
+Run the built CLI smoke test separately:
+
+```sh
+pnpm test:cli
+```

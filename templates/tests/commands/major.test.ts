@@ -1,15 +1,18 @@
 import { expect, test } from 'vitest'
-import { spawnCli } from '../utils/child'
+import { app } from '../utils/testing'
 
 test('major should print text', async () => {
-  const data = await spawnCli()
+  const result = await app.invoke()
 
-  expect(data).toMatch(/Welcome to func-template/)
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toMatch(/Welcome to func-template/)
 })
 
 test('major should print JSON output', async () => {
-  const data = await spawnCli(['--json', '--mode', 'prod', '--tag', 'cli'])
+  const result = await app.invoke(['--json', '--mode=prod', '--tag=cli'])
 
-  expect(data).toMatch(/"mode": "prod"/)
-  expect(data).toMatch(/"cli"/)
+  expect(result.stderr).toBe('')
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toMatch(/"mode": "prod"/)
+  expect(result.stdout).toMatch(/"cli"/)
 })

@@ -1,14 +1,19 @@
 import { expect, test } from 'vitest'
-import { spawnCli } from '../utils/child'
+import { app } from '../utils/testing'
 
 test('help flag should print registered commands', async () => {
-  const data = await spawnCli(['--help'])
-  expect(data).toMatch(/Commands:/)
-  expect(data).toMatch(/greet, g/)
+  const result = await app.invoke(['--help'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toMatch(/Commands:/)
+  expect(result.stdout).toMatch(/greet, g/)
+  expect(result.stdout).toMatch(/--json/)
 })
 
 test('help flag should describe options for the selected command', async () => {
-  const data = await spawnCli(['greet', '--help'])
-  expect(data).toMatch(/--name <string>/)
-  expect(data).toMatch(/--upper/)
+  const result = await app.invoke(['greet', '--help'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toMatch(/--name <string>/)
+  expect(result.stdout).toMatch(/--upper/)
 })
