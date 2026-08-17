@@ -1,17 +1,10 @@
-import { Command, Handler, Module, Stdout, createApp } from 'func'
-import type { Writable } from 'node:stream'
+import { createParser } from 'func/parser'
 
-@Command('ping')
-class Ping {
-  @Handler()
-  run(@Stdout() stdout: Writable) {
-    stdout.write('pong\n')
-  }
-}
+const parser = createParser({
+  commands: {
+    ping: {},
+  },
+})
 
-@Module({ commands: [Ping] })
-class AppModule {}
-
-const app = createApp(AppModule)
-
-void app.bootstrap()
+const invocation = parser.parse(process.argv.slice(2))
+if (invocation.command === 'ping') console.log('pong')

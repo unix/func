@@ -1,8 +1,8 @@
 # mini example
 
-This is the smallest runnable func example. It runs a single TypeScript command
-directly through npm-installed tooling and does not use the workspace package
-manager.
+This is the smallest runnable func example. It uses `func/parser` to run a
+single TypeScript command directly through npm-installed tooling and does not
+use the workspace package manager.
 
 ## Usage
 

@@ -1,8 +1,7 @@
 # popular example
 
-This example tracks the official func template so users can compare generated
-projects with a checked-in reference. It includes example commands, typed
-options, local development, tests, and production builds.
+This example shows the conventional func application structure with a major
+command, local development, tests, and production builds.
 
 [Documentation](https://func.witt.im) ·
 [Quick Start](https://func.witt.im/guide) ·
@@ -15,11 +14,9 @@ The bundled-size reference for the current example output lives at
 
 1. Install dependencies with `npm install`.
 
-2. Run locally with `npm run dev -- --help`.
+2. Run locally with `npm run dev`.
 
-3. Try options such as `npm run dev -- --mode prod --tag func`.
-
-4. Run `npm test` to build the CLI and execute its tests.
+3. Run `npm test` to execute its tests.
 
 ## Build
 

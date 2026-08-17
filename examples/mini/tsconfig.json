@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
+    "target": "esnext",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "esModuleInterop": true,
+    "removeComments": true
+  },
+  "files": ["index.ts"],
+  "exclude": ["node_modules"]
+}
