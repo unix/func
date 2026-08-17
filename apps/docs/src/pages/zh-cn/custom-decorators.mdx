@@ -1,0 +1,103 @@
+---
+title: 自定义装饰器
+description: 使用 createValueDecorator 将一个字符串输入转换为 URL 或其他领域值。
+lastModified: '2026-08-17'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const decoratorCode = [
+  "import { createValueDecorator } from 'func'",
+  '',
+  'export const Url = createValueDecorator(input => {',
+  "  if (!URL.canParse(input)) throw new Error('Expected a valid absolute URL.')",
+  '',
+  '  const url = new URL(input)',
+  "  if (url.protocol !== 'http:' && url.protocol !== 'https:') {",
+  "    throw new Error('Expected an HTTP or HTTPS URL.')",
+  '  }',
+  '',
+  '  return url',
+  '})',
+].join('\n')
+
+export const commandCode = [
+  "import { Command, Handler, Required } from 'func'",
+  "import { Url } from '../decorators/url.decorator.js'",
+  '',
+  "@Command('deploy')",
+  'export class DeployCommand {',
+  '  @Required()',
+  "  @Url({ alias: 'u', description: 'Deployment endpoint' })",
+  '  endpoint!: URL',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(`Deploying to ${this.endpoint.origin}`)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="custom-decorators">
+
+`@Value()` 负责内置的字符串和有限数字输入。应用需要 `URL`、`Date` 或自己的领域值时，可以通过 `createValueDecorator()` 创建字段装饰器，让转换逻辑集中在输入边界，而不是散落在每个 handler 中。
+
+## 创建 URL 装饰器
+
+`createValueDecorator()` 接收一个同步转换函数。func 始终把一个原始字符串传给它，并把返回值赋给装饰的字段：
+
+<CodeBlock
+  code={decoratorCode}
+  filename="src/decorators/url.decorator.ts"
+  lang="ts"
+/>
+
+这个 `@Url()` 同时完成两件事：声明一个接收单值的 CLI 选项，以及把有效的 HTTP(S) 字符串转换成标准 `URL` 对象。转换函数抛出错误时，func 会产生 `F_RUNTIME_VALIDATION`，保留原始错误作为 `cause`，并且不会调用 handler。
+
+## 在命令中使用
+
+自定义装饰器接受与 `@Value()` 相同的名称、alias 和描述参数，也可以继续组合 `@Required()`、`@Deprecated()`、`@DependsOn()`、`@Exclusive()` 与 `@ValueValidate()`：
+
+<CodeBlock code={commandCode} filename="src/commands/deploy.command.ts" lang="ts" />
+
+现在可以执行：
+
+```shell
+ship deploy --endpoint https://api.example.com/releases
+ship deploy -u https://api.example.com/releases
+```
+
+两种输入都会得到一个 `URL` 实例。不要再在同一个字段上添加 `@Value()`；`@Url()` 已经声明了这个单值选项。
+
+## 转换时机与默认值
+
+转换函数只在用户显式提供选项时执行一次。用户省略选项时，func 会保留字段初始值或 `undefined`，因此默认值必须已经是输出类型：
+
+```ts
+@Url()
+endpoint = new URL('https://api.example.com')
+```
+
+不要把默认值写成原始字符串；func 不会再次转换它。`@Required()` 和字段校验器在转换后运行，因此 `@ValueValidate()` 看到的是 `URL`，而不是原始字符串。
+
+转换函数必须同步，推荐保持纯净且不执行网络请求、文件读写或其他副作用。异步工作属于 service 或 handler；返回 Promise 会产生校验错误。
+
+## 类型边界
+
+泛型可以推断转换函数的输出，但普通 TypeScript 属性装饰器无法确认字段声明与返回值完全一致。装饰器作者返回 `URL` 时，使用方仍应把字段明确声明为 `URL`。
+
+需要从 `@Args()` 读取合并后的转换值时，可以为 options 指定类型：
+
+```ts
+import { Args } from 'func'
+import type { Args as ArgsValue } from 'func'
+
+run(@Args() args: ArgsValue<{ endpoint: URL }>) {
+  console.log(args.options.endpoint.origin)
+}
+```
+
+参数名称简写和对象参数都可用，例如 `@Url('endpoint')` 或 `@Url({ name: 'endpoint', alias: 'u' })`。对外帮助仍把它视为需要一个字符串 token 的 value option；装饰器决定这个字符串最终变成什么值。
+
+</DocsLayout>

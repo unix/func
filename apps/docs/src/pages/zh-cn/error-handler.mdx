@@ -1,122 +1,141 @@
 ---
 title: 错误与生命周期
-description: 使用 module 和 command hooks 处理错误与应用生命周期。
-lastModified: '2026-08-15'
+description: 使用 Exception Filter 分流错误，并用生命周期 hook 释放资源。
+lastModified: '2026-08-17'
 ---
 
-import Callout from '@/components/content/callout.astro'
 import CodeBlock from '@/components/content/code-block.astro'
-import TerminalDemo from '@/components/demos/terminal-demo.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-export const commandErrorCode = [
-  "import { Command, Handler } from 'func'",
-  "import type { Exception, ExceptionContext, OnError } from 'func'",
+export const commandFilterCode = [
+  "import { Catch, Command, Handler, UseFilters } from 'func'",
+  "import type { Exception, ExceptionFilter } from 'func'",
   '',
-  "@Command('publish')",
-  'export class PublishCommand implements OnError {',
-  '  onError(exception: Exception, context: ExceptionContext) {',
+  '@Catch()',
+  'class PublishFilter implements ExceptionFilter {',
+  '  catch(exception: Exception) {',
   '    console.error(`发布失败：${exception.message}`)',
-  '    context.preventDefaultPrint()',
   '  }',
+  '}',
   '',
+  '@UseFilters(PublishFilter)',
+  "@Command('publish')",
+  'export class PublishCommand {',
   '  @Handler()',
-  '  async run() {',
+  '  run() {',
   "    throw new Error('Registry is unavailable')",
   '  }',
   '}',
 ].join('\n')
 
-export const moduleErrorCode = [
-  "import { ErrorScope, Module } from 'func'",
-  "import type { Exception, ExceptionContext, OnError } from 'func'",
+export const moduleFilterCode = [
+  "import { APP_FILTER, Catch, Module } from 'func'",
+  "import type { Exception, ExceptionFilter } from 'func'",
   "import { PublishCommand } from './commands/publish.command'",
   '',
-  '@Module({ commands: [PublishCommand] })',
-  'export class AppModule implements OnError {',
-  '  onError(exception: Exception, context: ExceptionContext) {',
-  '    if (exception.scope === ErrorScope.RUNTIME_PRINT) {',
-  '      console.error(`输入无效：${exception.message}`)',
-  '      context.preventDefaultPrint()',
-  '      return',
-  '    }',
+  '@Catch()',
+  'class AppFilter implements ExceptionFilter {',
+  '  catch(exception: Exception) {',
+  '    console.error(exception.message)',
+  '  }',
+  '}',
   '',
-  '    console.error(`运行失败：${exception.message}`)',
+  '@Module({',
+  '  commands: [PublishCommand],',
+  '  providers: [{ provide: APP_FILTER, useClass: AppFilter }],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const jsonErrorCode = [
+  "import { Catch } from 'func'",
+  "import type { Exception, ExceptionFilter } from 'func'",
+  '',
+  '@Catch()',
+  'export class JsonErrorFilter implements ExceptionFilter {',
+  '  catch(exception: Exception) {',
+  '    return {',
+  '      error: {',
+  '        code: exception.code,',
+  '        message: exception.message,',
+  '      },',
+  '    }',
   '  }',
   '}',
 ].join('\n')
 
 export const lifecycleCode = [
   "import { Module } from 'func'",
-  "import type { ExecutionOutcome, OnDispose, OnInit } from 'func'",
+  "import type { OnDispose, OnInit } from 'func'",
   '',
   '@Module({})',
   'export class AppModule implements OnInit, OnDispose {',
   '  onInit() {',
-  '    // 当前调用的应用已经初始化。',
+  '    // 本次调用已经初始化。',
   '  }',
   '',
-  '  onDispose(outcome: ExecutionOutcome) {',
-  "    if (outcome.status === 'error') {",
-  '      console.error(outcome.error.message)',
-  '    }',
+  '  onDispose() {',
+  '    // 释放当前实例拥有的资源。',
   '  }',
   '}',
 ].join('\n')
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="error-handler">
 
-func 使用普通类方法统一生命周期和错误处理。command、`@OptionCommand` 与 module 可以实现 `onInit`、`onError` 和 `onDispose`；普通 provider 与 `@Option` provider 可以实现 `onInit` 和 `onDispose`。请声明对应的 `OnInit`、`OnError` 或 `OnDispose` 接口，让 TypeScript 在编译期校验 hook 签名。不再需要额外的 catch 或 lifecycle 装饰器。
+func 使用 Exception Filter 处理跨切面错误，使用 `onInit` 和 `onDispose` 管理资源生命周期。错误分流不再由 module 或 command 的 `onError` 方法承担。
 
-## 错误分类
+## Exception 与默认行为
 
-| 分类              | 含义                  | 处理方式                                                             |
-| ----------------- | --------------------- | -------------------------------------------------------------------- |
-| `F_SYSTEM`        | 应用定义无效          | 立即抛出，不进入 `onError`。                                         |
-| `F_RUNTIME`       | 应用或依赖运行失败    | 进入当前 command 和 module 错误链。                                  |
-| `F_RUNTIME_PRINT` | 用户可修正的 CLI 输入 | 使用相同错误链；未调用 `preventDefaultPrint()` 时最终输出到 stderr。 |
+业务代码可以抛出原生 `Error`，也可以抛出公开的 `Exception`。`Exception` 提供稳定的 `code`、`scope`、`details`、`message` 和 `cause`，但不定义 JSON wire format；需要 JSON 时应由应用显式挑选字段。
 
-<Callout locale="zh-cn" title="系统错误属于定义缺陷" variant="caution">
+可修正的命令行输入错误和 handler 抛出的普通错误默认设置退出码 `1`，并向 stderr 写入一行普通文本。默认错误路由不添加颜色、边框或表格。系统定义错误、provider 初始化错误等框架故障会继续抛出，除非应用 Filter 明确捕获。
 
-重复 token、无效 provider、缺失 handler 等 `F_SYSTEM` 错误应直接修复应用定义。它们不会进入用户错误 hook。
+错误 scope 只有 `F_SYSTEM` 与 `F_RUNTIME`。原来的 `F_RUNTIME_PRINT` 已合并到 `F_RUNTIME`。
 
-</Callout>
+## 为 command 使用 Filter
 
-## 优先处理当前命令
-
-需要命令上下文或专属恢复逻辑时，直接在 command 上定义 `onError(exception, context)`。exception 保存稳定的失败信息，context 控制本次调用的处理行为。
+`@Catch()` 匹配所有错误；也可以传入 `ErrorScope`、完整错误码或 Error class。`@UseFilters()` 把 Filter 静态绑定到 command：
 
 <CodeBlock
-  code={commandErrorCode}
+  code={commandFilterCode}
   filename="src/commands/publish.command.ts"
   lang="ts"
 />
-<TerminalDemo
-  command="ship publish"
-  demo="errors-local-catch"
-  locale="zh-cn"
-  rows={2}
-  sourceUrl="/demos/errors-local-catch.ts"
+
+Filter 正常返回表示错误已处理；抛出新错误会继续进入外层 Filter。Filter 可以直接写 stdout/stderr，作为自定义 UI 的逃生窗口，但默认职责是匹配、分流和产生结构化结果。
+
+## Module 与 AppModule 作用域
+
+使用 DI multi-provider 注册 module 或应用级 Filter：
+
+- `MODULE_FILTER` 只影响直接 owner module。
+- `APP_FILTER` 无论在哪个已导入 module 中声明，都会影响整个应用，包括无法选中 command 的解析错误。
+- command Filter → owner module Filter → app Filter → func 默认路由。
+
+<CodeBlock code={moduleFilterCode} filename="src/app.module.ts" lang="ts" />
+
+Filter class 由 DI 创建，因此可以注入当前 module 可见的 providers、`Context` 和标准流。
+
+## 让错误进入 JSON 返回链
+
+func 不提供固定错误 JSON schema，也不会自动序列化 `Exception`。Filter 只需返回普通结构化数据；如果当前作用域导入了 `JsonOutputModule`，它会像处理 handler return 一样处理这个结果：
+
+<CodeBlock
+  code={jsonErrorCode}
+  filename="src/filters/json-error.filter.ts"
+  lang="ts"
 />
 
-`onError` 正常返回表示错误已处理，并停止继续传播；如果它抛出错误，新错误会继续进入下一个 module hook。
+这种方式由应用决定是否暴露 `details`、`cause` 或 stack，避免框架锁定协议或意外泄漏内部信息。
 
-## 将范围策略放入 module
+组件的启用方式、stdout 策略和序列化边界详见 [JSON 输出](/zh-cn/capabilities/json-output)。
 
-错误顺序固定为：当前 command 或 option action → 直接 owner module → 根 AppModule。owner 与根之间仅用于导入的 module 不会隐式成为全局切面。解析错误发生在 command 与 owner 激活前，因此只进入根 module。
+## 生命周期
 
-<CodeBlock code={moduleErrorCode} filename="src/app.module.ts" lang="ts" />
-
-真正的应用级格式化、日志、翻译或遥测放在根 module；只属于某组 command 的策略放在直接声明这些 command 的 feature module。
-
-`F_RUNTIME_PRINT` 在 hook 链结束后仍会默认写入 stderr。只有 hook 已输出替代信息时才调用 `preventDefaultPrint()`。
-
-## 使用一个清理 hook
-
-`onDispose(outcome)` 统一替代 finish 与 complete 等不同结束概念。每个已激活的受管实例都会执行它，并收到同一个被冻结的 outcome 对象。
+`onInit` 与 `onDispose` 仍然是资源生命周期，不承担错误分流：
 
 <CodeBlock code={lifecycleCode} filename="src/app.module.ts" lang="ts" />
 
-成功 outcome 包含 `status`、`result` 和 `exitCode`；失败 outcome 包含 `status`、`error`、`handled` 和 `exitCode`。command、option action 与 module 先按激活顺序逆序清理，随后 providers 按创建顺序逆序释放。清理失败会被聚合，也不会重新进入 `onError`。
+`onDispose()` 不接收本次调用的结果，返回值也会被忽略。已激活的 command、module 与 provider 会按逆序释放。hook 抛出异常或 Promise reject 时，Runtime 会报告生命周期故障并继续执行剩余 hook，已经确定的 result、exit code 与输出保持不变。生命周期故障不进入 Exception Filter。
 
 </DocsLayout>

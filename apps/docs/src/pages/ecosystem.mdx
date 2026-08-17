@@ -1,20 +1,54 @@
 ---
 title: Ecosystem Guide
-description: Find popular Node.js packages for colors, prompts, task output, progress, and terminal interfaces.
-lastModified: '2026-08-07'
+description: Choose Node.js tools for local databases, colors, prompts, task output, progress, and terminal interfaces.
+lastModified: '2026-08-16'
 ---
 
 import DocsLayout from '@/layouts/docs.astro'
 
 <DocsLayout frontmatter={frontmatter} page="ecosystem">
 
-`func` handles the command model, typed input, and dependency injection without prescribing how a CLI should look. The packages below cover the presentation and interaction features commonly added around it. Each group includes a practical default and alternatives for projects with different compatibility or API requirements.
+`func` handles the command model, typed input, and dependency injection without prescribing a CLI's storage, presentation, or interaction choices. The built-in modules and packages below cover common requirements around it. Each group includes a practical default and alternatives for projects with different compatibility or API requirements.
 
 ## Reading the comparison
 
 The download column reports approximate npm downloads from 2026-07-31 through 2026-08-06, shortened with `M` (million) and `K` (thousand). It is useful as an adoption signal, but includes automated and transitive installs; it is not a count of active users or a quality ranking.
 
 The bundle column is a representative increase from a minified, tree-shaken, single-file ESM CLI measured with esbuild. Values are rounded to the nearest KiB. Bundle size is only one selection criterion. Also consider maintenance activity, supported Node.js versions, ESM/CJS compatibility, documentation, API design, accessibility, testability, and whether the library matches the interaction model of the CLI. Measure the real application entry before making a size-sensitive release decision.
+
+## Local databases
+
+For structured data owned by one CLI installation, start with Node.js's built-in <a href="https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html" rel="noreferrer" target="_blank"><code>node:sqlite</code></a>. `func` requires Node.js 24.15 or newer, so this default needs no database package, native add-on, or separate server. Its synchronous `DatabaseSync` API fits short commands, local indexes, caches, history, and tests that use `:memory:`.
+
+```ts
+import { Injectable } from 'func'
+import type { OnDispose } from 'func'
+import { DatabaseSync } from 'node:sqlite'
+
+type Project = Readonly<{ path: string }>
+
+@Injectable()
+export class DatabaseService implements OnDispose {
+  private readonly database = new DatabaseSync('data.sqlite', {
+    timeout: 5_000,
+  })
+  private readonly findProjectStatement = this.database.prepare(
+    'SELECT path FROM projects WHERE name = ?',
+  )
+
+  findProject(name: string) {
+    return this.findProjectStatement.get(name) as Project | undefined
+  }
+
+  onDispose() {
+    this.database.close()
+  }
+}
+```
+
+Register `DatabaseService` in the owning module's `providers` and inject it into commands through their constructors. `func` creates the service only when a selected command needs it and calls `onDispose()` after the invocation.
+
+Use prepared statements for values that come from users, and keep transactions short. When several local processes may access the same database, consider <a href="https://www.sqlite.org/wal.html" rel="noreferrer" target="_blank">write-ahead logging</a>, but do not place a WAL database on a network filesystem. Because every `DatabaseSync` operation blocks the current JavaScript thread, use a worker or an external database and driver for long-running queries, high write concurrency, or data shared across hosts.
 
 ## Text colors and styles
 
@@ -71,5 +105,7 @@ These examples show how established projects use the same packages at different 
 | ---------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@clack/prompts` | Vite's `create-vite`, OpenClaw, create-t3-app, and OpenCode                                          | <a href="https://github.com/vitejs/vite/blob/main/packages/create-vite/src/index.ts" rel="noreferrer" target="_blank">Vite source</a>, <a href="https://github.com/openclaw/openclaw/blob/main/package.json" rel="noreferrer" target="_blank">OpenClaw dependency</a> |
 | `ink`            | Claude Code, Gemini CLI, GitHub Copilot CLI, Cloudflare Wrangler, Prisma, Shopify CLI, and Canva CLI | <a href="https://github.com/vadimdemedes/ink#whos-using-ink" rel="noreferrer" target="_blank">Ink's official project showcase</a>                                                                                                                                     |
+
+For a minimal invocation-scoped integration, see [Interactive Applications](/interactive-apps).
 
 </DocsLayout>

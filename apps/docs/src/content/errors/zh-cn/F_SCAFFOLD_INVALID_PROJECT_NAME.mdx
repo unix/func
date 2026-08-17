@@ -1,0 +1,10 @@
+---
+code: F_SCAFFOLD_INVALID_PROJECT_NAME
+title: 项目名称无效
+description: create-func 收到的项目名称不能作为安全的包名或目录名。
+lastModified: '2026-08-17'
+---
+
+## 如何修复
+
+使用非空且不以 `-` 开头的名称，并避免空白、路径分隔符和文件系统保留字符。可以把名称作为位置参数重新传入。

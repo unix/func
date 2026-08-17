@@ -1,0 +1,29 @@
+---
+code: F_SYSTEM_MISSING_APP_NAME
+title: 缺少应用名称
+description: Config、Log 等需要应用目录的能力没有收到 appName。
+lastModified: '2026-08-17'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const fixCode = [
+  "import { createApp } from 'func'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const app = createApp(AppModule, {',
+  "  appName: 'ship',",
+  '})',
+].join('\n')
+
+## 这个错误是什么
+
+Config、Log 等能力需要根据应用身份创建 `~/.<appName>` 目录。应用没有配置 `appName` 时，它们无法安全确定存储位置。错误通常在相关 provider 初始化时出现，而不是在导入 module 时出现；`details.appName` 此时为 `undefined`。
+
+## 如何修复
+
+在应用入口声明稳定的名称：
+
+<CodeBlock code={fixCode} filename="src/index.ts" lang="ts" />
+
+使用 `createInvoker` 或 `createTestingApp` 测试这些能力时，也要在对应 options 中提供相同的 `appName`。名称还必须满足安全路径片段规则，否则会改为抛出 `F_SYSTEM_INVALID_APP_NAME`。

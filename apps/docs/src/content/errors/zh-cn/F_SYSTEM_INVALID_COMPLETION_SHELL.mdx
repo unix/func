@@ -1,0 +1,14 @@
+---
+code: F_SYSTEM_INVALID_COMPLETION_SHELL
+title: 补全 Shell 无效
+description: completionSource() 收到了不支持的 shell 名称。
+lastModified: '2026-08-17'
+---
+
+## 这个错误是什么
+
+`completionSource(bin, shell)` 只能为 `bash`、`zsh`、`fish` 或 `powershell` 生成适配器。通过 JavaScript、配置文件或类型断言传入其他值时会抛出此错误，原始值位于 `details.shell`。
+
+## 如何修复
+
+把 shell 名称归一化为受支持的小写值，并在自定义集成中拒绝未知输入。Windows 的有效值是 `powershell`，不是 `pwsh` 或 `cmd`。使用标准安装流程时，应直接采用 [Shell 补全](/zh-cn/capabilities/completion)提供的命令。

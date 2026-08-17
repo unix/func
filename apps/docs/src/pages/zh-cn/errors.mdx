@@ -11,6 +11,8 @@ import DocsLayout from '@/layouts/docs.astro'
 
 `F_SYSTEM_*` 表示命令定义或应用注册无效。这类错误面向开发者：func 会立即停止，不会把它们传递给命令局部或全局错误处理器。
 
+`F_SCAFFOLD_*` 表示 funcgo、create-func 与相关生态工具失败。对应页面会说明需要修正的项目配置或环境输入，以及重新执行命令前的最小解决步骤。
+
 当 `funcgo` 在开发或构建检查中识别到系统错误时，它会保留原始错误输出，并在最底部添加对应页面的链接。你可以根据错误码查看约束说明、最小复现和修复方式。
 
 <SystemErrorIndex locale="zh-cn" />

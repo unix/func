@@ -2,6 +2,7 @@
 import cloudflare from '@astrojs/cloudflare'
 import { unified } from '@astrojs/markdown-remark'
 import mdx from '@astrojs/mdx'
+import sitemap from '@astrojs/sitemap'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
 import joinLine from 'astro-join-line'
@@ -19,6 +20,7 @@ export default defineConfig({
     defaultStrategy: 'viewport',
   },
   session: false,
+  site: 'https://func.witt.im',
   i18n: {
     locales: ['en', 'zh-cn'],
     defaultLocale: 'en',
@@ -33,6 +35,9 @@ export default defineConfig({
   }),
   integrations: [
     viteCacheIsolation(),
+    sitemap({
+      filter: page => !new URL(page).pathname.startsWith('/demos/'),
+    }),
     mdx({
       processor: unified({
         remarkPlugins: [remarkJoinLine],

@@ -1,0 +1,122 @@
+---
+title: 命令式调用
+description: 使用 func/invoke 把完整的 func 应用嵌入 Node.js 程序，并在同一进程中重复调用。
+lastModified: '2026-08-17'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const invokeCode = [
+  "import { createInvoker } from 'func/invoke'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const invoker = createInvoker(AppModule, {',
+  "  appName: 'ship',",
+  '})',
+  '',
+  "const invocation = await invoker.invoke(['deploy', '--env', 'production'], {",
+  "  cwd: '/workspace/project',",
+  "  env: { ...process.env, CI: 'true' },",
+  '  signal: AbortSignal.timeout(30_000),',
+  '})',
+  '',
+  'if (invocation.exitCode !== 0) {',
+  '  throw new Error(`deploy exited with ${invocation.exitCode}`)',
+  '}',
+  '',
+  'console.log(invocation.result)',
+].join('\n')
+
+export const repeatCode = [
+  "const preview = await invoker.invoke(['deploy', '--dry-run'])",
+  "const deployed = await invoker.invoke(['deploy'])",
+  '',
+  'console.log(preview.result, deployed.result)',
+].join('\n')
+
+<DocsLayout
+  frontmatter={frontmatter}
+  locale="zh-cn"
+  page="capabilities/invoke">
+
+`func/invoke` 把 func 的命令分发、选项解析、依赖注入、错误处理和生命周期作为普通 Node.js API 暴露。它适合让服务端程序、桌面应用、脚本或其他适配器直接调用已有 CLI module，而不需要启动子进程。
+
+  <Callout locale="zh-cn" title="它不是进程入口" variant="note">
+
+`createInvoker` 不读取 `process.argv`，不提供 `bootstrap()`，也不会修改 `process.exitCode`。宿主程序负责提供 argv、处理返回结果和决定自己的退出行为。
+
+  </Callout>
+
+## 创建 Invoker
+
+从 `func/invoke` 导入 `createInvoker`，并传入与 `createApp` 相同的根 module：
+
+<CodeBlock code={invokeCode} filename="src/deploy.ts" lang="ts" />
+
+argv 只包含交给 func 解析的参数，不包含 Node.js 路径或可执行文件名。上例等价于进程型 CLI 中的 `ship deploy --env production`。
+
+`appName` 是可选的应用身份。只有使用 Config、Log 等依赖应用目录的能力时才必须提供；它不会成为 argv 的一部分。
+
+## 重复调用与隔离
+
+`createInvoker` 只编译一次 module 和命令图。创建后的 invoker 可以重复调用：
+
+<CodeBlock code={repeatCode} filename="src/deploy.ts" lang="ts" />
+
+每次 `invoke` 都会创建独立的运行容器、command、module、provider、调用上下文和生命周期状态。一次调用结束后会执行其 `onDispose`；上一轮的实例和选项值不会被下一轮复用。只有 module 定义的编译结果由 invoker 共享。
+
+多个调用可以并发执行，但被注入的 provider 应继续把可变状态保存在本次调用的实例中。module 外部的全局变量、单例客户端或宿主传入的 streams 仍由应用自己负责并发安全。
+
+## 设置调用环境
+
+`invoke(argv, options)` 的第二个参数只作用于本次调用：
+
+| 选项     | 默认值           | 用途                                                           |
+| -------- | ---------------- | -------------------------------------------------------------- |
+| `cwd`    | `process.cwd()`  | 设置 `Context.cwd`，不会切换宿主进程的工作目录。               |
+| `env`    | `process.env`    | 设置 `Context.env` 的冻结快照；不会修改宿主进程的环境变量。    |
+| `signal` | 新 AbortSignal   | 向 `Context.signal` 传递取消请求。                              |
+| `stdin`  | `process.stdin`  | 替换 `Context.io.stdin` 和 `@Stdin()` 使用的 Node.js Readable。 |
+| `stdout` | `process.stdout` | 替换 `Context.io.stdout` 和 `@Stdout()` 使用的 Writable。       |
+| `stderr` | `process.stderr` | 替换 `Context.io.stderr` 和 `@Stderr()` 使用的 Writable。       |
+
+传入的 streams 始终由宿主拥有，func 不会关闭它们。需要捕获输出时，可以传入自定义 `Writable`；流的选择和所有权规则见[输入与输出](/zh-cn/input-output)。
+
+命令式调用不会自动监听 `SIGINT` 或 `SIGTERM`。宿主应创建自己的 `AbortSignal` 并通过 `signal` 传入，具体差异见[进程信号](/zh-cn/capabilities/signals)。
+
+## 处理结果与错误
+
+成功完成、由 Filter 处理，或由 func 默认错误边界转成诊断信息的调用都会返回 `InvocationResult`：
+
+| 字段       | 含义                                                       |
+| ---------- | ---------------------------------------------------------- |
+| `exitCode` | 本次调用的最终退出码，默认是 `0`。                         |
+| `result`   | handler、Interceptor 或处理该异常的 Filter 返回的最终值。 |
+
+非零 `exitCode` 不会自动抛出异常，也不会写入 `process.exitCode`；宿主应根据自己的协议解释它。没有被应用错误边界处理的异常会让 `invoke()` reject，宿主可以用普通的 `try` / `catch` 处理。
+
+如果需要直接获得捕获后的 stdout、stderr 和未处理异常，而不是自己创建 streams 与捕获 reject，请使用 [`func/testing`](/zh-cn/capabilities/testing)。
+
+## 与其他启动方式的区别
+
+| 入口                 | 主要场景             | 调用次数 | 进程行为                                     |
+| -------------------- | -------------------- | -------- | -------------------------------------------- |
+| `createApp`          | 可执行 CLI 入口      | 一次     | 读取默认 argv，支持 application features，并设置进程退出码。 |
+| `createInvoker`      | 嵌入 Node.js 宿主    | 多次     | 由宿主提供 argv 和 IO，不修改进程退出码。    |
+| `createTestingApp`   | 自动化测试           | 多次     | 隔离 env、捕获 IO 和异常，并支持 provider override。 |
+
+`createInvoker` 不接受 `features`。依赖 `createApp({ features })` 的进程级能力应留在真正的 CLI 入口；嵌入场景通过每次调用的 options 或宿主自己的生命周期实现等价控制。
+
+## API 速查
+
+| API                                  | 用途                                                         |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `createInvoker(module, options?)`    | 编译根 module，并创建可重复调用的 `Invoker`。                |
+| `InvokerOptions`                     | 创建选项；当前包含可选的 `appName`。                         |
+| `Invoker.invoke(argv?, options?)`    | 在新的调用上下文中执行一次，返回 `Promise<InvocationResult>`。 |
+| `InvocationOptions`                  | 描述 cwd、env、signal、stdin、stdout 和 stderr。              |
+| `InvocationResult`                   | 描述本次调用的 exitCode 与 result。                           |
+
+</DocsLayout>

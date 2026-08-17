@@ -104,7 +104,7 @@ func 有两条明确区分的参数路径：`@Args()` 向当前 handler 提供�
 
 ## 注入运行时 Context
 
-`Context` 是内置 DI 值。可以按类型注入 command、module 和 provider，用于读取当前 command、完整 `commands` 元数据、IO streams、cwd、取消 signal 与当前调用 exit code。
+`Context` 是内置 DI 值。可以按类型注入 command、module 和 provider，用于读取应用的 appName、当前 command、完整 `commands` 元数据、IO streams、cwd、取消 signal 与当前调用 exit code。
 
 <CodeBlock code={contextCode} filename="src/commands/major.command.ts" lang="ts" />
 
@@ -132,6 +132,6 @@ class 类型可以直接作为 token。接口、字符串配置或需要替换�
 
 `Module.providers` 接受四种形式：带 `@Injectable()` 的 class、`{ provide, useClass }`、`{ provide, useValue }` 和 `{ provide, useFactory, inject? }`。`useFactory` 可以异步返回结果；`inject` 中的依赖按数组顺序传给 factory。依赖缺失、不可见或形成环时属于定义错误，不会静默解析成 `undefined`。
 
-`Exception` 与 `ExceptionContext` 会直接传给 command 和 module 的 `onError(exception, context)`，不通过临时参数注入。详见[错误与生命周期](/zh-cn/error-handler)。
+Exception Filter 通过 `catch(exception, context)` 接收 `Exception` 与当前 `Context`；Filter 构造函数仍由 DI 管理，可以注入普通 providers。详见[错误与生命周期](/zh-cn/error-handler)。
 
 </DocsLayout>

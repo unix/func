@@ -1,0 +1,185 @@
+---
+title: Interactive Applications
+description: Connect terminal UI libraries without blocking automation or contaminating command output.
+lastModified: '2026-08-16'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const installCommands = {
+  npm: 'npm install @clack/prompts',
+  yarn: 'yarn add @clack/prompts',
+  pnpm: 'pnpm add @clack/prompts',
+  bun: 'bun add @clack/prompts',
+}
+
+export const inkCode = [
+  "import { render } from 'ink'",
+  '',
+  'const application = render(view, {',
+  '  stdin: context.io.stdin,',
+  '  stdout: context.io.stderr,',
+  '  stderr: context.io.stderr,',
+  '  exitOnCtrlC: false,',
+  '  patchConsole: false,',
+  '})',
+  '',
+  'try {',
+  '  await application.waitUntilExit()',
+  '} finally {',
+  '  application.unmount()',
+  '}',
+].join('\n')
+
+export const inquirerCode = [
+  "import { input } from '@inquirer/prompts'",
+  '',
+  'const name = await input(',
+  "  { message: 'Project name' },",
+  '  {',
+  '    input: context.io.stdin,',
+  '    output: context.io.stderr,',
+  '    signal: context.signal,',
+  '  },',
+  ')',
+].join('\n')
+
+export const oraCode = [
+  "import ora from 'ora'",
+  '',
+  'const progress = ora({',
+  "  text: 'Publishing',",
+  '  stream: context.io.stderr,',
+  '  discardStdin: false,',
+  '}).start()',
+  '',
+  'try {',
+  '  await publish({ signal: context.signal })',
+  "  progress.succeed('Published')",
+  '} catch (error) {',
+  "  progress.fail('Publish failed')",
+  '  throw error',
+  '} finally {',
+  '  progress.stop()',
+  '}',
+].join('\n')
+
+export const chalkCode = [
+  "import { Chalk } from 'chalk'",
+  '',
+  'const { stdout, stderr } = context.io',
+  "const style = new Chalk({ level: 'isTTY' in stderr && stderr.isTTY ? 1 : 0 })",
+  "stderr.write(`${style.green('✔')} Published\\n`)",
+  'stdout.write(`${JSON.stringify(result)}\\n`)',
+].join('\n')
+
+export const serviceCode = [
+  "import { text } from '@clack/prompts'",
+  "import { Context, Injectable } from 'func'",
+  "import type { Readable, Writable } from 'node:stream'",
+  '',
+  '@Injectable()',
+  'export class ClackService {',
+  '  static IsTTY(stream: Readable | Writable): boolean {',
+  "    return 'isTTY' in stream && stream.isTTY === true",
+  '  }',
+  '',
+  '  constructor(private readonly context: Context) {}',
+  '',
+  '  projectName() {',
+  '    const { stdin, stderr } = this.context.io',
+  '    if (!ClackService.IsTTY(stdin) || !ClackService.IsTTY(stderr)) {',
+  "      throw new TypeError('Interactive input requires a terminal.')",
+  '    }',
+  '',
+  '    return text({',
+  "      message: 'Project name',",
+  '      input: stdin,',
+  '      output: stderr,',
+  '      signal: this.context.signal,',
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const commandCode = [
+  "import { Command, Context, Handler } from 'func'",
+  "import { ClackService } from '../services/clack.service'",
+  '',
+  "@Command('create')",
+  'export class CreateCommand {',
+  '  constructor(',
+  '    private readonly context: Context,',
+  '    private readonly prompts: ClackService,',
+  '  ) {}',
+  '',
+  '  @Handler()',
+  '  async run() {',
+  '    const name = await this.prompts.projectName()',
+  "    if (typeof name === 'symbol') return",
+  '',
+  '    this.context.io.stdout.write(`${name}\\n`)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="interactive-apps">
+
+func does not select or wrap a terminal UI library. Install the library that fits the application and bind it to the current `Context`. This page uses several open-source libraries to demonstrate different integration boundaries; `@clack/prompts` is one example, not a default recommendation.
+
+A terminal UI library treats `output` like a UI render target. Prompts, spinners, cursor movement, and other frames belong on stderr; stdout remains the data channel for final text, JSON, and shell pipelines. Rendering UI to stdout is equivalent to writing a debug overlay into an API response.
+
+## Render a terminal application with Ink
+
+[Ink](https://github.com/vadimdemedes/ink) is a React renderer. Give it invocation-scoped streams, but use stderr as its render target so stdout stays machine-readable. Disable `exitOnCtrlC` and `patchConsole` because func owns signal handling and application output:
+
+<CodeBlock code={inkCode} lang="ts" />
+
+Unmount on every path, and let `Context.signal` unmount early when the command is cancelled. The copyable [Ink service](https://github.com/unix/func/blob/main/snippets/ink.service.ts) includes that signal binding.
+
+## Give stdin one owner with Inquirer
+
+[Inquirer](https://github.com/SBoudrias/Inquirer.js) accepts runtime streams and an abort signal separately from prompt options:
+
+<CodeBlock code={inquirerCode} lang="ts" />
+
+Check that both input and render streams are TTYs before prompting. In CI, a shell pipeline, or another non-interactive environment, use command options or defaults and fail fast when required data is missing. Do not consume the same stdin as both piped application data and interactive key input. See the copyable [Inquirer service](https://github.com/unix/func/blob/main/snippets/inquirer.service.ts).
+
+Awaiting a prompt suspends the command until input arrives; it does not block the Node.js event loop. Synchronous work still blocks input, signal handling, and all terminal animations.
+
+## Clean up progress rendering with Ora
+
+[Ora](https://github.com/sindresorhus/ora) renders a single spinner to a writable stream. Bind that stream to stderr and stop it in `finally`:
+
+<CodeBlock code={oraCode} lang="ts" />
+
+Ora's `discardStdin` feature operates on the process-wide stdin rather than a supplied stream, so disable it when streams are owned by `Context`. The operation itself should accept `Context.signal`. See the copyable [Ora service](https://github.com/unix/func/blob/main/snippets/ora.service.ts).
+
+## Style at the output boundary with Chalk
+
+[Chalk](https://github.com/chalk/chalk) produces styled strings; it does not decide which application channel owns them. Choose color support for the target stream, write decorative or diagnostic text to stderr, and keep structured stdout unstyled:
+
+<CodeBlock code={chalkCode} lang="ts" />
+
+Custom and captured streams should default to color level `0` unless their terminal capability is known. See the copyable [Chalk service](https://github.com/unix/func/blob/main/snippets/chalk.service.ts).
+
+## Code snippet example
+
+The following minimal service uses `@clack/prompts` only as a concrete example. Install it in the application rather than in func:
+
+<CodeBlock
+  code={installCommands.npm}
+  lang="bash"
+  packageManagerCommands={installCommands}
+/>
+
+<CodeBlock code={serviceCode} filename="src/services/clack.service.ts" lang="ts" />
+
+Register `ClackService` in the owning module's `providers`, then inject it into the command. The command retains ownership of the final stdout result:
+
+<CodeBlock code={commandCode} filename="src/commands/create.command.ts" lang="ts" />
+
+The repository provides a copyable [complete Clack service](https://github.com/unix/func/blob/main/snippets/clack.service.ts) with prompt binding, cancellation helpers, TTY checks, and spinner cleanup. For the underlying contracts, see [Input and Output](/input-output), [Process Signals](/capabilities/signals), and the [Ecosystem Guide](/ecosystem).
+
+</DocsLayout>

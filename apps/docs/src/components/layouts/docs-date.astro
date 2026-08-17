@@ -1,0 +1,63 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  date: string
+  locale?: Locale
+}
+
+const { date, locale = defaultLocale } = Astro.props
+const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+const hasExplicitTime = !dateOnlyPattern.test(date)
+const parsedDate = new Date(hasExplicitTime ? date : `${date}T00:00:00Z`)
+const hasValidDate = !Number.isNaN(parsedDate.valueOf())
+const dateTime = hasValidDate
+  ? hasExplicitTime
+    ? parsedDate.toISOString()
+    : parsedDate.toISOString().slice(0, 10)
+  : date
+const dateLocale = locale === 'zh-cn' ? 'zh-CN' : 'en'
+const dateText = hasValidDate
+  ? new Intl.DateTimeFormat(dateLocale, {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(parsedDate)
+  : date
+---
+
+<time datetime={dateTime}>{dateText}</time>
+<span
+  class="rounded-sm bg-muted px-1.5 py-0.5 text-[0.625rem] leading-none font-medium text-foreground/70"
+  data-relative-date={date}
+  data-relative-date-locale={locale}
+  hidden></span>
+
+<script>
+  import { formatRelativeDate } from '@/lib/relative-date'
+
+  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+
+  const updateRelativeDates = () => {
+    document
+      .querySelectorAll<HTMLElement>('[data-relative-date]')
+      .forEach(element => {
+        const date = element.dataset.relativeDate
+        if (!date) return
+
+        const hasExplicitTime = !dateOnlyPattern.test(date)
+        const parsedDate = new Date(hasExplicitTime ? date : `${date}T00:00:00Z`)
+        const locale =
+          element.dataset.relativeDateLocale === 'zh-cn' ? 'zh-cn' : 'en'
+        const now = new Date()
+        const relativeNow = hasExplicitTime
+          ? now
+          : new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+        const relativeText = formatRelativeDate(parsedDate, locale, relativeNow)
+
+        element.textContent = relativeText
+        element.hidden = !relativeText
+      })
+  }
+
+  document.addEventListener('astro:page-load', updateRelativeDates)
+</script>

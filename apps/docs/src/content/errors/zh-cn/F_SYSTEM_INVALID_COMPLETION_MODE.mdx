@@ -1,0 +1,21 @@
+---
+code: F_SYSTEM_INVALID_COMPLETION_MODE
+title: 补全运行模式无效
+description: 补全环境变量包含了 func/completion 不支持的 source 或 complete 模式。
+lastModified: '2026-08-17'
+---
+
+## 这个错误是什么
+
+补全 Feature 通过与 `bin` 对应的环境变量选择操作。例如 `ship` 使用 `_SHIP_COMPLETE`。当前只接受：
+
+- `bash_source`、`bash_complete`；
+- `zsh_source`、`zsh_complete`；
+- `fish_source`、`fish_complete`；
+- `powershell_source`、`powershell_complete`。
+
+收到的值位于 `details.mode`。这通常来自手写 shell profile、过期的适配器脚本或调用方自行设置了补全环境变量。
+
+## 如何修复
+
+重新按照 [Shell 补全](/zh-cn/capabilities/completion)生成并安装当前版本的适配器，同时移除 profile 中旧的环境变量赋值。普通 CLI 调用不应持久设置补全环境变量。

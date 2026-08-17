@@ -1,0 +1,185 @@
+---
+title: 交互式应用
+description: 接入终端 UI 库，同时避免自动化流程等待和命令输出污染。
+lastModified: '2026-08-16'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const installCommands = {
+  npm: 'npm install @clack/prompts',
+  yarn: 'yarn add @clack/prompts',
+  pnpm: 'pnpm add @clack/prompts',
+  bun: 'bun add @clack/prompts',
+}
+
+export const inkCode = [
+  "import { render } from 'ink'",
+  '',
+  'const application = render(view, {',
+  '  stdin: context.io.stdin,',
+  '  stdout: context.io.stderr,',
+  '  stderr: context.io.stderr,',
+  '  exitOnCtrlC: false,',
+  '  patchConsole: false,',
+  '})',
+  '',
+  'try {',
+  '  await application.waitUntilExit()',
+  '} finally {',
+  '  application.unmount()',
+  '}',
+].join('\n')
+
+export const inquirerCode = [
+  "import { input } from '@inquirer/prompts'",
+  '',
+  'const name = await input(',
+  "  { message: 'Project name' },",
+  '  {',
+  '    input: context.io.stdin,',
+  '    output: context.io.stderr,',
+  '    signal: context.signal,',
+  '  },',
+  ')',
+].join('\n')
+
+export const oraCode = [
+  "import ora from 'ora'",
+  '',
+  'const progress = ora({',
+  "  text: 'Publishing',",
+  '  stream: context.io.stderr,',
+  '  discardStdin: false,',
+  '}).start()',
+  '',
+  'try {',
+  '  await publish({ signal: context.signal })',
+  "  progress.succeed('Published')",
+  '} catch (error) {',
+  "  progress.fail('Publish failed')",
+  '  throw error',
+  '} finally {',
+  '  progress.stop()',
+  '}',
+].join('\n')
+
+export const chalkCode = [
+  "import { Chalk } from 'chalk'",
+  '',
+  'const { stdout, stderr } = context.io',
+  "const style = new Chalk({ level: 'isTTY' in stderr && stderr.isTTY ? 1 : 0 })",
+  "stderr.write(`${style.green('✔')} Published\\n`)",
+  'stdout.write(`${JSON.stringify(result)}\\n`)',
+].join('\n')
+
+export const serviceCode = [
+  "import { text } from '@clack/prompts'",
+  "import { Context, Injectable } from 'func'",
+  "import type { Readable, Writable } from 'node:stream'",
+  '',
+  '@Injectable()',
+  'export class ClackService {',
+  '  static IsTTY(stream: Readable | Writable): boolean {',
+  "    return 'isTTY' in stream && stream.isTTY === true",
+  '  }',
+  '',
+  '  constructor(private readonly context: Context) {}',
+  '',
+  '  projectName() {',
+  '    const { stdin, stderr } = this.context.io',
+  '    if (!ClackService.IsTTY(stdin) || !ClackService.IsTTY(stderr)) {',
+  "      throw new TypeError('Interactive input requires a terminal.')",
+  '    }',
+  '',
+  '    return text({',
+  "      message: 'Project name',",
+  '      input: stdin,',
+  '      output: stderr,',
+  '      signal: this.context.signal,',
+  '    })',
+  '  }',
+  '}',
+].join('\n')
+
+export const commandCode = [
+  "import { Command, Context, Handler } from 'func'",
+  "import { ClackService } from '../services/clack.service'",
+  '',
+  "@Command('create')",
+  'export class CreateCommand {',
+  '  constructor(',
+  '    private readonly context: Context,',
+  '    private readonly prompts: ClackService,',
+  '  ) {}',
+  '',
+  '  @Handler()',
+  '  async run() {',
+  '    const name = await this.prompts.projectName()',
+  "    if (typeof name === 'symbol') return",
+  '',
+  '    this.context.io.stdout.write(`${name}\\n`)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="zh-cn" page="interactive-apps">
+
+func 不替应用选择或封装终端 UI 库。应用根据需要安装第三方库，再把它绑定到当前 `Context`。本页用多个开源库分别说明不同的接入边界；`@clack/prompts` 只是其中一个示例，不是默认推荐。
+
+终端 UI 库的 `output` 可以理解为 UI 的 render target。Prompt、spinner、光标移动与其他渲染帧应写入 stderr；stdout 保留给最终文本、JSON 和 Shell 管道数据。把 UI 渲染到 stdout，相当于把调试界面写进 API 响应。
+
+## 使用 Ink 渲染终端应用
+
+[Ink](https://github.com/vadimdemedes/ink) 是 React renderer。传入本次调用的 streams，但把 stderr 用作 render target，让 stdout 保持机器可读。关闭 `exitOnCtrlC` 和 `patchConsole`，因为 signal 与应用输出由 func 管理：
+
+<CodeBlock code={inkCode} lang="ts" />
+
+所有路径都应 unmount；command 取消时，再让 `Context.signal` 提前触发 unmount。可复制的 [Ink service](https://github.com/unix/func/blob/main/snippets/ink.service.ts) 已包含 signal 绑定。
+
+## 使用 Inquirer 明确 stdin 所有权
+
+[Inquirer](https://github.com/SBoudrias/Inquirer.js) 将运行时 streams 和 abort signal 与 Prompt 选项分开传入：
+
+<CodeBlock code={inquirerCode} lang="ts" />
+
+Prompt 启动前应检查输入与渲染 stream 都是 TTY。在 CI、Shell 管道或其他非交互环境中，改用命令选项或默认值，并在缺少必要数据时立即报错。不要让同一个 stdin 既承载管道数据，又充当交互按键输入。参见可复制的 [Inquirer service](https://github.com/unix/func/blob/main/snippets/inquirer.service.ts)。
+
+等待 Prompt 只会暂停 command 到输入到达，不会阻塞 Node.js 事件循环；同步任务仍会阻塞输入、signal 处理与所有终端动画。
+
+## 使用 Ora 清理进度渲染
+
+[Ora](https://github.com/sindresorhus/ora) 把单个 spinner 渲染到 writable stream。将 stream 绑定到 stderr，并在 `finally` 中停止：
+
+<CodeBlock code={oraCode} lang="ts" />
+
+Ora 的 `discardStdin` 会操作进程级 stdin，而不是接收一个自定义 input stream；streams 由 `Context` 管理时应将其关闭。实际任务自身仍应接收 `Context.signal`。参见可复制的 [Ora service](https://github.com/unix/func/blob/main/snippets/ora.service.ts)。
+
+## 使用 Chalk 在输出边界添加样式
+
+[Chalk](https://github.com/chalk/chalk) 只生成带样式的字符串，并不决定字符串属于哪个应用通道。根据目标 stream 决定颜色能力，将装饰性或诊断性文本写入 stderr，并让结构化 stdout 保持无样式：
+
+<CodeBlock code={chalkCode} lang="ts" />
+
+自定义或捕获 stream 无法确认终端能力时，颜色等级应默认为 `0`。参见可复制的 [Chalk service](https://github.com/unix/func/blob/main/snippets/chalk.service.ts)。
+
+## 代码片段示例
+
+下面只用 `@clack/prompts` 给出一个具体的最小实现，并不表示默认推荐。它应由应用安装，而不是成为 func 的依赖：
+
+<CodeBlock
+  code={installCommands.npm}
+  lang="bash"
+  packageManagerCommands={installCommands}
+/>
+
+<CodeBlock code={serviceCode} filename="src/services/clack.service.ts" lang="ts" />
+
+把 `ClackService` 注册到所属 module 的 `providers`，再注入 command。最终 stdout 结果仍由 command 管理：
+
+<CodeBlock code={commandCode} filename="src/commands/create.command.ts" lang="ts" />
+
+仓库提供了可复制的[完整 Clack service](https://github.com/unix/func/blob/main/snippets/clack.service.ts)，包含 Prompt 绑定、取消辅助方法、TTY 检查和 spinner 清理。底层约定参见[输入与输出](/zh-cn/input-output)、[进程信号](/zh-cn/capabilities/signals)、[测试](/zh-cn/capabilities/testing)与[生态选型](/zh-cn/ecosystem)。
+
+</DocsLayout>

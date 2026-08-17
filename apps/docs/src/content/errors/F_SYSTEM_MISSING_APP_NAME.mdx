@@ -1,0 +1,10 @@
+---
+code: F_SYSTEM_MISSING_APP_NAME
+title: Missing application name
+description: A filesystem-backed capability requires an application name.
+lastModified: '2026-08-17'
+---
+
+## How to fix it
+
+Provide a stable name when creating the app, for example `createApp(AppModule, { appName: 'ship' })`. Config and Log use it to select the application directory.

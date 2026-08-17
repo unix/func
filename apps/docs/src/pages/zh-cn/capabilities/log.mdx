@@ -9,7 +9,7 @@ import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
 export const setupCode = [
-  "import { Command, Handler, Module } from 'func'",
+  "import { Command, Handler, Module, createApp } from 'func'",
   "import { Logger, LogModule } from 'func/log'",
   '',
   "@Command('deploy')",
@@ -25,14 +25,17 @@ export const setupCode = [
   '',
   '@Module({',
   '  commands: [DeployCommand],',
-  "  imports: [LogModule.register({ appName: 'ship' })],",
+  '  imports: [LogModule.register()],',
   '})',
   'export class AppModule {}',
+  '',
+  "const app = createApp(AppModule, { appName: 'ship' })",
+  '',
+  'void app.bootstrap()',
 ].join('\n')
 
 export const limitsCode = [
   'LogModule.register({',
-  "  appName: 'ship',",
   '  maxBytes: 2 * 1024 * 1024,',
   '  maxFiles: 20,',
   '})',
@@ -54,7 +57,7 @@ export const limitsCode = [
 
 <CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
 
-上例的日志目录为 `~/.ship/logs`。每次调用拥有不同文件；文件名包含时间、进程 ID 和随机标识。
+上例的日志目录为 `~/.ship/logs`。应用名由 `createApp({ appName })` 统一提供，func 只负责收集并透传；Log 会在 `Logger` provider 初始化时验证应用名。每次调用拥有不同文件；文件名包含时间、进程 ID 和随机标识。
 
 `Logger.push(...data)` 使用 Node.js console 的格式化语义，把参数组合成一条带 ISO 时间戳的文本记录。ANSI 控制字符会被移除，日志文件始终保存纯文本。
 
@@ -88,12 +91,12 @@ Logs were written to "/Users/ada/.ship/logs/func-....log".
 
 ## API 速查
 
-| API                           | 用途                                 |
-| ----------------------------- | ------------------------------------ |
-| `LogModule.register(options)` | 注册按调用创建的 Logger provider。   |
-| `Logger.push(...data)`        | 追加一条带时间戳的诊断记录。         |
-| `Logger.path`                 | 获取本次调用解析出的日志路径。       |
-| `LogModuleOptions`            | 配置 appName、maxBytes 和 maxFiles。 |
-| `LOG_SYSTEM` / `LOG_RUNTIME`  | 日志能力的稳定错误码枚举。           |
+| API                            | 用途                               |
+| ------------------------------ | ---------------------------------- |
+| `LogModule.register(options?)` | 注册按调用创建的 Logger provider。 |
+| `Logger.push(...data)`         | 追加一条带时间戳的诊断记录。       |
+| `Logger.path`                  | 获取本次调用解析出的日志路径。     |
+| `LogModuleOptions`             | 配置 maxBytes 和 maxFiles。        |
+| `LOG_SYSTEM` / `LOG_RUNTIME`   | 日志能力的稳定错误码枚举。         |
 
 </DocsLayout>

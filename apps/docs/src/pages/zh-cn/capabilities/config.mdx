@@ -9,7 +9,7 @@ import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
 export const setupCode = [
-  "import { Module } from 'func'",
+  "import { Module, createApp } from 'func'",
   "import { Config, ConfigFile, ConfigModule } from 'func/config'",
   '',
   "@ConfigFile({ name: 'profile', maxBytes: 64 * 1024 })",
@@ -21,12 +21,17 @@ export const setupCode = [
   '@Module({',
   '  imports: [',
   '    ConfigModule.register({',
-  "      appName: 'ship',",
   '      configs: [ProfileConfig],',
   '    }),',
   '  ],',
   '})',
   'export class AppModule {}',
+  '',
+  'const app = createApp(AppModule, {',
+  "  appName: 'ship',",
+  '})',
+  '',
+  'void app.bootstrap()',
 ].join('\n')
 
 export const usageCode = [
@@ -85,7 +90,7 @@ func 使用 Node.js 识别到的用户主目录，不依赖当前工作目录。
 
 主目录可能受系统账户和运行环境影响；例如 Linux 的 root 用户通常对应 `/root/.ship/profile.json`。
 
-`appName` 和文件名都必须是安全的单个路径片段，不能包含斜杠、反斜杠、空白边界或 `.`、`..`。
+应用名由 `createApp({ appName })` 统一提供，func 只负责收集并透传。Config、Log 等使用应用目录的能力会在各自的 provider 初始化时验证 `appName`。应用名和文件名都必须是安全的单个路径片段，不能包含斜杠、反斜杠、空白边界或 `.`、`..`。
 
 ## 读取和更新配置
 
@@ -122,12 +127,12 @@ defaults 会把字符串、数字、布尔值、null、数组和嵌套对象映�
 
 ## API 速查
 
-| API                                           | 用途                                       |
-| --------------------------------------------- | ------------------------------------------ |
-| `Config(defaults)`                            | 创建从 defaults 推断类型的配置基类。       |
-| `@ConfigFile({ name, maxBytes? })`            | 设置文件名与可选大小限制。                 |
-| `ConfigModule.register({ appName, configs })` | 注册并导出一个或多个配置 provider。        |
-| `ConfigInstance`                              | 描述 get、getAll、set、reset 和 resetAll。 |
-| `CONFIG_SYSTEM` / `CONFIG_RUNTIME`            | 配置能力的稳定错误码枚举。                 |
+| API                                  | 用途                                       |
+| ------------------------------------ | ------------------------------------------ |
+| `Config(defaults)`                   | 创建从 defaults 推断类型的配置基类。       |
+| `@ConfigFile({ name, maxBytes? })`   | 设置文件名与可选大小限制。                 |
+| `ConfigModule.register({ configs })` | 注册并导出一个或多个配置 provider。        |
+| `ConfigInstance`                     | 描述 get、getAll、set、reset 和 resetAll。 |
+| `CONFIG_SYSTEM` / `CONFIG_RUNTIME`   | 配置能力的稳定错误码枚举。                 |
 
 </DocsLayout>

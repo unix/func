@@ -1,5 +1,6 @@
 ---
 import { defaultLocale, type Locale } from '@/lib/docs'
+import DocsDate from './docs-date.astro'
 
 interface Props {
   lastModified: string
@@ -7,80 +8,7 @@ interface Props {
 }
 
 const { lastModified, locale = defaultLocale } = Astro.props
-const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
-const hasExplicitTime = !dateOnlyPattern.test(lastModified)
-const modifiedAt = new Date(
-  hasExplicitTime ? lastModified : `${lastModified}T00:00:00Z`,
-)
-const hasValidDate = !Number.isNaN(modifiedAt.valueOf())
-const modifiedDateTime = hasValidDate
-  ? hasExplicitTime
-    ? modifiedAt.toISOString()
-    : modifiedAt.toISOString().slice(0, 10)
-  : lastModified
-const dateLocale = locale === 'zh-cn' ? 'zh-CN' : 'en'
-const modifiedText = hasValidDate
-  ? new Intl.DateTimeFormat(dateLocale, {
-      dateStyle: 'long',
-      timeZone: 'UTC',
-    }).format(modifiedAt)
-  : lastModified
-const labels =
-  locale === 'zh-cn'
-    ? { modified: '更新于', recent: '最近' }
-    : { modified: 'Updated', recent: 'Recently' }
-const relativeFormatter = new Intl.RelativeTimeFormat(dateLocale, {
-  numeric: 'always',
-})
-const relativeText = (() => {
-  if (!hasValidDate) return null
-
-  const now = new Date()
-
-  if (!hasExplicitTime) {
-    const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-    const modifiedDay = Date.UTC(
-      modifiedAt.getUTCFullYear(),
-      modifiedAt.getUTCMonth(),
-      modifiedAt.getUTCDate(),
-    )
-    const elapsedDays = (today - modifiedDay) / 86_400_000
-    const absoluteDays = Math.abs(elapsedDays)
-
-    if (elapsedDays === 0) return labels.recent
-    if (absoluteDays < 7) return relativeFormatter.format(-elapsedDays, 'day')
-    if (absoluteDays < 30)
-      return relativeFormatter.format(-Math.round(elapsedDays / 7), 'week')
-    if (absoluteDays < 365)
-      return relativeFormatter.format(-Math.round(elapsedDays / 30), 'month')
-
-    return relativeFormatter.format(-Math.round(elapsedDays / 365), 'year')
-  }
-
-  const elapsedSeconds = (now.valueOf() - modifiedAt.valueOf()) / 1000
-  const absoluteSeconds = Math.abs(elapsedSeconds)
-  const relativeUnits: {
-    seconds: number
-    unit: Intl.RelativeTimeFormatUnit
-  }[] = [
-    { seconds: 31_536_000, unit: 'year' },
-    { seconds: 2_592_000, unit: 'month' },
-    { seconds: 604_800, unit: 'week' },
-    { seconds: 86_400, unit: 'day' },
-    { seconds: 3_600, unit: 'hour' },
-    { seconds: 60, unit: 'minute' },
-  ]
-  const relativeUnit = relativeUnits.find(
-    ({ seconds }) => absoluteSeconds >= seconds,
-  )
-
-  if (!relativeUnit) return labels.recent
-
-  return relativeFormatter.format(
-    -Math.round(elapsedSeconds / relativeUnit.seconds),
-    relativeUnit.unit,
-  )
-})()
+const labels = locale === 'zh-cn' ? { modified: '更新于' } : { modified: 'Updated' }
 ---
 
 <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -121,15 +49,6 @@ const relativeText = (() => {
       stroke-linejoin="round"
       stroke-width="1.5"></path>
   </svg>
-  <span>
-    {labels.modified}{' '}
-    <time datetime={modifiedDateTime}>{modifiedText}</time>
-  </span>
-  {
-    relativeText && (
-      <span class="rounded-sm bg-muted px-1.5 py-0.5 text-[0.625rem] leading-none font-medium text-foreground/70">
-        {relativeText}
-      </span>
-    )
-  }
+  <span>{labels.modified}</span>
+  <DocsDate date={lastModified} locale={locale} />
 </div>

@@ -1,0 +1,35 @@
+---
+code: F_SYSTEM_DUPLICATE_APPLICATION_FEATURE
+title: 应用 Feature 重复注册
+description: createApp 的 features 中出现了具有相同 key 的应用级 Feature。
+lastModified: '2026-08-17'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { createApp } from 'func'",
+  "import { withCompletion } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'createApp(AppModule, {',
+  '  features: [',
+  "    withCompletion({ bin: 'ship' }),",
+  "    withCompletion({ bin: 'ship' }),",
+  '  ],',
+  '})',
+].join('\n')
+
+## 复现
+
+同一种应用 Feature 被注册了多次：
+
+<CodeBlock code={reproductionCode} filename="src/index.ts" lang="ts" />
+
+## 这个错误是什么
+
+每个应用 Feature 都有一个唯一 key，例如补全使用 `completion`，进程信号使用 `process-signals`。同一 key 在一次 `createApp()` 中只能出现一次。`details.key` 是发生冲突的 Feature key。
+
+## 如何修复
+
+只保留一次对应的 Feature factory 调用。需要调整行为时，应合并为一份配置，而不是重复注册同一个 Feature；不同 key 的 Feature 仍可同时使用。

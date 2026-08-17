@@ -1,0 +1,146 @@
+---
+title: JSON 输出
+description: 使用 func/json-output 从同一份 handler 返回值生成普通文本或机器可读 JSON。
+lastModified: '2026-08-17'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const setupCode = [
+  "import { Command, Handler, Module } from 'func'",
+  "import { JsonOutputModule } from 'func/json-output'",
+  '',
+  "@Command('status')",
+  'class StatusCommand {',
+  '  @Handler()',
+  '  run() {',
+  "    return { status: 'ready' }",
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  commands: [StatusCommand],',
+  '  imports: [JsonOutputModule],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const preserveStdoutCode = [
+  "import { Module } from 'func'",
+  "import { JsonOutputModule } from 'func/json-output'",
+  '',
+  '@Module({',
+  '  imports: [',
+  '    JsonOutputModule.register({',
+  '      suppressStdout: false,',
+  '    }),',
+  '  ],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const errorCode = [
+  "import { Catch, MODULE_FILTER, Module } from 'func'",
+  "import type { Exception, ExceptionFilter } from 'func'",
+  "import { JsonOutputModule } from 'func/json-output'",
+  '',
+  '@Catch()',
+  'class JsonErrorFilter implements ExceptionFilter {',
+  '  catch(exception: Exception) {',
+  '    return {',
+  '      error: {',
+  '        code: exception.code,',
+  '        message: exception.message,',
+  '      },',
+  '    }',
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  imports: [JsonOutputModule],',
+  '  providers: [',
+  '    { provide: MODULE_FILTER, useClass: JsonErrorFilter },',
+  '  ],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+<DocsLayout
+  frontmatter={frontmatter}
+  locale="zh-cn"
+  page="capabilities/json-output">
+
+`func/json-output` 为 module 添加 `--json`，并把 handler return 作为命令结果。业务代码只返回一份原始数据；组件负责根据调用方式生成普通文本或 JSON，不要求 command 使用特定的排版、色彩库或输出函数。
+
+  <Callout locale="zh-cn" title="按需引入" variant="note">
+
+JSON 输出只从 `func/json-output` 导出，不会由 `func` 主入口自动启用。组件只提供 module 与 AppModule 作用域，不提供 command 装饰器。
+
+  </Callout>
+
+## 启用 `--json`
+
+把 `JsonOutputModule` 导入需要 JSON 输出的 module，并让 handler 返回可序列化的原始数据：
+
+<CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
+
+执行结果为：
+
+| 调用                 | stdout                                      |
+| -------------------- | ------------------------------------------- |
+| `ship status`        | 使用固定普通文本规则输出 handler return。   |
+| `ship status --json` | 把同一份 handler return 序列化为缩进 JSON。 |
+
+普通模式下，字符串保持原样，布尔值、数字、BigInt 和 `null` 使用字符串表示，对象与数组使用缩进 JSON。JSON 模式遵循 `JSON.stringify` 的数据约束；没有结果时应显式返回 `null`，返回 `undefined`、循环引用或 BigInt 会产生运行时错误。
+
+## 选择作用域
+
+导入位置决定组件影响范围：
+
+- 根 AppModule 导入后，`--json` 对整个应用可见。
+- feature module 导入后，只影响该 module 直接拥有的 commands。
+- 不支持在单个 command 上使用 `@JsonCommand()` 一类装饰器。
+
+相同作用域中的 handler 始终经过结果拦截器，因此未传入 `--json` 时也会输出 return。如果普通模式需要完全自定义 UI，可以自行写入注入的 stdout，并让 handler 返回 `undefined`；JSON 模式则要求返回实际数据。
+
+## stdout、stderr 与 ANSI
+
+JSON 模式默认抑制 handler 通过 `@Stdout()` 或 `Context.io.stdout` 写入的内容，最终 stdout 因而保持为单一 JSON 文档。stderr 不受影响，仍可承载警告和诊断。
+
+JSON 模式下，直接调用全局 `console.log()` 或写入 `process.stdout` 会绕过注入的 managed stdout，组件无法抑制这些内容。需要稳定的 JSON 协议时，应使用 func 注入的 stdout，并把进度、警告等诊断写入 stderr。
+
+JSON 序列化会递归移除字符串值中的 ANSI 控制序列，但不会修改原始 return。普通模式不会主动移除字符串中的色彩数据。
+
+确实需要在 JSON 模式保留 handler 写入的 stdout 时，可以关闭唯一的配置项：
+
+<CodeBlock code={preserveStdoutCode} filename="src/app.module.ts" lang="ts" />
+
+此时已有 stdout 与最终 JSON 会同时出现，结果通常不再是单一合法 JSON 文档。
+
+## 返回结构化错误
+
+func 核心和 JSON 组件都不规定错误 schema，也不会自动把 `Exception` 暴露为 JSON。应用可以用 Filter 选择字段并返回普通结构化数据；返回值会进入与 handler 相同的拦截器链：
+
+<CodeBlock code={errorCode} filename="src/app.module.ts" lang="ts" />
+
+根 AppModule 中的 Filter 也可以处理命令解析错误。当调用包含 `--json` 时，Filter return 会被序列化，并保留失败退出码。Filter 未处理的默认错误继续写入 stderr。完整的匹配与作用域规则见[错误处理](/zh-cn/error-handler)。
+
+## Help 与生命周期
+
+当前作用域同时注册 `HelpOption` 时，普通 `--help` 继续输出格式化文本，`--help --json` 输出结构化 `HelpMeta`。
+
+最终 JSON 会在业务执行与 Filter 完成后确定，并延迟到资源释放结束后提交。`onDispose` 失败只产生 Runtime 生命周期诊断，不会进入 Filter、回滚 JSON 或改变已经确定的 exit code。
+
+## API 速查
+
+| API                                  | 用途                                                        |
+| ------------------------------------ | ----------------------------------------------------------- |
+| `JsonOutputModule`                   | 使用默认配置启用 module 级 JSON 输出。                      |
+| `JsonOutputModule.register(options)` | 配置并启用 JSON 输出。                                      |
+| `suppressStdout`                     | JSON 模式是否抑制注入的 stdout，默认为 `true`。             |
+| `JsonOutputInterceptor`              | 捕获并输出结果的公开 Interceptor，可用于组合自定义 module。 |
+| `JSON_OUTPUT_OPTIONS`                | 自定义组合时注入规范化配置的 token。                        |
+
+</DocsLayout>

@@ -103,6 +103,8 @@ A field option is a command property that also describes part of the public CLI.
 
 Field options belong to one command scope. An option declared on `ServeCommand` is available to `ship serve`, not automatically to the major command or another named command. After defining fields for one command, continue to [Shared Fields](/shared-fields) when several commands need to reuse fields or actions.
 
+To turn one string input into a `URL`, `Date`, or domain value, create a reusable field decorator with `createValueDecorator()`. See [Custom Decorators](/custom-decorators).
+
 ## Choose the value shape
 
 | User need                      | Example syntax                  | Decorator                           | Field value            |

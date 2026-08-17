@@ -39,16 +39,16 @@ test('keeps Chinese documentation on the v3 public API', () => {
   })
 })
 
-test('documents every current system error in Chinese', () => {
-  const errorsSource = readFileSync(
-    join(docsRoot, '..', '..', 'packages', 'contracts', 'src', 'core-errors.ts'),
-    'utf8',
-  )
-  const enumBody = /export enum SYSTEM \{([\s\S]*?)\n\}/.exec(errorsSource)?.[1]
-  assert.ok(enumBody)
-  const codes = Array.from(enumBody.matchAll(/^\s+([A-Z][A-Z0-9_]+)\s*=/gm))
-    .map(match => `F_SYSTEM_${match[1]}.mdx`)
-    .sort()
+test('documents every current framework and scaffold error in Chinese', () => {
+  const contractsRoot = join(docsRoot, '..', '..', 'packages', 'contracts', 'src')
+  const codes = [
+    ...enumCodes(join(contractsRoot, 'core-errors.ts'), 'SYSTEM', 'F_SYSTEM'),
+    ...enumCodes(
+      join(contractsRoot, 'scaffold-errors.ts'),
+      'SCAFFOLD',
+      'F_SCAFFOLD',
+    ),
+  ].sort()
   const documented = readdirSync(chineseErrorsRoot)
     .filter(file => file.endsWith('.mdx'))
     .sort()
@@ -58,10 +58,27 @@ test('documents every current system error in Chinese', () => {
 
 test('lists every optional v3 package entry in the Chinese API reference', () => {
   const source = readFileSync(join(chinesePagesRoot, 'apis.mdx'), 'utf8')
-  const entries = ['completion', 'config', 'help', 'log', 'signals', 'testing']
+  const entries = [
+    ['completion', 'completion'],
+    ['config', 'config'],
+    ['help', 'help'],
+    ['http', 'network'],
+    ['http/testing', 'network'],
+    ['invoke', 'invoke'],
+    ['json-output', 'json-output'],
+    ['log', 'log'],
+    ['net', 'network'],
+    ['net/testing', 'network'],
+    ['signals', 'signals'],
+    ['testing', 'testing'],
+  ]
 
-  entries.forEach(entry => {
-    assert.match(source, new RegExp(`func/${entry}`))
+  entries.forEach(([entry, page]) => {
+    assert.match(
+      source,
+      new RegExp(`func/${entry}.*\\(/zh-cn/capabilities/${page}\\)`),
+    )
+    readFileSync(join(chinesePagesRoot, 'capabilities', `${page}.mdx`), 'utf8')
   })
 })
 
@@ -74,4 +91,15 @@ const commandDecorators = source => {
     start = source.indexOf('@Command({', start + 1)
   }
   return decorators
+}
+
+const enumCodes = (file, name, prefix) => {
+  const source = readFileSync(file, 'utf8')
+  const enumBody = new RegExp(`export enum ${name} \\{([\\s\\S]*?)\\n\\}`).exec(
+    source,
+  )?.[1]
+  assert.ok(enumBody)
+  return Array.from(enumBody.matchAll(/^\s+([A-Z][A-Z0-9_]+)\s*=/gm)).map(
+    match => `${prefix}_${match[1]}.mdx`,
+  )
 }

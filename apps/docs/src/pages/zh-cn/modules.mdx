@@ -88,7 +88,7 @@ export const configurableModuleCode = [
   "import { ReleaseService } from './providers/release.service'",
   '',
   '@Module({',
-  "  imports: [LogModule.register({ appName: 'ship' })],",
+  '  imports: [LogModule.register()],',
   '  commands: [ReleaseCommand],',
   '  providers: [ReleaseService],',
   '})',
@@ -210,7 +210,7 @@ provider 默认服务声明它的 module。只被 `ProjectCommand` 使用的 `Pr
   lang="ts"
 />
 
-`LogModule.register()` 返回一个已经按 `appName` 配置好的 module。当前 feature 可以使用它导出的 `Logger`，同时保持日志的创建方式集中在 `func/log` 内。配置文件也可以通过相同方式使用 `ConfigModule.register()`。
+`LogModule.register()` 返回一个配置好的 module。当前 feature 可以使用它导出的 `Logger`，同时保持日志的创建方式集中在 `func/log` 内。配置文件也可以通过相同方式使用 `ConfigModule.register()`。两者使用的应用目录名称由 `createApp({ appName })` 统一提供。
 
 ## Options 和 hooks 放在哪里
 

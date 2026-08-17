@@ -1,0 +1,10 @@
+---
+code: F_SYSTEM_INVALID_APPLICATION_FEATURE_LIST
+title: Invalid application feature list
+description: createApp received a features value that is not an array.
+lastModified: '2026-08-17'
+---
+
+## How to fix it
+
+Pass feature objects in an array: `createApp(AppModule, { features: [withCompletion(...)] })`. Omit `features` when no feature is required.

@@ -25,7 +25,11 @@ const languageSwitchHref =
   locale === defaultLocale ? `/zh-cn/errors/${code}` : `/errors/${code}`
 ---
 
-<Layout title={title} description={description} locale={locale}>
+<Layout
+  title={title}
+  description={description}
+  lastModified={lastModified}
+  locale={locale}>
   <div class="mx-auto min-h-screen w-full max-w-7xl bg-background">
     <DocsHeader
       languageSwitchHref={languageSwitchHref}

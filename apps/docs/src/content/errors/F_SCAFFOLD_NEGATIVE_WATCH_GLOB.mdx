@@ -1,0 +1,10 @@
+---
+code: F_SCAFFOLD_NEGATIVE_WATCH_GLOB
+title: Negative watch glob is unsupported
+description: funcgo watch mode received a glob beginning with a negation.
+lastModified: '2026-08-17'
+---
+
+## How to fix it
+
+Pass positive watch paths or globs with `--watch-path`. Remove leading `!` patterns and narrow the positive pattern instead.

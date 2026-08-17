@@ -1,0 +1,14 @@
+---
+code: F_SYSTEM_INVALID_APPLICATION_FEATURE
+title: 应用 Feature 无效
+description: createApp.features 中的值不是由 func Feature factory 创建的对象。
+lastModified: '2026-08-17'
+---
+
+## 这个错误是什么
+
+`createApp({ features })` 只接受 func 可识别的 `ApplicationFeature`。普通对象、module、provider 或通过类型断言伪装成 `ApplicationFeature` 的值没有内部 Feature 定义，因此无法参与 bootstrap。无效值位于 `details.feature`。
+
+## 如何修复
+
+使用对应可选入口公开的 factory，例如 `withCompletion({ bin: 'ship' })` 或 `withProcessSignals()`。Module 应放入 `Module.imports`，provider 应放入 `Module.providers`；不要手写或复制 Feature 对象。

@@ -1,7 +1,7 @@
 ---
 title: 输入与输出
 description: 理解 stdin、stdout 与 stderr 的职责，正确处理管道、诊断信息、退出码和自动化测试。
-lastModified: '2026-08-16'
+lastModified: '2026-08-17'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -25,21 +25,23 @@ export const outputCode = [
 ].join('\n')
 
 export const inputCode = [
-  "import { Command, Context, Handler } from 'func'",
+  "import { Command, Handler, Stdin, Stdout } from 'func'",
+  "import type { Readable, Writable } from 'node:stream'",
   '',
   "@Command('import')",
   'export class ImportCommand {',
-  '  constructor(private readonly context: Context) {}',
-  '',
   '  @Handler()',
-  '  async run() {',
+  '  async run(',
+  '    @Stdin() stdin: Readable,',
+  '    @Stdout() stdout: Writable,',
+  '  ) {',
   '    const chunks: Buffer[] = []',
-  '    for await (const chunk of this.context.io.stdin) {',
+  '    for await (const chunk of stdin) {',
   '      chunks.push(Buffer.from(chunk))',
   '    }',
   '',
   "    const payload = Buffer.concat(chunks).toString('utf8')",
-  '    this.context.io.stdout.write(`Imported ${payload.length} bytes.\\n`)',
+  '    stdout.write(`Imported ${payload.length} bytes.\\n`)',
   '  }',
   '}',
 ].join('\n')
@@ -111,29 +113,29 @@ CLI 不只是在终端里打印文字。它通常处在 shell 管道中，上一
 
 同理，业务命令也应通过注入的 stderr 代替全局 `console.error()`。底层库如果只返回数据或抛出错误，而把最终输出留给 command，通常更容易复用和测试。
 
-## 直接注入输出流
+## 直接注入标准流
 
-command 只需要输出时，使用 `@Stdout()` 或 `@Stderr()` 注入本次调用的 Node.js `Writable`：
+command 只需要单个标准流时，使用 `@Stdin()`、`@Stdout()` 或 `@Stderr()` 注入本次调用的 Node.js stream：
 
 <CodeBlock code={outputCode} filename="src/commands/status.command.ts" lang="ts" />
 
-这两个装饰器可用于 DI 管理的构造函数和 handler 参数。func 不会包装、关闭或自动换行；需要换行时显式写入 `\n`，也不要对注入的 stream 调用 `end()`。对于少量 CLI 输出可以直接 `write()`；持续写入大量内容时，应遵循 Node.js stream 的背压规则，或使用 stream pipeline。
+这些装饰器可用于 DI 管理的构造函数和 handler 参数。func 默认直接提供本次 invocation 配置的 stream；仅在 JSON 等调用模式需要抑制 stdout 时，才提供只管理写入的 stream。func 不会关闭底层 stream 或自动换行；需要换行时显式写入 `\n`，也不要对注入的 stream 调用 `end()`。对于少量 CLI 输出可以直接 `write()`；持续写入大量内容时，应遵循 Node.js stream 的背压规则，或使用 stream pipeline。
 
 如果 command、module 或 provider 同时需要输入、输出和其他运行信息，直接注入 `Context`，再使用 `context.io.stdout` 与 `context.io.stderr`。
 
 ## 从 stdin 读取内容
 
-stdin 只通过 `Context.io.stdin` 暴露，它是本次调用配置的 Node.js `Readable`。可以用异步迭代逐块读取：
+`@Stdin()` 与 `Context.io.stdin` 暴露同一个本次调用配置的 Node.js `Readable`。可以用异步迭代逐块读取：
 
 <CodeBlock code={inputCode} filename="src/commands/import.command.ts" lang="ts" />
 
-上面的实现会一直读取到输入结束，适合 `cat data.json | ship import` 或 `ship import < data.json`。大文件不应先全部拼接到内存；应逐块解析或把 stdin 接入支持 stream 的解析器。交互式提示还要考虑终端是否可交互、取消信号和无输入时是否会等待，通常交给专门的 prompt 库处理。
+上面的实现会一直读取到输入结束，适合 `cat data.json | ship import` 或 `ship import < data.json`。大文件不应先全部拼接到内存；应逐块解析或把 stdin 接入支持 stream 的解析器。Prompt 如何绑定渲染目标、避免非 TTY 环境等待，见[交互式应用](/zh-cn/interactive-apps)。
 
 ## 在应用边界替换 IO
 
 `app.bootstrap(options)` 和 `invoker.invoke(argv, options)` 接受 `stdin`、`stdout` 与 `stderr`。未传入时使用当前进程的标准流；嵌入应用、编写适配器或测试时，可以传入其他 `Readable` 和 `Writable`。
 
-这些 streams 由调用方拥有。func 只读取或写入它们，不负责关闭。一次调用中的 `Context.io`、`@Stdout()` 和 `@Stderr()` 始终指向同一组对象，因此 command 与 provider 可以遵循一致的输出边界。
+这些 streams 由调用方拥有。func 只读取或写入它们，不负责关闭。一次调用中的 `Context.io`、`@Stdin()`、`@Stdout()` 和 `@Stderr()` 始终指向同一组对象，因此 command 与 provider 可以遵循一致的 IO 边界。
 
 ## 测试输入与输出
 
@@ -141,8 +143,8 @@ stdin 只通过 `Context.io.stdin` 暴露，它是本次调用配置的 Node.js 
 
 <CodeBlock code={testingCode} filename="tests/io.test.ts" lang="ts" />
 
-测试时应至少覆盖正常结果、诊断信息和失败退出码。对于 JSON 输出，可以先断言 stderr 为空，再对 `result.stdout` 使用 `JSON.parse()`；这样能同时验证输出格式没有被警告或调试文本污染。
+测试时应至少覆盖正常结果、诊断信息和失败退出码。对于 JSON 输出，可以先断言 stderr 为空，再对 `result.stdout` 使用 `JSON.parse()`；这样能同时验证输出格式没有被警告或调试文本污染。组件的作用域、错误返回和 ANSI 处理详见 [JSON 输出](/zh-cn/capabilities/json-output)。
 
-如果测试看到了终端日志，但 `result.stdout` 为空，通常表示代码仍在调用全局 `console.log()`。把输出改为 `@Stdout()`、`@Stderr()` 或 `Context.io` 后，生产环境替换和测试捕获才会使用同一条路径。完整测试应用和 provider override 方式见[测试](/zh-cn/capabilities/testing)。
+如果测试看到了终端日志，但 `result.stdout` 为空，通常表示代码仍在调用全局 `console.log()`。把 IO 改为 `@Stdin()`、`@Stdout()`、`@Stderr()` 或 `Context.io` 后，生产环境替换和测试捕获才会使用同一条路径。完整测试应用和 provider override 方式见[测试](/zh-cn/capabilities/testing)。
 
 </DocsLayout>

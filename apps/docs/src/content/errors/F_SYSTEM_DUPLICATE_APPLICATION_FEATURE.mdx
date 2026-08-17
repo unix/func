@@ -1,0 +1,10 @@
+---
+code: F_SYSTEM_DUPLICATE_APPLICATION_FEATURE
+title: Duplicate application feature
+description: The same application feature is registered more than once.
+lastModified: '2026-08-17'
+---
+
+## How to fix it
+
+Keep only one feature with the reported key in `createApp({ features })`. Shared setup should return one feature instance instead of registering the same feature in multiple places.

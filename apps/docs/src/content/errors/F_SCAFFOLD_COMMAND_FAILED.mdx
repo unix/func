@@ -1,0 +1,10 @@
+---
+code: F_SCAFFOLD_COMMAND_FAILED
+title: Child command failed
+description: funcgo could not start a child command or the command exited unsuccessfully.
+lastModified: '2026-08-17'
+---
+
+## How to fix it
+
+Read the child command output and inspect `details.command`, `details.exitCode`, and `details.signal`. Confirm the executable is installed and available on `PATH`, then run the underlying command directly to diagnose its arguments and environment.

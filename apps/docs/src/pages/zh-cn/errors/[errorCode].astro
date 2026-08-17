@@ -16,7 +16,7 @@ export const getStaticPaths = (() => {
 
 const { code } = Astro.props
 const page = getSystemErrorPage(code, 'zh-cn')
-if (!page) throw new Error(`Unknown system error code: ${code}`)
+if (!page) throw new Error(`Unknown error code: ${code}`)
 
 const { Content, frontmatter } = page
 ---

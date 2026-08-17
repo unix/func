@@ -1,0 +1,10 @@
+---
+code: F_SCAFFOLD_COMMAND_FAILED
+title: 子命令执行失败
+description: funcgo 无法启动子命令，或子命令以失败状态退出。
+lastModified: '2026-08-17'
+---
+
+## 如何修复
+
+查看子命令输出以及 `details.command`、`details.exitCode` 和 `details.signal`。确认可执行文件已经安装且位于 `PATH`，再直接运行底层命令以检查参数和环境。

@@ -8,11 +8,23 @@ interface Props {
 
 const { locale = defaultLocale } = Astro.props
 
-const frameworkIds = ['func', 'commander', 'yargs', 'oclif', 'cac'] as const
+const frameworkIds = [
+  'func',
+  'func-parser',
+  'commander',
+  'yargs',
+  'oclif',
+  'cac',
+] as const
 type FrameworkId = (typeof frameworkIds)[number]
+
+const activeFrameworkIds = new Set<FrameworkId>(['func', 'func-parser'])
+const benchmarkReportUrl =
+  'https://github.com/unix/func/blob/main/benchmarks/report.json'
 
 const frameworkNames: Record<FrameworkId, string> = {
   func: 'func',
+  'func-parser': 'func/parser',
   commander: 'Commander',
   yargs: 'yargs',
   oclif: '@oclif/core',
@@ -24,7 +36,8 @@ const labelPlacement: Record<
   { anchor: 'end' | 'middle' | 'start'; labelDx: number; labelDy: number }
 > = {
   func: { anchor: 'start', labelDx: 12, labelDy: 4 },
-  commander: { anchor: 'end', labelDx: -10, labelDy: 3 },
+  'func-parser': { anchor: 'end', labelDx: -12, labelDy: -12 },
+  commander: { anchor: 'start', labelDx: 10, labelDy: 8 },
   yargs: { anchor: 'start', labelDx: 10, labelDy: -12 },
   oclif: { anchor: 'end', labelDx: -10, labelDy: 18 },
   cac: { anchor: 'end', labelDx: -12, labelDy: -5 },
@@ -35,8 +48,8 @@ interface Point2D {
   y: number
 }
 
-const bundleRange = { min: 0, max: 350 }
-const startupRange = { min: 35, max: 75 }
+const bundleRange = { min: 0, max: 125 }
+const startupRange = { min: 30, max: 70 }
 const dxRange = { min: 0, max: 100 }
 const origin: Point2D = { x: 100, y: 350 }
 const bundleAxis: Point2D = { x: 430, y: 0 }
@@ -95,13 +108,13 @@ const verticalEdges = [
   { end: ceilingFarCorner, start: floorFarCorner },
   { end: ceilingStartupEnd, start: floorStartupEnd },
 ]
-const bundleTicks = [0, 100, 200, 300, 350].map(value => ({
+const bundleTicks = [0, 25, 50, 75, 100, 125].map(value => ({
   back: project(value, startupRange.max, dxRange.min),
   front: project(value, startupRange.min, dxRange.min),
   topBack: project(value, startupRange.max, dxRange.max),
   value,
 }))
-const startupTicks = [35, 45, 55, 65, 75].map(value => ({
+const startupTicks = [30, 40, 50, 60, 70].map(value => ({
   far: project(bundleRange.max, value, dxRange.min),
   front: project(bundleRange.min, value, dxRange.min),
   value,
@@ -114,7 +127,7 @@ const dxTicks = [0, 25, 50, 75, 100].map(value => ({
 }))
 
 const points = frameworkIds.map(id => {
-  const bundleKiB = benchmarkReport.bundle[id].rawBytes / 1024
+  const bundleKiB = benchmarkReport.bundle[id].gzipBytes / 1024
   const startupMs = benchmarkReport.runtime.overall[id].meanMs
   const dx = benchmarkReport.authoring.frameworks[id].dx.score
   const maintainability =
@@ -123,6 +136,7 @@ const points = frameworkIds.map(id => {
   const floorPosition = project(bundleKiB, startupMs, dxRange.min)
 
   return {
+    active: activeFrameworkIds.has(id),
     bundleKiB,
     floorPosition,
     id,
@@ -137,25 +151,31 @@ const points = frameworkIds.map(id => {
 const labels =
   locale === 'zh-cn'
     ? {
-        bundle: 'bundle size（KiB）',
+        bundle: 'gzip bundle size（KiB）',
         coldStart: '冷启动（ms）',
         description:
           '每个点由 bundle size、冷启动时间和 DX 三个坐标定位；点越大，可维护性代理分越高。',
         dx: 'DX',
-        methodology:
-          'bundle 与冷启动来自 benchmarks/report.json，三条轴分别采用 0–350 KiB、35–75 ms 和 DX 0–100 的线性刻度。DX 与可维护性来自报告中的 authoring evaluation：每项按 0–4 级评定，再按公开权重折算为 100 分；判定依据和证据随报告提交。这是当前 workload 的工程代理指标，不是通用排名。',
+        methodologyPrefix: 'gzip bundle 与冷启动来自 ',
+        methodologySuffix:
+          '，三条轴分别采用 0–125 KiB、30–70 ms 和 DX 0–100 的线性刻度。DX 与可维护性来自报告中的 authoring evaluation：每项按 0–4 级评定，再按公开权重折算为 100 分；判定依据和证据随报告提交。这是当前 workload 的工程代理指标，不是通用排名。',
+        report: 'benchmarks/report.json',
         title: '体积、冷启动、DX 与可维护性',
       }
     : {
-        bundle: 'bundle size (KiB)',
+        bundle: 'gzip bundle size (KiB)',
         coldStart: 'cold start (ms)',
         description:
           'Each point is positioned by bundle size, cold-start time, and DX; larger points indicate a higher maintainability proxy.',
         dx: 'DX',
-        methodology:
-          'Bundle and startup values come from benchmarks/report.json. The axes use linear scales of 0–350 KiB, 35–75 ms, and DX 0–100. DX and maintainability come from the report authoring evaluation: every criterion is graded from 0 to 4 and converted to 100 with published weights; the report includes each grade and its evidence. These are workload-specific engineering proxies, not universal rankings.',
+        methodologyPrefix: 'Gzip bundle and startup values come from ',
+        methodologySuffix:
+          '. The axes use linear scales of 0–125 KiB, 30–70 ms, and DX 0–100. DX and maintainability come from the report authoring evaluation: every criterion is graded from 0 to 4 and converted to 100 with published weights; the report includes each grade and its evidence. These are workload-specific engineering proxies, not universal rankings.',
+        report: 'benchmarks/report.json',
         title: 'Bundle size, cold start, DX, and maintainability',
       }
+
+const methodology = `${labels.methodologyPrefix}${labels.report}${labels.methodologySuffix}`
 ---
 
 <figure class="my-8 overflow-hidden rounded-lg border bg-card" data-minimap-ignore>
@@ -168,7 +188,7 @@ const labels =
 
   <div class="select-none p-2 sm:p-4">
     <svg
-      aria-label={`${labels.title}。${labels.methodology}`}
+      aria-label={`${labels.title}。${methodology}`}
       class="h-auto w-full"
       role="img"
       viewBox="0 0 760 400"
@@ -328,12 +348,12 @@ const labels =
         }
       </g>
 
-      {
-        points.map(point => (
-          <g>
+      <g aria-hidden="true">
+        {
+          points.map(point => (
             <circle
               class:list={[
-                point.id === 'func'
+                point.active
                   ? 'fill-violet-600 stroke-violet-300 dark:fill-violet-400 dark:stroke-violet-700'
                   : 'fill-foreground/70 stroke-background',
               ]}
@@ -342,32 +362,61 @@ const labels =
               r={point.radius}
               stroke-width="2"
             />
-            <text
-              class:list={[
-                'font-mono text-[10px]',
-                point.id === 'func'
-                  ? 'fill-violet-700 dark:fill-violet-300'
-                  : 'fill-muted-foreground',
-              ]}
-              text-anchor={point.anchor}
-              x={point.x + point.labelDx}
-              y={point.y + point.labelDy}>
-              <tspan>{point.label}</tspan>
-              <tspan
-                class="fill-muted-foreground text-[9px] font-normal"
-                dy="13"
-                x={point.x + point.labelDx}>
-                {point.bundleKiB.toFixed(1)} KiB · {point.startupMs.toFixed(1)} ms
-              </tspan>
-            </text>
-          </g>
-        ))
-      }
+          ))
+        }
+      </g>
+
+      <g>
+        {
+          points.map(point => (
+            <g
+              aria-label={`${point.label}: ${point.bundleKiB.toFixed(1)} KiB, ${point.startupMs.toFixed(1)} ms`}
+              class="group outline-none"
+              role="img"
+              tabindex={point.active ? undefined : 0}>
+              <circle
+                class="fill-transparent"
+                cx={point.x}
+                cy={point.y}
+                r={Math.max(point.radius, 10)}
+              />
+              <text
+                class:list={[
+                  'stroke-background stroke-[3px] font-mono text-[10px] [paint-order:stroke]',
+                  point.active
+                    ? 'fill-violet-700 dark:fill-violet-300'
+                    : 'fill-muted-foreground',
+                ]}
+                stroke-linejoin="round"
+                text-anchor={point.anchor}
+                x={point.x + point.labelDx}
+                y={point.y + point.labelDy}>
+                <tspan>{point.label}</tspan>
+                <tspan
+                  class:list={[
+                    'fill-muted-foreground text-[9px] font-normal',
+                    !point.active &&
+                      'opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100',
+                  ]}
+                  dy="13"
+                  x={point.x + point.labelDx}>
+                  {point.bundleKiB.toFixed(1)} KiB · {point.startupMs.toFixed(1)} ms
+                </tspan>
+              </text>
+            </g>
+          ))
+        }
+      </g>
     </svg>
   </div>
 
   <div
     class="border-t bg-muted/20 px-4 py-3 text-xs leading-5 text-muted-foreground">
-    {labels.methodology}
+    {labels.methodologyPrefix}<a
+      class="underline decoration-border underline-offset-2 transition-colors hover:text-foreground"
+      href={benchmarkReportUrl}
+      rel="noopener noreferrer"
+      target="_blank">{labels.report}</a
+    >{labels.methodologySuffix}
   </div>
 </figure>

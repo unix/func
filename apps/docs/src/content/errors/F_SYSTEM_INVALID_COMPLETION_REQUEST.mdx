@@ -1,0 +1,10 @@
+---
+code: F_SYSTEM_INVALID_COMPLETION_REQUEST
+title: Invalid completion request
+description: The completion engine received malformed args or incomplete text.
+lastModified: '2026-08-17'
+---
+
+## How to fix it
+
+Pass an array of strings as `args` and a string as `incomplete`. Integrations should forward committed arguments separately from the word currently being completed.

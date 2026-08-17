@@ -102,6 +102,6 @@ Class providers use `@Injectable()` and must be visible through the command's ow
 
 Use `@Inject(token)` for interface-like or non-class tokens. Missing or invisible dependencies are definition errors; they do not resolve as `undefined`.
 
-`Exception` and `ExceptionContext` are passed directly to command and module `onError(exception, context)` hooks rather than injected as transient parameters. See [Errors and Lifecycle](/error-handler).
+Exception filters receive `Exception` and the active `Context` through `catch(exception, context)`. Filter constructors remain DI-managed and may inject ordinary providers. See [Errors and Lifecycle](/error-handler).
 
 </DocsLayout>

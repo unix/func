@@ -1,0 +1,28 @@
+---
+code: F_SYSTEM_INVALID_APPLICATION_FEATURE_LIST
+title: 应用 Feature 列表无效
+description: createApp.features 不是 ApplicationFeature 数组。
+lastModified: '2026-08-17'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { createApp } from 'func'",
+  "import { withCompletion } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'createApp(AppModule, {',
+  "  features: withCompletion({ bin: 'ship' }) as any,",
+  '})',
+].join('\n')
+
+## 复现
+
+即使只启用一个 Feature，`features` 也必须是数组：
+
+<CodeBlock code={reproductionCode} filename="src/index.ts" lang="ts" />
+
+## 如何修复
+
+把每个 Feature factory 的返回值放入数组，例如 `features: [withCompletion({ bin: 'ship' })]`。如果不需要应用 Feature，可以省略 `features` 或传入空数组。收到的原始值位于 `details.features`。

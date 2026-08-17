@@ -1,0 +1,103 @@
+---
+title: Custom Decorators
+description: Use createValueDecorator to turn one string input into a URL or another domain value.
+lastModified: '2026-08-17'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const decoratorCode = [
+  "import { createValueDecorator } from 'func'",
+  '',
+  'export const Url = createValueDecorator(input => {',
+  "  if (!URL.canParse(input)) throw new Error('Expected a valid absolute URL.')",
+  '',
+  '  const url = new URL(input)',
+  "  if (url.protocol !== 'http:' && url.protocol !== 'https:') {",
+  "    throw new Error('Expected an HTTP or HTTPS URL.')",
+  '  }',
+  '',
+  '  return url',
+  '})',
+].join('\n')
+
+export const commandCode = [
+  "import { Command, Handler, Required } from 'func'",
+  "import { Url } from '../decorators/url.decorator.js'",
+  '',
+  "@Command('deploy')",
+  'export class DeployCommand {',
+  '  @Required()',
+  "  @Url({ alias: 'u', description: 'Deployment endpoint' })",
+  '  endpoint!: URL',
+  '',
+  '  @Handler()',
+  '  run() {',
+  '    console.log(`Deploying to ${this.endpoint.origin}`)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="custom-decorators">
+
+`@Value()` handles built-in string and finite-number inputs. When an application needs a `URL`, `Date`, or domain value, use `createValueDecorator()` to keep conversion at the input boundary instead of repeating it in every handler.
+
+## Create a URL decorator
+
+`createValueDecorator()` accepts a synchronous transform. func always passes it one raw string and assigns its return value to the decorated field:
+
+<CodeBlock
+  code={decoratorCode}
+  filename="src/decorators/url.decorator.ts"
+  lang="ts"
+/>
+
+This `@Url()` both declares a single-value CLI option and converts a valid HTTP(S) string into a standard `URL` object. If the transform throws, func creates an `F_RUNTIME_VALIDATION` error, preserves the original error as its cause, and does not invoke the handler.
+
+## Use it in a command
+
+A custom decorator accepts the same name, alias, and description input as `@Value()`. It can also compose with `@Required()`, `@Deprecated()`, `@DependsOn()`, `@Exclusive()`, and `@ValueValidate()`:
+
+<CodeBlock code={commandCode} filename="src/commands/deploy.command.ts" lang="ts" />
+
+Both forms below produce a `URL` instance:
+
+```shell
+ship deploy --endpoint https://api.example.com/releases
+ship deploy -u https://api.example.com/releases
+```
+
+Do not add `@Value()` to the same field. `@Url()` already declares the single-value option.
+
+## Transform timing and defaults
+
+The transform runs once only when the user explicitly supplies the option. When it is omitted, func preserves the field initializer or `undefined`, so a default must already use the output type:
+
+```ts
+@Url()
+endpoint = new URL('https://api.example.com')
+```
+
+Do not use a raw string as the default because func does not transform defaults. `@Required()` and field validators run after transformation, so `@ValueValidate()` receives the `URL`, not the raw string.
+
+Transforms must be synchronous and should be pure. Put network access, filesystem work, and other side effects in a service or handler. Returning a Promise creates a validation error.
+
+## Type boundary
+
+The generic output is inferred from the transform, but an ordinary TypeScript property decorator cannot prove that a field declaration matches it. If a decorator returns a `URL`, consumers should explicitly declare the field as `URL`.
+
+Code that reads the merged transformed value through `@Args()` can specify its option type:
+
+```ts
+import { Args } from 'func'
+import type { Args as ArgsValue } from 'func'
+
+run(@Args() args: ArgsValue<{ endpoint: URL }>) {
+  console.log(args.options.endpoint.origin)
+}
+```
+
+Both parameter forms remain available: `@Url('endpoint')` and `@Url({ name: 'endpoint', alias: 'u' })`. Help still presents it as a value option that consumes one string token; the decorator decides what that string becomes.
+
+</DocsLayout>

@@ -133,6 +133,8 @@ negatable flag 还会接受自动生成的 `--no-<name>` 形式，因此 `ship s
 
 用户省略选项时，属性初始值就是默认值。默认值会直接影响应用行为；如果用户需要知道 它，帮助信息中也应注明。
 
+需要把单个字符串输入转换成 `URL`、`Date` 或领域对象时，使用 `createValueDecorator()` 创建自己的字段装饰器，详见[自定义装饰器](/zh-cn/custom-decorators)。
+
 ## 重复值
 
 `@ArrayString()` 和 `@ArrayNumber()` 分别把同一选项的多次输入收集为 `string[]` 和 `number[]`。TypeScript 装饰器元数据只能识别到 `Array`，因此由装饰器名称表达元素解析类型，由属性声明确认字段是数组。

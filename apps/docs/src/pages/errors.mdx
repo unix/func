@@ -11,6 +11,8 @@ import DocsLayout from '@/layouts/docs.astro'
 
 `F_SYSTEM_*` errors identify invalid command definitions or application registration. They are developer-facing failures: func stops immediately instead of sending them through command-local or global error handlers.
 
+`F_SCAFFOLD_*` errors identify failures in funcgo, create-func, and related ecosystem tooling. Their pages explain which project or environment input to correct before retrying the command.
+
 When `funcgo` recognizes one of these errors during development or a build check, it keeps the original error output and adds a link to the matching page below. Use the code to find the relevant invariant, minimal reproduction, and fix.
 
 <SystemErrorIndex />

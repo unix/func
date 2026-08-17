@@ -1,0 +1,256 @@
+---
+title: Micro Applications
+description: Build small CLIs with func/parser and recognize when to migrate to a full func application.
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const parserCode = [
+  "import { ParserError, createParser } from 'func/parser'",
+  '',
+  'const parser = createParser({',
+  '  options: {',
+  "    help: { alias: 'h', type: Boolean },",
+  '  },',
+  '  commands: {',
+  '    build: {',
+  '      options: {',
+  "        outDir: { alias: 'o', name: 'out-dir', type: String },",
+  "        tags: { alias: 't', multiple: true, name: 'tag', type: String },",
+  '      },',
+  '    },',
+  '  },',
+  '})',
+  '',
+  'export const main = async (argv = process.argv.slice(2)) => {',
+  '  try {',
+  '    const invocation = parser.parse(argv)',
+  '    if (invocation.options.help) {',
+  '      printHelp(invocation.command)',
+  '      return',
+  '    }',
+  '',
+  "    if (invocation.command === 'build') {",
+  '      await build({',
+  '        entries: invocation.inputs,',
+  '        outDir: invocation.options.outDir,',
+  '        tags: invocation.options.tags,',
+  '      })',
+  '      return',
+  '    }',
+  '',
+  '    printHelp()',
+  '  } catch (error) {',
+  '    if (!(error instanceof ParserError)) throw error',
+  '    console.error(error.message)',
+  '    process.exitCode = 1',
+  '  }',
+  '}',
+].join('\n')
+
+export const passthroughCode = [
+  "import { createParser } from 'func/parser'",
+  '',
+  'const parser = createParser({',
+  '  commands: {',
+  '    run: {',
+  '      options: {',
+  "        file: { alias: 'f', type: String },",
+  '      },',
+  '      passthrough: true,',
+  '    },',
+  '  },',
+  '})',
+  '',
+  "const invocation = parser.parse(['run', '-f', 'worker.ts', '--', '--inspect'])",
+  "// invocation.options.file === 'worker.ts'",
+  "// invocation.inputs === ['--inspect']",
+].join('\n')
+
+export const migrationCode = [
+  "import { Args, ArrayString, Command, Handler, Module, Value, createApp } from 'func'",
+  "import type { Args as CommandArgs } from 'func'",
+  "import { HelpOption } from 'func/help'",
+  '',
+  '@Command({',
+  "  path: 'build',",
+  "  description: 'Build one or more entries',",
+  '})',
+  'class BuildCommand {',
+  "  @Value({ alias: 'o', name: 'out-dir', description: 'Output directory' })",
+  '  outDir?: string',
+  '',
+  "  @ArrayString({ alias: 't', name: 'tag', description: 'Release tag' })",
+  '  tags: string[] = []',
+  '',
+  '  @Handler()',
+  '  run(@Args() args: CommandArgs) {',
+  '    return build({',
+  '      entries: args.inputs,',
+  '      outDir: this.outDir,',
+  '      tags: this.tags,',
+  '    })',
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  commands: [BuildCommand],',
+  '  options: [HelpOption],',
+  '})',
+  'class AppModule {}',
+  '',
+  "const app = createApp(AppModule, { appName: 'tool' })",
+  'void app.bootstrap()',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} page="micro-apps">
+
+A micro application has a small, fixed command-line surface that remains clearer as a short piece of imperative code. Package initializers, repository scripts, and thin wrappers around another program often need only a few options followed by one business function call.
+
+`func/parser` is a separate typed argument-parsing entry for these applications. It reuses func's core argv compilation and parsing capabilities, but does not load the full decorator-based application model or run a command. After `parse()` returns data, the application still owns branching, help, output, exit codes, and business execution.
+
+<Callout title="Still part of the func ecosystem" variant="note">
+
+`func/parser` still references func's core capabilities. It is not an independent parser package, but a lightweight entry for micro applications within the func ecosystem.
+
+</Callout>
+
+<Callout title="The default artifact is about 3.1 KB gzipped" variant="tip">
+
+The default `func/parser` artifact is about 3.1 KB after gzip. This tiny baseline makes it particularly well suited to starting a micro CLI application; a final CLI also includes its option definitions and business code.
+
+</Callout>
+
+## When it fits
+
+`func/parser` is usually the direct choice when most of these statements are true:
+
+- The CLI has root options or a small number of one-level commands.
+- Options need only Boolean, String, finite Number, or repeated String / Number values.
+- Positional inputs can be passed to business code as a string array.
+- Help is short enough to maintain manually without drift.
+- Business dependencies can be imported directly without injection or resource lifecycle management.
+- A wrapper must preserve arguments for another program.
+
+Typical examples include `create-*` initializers, single-purpose generators, CI helpers, Git hook entry points, and process wrappers that add a thin layer of defaults.
+
+If the project already needs nested commands, shared services, structured help, centralized errors, or invocation-level testing, starting with the full `func` model avoids modeling the same interface twice.
+
+## Define and call a parser
+
+Import `createParser` from `func/parser` and provide root options and an optional command map. The result type is inferred from the definition. Narrowing `command` also narrows command-specific options.
+
+<CodeBlock code={parserCode} filename="src/index.ts" lang="ts" />
+
+The definition accepts calls such as:
+
+```shell
+tool --help
+tool build entry.ts --out-dir dist --tag next --tag latest
+tool build entry.ts -o dist -t next
+```
+
+`parse()` returns four fields:
+
+| Field      | Contents                                                                      |
+| ---------- | ----------------------------------------------------------------------------- |
+| `command`  | The selected one-level command name, or `undefined`.                          |
+| `inputs`   | Unconsumed positional inputs in their original order.                         |
+| `options`  | Typed values whose property names are the keys in the definition.             |
+| `supplied` | Definition keys explicitly provided by the user, including negated flags.     |
+
+Root options are visible to every command and may appear before or after the command name. Value options accept both `--name value` and `--name=value`; known short Boolean options may be grouped. Omitted Booleans are `false`, scalar values are `undefined`, and repeated values are empty arrays. Later scalar values win, while repeated values accumulate in input order.
+
+### Option definitions
+
+Use constructors for the short form:
+
+```ts
+const parser = createParser({
+  options: {
+    color: Boolean,
+    port: Number,
+    profile: String,
+  },
+})
+```
+
+Use the object form to change the public name or parsing behavior:
+
+| Property    | Purpose                                                                    |
+| ----------- | -------------------------------------------------------------------------- |
+| `type`      | Required; one of `Boolean`, `String`, or `Number`.                          |
+| `name`      | Public long name used by `--<name>`; defaults to the definition key.       |
+| `alias`     | One non-numeric, single-character short alias.                              |
+| `aliases`   | Additional single-character aliases, merged and deduplicated with `alias`.  |
+| `multiple`  | String / Number only; collects repeated values into a readonly array.       |
+| `negatable` | Boolean only; also accepts `--no-<name>`.                                   |
+
+Unknown commands, unknown options, and invalid values throw `ParserError` with `unknown-command`, `unknown-option`, or `invalid-argument`. An invalid definition fails during `createParser()` with `invalid-definition`. The application must still decide where to write the error, whether to show help, and which exit code to set.
+
+## Wrap another program
+
+With `passthrough: true`, the parser stops interpreting tokens at the first positional input after the command or at `--`. The remaining inputs can be forwarded to a child process:
+
+<CodeBlock code={passthroughCode} filename="src/runner.ts" lang="ts" />
+
+Keep `--` in documented examples. It makes the boundary between wrapper options and child arguments explicit and avoids changing existing calls when the child adds an option.
+
+## Capability boundaries
+
+`func/parser` intentionally solves only the conversion from argv to typed data. The application must implement the following needs or move to full `func`:
+
+| Need                 | `func/parser` boundary                                                        |
+| -------------------- | ----------------------------------------------------------------------------- |
+| Command structure    | One command level; no nested paths, command aliases, handlers, or fallback.    |
+| Positional inputs    | A `string[]` only; no names, counts, types, or required rules.                 |
+| Defaults/validation  | Fixed empty values; no custom defaults, required, enum, dependency, or checks. |
+| Help/discovery       | No descriptions, generated help, version, deprecation, or shell completion.    |
+| Execution            | No dispatch, managed IO, exit codes, cancellation, or process error handling.  |
+| Organization         | No modules, dependency injection, provider visibility, or lifecycle hooks.     |
+| Testing              | Direct `parse(argv)` tests only; no provider overrides, IO capture, or outcome. |
+
+The parser rejects unknown options and has no `allowUnknown` mode. Use `passthrough` on the relevant command and define exactly where downstream inputs begin.
+
+## When to migrate to `func`
+
+A full application model usually becomes simpler when any of these signals appear:
+
+- Commands or actions need more than one level, or result-narrowing branches keep multiplying.
+- Manual help, option definitions, and tests have already drifted apart.
+- Commands share configuration, clients, caches, or resources that require cleanup.
+- The interface needs required values, enums, cross-field constraints, defaults, or clearer positional semantics.
+- The application needs consistent IO, errors, exit codes, cancellation, logging, configuration, or completion.
+- Tests need to execute a complete command while replacing providers and capturing stdout / stderr.
+
+Migration does not require rewriting business logic. First make each parser branch call a function or service that does not depend on the parser result, then move the command-line model into `func`:
+
+| `func/parser`                               | `func`                                                               |
+| ------------------------------------------- | -------------------------------------------------------------------- |
+| `commands.build`                            | `@Command('build')`                                                  |
+| `Boolean`                                   | `@Flag()`                                                            |
+| `String` / `Number`                         | `@Value()` on a `string` / `number` property                         |
+| `{ multiple: true, type: String / Number }` | `@ArrayString()` / `@ArrayNumber()`                                  |
+| `inputs`                                    | `args.inputs` from `@Args()`                                         |
+| `if (command === ...)`                      | `@Handler()` or a path handler                                       |
+| Root options                                | A root `@Option()`; action options use `@OptionCommand()` or features |
+| Manual catches and cleanup                  | Command/module `onError`, `onInit`, and `onDispose`                   |
+
+This is an equivalent starting point for the earlier `build` command. The business `build()` function stays unchanged, while func owns command selection, field binding, and the help action:
+
+<CodeBlock code={migrationCode} filename="src/index.ts" lang="ts" />
+
+A practical migration sequence is:
+
+1. Preserve representative argv, output, and exit codes in tests around the current parser.
+2. Extract each branch's business work into a function or provider independent of parser results.
+3. Map commands and options to decorators, then call the same business work from handlers.
+4. Move global help, error handling, and shared resources to the root module; add `func/help`, [testing and tooling](/tooling), and other capabilities as needed.
+5. Run the compatibility cases and remove the parser definition and manual dispatcher once behavior matches.
+
+See [Quick Start](/guide) for the full project structure, then [Commands](/commands) and [Field Options](/options) for modeling details. If you are still choosing surrounding tools, continue to the [Ecosystem Guide](/ecosystem).
+
+</DocsLayout>

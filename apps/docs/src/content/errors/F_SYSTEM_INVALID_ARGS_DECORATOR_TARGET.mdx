@@ -1,0 +1,10 @@
+---
+code: F_SYSTEM_INVALID_ARGS_DECORATOR_TARGET
+title: Invalid Args decorator target
+description: The Args decorator was used outside a command handler parameter.
+lastModified: '2026-08-17'
+---
+
+## How to fix it
+
+Apply `@Args()` to a parameter of a method decorated with `@Handler()`. Use constructor injection only for providers and built-in context values intended for constructors.

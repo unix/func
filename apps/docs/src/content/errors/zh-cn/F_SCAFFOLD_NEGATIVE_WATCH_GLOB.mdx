@@ -1,0 +1,10 @@
+---
+code: F_SCAFFOLD_NEGATIVE_WATCH_GLOB
+title: watch glob 不能为负模式
+description: funcgo 的 watch 入口使用了以 ! 开头的排除 glob。
+lastModified: '2026-08-17'
+---
+
+## 如何修复
+
+为 `--watch` 提供正向文件或 glob 模式。需要排除文件时，请在项目配置中处理，而不要把负模式作为 watch 的基础入口。

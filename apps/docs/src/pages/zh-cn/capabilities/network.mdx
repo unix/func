@@ -1,0 +1,179 @@
+---
+title: 网络
+description: 使用 func/http 和 func/net 在 module 中访问 HTTP、TCP、TLS 与 UDP，并让连接遵循当前调用的取消和资源生命周期。
+lastModified: '2026-08-17'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const httpApiCode = [
+  "import { Injectable, Module } from 'func'",
+  "import { HttpClient, HttpModule } from 'func/http'",
+  '',
+  '@Injectable()',
+  'export class GitHubApi {',
+  '  constructor(private readonly http: HttpClient) {}',
+  '',
+  '  async repository(owner: string, name: string) {',
+  '    const response = await this.http.request(',
+  '      `https://api.github.com/repos/${owner}/${name}`,',
+  '      { timeoutMs: 10_000 },',
+  '    )',
+  '',
+  '    if (!response.ok) {',
+  '      throw new Error(`GitHub returned ${response.status}`)',
+  '    }',
+  '',
+  '    return response.json()',
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  imports: [HttpModule],',
+  '  providers: [GitHubApi],',
+  '  exports: [GitHubApi],',
+  '})',
+  'export class GitHubModule {}',
+].join('\n')
+
+export const tcpProtocolCode = [
+  "import { once } from 'node:events'",
+  "import { Injectable, Module } from 'func'",
+  "import { NetModule, TcpClient } from 'func/net'",
+  '',
+  '@Injectable()',
+  'export class EchoProtocol {',
+  '  constructor(private readonly tcp: TcpClient) {}',
+  '',
+  '  async exchange(message: string) {',
+  '    const socket = await this.tcp.connect({',
+  "      host: '127.0.0.1',",
+  '      port: 7000,',
+  '      timeoutMs: 3_000,',
+  '    })',
+  '',
+  "    const received = once(socket, 'data')",
+  '    socket.end(message)',
+  '    const [data] = await received',
+  '    return data.toString()',
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  imports: [NetModule],',
+  '  providers: [EchoProtocol],',
+  '  exports: [EchoProtocol],',
+  '})',
+  'export class EchoModule {}',
+].join('\n')
+
+export const httpTestingCode = [
+  "import { createHttpMock } from 'func/http/testing'",
+  "import { createTestingApp } from 'func/testing'",
+  '',
+  'const http = createHttpMock()',
+  'http',
+  "  .expect('GET', 'https://api.github.com/repos/unix/func')",
+  '  .reply(JSON.stringify({ stars: 42 }), {',
+  "    headers: { 'content-type': 'application/json' },",
+  '  })',
+  '',
+  'const app = createTestingApp(AppModule, {',
+  '  overrides: [http.override()],',
+  '})',
+  '',
+  'await app.invoke()',
+  'http.verify()',
+].join('\n')
+
+<DocsLayout
+  frontmatter={frontmatter}
+  locale="zh-cn"
+  page="capabilities/network">
+
+`func/http` 和 `func/net` 为需要访问外部系统的 module 提供显式网络依赖。它们不会由 `func` 主入口自动导出；只有导入 `HttpModule` 或 `NetModule` 的 module 才能注入对应客户端。
+
+  <Callout locale="zh-cn" title="先定义业务边界" variant="note">
+
+Command 不应负责拼接 URL、处理认证或解析自定义协议。把 HTTP 服务定义为 `*.api.ts`，把 TCP、TLS 或 UDP 协议定义为 `*.protocol.ts`，再让 command 注入这些业务类。`HttpClient` 和 socket client 只负责传输。
+
+  </Callout>
+
+## HTTP API
+
+在远程 API 所属的 module 中导入 `HttpModule`，然后把 `HttpClient` 注入 class-first API：
+
+<CodeBlock code={httpApiCode} filename="src/github/github.api.ts" lang="ts" />
+
+`HttpClient.request()` 接受 `Request`、`URL` 或字符串，以及兼容 `RequestInit` 的选项，并返回原生 `Response`。因此 response body 可以继续使用 `json()`、`text()`、`arrayBuffer()` 或 `body` stream。
+
+它有意保留 fetch 的响应语义：HTTP 4xx 和 5xx 不会自动抛出异常，具体 API 应根据自己的协议检查 `response.ok` 或状态码。func 只把参数错误、网络失败、超时和取消转换为 `HttpException`。
+
+与直接使用全局 `fetch` 相比，HttpClient 额外提供：
+
+- 自动组合当前 `Context.signal`、输入 `Request` 的 signal 和单次请求 signal；
+- 使用 `timeoutMs` 限制请求；
+- invocation 结束时中止仍未完成的请求或响应流；
+- 通过 provider override 测试，不需要修改全局 fetch；
+- 使用 `HTTP_RUNTIME` 提供稳定错误码。
+
+`HttpModule` 不设置 base URL、认证、默认 headers 或业务重试策略。这些内容应留在 `GitHubApi` 等外部系统边界中，避免多个 API 共享隐式全局配置。
+
+## TCP、TLS 与 UDP
+
+`NetModule` 导出三个用途明确的 provider：
+
+| Provider           | 底层实现     | 返回值          | 用途                                |
+| ------------------ | ------------ | --------------- | ----------------------------------- |
+| `TcpClient`        | `node:net`   | `net.Socket`    | TCP 或 Unix domain socket 连接。    |
+| `TlsClient`        | `node:tls`   | `tls.TLSSocket` | TLS 客户端连接与握手。              |
+| `UdpSocketFactory` | `node:dgram` | `dgram.Socket`  | 创建 UDP4 或 UDP6 datagram socket。 |
+
+对于 Redis、SMTP、设备控制或私有二进制协议，在 `*.protocol.ts` 中注入对应 client，并由协议类负责 framing、编码和响应解析：
+
+<CodeBlock code={tcpProtocolCode} filename="src/echo/echo.protocol.ts" lang="ts" />
+
+`TcpClient.connect()` 支持 Node.js TCP 或 IPC connection options；`TlsClient.connect()` 支持 Node.js TLS connection options。二者额外接受 `timeoutMs` 和单次操作的 `signal`。`UdpSocketFactory.open()` 默认创建 `udp4` socket，也可以传入 `{ type: 'udp6' }` 和其他 `dgram.SocketOptions`。
+
+返回值保持为 Node.js 原生 socket，因此 backpressure、stream、half-close、TLS 证书和 UDP bind/connect 等行为继续遵循 Node.js API。func 不定义通用的 `request()` 或协议注册表。
+
+## 作用域与清理
+
+网络 provider 按 invocation 创建，并绑定当前 `Context`：
+
+- module 必须直接导入 `HttpModule` 或 `NetModule` 才能注入对应 provider；
+- 导出 `GitHubApi` 或 `EchoProtocol` 不会把底层网络 client 一起泄漏给调用方；
+- 创建的请求和 socket 会被跟踪，provider dispose 时会中止请求、销毁 TCP/TLS 连接并关闭 UDP socket；
+- 不要在 invocation 结束后继续保存或使用返回的 `Response`、stream 或 socket。
+
+直接调用 `new HttpClient()`、`new TcpClient()` 等实例不会绕过 module 注册；首次使用时会产生 `NOT_REGISTERED` 错误。
+
+## 取消与进程信号
+
+即使没有启用 `func/signals`，每次 invocation 也一定拥有 `Context.signal`，所以网络 module 不需要额外导入 signal feature。单次调用提供的 signal 会和 Context signal 合并，任意来源取消都会停止对应操作。
+
+需要让 `Ctrl+C`、`SIGINT` 或 `SIGTERM` 中止网络操作时，再显式启用 [`withProcessSignals()`](/zh-cn/capabilities/signals)。测试和命令式调用则通过 `invoke(..., { signal })` 提供取消来源。
+
+## 测试
+
+`func/http/testing` 提供严格的 HTTP expectation 和标准 provider override：
+
+<CodeBlock code={httpTestingCode} filename="tests/github.test.ts" lang="ts" />
+
+`func/net/testing` 提供 `createNetMock()`。使用 `expectTcp()`、`expectTls()` 或 `expectUdp()` 声明预期操作，通过 `overrides()` 一次替换 NetModule 的三个 provider，并在测试结束时调用 `verify()` 检查是否还有未发生的操作。
+
+这些 mock 按调用顺序消费 expectation。出现未声明的网络操作、参数不匹配或缺少 reply/rejection 时会立即失败。
+
+## API 速查
+
+| 入口                | API                                                         | 用途                                            |
+| ------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
+| `func/http`         | `HttpModule`, `HttpClient`, `HttpException`, `HTTP_RUNTIME` | HTTP 请求、生命周期和错误契约。                 |
+| `func/http/testing` | `createHttpMock()`                                          | 严格 HTTP expectation 与 provider override。    |
+| `func/net`          | `NetModule`, `TcpClient`, `TlsClient`, `UdpSocketFactory`   | TCP、TLS、UDP 与自定义协议传输。                |
+| `func/net`          | `NetException`, `NET_RUNTIME`                               | 网络连接和 socket 的稳定错误契约。              |
+| `func/net/testing`  | `createNetMock()`                                           | 严格 socket expectation 与 provider overrides。 |
+
+</DocsLayout>

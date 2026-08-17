@@ -1,0 +1,10 @@
+---
+code: F_SYSTEM_INVALID_APP_NAME
+title: Invalid application name
+description: A filesystem-backed capability received an unsafe appName.
+lastModified: '2026-08-17'
+---
+
+## How to fix it
+
+Pass a non-empty single path segment such as `ship` to `createApp(AppModule, { appName: 'ship' })`. Do not use slashes, `.` or `..`.

@@ -10,13 +10,19 @@ export type DocPage =
   | 'shared-fields'
   | 'parameters'
   | 'input-output'
+  | 'custom-decorators'
   | 'tooling'
+  | 'micro-apps'
   | 'ecosystem'
+  | 'interactive-apps'
   | 'runtime'
+  | 'capabilities/json-output'
   | 'capabilities/help'
+  | 'capabilities/invoke'
   | 'capabilities/testing'
   | 'capabilities/config'
   | 'capabilities/log'
+  | 'capabilities/network'
   | 'capabilities/completion'
   | 'capabilities/signals'
   | 'error-handler'
@@ -56,13 +62,19 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     'shared-fields': 'Shared Fields',
     parameters: 'Parameter Injection',
     'input-output': 'Input and Output',
+    'custom-decorators': 'Custom Decorators',
     tooling: 'Tooling',
+    'micro-apps': 'Micro Applications',
     ecosystem: 'Ecosystem Guide',
+    'interactive-apps': 'Interactive Applications',
     runtime: 'Runtime Internals',
+    'capabilities/json-output': 'JSON Output',
     'capabilities/help': 'Help',
+    'capabilities/invoke': 'Imperative Invocation',
     'capabilities/testing': 'Testing',
     'capabilities/config': 'Configuration',
     'capabilities/log': 'Logging',
+    'capabilities/network': 'Networking',
     'capabilities/completion': 'Shell Completion',
     'capabilities/signals': 'Process Signals',
     'error-handler': 'Error Handling',
@@ -83,13 +95,19 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     'shared-fields': '共享字段',
     parameters: '参数注入',
     'input-output': '输入与输出',
+    'custom-decorators': '自定义装饰器',
     tooling: '工具链',
+    'micro-apps': '微型应用',
     ecosystem: '生态选型',
+    'interactive-apps': '交互式应用',
     runtime: '深入了解运行时',
+    'capabilities/json-output': 'JSON 输出',
     'capabilities/help': '帮助',
+    'capabilities/invoke': '命令式调用',
     'capabilities/testing': '测试',
     'capabilities/config': '配置文件',
     'capabilities/log': '日志',
+    'capabilities/network': '网络',
     'capabilities/completion': 'Shell 补全',
     'capabilities/signals': '进程信号',
     'error-handler': '错误处理',
@@ -118,6 +136,7 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
         'modules',
         'shared-fields',
         'input-output',
+        'custom-decorators',
         'tooling',
         'runtime',
       ],
@@ -132,7 +151,7 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     },
     {
       label: 'Further Reading',
-      pages: ['ecosystem'],
+      pages: ['micro-apps', 'ecosystem', 'interactive-apps'],
     },
   ],
   'zh-cn': [
@@ -152,6 +171,7 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
         'modules',
         'shared-fields',
         'input-output',
+        'custom-decorators',
         'tooling',
         'runtime',
       ],
@@ -159,10 +179,13 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     {
       label: '可选能力',
       pages: [
+        'capabilities/json-output',
         'capabilities/help',
+        'capabilities/invoke',
         'capabilities/testing',
         'capabilities/config',
         'capabilities/log',
+        'capabilities/network',
         'capabilities/completion',
         'capabilities/signals',
       ],
@@ -173,7 +196,7 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     },
     {
       label: '扩展阅读',
-      pages: ['ecosystem'],
+      pages: ['micro-apps', 'ecosystem', 'interactive-apps'],
     },
   ],
 }
@@ -181,10 +204,13 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
 const languageSwitchFallbacks: Partial<
   Record<DocPage, Partial<Record<Locale, DocPage>>>
 > = {
+  'capabilities/json-output': { en: 'tooling' },
   'capabilities/help': { en: 'tooling' },
+  'capabilities/invoke': { en: 'tooling' },
   'capabilities/testing': { en: 'tooling' },
   'capabilities/config': { en: 'tooling' },
   'capabilities/log': { en: 'tooling' },
+  'capabilities/network': { en: 'tooling' },
   'capabilities/completion': { en: 'tooling' },
 }
 

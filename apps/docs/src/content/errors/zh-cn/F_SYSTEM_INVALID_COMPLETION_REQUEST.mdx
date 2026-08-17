@@ -1,0 +1,28 @@
+---
+code: F_SYSTEM_INVALID_COMPLETION_REQUEST
+title: 补全请求无效
+description: complete() 收到的 args 不是字符串数组，或 incomplete 不是字符串。
+lastModified: '2026-08-17'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { complete } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'complete(AppModule, {',
+  "  args: 'deploy' as any,",
+  "  incomplete: '--t',",
+  '})',
+].join('\n')
+
+## 复现
+
+`args` 必须是已经提交的 argv tokens 数组：
+
+<CodeBlock code={reproductionCode} filename="src/completion.ts" lang="ts" />
+
+## 如何修复
+
+传入 `{ args: ['deploy'], incomplete: '--t' }`。`args` 中的每一项和 `incomplete` 都必须是字符串；不要传入整条未拆分的命令行。完整请求位于 `details.request`。

@@ -1,20 +1,54 @@
 ---
 title: 生态选型
-description: 查找适合 Node.js CLI 的颜色、Prompt、任务输出、进度和终端界面功能包。
-lastModified: '2026-08-07'
+description: 为 Node.js CLI 选择本地数据库、颜色、Prompt、任务输出、进度和终端界面工具。
+lastModified: '2026-08-16'
 ---
 
 import DocsLayout from '@/layouts/docs.astro'
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="ecosystem">
 
-`func` 负责命令模型、类型化输入和依赖注入，不限制 CLI 的呈现方式。下面按常见功能整理 Node.js CLI 生态中的第三方库，并说明各自更适合的场景，方便在默认推荐和其他可选方案之间比较。
+`func` 负责命令模型、类型化输入和依赖注入，不限制 CLI 的存储、呈现与交互方式。下面按常见需求整理 Node.js 内置模块和生态功能包，并说明各自更适合的场景，方便在默认推荐和其他可选方案之间比较。
 
 ## 如何阅读对比数据
 
 下载量来自 npm 2026-07-31 至 2026-08-06 的统计，并使用 `M`（百万）和 `K`（千）缩写。它可以反映生态采用程度，但其中包含自动化安装和传递依赖安装，不能等同于真实用户数量，也不代表质量排名。
 
 Bundle 数据是在固定示例中使用 esbuild 打包为经过压缩和 Tree Shaking 的单文件 ESM CLI 后，相对基线增加的体积，并四舍五入到整数 KiB。**体积只是选型标准之一，不应作为唯一依据**。维护活跃度、Node.js 版本要求、ESM/CJS 兼容性、文档质量、API 设计、无障碍支持、测试体验，以及功能包是否符合 CLI 的交互模型都同样重要。对发布体积敏感时，还应使用项目的真实入口重新测量。
+
+## 本地数据库
+
+单个 CLI 安装需要保存结构化数据时，默认推荐 Node.js 内置的 <a href="https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html" rel="noreferrer" target="_blank"><code>node:sqlite</code></a>。`func` 要求 Node.js 24.15 或更高版本，因此无需额外安装数据库功能包、原生扩展或独立服务。同步的 `DatabaseSync` API 适合执行时间短的命令、本地索引、缓存、历史记录，以及使用 `:memory:` 的测试。
+
+```ts
+import { Injectable } from 'func'
+import type { OnDispose } from 'func'
+import { DatabaseSync } from 'node:sqlite'
+
+type Project = Readonly<{ path: string }>
+
+@Injectable()
+export class DatabaseService implements OnDispose {
+  private readonly database = new DatabaseSync('data.sqlite', {
+    timeout: 5_000,
+  })
+  private readonly findProjectStatement = this.database.prepare(
+    'SELECT path FROM projects WHERE name = ?',
+  )
+
+  findProject(name: string) {
+    return this.findProjectStatement.get(name) as Project | undefined
+  }
+
+  onDispose() {
+    this.database.close()
+  }
+}
+```
+
+在所属 module 的 `providers` 中注册 `DatabaseService`，再通过构造函数注入需要它的 command。`func` 只会在选中的 command 需要时创建这个 service，并在本次调用结束后执行 `onDispose()`。
+
+来自用户的值应通过 prepared statement 绑定，并保持事务简短。多个本地进程可能访问同一数据库时，可以考虑启用 <a href="https://www.sqlite.org/wal.html" rel="noreferrer" target="_blank">WAL</a>，但不要把 WAL 数据库放在网络文件系统上。由于每个 `DatabaseSync` 操作都会阻塞当前 JavaScript 线程，长时间查询、高并发写入或跨主机共享数据应改用 Worker，或者外部数据库及其驱动。
 
 ## 文字颜色与样式
 
@@ -71,5 +105,7 @@ Node.js 内置的 <a href="https://nodejs.org/api/util.html#utilstyletextformat-
 | ---------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@clack/prompts` | Vite 的 `create-vite`、OpenClaw、create-t3-app 和 OpenCode                                         | <a href="https://github.com/vitejs/vite/blob/main/packages/create-vite/src/index.ts" rel="noreferrer" target="_blank">Vite 源码</a>、<a href="https://github.com/openclaw/openclaw/blob/main/package.json" rel="noreferrer" target="_blank">OpenClaw 依赖</a> |
 | `ink`            | Claude Code、Gemini CLI、GitHub Copilot CLI、Cloudflare Wrangler、Prisma、Shopify CLI 和 Canva CLI | <a href="https://github.com/vadimdemedes/ink#whos-using-ink" rel="noreferrer" target="_blank">Ink 官方项目展示</a>                                                                                                                                            |
+
+最小的调用级接入方式见[交互式应用](/zh-cn/interactive-apps)。
 
 </DocsLayout>
