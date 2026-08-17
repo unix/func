@@ -39,20 +39,16 @@ export const readConfigFile = (binding: ConfigBinding): ConfigRecord => {
     })
   }
 
+  let value: unknown
   try {
     // JSON.parse is typed as any; treat file content as unknown until checked.
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const value = JSON.parse(content.toString('utf8')) as unknown
-    if (!isConfigRecord(value)) throw new TypeError('Expected a JSON object.')
-    return value
+    value = JSON.parse(content.toString('utf8')) as unknown
   } catch (error) {
-    throw new InternalException(RUNTIME.FILE_PARSE, {
-      cause: nativeError(error),
-      details: { path: binding.filePath },
-      message: `Cannot parse config file "${binding.filePath}" as a JSON object.`,
-      scope: ErrorScope.RUNTIME,
-    })
+    throw fileParseError(binding, nativeError(error))
   }
+  if (!isConfigRecord(value)) throw fileParseError(binding)
+  return value
 }
 
 export const writeConfigFile = (
@@ -111,3 +107,11 @@ const removeTemporaryFile = (filePath: string) => {
 
 const nativeError = (error: unknown): Error | undefined =>
   error instanceof Error ? error : undefined
+
+const fileParseError = (binding: ConfigBinding, cause?: Error): InternalException =>
+  new InternalException(RUNTIME.FILE_PARSE, {
+    ...(cause ? { cause } : {}),
+    details: { path: binding.filePath },
+    message: `Cannot parse config file "${binding.filePath}" as a JSON object.`,
+    scope: ErrorScope.RUNTIME,
+  })

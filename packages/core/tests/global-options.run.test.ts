@@ -1,21 +1,18 @@
 import {
+  APP_FILTER,
   Args,
+  Catch,
   Command,
   Flag,
   Module,
   Handler,
   Injectable,
+  MODULE_FILTER,
   Option,
   Required,
   Value,
 } from '../src'
-import type {
-  Args as ArgsValue,
-  ExecutionOutcome,
-  OnDispose,
-  OnError,
-  OnInit,
-} from '../src'
+import type { Args as ArgsValue, ExceptionFilter, OnDispose, OnInit } from '../src'
 import { createTestingApp } from '../src/subpath/testing'
 import { SYSTEM, applyClassDecorator, expect, systemErrorCode, test } from './_test'
 
@@ -38,8 +35,8 @@ test.sequential(
         events.push(`options:init:${this.json}:${this.profile}`)
       }
 
-      onDispose(outcome: ExecutionOutcome) {
-        events.push(`options:dispose:${outcome.status}`)
+      onDispose() {
+        events.push('options:dispose')
       }
     }
 
@@ -77,10 +74,8 @@ test.sequential(
     class AppModule implements OnDispose {
       constructor(private readonly options: AppOptions) {}
 
-      onDispose(outcome: ExecutionOutcome) {
-        events.push(
-          `app:dispose:${outcome.status}:${this.options.json}:${this.options.profile}`,
-        )
+      onDispose() {
+        events.push(`app:dispose:${this.options.json}:${this.options.profile}`)
       }
     }
 
@@ -107,14 +102,14 @@ test.sequential(
       profile: 'default',
     })
     expect(instances.size).toBe(2)
-    expect(events).toContain('app:dispose:success:true:production')
+    expect(events).toContain('app:dispose:true:production')
     expect(events).toEqual([
       'options:init:true:production',
-      'app:dispose:success:true:production',
-      'options:dispose:success',
+      'app:dispose:true:production',
+      'options:dispose',
       'options:init:false:default',
-      'app:dispose:success:false:default',
-      'options:dispose:success',
+      'app:dispose:false:default',
+      'options:dispose',
     ])
   },
 )
@@ -213,14 +208,20 @@ test.sequential(
       profile?: string
     }
 
-    @Module({ options: [AppOptions] })
-    class AppModule implements OnError {
+    @Catch()
+    class AppFilter implements ExceptionFilter {
       constructor(private readonly options: AppOptions) {}
 
-      onError() {
+      catch() {
         caught = this.options.profile === undefined
       }
     }
+
+    @Module({
+      options: [AppOptions],
+      providers: [{ provide: APP_FILTER, useClass: AppFilter }],
+    })
+    class AppModule {}
 
     const result = await createTestingApp(AppModule).invoke()
     expect(caught).toBe(true)
@@ -246,21 +247,34 @@ test.sequential(
       run() {}
     }
 
-    @Module({ commands: [DeployCommand], options: [DeployOptions] })
-    class DeployModule implements OnError {
+    @Catch()
+    class DeployFilter implements ExceptionFilter {
       constructor(private readonly options: DeployOptions) {}
 
-      onError() {
+      catch() {
         events.push(`feature:${this.options.profile ?? 'missing'}`)
       }
     }
 
-    @Module({ imports: [DeployModule] })
-    class AppModule implements OnError {
-      onError() {
+    @Catch()
+    class AppFilter implements ExceptionFilter {
+      catch() {
         events.push('app')
       }
     }
+
+    @Module({
+      commands: [DeployCommand],
+      options: [DeployOptions],
+      providers: [{ provide: MODULE_FILTER, useClass: DeployFilter }],
+    })
+    class DeployModule {}
+
+    @Module({
+      imports: [DeployModule],
+      providers: [{ provide: APP_FILTER, useClass: AppFilter }],
+    })
+    class AppModule {}
 
     const result = await createTestingApp(AppModule).invoke(['deploy'])
     expect(result).toMatchObject({ error: undefined, exitCode: 1 })
@@ -328,8 +342,7 @@ test('should reject explicit provider definitions in module options', () => {
   expect(() => createTestingApp(AppModule)).toThrow(
     expect.objectContaining({
       code: systemErrorCode(SYSTEM.INVALID_OPTION_DECLARATION),
-      message:
-        'Module "AppModule" options must contain @Option or @OptionCommand classes.',
+      message: systemErrorCode(SYSTEM.INVALID_OPTION_DECLARATION),
     }),
   )
 })

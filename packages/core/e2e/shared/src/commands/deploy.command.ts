@@ -1,4 +1,5 @@
 import {
+  Catch,
   Command,
   DependsOn,
   Exclusive,
@@ -7,11 +8,20 @@ import {
   Required,
   Value,
   ValueValidate,
+  UseFilters,
 } from 'func'
-import type { Exception, ExceptionContext, OnError } from 'func'
+import type { Exception, ExceptionFilter } from 'func'
 
+@Catch()
+class DeployFilter implements ExceptionFilter {
+  catch(exception: Exception) {
+    console.error(`local:${exception.code}:${exception.message}`)
+  }
+}
+
+@UseFilters(DeployFilter)
 @Command('deploy')
-export class DeployCommand implements OnError {
+export class DeployCommand {
   @Required()
   @ValueValidate(value => typeof value === 'string' && value.length >= 3)
   @Value()
@@ -41,10 +51,5 @@ export class DeployCommand implements OnError {
         target: this.target,
       }),
     )
-  }
-
-  onError(exception: Exception, context: ExceptionContext) {
-    console.error(`local:${exception.code}:${exception.message}`)
-    context.preventDefaultPrint()
   }
 }

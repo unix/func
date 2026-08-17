@@ -21,7 +21,7 @@ import {
   withCompletion,
 } from '../src/subpath/completion'
 import type { CompletionItemKind, CompletionResult } from '../src/subpath/completion'
-import { expect, test } from './_test'
+import { SYSTEM, expect, systemErrorCode, test } from './_test'
 
 @CommandMajor()
 class MajorCommand {
@@ -224,7 +224,12 @@ test('should reject duplicate completion features', () => {
     createApp(AppModule, {
       features: [withCompletion({ bin: 'ship' }), withCompletion({ bin: 'ship' })],
     }),
-  ).toThrow('Application feature "completion" is registered more than once.')
+  ).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.DUPLICATE_APPLICATION_FEATURE),
+      message: systemErrorCode(SYSTEM.DUPLICATE_APPLICATION_FEATURE),
+    }),
+  )
 })
 
 test.sequential(
@@ -258,7 +263,10 @@ test.sequential(
 
 test('should validate the completion bin at feature creation', () => {
   expect(() => withCompletion({ bin: '' })).toThrow(
-    'Completion bin must be a non-empty token without whitespace.',
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.INVALID_COMPLETION_BIN),
+      message: systemErrorCode(SYSTEM.INVALID_COMPLETION_BIN),
+    }),
   )
 })
 

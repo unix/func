@@ -1,18 +1,11 @@
+import { RUNTIME } from '@func/contracts/core-errors'
 import type { Readable, Writable } from 'node:stream'
 import type { CommandInfo } from '../commands/command-info'
 import type { CommandGraph, CommandNode } from '../commands/graph/compiler'
-
-export class ExceptionContext {
-  private defaultPrintPrevented = false
-
-  get printPrevented(): boolean {
-    return this.defaultPrintPrevented
-  }
-
-  preventDefaultPrint() {
-    this.defaultPrintPrevented = true
-  }
-}
+import { environment } from '../shared/environment'
+import type { Environment } from '../shared/environment'
+import type { ArgsOptionValue } from './args'
+import { ErrorScope, InternalException } from '../shared/errors'
 
 export interface ContextIO {
   readonly stderr: Writable
@@ -24,8 +17,12 @@ interface ContextState {
   command?: CommandInfo
   commandGraph?: CommandGraph
   commandNode?: CommandNode
+  env: Environment
   exitCode: number
   exitCodeChanged: boolean
+  options: Readonly<Record<string, ArgsOptionValue>>
+  resultOutput: 'return' | 'stdout'
+  settled: boolean
 }
 
 export interface ContextInvocation {
@@ -36,6 +33,8 @@ export interface ContextInvocation {
 const contextStates = new WeakMap<Context, ContextState>()
 
 export class Context {
+  readonly appName?: string
+  readonly argv: readonly string[]
   readonly commands: readonly CommandInfo[]
 
   constructor(
@@ -43,11 +42,18 @@ export class Context {
     readonly io: ContextIO,
     readonly cwd: string,
     readonly signal: AbortSignal,
+    options: { appName?: string; argv?: readonly string[]; env?: Environment } = {},
   ) {
+    this.appName = options.appName
+    this.argv = Object.freeze((options.argv ?? []).slice())
     this.commands = commands
     contextStates.set(this, {
+      env: environment.normalize(options.env ?? process.env),
       exitCode: 0,
       exitCodeChanged: false,
+      options: Object.freeze({}),
+      resultOutput: 'return',
+      settled: false,
     })
   }
 
@@ -55,19 +61,46 @@ export class Context {
     return contextState(this).command
   }
 
+  get env(): Environment {
+    return contextState(this).env
+  }
+
   get exitCode(): number {
     return contextState(this).exitCode
   }
 
+  get options(): Readonly<Record<string, ArgsOptionValue>> {
+    return contextState(this).options
+  }
+
+  get resultOutput(): 'return' | 'stdout' {
+    return contextState(this).resultOutput
+  }
+
   set exitCode(value: number) {
-    if (!Number.isInteger(value) || value < 0 || value > 255) {
-      throw new RangeError('Context.exitCode must be an integer between 0 and 255.')
+    const state = contextState(this)
+    if (state.settled) {
+      throw new InternalException(RUNTIME.INVALID_CONTEXT, {
+        message: 'Context.exitCode cannot change after invocation settlement.',
+        scope: ErrorScope.RUNTIME,
+      })
     }
 
-    const state = contextState(this)
+    if (!Number.isInteger(value) || value < 0 || value > 255) {
+      throw new InternalException(RUNTIME.INVALID_EXIT_CODE, {
+        details: { exitCode: value },
+        message: 'Context.exitCode must be an integer between 0 and 255.',
+        scope: ErrorScope.RUNTIME,
+      })
+    }
+
     state.exitCode = value
     state.exitCodeChanged = true
   }
+}
+
+export const settleContext = (context: Context) => {
+  contextState(context).settled = true
 }
 
 export const failContext = (context: Context) => {
@@ -90,6 +123,20 @@ export const selectContextInvocation = (
   state.commandNode = commandNode
 }
 
+export const selectContextOptions = (
+  context: Context,
+  options: Readonly<Record<string, ArgsOptionValue>>,
+) => {
+  contextState(context).options = Object.freeze({ ...options })
+}
+
+export const selectContextResultOutput = (
+  context: Context,
+  output: 'return' | 'stdout',
+) => {
+  contextState(context).resultOutput = output
+}
+
 export const contextInvocation = (context: Context): ContextInvocation => {
   const state = contextState(context)
   if (state.commandGraph && state.commandNode) {
@@ -99,11 +146,17 @@ export const contextInvocation = (context: Context): ContextInvocation => {
     }
   }
 
-  throw new TypeError('Context does not have an active invocation.')
+  throw new InternalException(RUNTIME.INVALID_CONTEXT, {
+    message: 'Context does not have an active invocation.',
+    scope: ErrorScope.RUNTIME,
+  })
 }
 
 const contextState = (context: Context): ContextState => {
   const state = contextStates.get(context)
   if (state) return state
-  throw new TypeError('Context was not created by the func runtime.')
+  throw new InternalException(RUNTIME.INVALID_CONTEXT, {
+    message: 'Context was not created by the func runtime.',
+    scope: ErrorScope.RUNTIME,
+  })
 }

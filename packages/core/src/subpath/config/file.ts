@@ -11,8 +11,7 @@ export const ConfigFile = (options: ConfigFileOptions): ClassDecorator => {
   return target => {
     if (!isConfigConstructor(target)) {
       throw new InternalException(SYSTEM.DEFINITION, {
-        details: { config: target.name },
-        message: '@ConfigFile can only decorate a class that extends Config().',
+        details: { config: target.name, reason: 'invalid-config-file-target' },
       })
     }
 
@@ -29,20 +28,18 @@ export const configFileOptions = (
 
 const assertOptions = (options: unknown) => {
   if (!options || typeof options !== 'object') {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      '@ConfigFile requires an options object.',
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { reason: 'invalid-config-file-options' },
+    })
   }
   if (
     !('name' in options) ||
     typeof options.name !== 'string' ||
     !options.name.trim()
   ) {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      '@ConfigFile requires a non-empty name.',
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { reason: 'invalid-config-file-name' },
+    })
   }
   if (
     'maxBytes' in options &&
@@ -52,8 +49,10 @@ const assertOptions = (options: unknown) => {
       options.maxBytes <= 0)
   ) {
     throw new InternalException(SYSTEM.DEFINITION, {
-      details: { maxBytes: options.maxBytes },
-      message: '@ConfigFile maxBytes must be a positive integer.',
+      details: {
+        maxBytes: options.maxBytes,
+        reason: 'invalid-config-file-max-bytes',
+      },
     })
   }
 }

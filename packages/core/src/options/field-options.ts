@@ -6,8 +6,10 @@ import type {
   FieldOptionKind,
   FieldOptionParams,
   FlagDecoratorInput,
+  ValueDecorator,
   ValueDecoratorInput,
   ValueOptionType,
+  ValueTransform,
 } from './types'
 import { InternalException } from '../shared/errors'
 import * as validator from '../definition-validation'
@@ -21,6 +23,12 @@ interface FieldOptionBaseParams {
   description?: string
 }
 
+interface FieldOptionCreation {
+  arrayType?: ValueOptionType
+  negatable: boolean
+  transformed: boolean
+}
+
 type FieldOptionDecoratorInput =
   | ArrayNumberDecoratorInput
   | ArrayStringDecoratorInput
@@ -32,6 +40,7 @@ const fieldOptionFactory =
     kind: FieldOptionKind,
     input: FieldOptionDecoratorInput,
     arrayType?: ValueOptionType,
+    transform?: ValueTransform,
   ): PropertyDecorator =>
   (target, propertyKey) => {
     const params = typeof input === 'string' ? { name: input } : input
@@ -55,20 +64,29 @@ const fieldOptionFactory =
     }
     const negatable =
       kind === 'flag' && 'negatable' in params && params.negatable === true
-    const nextOption = createFieldOption(kind, base, negatable, target, arrayType)
+    const nextOption = createFieldOption(kind, base, target, {
+      ...(arrayType ? { arrayType } : {}),
+      negatable,
+      transformed: Boolean(transform),
+    })
     updateFieldMetadata(target, key, field => ({
       ...field,
-      options: field.options.concat([nextOption]),
+      options: field.options.concat([
+        {
+          option: nextOption,
+          ...(transform ? { transform } : {}),
+        },
+      ]),
     }))
   }
 
 const createFieldOption = (
   kind: FieldOptionKind,
   params: FieldOptionBaseParams,
-  negatable: boolean,
   target: Object,
-  arrayType?: ValueOptionType,
+  creation: FieldOptionCreation,
 ): FieldOptionParams => {
+  const { arrayType, negatable, transformed } = creation
   if (kind === 'flag') {
     return {
       ...params,
@@ -90,7 +108,7 @@ const createFieldOption = (
   return {
     ...params,
     kind,
-    type: resolveValueType(target, params.propertyKey),
+    type: transformed ? String : resolveValueType(target, params.propertyKey),
   }
 }
 
@@ -137,7 +155,6 @@ const throwCannotInferValueType = (
       property: propertyKey,
       reason: 'cannot-infer-value-type',
     },
-    message: `Cannot infer value type for "${propertyKey}". Declare the property as ${expectedType} and ensure emitDecoratorMetadata is enabled.`,
   })
 }
 
@@ -150,19 +167,12 @@ const throwInvalidValueType = (
   propertyKey: string,
 ): never => {
   const type = optionTypeName(value)
-  const hint =
-    value === Boolean
-      ? ' Use @Flag() for boolean options.'
-      : value === Array
-        ? ' Use @ArrayString() or @ArrayNumber() for repeated options.'
-        : ''
   throw new InternalException(SYSTEM.INVALID_OPTION_TYPE, {
     details: {
       className: target.constructor.name,
       property: propertyKey,
       type,
     },
-    message: `@Value type "${type}" is unsupported. Declare the property as string or number.${hint}`,
   })
 }
 
@@ -172,7 +182,6 @@ const throwInvalidArrayFieldType = (
   target: Object,
   propertyKey: string,
 ): never => {
-  const decorator = type === String ? 'ArrayString' : 'ArrayNumber'
   const expectedType = arrayTypeName(type)
   const designType = optionTypeName(value)
   throw new InternalException(SYSTEM.INVALID_OPTION_TYPE, {
@@ -182,12 +191,13 @@ const throwInvalidArrayFieldType = (
       property: propertyKey,
       type: designType,
     },
-    message: `@${decorator} requires an array property, but "${propertyKey}" has runtime type "${designType}". Declare the property as ${expectedType}.`,
   })
 }
 
 const throwMissingArrayType = (propertyKey: string): never => {
-  throw new TypeError(`Missing array type for "${propertyKey}".`)
+  throw new InternalException(SYSTEM.INTERNAL_INVARIANT, {
+    details: { property: propertyKey },
+  })
 }
 
 const arrayTypeName = (type: ValueOptionType): string =>
@@ -201,8 +211,7 @@ const optionTypeName = (value: unknown): string => {
 
 const throwInvalidFieldTarget = (propertyKey: string | symbol): never => {
   throw new InternalException(SYSTEM.INVALID_FIELD_DECORATOR_TARGET, {
-    details: { property: String(propertyKey) },
-    message: `Field option "${String(propertyKey)}" must decorate an instance property.`,
+    details: { kind: 'option', property: String(propertyKey) },
   })
 }
 
@@ -211,6 +220,11 @@ export const Flag = (input: FlagDecoratorInput = {}): PropertyDecorator =>
 
 export const Value = (input: ValueDecoratorInput = {}): PropertyDecorator =>
   fieldOptionFactory('value', input)
+
+export const createValueDecorator =
+  <Output>(transform: ValueTransform<Output>): ValueDecorator =>
+  (input: ValueDecoratorInput = {}) =>
+    fieldOptionFactory('value', input, undefined, transform)
 
 export const ArrayString = (
   input: ArrayStringDecoratorInput = {},

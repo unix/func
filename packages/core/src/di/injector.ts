@@ -4,7 +4,7 @@ import { ErrorScope, InternalException, isException } from '../shared/errors'
 import { metadata } from './metadata'
 import { parameterTokens } from './decorators'
 import { hasOnDispose, hasOnInit } from './lifecycle'
-import type { ExecutionOutcome } from './lifecycle'
+import type { LifecycleFault } from './lifecycle'
 import { providerRecord } from './module-compiler'
 import type {
   CompiledGraph,
@@ -17,12 +17,6 @@ import { isProviderToken, providerTokenName } from './provider-utils'
 interface OwnedProvider {
   instance: unknown
   record: ProviderRecord
-}
-
-interface DisposeFailure {
-  error: unknown
-  module: string
-  token: string
 }
 
 export class RuntimeInjector {
@@ -64,6 +58,14 @@ export class RuntimeInjector {
     }
   }
 
+  async activateProvider(record: ProviderRecord): Promise<unknown> {
+    const cached = this.instances.get(record)
+    if (cached) return cached
+    const creation = this.create(record, [])
+    this.instances.set(record, creation)
+    return creation
+  }
+
   allowOptions(records: readonly ProviderRecord[]): void {
     records.forEach(record => this.activeOptions.add(record))
   }
@@ -76,8 +78,8 @@ export class RuntimeInjector {
     return this.resolveParameters(target, propertyKey, requester, [])
   }
 
-  async dispose(outcome: ExecutionOutcome): Promise<void> {
-    const failures: DisposeFailure[] = []
+  async dispose(): Promise<LifecycleFault[]> {
+    const faults: LifecycleFault[] = []
     const providers = this.ownedProviders.slice().reverse()
     this.ownedProviders = []
     this.ownedInstanceSet.clear()
@@ -88,29 +90,17 @@ export class RuntimeInjector {
     for (const { instance, record } of providers) {
       if (!hasOnDispose(instance)) continue
       try {
-        await instance.onDispose(outcome)
+        await instance.onDispose()
       } catch (error) {
-        failures.push({
-          error,
-          module: record.owner.name,
-          token: providerTokenName(record.token),
+        faults.push({
+          error: normalizeError(error),
+          kind: 'provider',
+          name: providerTokenName(record.token),
         })
       }
     }
 
-    if (!failures.length) return
-    const first = failures[0]
-    const cause = first.error instanceof Error ? first.error : undefined
-    throw new InternalException(RUNTIME.PROVIDER_DISPOSE, {
-      cause,
-      details: {
-        errors: failures,
-        module: first.module,
-        token: first.token,
-      },
-      message: cause?.message ?? `Provider "${first.token}" disposal failed.`,
-      scope: ErrorScope.RUNTIME,
-    })
+    return faults
   }
 
   private resolve(
@@ -130,7 +120,6 @@ export class RuntimeInjector {
             requester: requester.name,
             token: providerTokenName(token),
           },
-          message: `Option provider "${providerTokenName(token)}" is not active for the current command.`,
         })
       }
 
@@ -247,10 +236,6 @@ export class RuntimeInjector {
           index,
           target: this.targetName(target, propertyKey),
         },
-        message: `Cannot infer dependency at index ${index} of "${this.targetName(
-          target,
-          propertyKey,
-        )}". Use @Inject with an explicit token.`,
       })
     }
 
@@ -272,7 +257,6 @@ export class RuntimeInjector {
         requester: requester.name,
         token: providerTokenName(token),
       },
-      message: `Provider "${providerTokenName(token)}" is not registered.`,
     })
   }
 
@@ -291,7 +275,6 @@ export class RuntimeInjector {
         dependencyPath: path,
         token: providerTokenName(record.token),
       },
-      message: `Circular provider dependency: ${path.join(' -> ')}.`,
     })
   }
 
@@ -351,3 +334,6 @@ const isParameterTypeList = (
   value.every(item => item === undefined || isProviderToken(item))
 
 const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
+
+const normalizeError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error))

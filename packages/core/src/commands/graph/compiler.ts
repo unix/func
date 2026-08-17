@@ -219,7 +219,9 @@ class CommandGraphBuilder {
     return path.reduce((node, segment) => {
       const child = node.children.get(segment)
       if (child) return child
-      throw new TypeError(`Command node "${path.join(' ')}" is not registered.`)
+      throw new InternalException(SYSTEM.INTERNAL_INVARIANT, {
+        details: { path },
+      })
     }, root)
   }
 
@@ -235,7 +237,6 @@ class CommandGraphBuilder {
         token,
         type: 'command path',
       },
-      message: `Duplicate command path "${token}" found in "${first}" and "${second}".`,
     })
   }
 }

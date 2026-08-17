@@ -1,14 +1,16 @@
 import {
+  Catch,
   Command,
   CommandMajor,
   Module,
   Handler,
   Inject,
   Injectable,
+  MODULE_FILTER,
   createApp,
   createToken,
 } from '../src'
-import type { ModuleMetadata, OnError } from '../src'
+import type { ExceptionFilter, ModuleMetadata } from '../src'
 import { SYSTEM, expect, run, systemErrorCode, test } from './_test'
 
 test.sequential('should expose only explicitly exported providers', async () => {
@@ -373,17 +375,23 @@ test.sequential(
       }
     }
 
-    @Module({
-      commands: [FirstCommand],
-      providers: [{ provide: MODULE_NAME, useValue: 'first' }],
-    })
-    class FirstModule implements OnError {
+    @Catch()
+    class FirstFilter implements ExceptionFilter {
       constructor(@Inject(MODULE_NAME) private readonly moduleName: string) {}
 
-      onError() {
+      catch() {
         resolved.push(this.moduleName)
       }
     }
+
+    @Module({
+      commands: [FirstCommand],
+      providers: [
+        { provide: MODULE_NAME, useValue: 'first' },
+        { provide: MODULE_FILTER, useClass: FirstFilter },
+      ],
+    })
+    class FirstModule {}
 
     @Command('second')
     class SecondCommand {
@@ -393,17 +401,23 @@ test.sequential(
       }
     }
 
-    @Module({
-      commands: [SecondCommand],
-      providers: [{ provide: MODULE_NAME, useValue: 'second' }],
-    })
-    class SecondModule implements OnError {
+    @Catch()
+    class SecondFilter implements ExceptionFilter {
       constructor(@Inject(MODULE_NAME) private readonly moduleName: string) {}
 
-      onError() {
+      catch() {
         resolved.push(this.moduleName)
       }
     }
+
+    @Module({
+      commands: [SecondCommand],
+      providers: [
+        { provide: MODULE_NAME, useValue: 'second' },
+        { provide: MODULE_FILTER, useClass: SecondFilter },
+      ],
+    })
+    class SecondModule {}
 
     @Module({
       imports: [FirstModule, SecondModule],

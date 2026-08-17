@@ -1,5 +1,8 @@
+import { SYSTEM } from '@func/contracts/core-errors'
 import type { Readable, Writable } from 'node:stream'
 import type { CompiledApplication } from './model'
+import type { Environment } from '../shared/environment'
+import { InternalException } from '../shared/errors'
 
 const applicationFeatureBrand = Symbol('applicationFeature')
 
@@ -8,10 +11,11 @@ export interface ApplicationFeature {
 }
 
 export interface BootstrapFeatureContext {
+  readonly appName?: string
   readonly application: CompiledApplication
   readonly argv: readonly string[]
   readonly cwd: string
-  readonly env: Readonly<Record<string, string | undefined>>
+  readonly env: Environment
   readonly signal: AbortSignal
   readonly stderr: Writable
   readonly stdin: Readable
@@ -58,21 +62,23 @@ export const resolveApplicationFeatures = (
 ): readonly ApplicationFeatureDefinition[] => {
   if (input === undefined) return []
   if (!Array.isArray(input)) {
-    throw new TypeError('Application features must be an array.')
+    throw new InternalException(SYSTEM.INVALID_APPLICATION_FEATURE_LIST, {
+      details: { features: input },
+    })
   }
 
   const keys = new Set<string>()
   const definitions = input.map((feature: ApplicationFeature) => {
     const definition = featureDefinitions.get(feature)
     if (!definition) {
-      throw new TypeError(
-        'Application features must be created by a func feature factory.',
-      )
+      throw new InternalException(SYSTEM.INVALID_APPLICATION_FEATURE, {
+        details: { feature },
+      })
     }
     if (keys.has(definition.key)) {
-      throw new TypeError(
-        `Application feature "${definition.key}" is registered more than once.`,
-      )
+      throw new InternalException(SYSTEM.DUPLICATE_APPLICATION_FEATURE, {
+        details: { key: definition.key },
+      })
     }
 
     keys.add(definition.key)

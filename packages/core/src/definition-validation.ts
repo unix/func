@@ -5,7 +5,6 @@ export const requireKey = (value: unknown, key: string) => {
   if (!value) {
     throw new InternalException(SYSTEM.MISSING_REQUIRED_PARAM, {
       details: { key },
-      message: `Param \`${key}\` is required.`,
     })
   }
 }
@@ -27,7 +26,6 @@ export const optionName = (value: string, key: string) => {
 
   throw new InternalException(SYSTEM.INVALID_TOKEN, {
     details: { key, value },
-    message: `Param \`${key}\` cannot contain "=".`,
   })
 }
 
@@ -38,7 +36,6 @@ export const optionAlias = (value: string | undefined, key: string) => {
 
   throw new InternalException(SYSTEM.INVALID_OPTION_ALIAS, {
     details: { key, value },
-    message: `Param \`${key}\` must be a non-numeric single character other than "=".`,
   })
 }
 
@@ -56,7 +53,6 @@ export const mustBeArray = (value: unknown, key: string) => {
   if (!Array.isArray(value)) {
     throw new InternalException(SYSTEM.EXPECTED_ARRAY_PARAM, {
       details: { expected: 'Array', key },
-      message: `Param \`${key}\` must be \`Array\`.`,
     })
   }
 }
@@ -87,6 +83,5 @@ const token = (value: string, key: string) => {
 
   throw new InternalException(SYSTEM.INVALID_TOKEN, {
     details: { key, value },
-    message: `Param \`${key}\` cannot be empty, start with "-", or contain whitespace.`,
   })
 }

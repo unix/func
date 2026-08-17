@@ -1,20 +1,21 @@
 import {
+  APP_FILTER,
+  Catch,
   CommandMajor,
   Context,
   Ctx,
-  Exception,
-  ExceptionContext,
   Module,
   Handler,
   Injectable,
   Required,
   Stderr,
+  Stdin,
   Stdout,
   Value,
   createApp,
 } from '../src'
-import type { OnError } from '../src'
-import { Writable } from 'node:stream'
+import type { ExceptionFilter } from '../src'
+import { Readable, Writable } from 'node:stream'
 import { createTestingApp } from '../src/subpath/testing'
 import { SYSTEM, expect, run, systemErrorCode, test, testModule } from './_test'
 
@@ -50,9 +51,10 @@ const createContext = () =>
   )
 
 test.sequential(
-  'should inject configured output streams across module boundaries',
+  'should inject configured IO streams across module boundaries',
   async () => {
-    expect.assertions(10)
+    expect.assertions(13)
+    const input = Readable.from(['input'])
     const output = captureOutput()
     const errorOutput = captureOutput()
     const signal = new AbortController().signal
@@ -60,6 +62,7 @@ test.sequential(
     @Injectable()
     class Printer {
       constructor(
+        @Stdin() readonly stdin: Readable,
         @Stdout() private stdout: Writable,
         @Stderr() private stderr: Writable,
       ) {}
@@ -80,13 +83,17 @@ test.sequential(
       @Handler()
       run(
         @Ctx() context: Context,
+        @Stdin() stdin: Readable,
         @Stdout() stdout: Writable,
         @Stderr() stderr: Writable,
       ) {
+        expect(context.io.stdin).toBe(input)
         expect(context.io.stdout).toBe(output.stream)
         expect(context.io.stderr).toBe(errorOutput.stream)
+        expect(stdin).toBe(context.io.stdin)
         expect(stdout).toBe(context.io.stdout)
         expect(stderr).toBe(context.io.stderr)
+        expect(this.printer.stdin).toBe(context.io.stdin)
         expect(context.cwd).toBe('/workspace')
         expect(context.signal).toBe(signal)
         this.printer.print()
@@ -101,6 +108,7 @@ test.sequential(
       cwd: '/workspace',
       stderr: errorOutput.stream,
       signal,
+      stdin: input,
       stdout: output.stream,
     })
     expect(output.text()).toBe('\u001b[32mcompleted\u001b[0m\n')
@@ -146,12 +154,16 @@ test.sequential('should allow error handlers to prevent output', async () => {
     run() {}
   }
 
-  @Module({ commands: [Major] })
-  class AppModule implements OnError {
-    onError(_exception: Exception, context: ExceptionContext) {
-      context.preventDefaultPrint()
-    }
+  @Catch()
+  class SilentFilter implements ExceptionFilter {
+    catch() {}
   }
+
+  @Module({
+    commands: [Major],
+    providers: [{ provide: APP_FILTER, useClass: SilentFilter }],
+  })
+  class AppModule {}
 
   const result = await run(AppModule, {
     argv: [],
@@ -172,15 +184,20 @@ test.sequential(
       }
     }
 
-    @Module({ commands: [Major] })
-    class AppModule implements OnError {
+    @Catch()
+    class RecoverFilter implements ExceptionFilter {
       constructor(private readonly context: Context) {}
 
-      onError(_exception: Exception, exceptionContext: ExceptionContext) {
+      catch() {
         this.context.exitCode = 0
-        exceptionContext.preventDefaultPrint()
       }
     }
+
+    @Module({
+      commands: [Major],
+      providers: [{ provide: APP_FILTER, useClass: RecoverFilter }],
+    })
+    class AppModule {}
 
     const result = await run(AppModule, { argv: [] })
     expect(result.exitCode).toBe(0)
@@ -215,12 +232,14 @@ test.sequential('should reject invalid context exit codes', async () => {
     }
   }
 
-  await expect(run(testModule({ commands: [Major] }), { argv: [] })).rejects.toThrow(
+  const result = await createTestingApp(testModule({ commands: [Major] })).invoke()
+  expect(result).toMatchObject({ error: undefined, exitCode: 1 })
+  expect(result.stderr).toContain(
     'Context.exitCode must be an integer between 0 and 255.',
   )
 })
 
-test.sequential('should inject process streams by default', async () => {
+test.sequential('should inject native process streams by default', async () => {
   expect.assertions(2)
 
   @CommandMajor()

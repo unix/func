@@ -1,6 +1,6 @@
 {
   "name": "func",
-  "version": "3.0.0-canary.0",
+  "version": "3.0.0-canary.1",
   "type": "commonjs",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -12,6 +12,18 @@
     "./testing": {
       "types": "./dist/types/subpath/testing/index.d.ts",
       "import": "./dist/testing.mjs"
+    },
+    "./testing/cli": {
+      "types": "./dist/types/subpath/testing/cli/index.d.ts",
+      "import": "./dist/testing-cli.mjs"
+    },
+    "./testing/fixtures": {
+      "types": "./dist/types/subpath/testing/fixtures/index.d.ts",
+      "import": "./dist/testing-fixtures.mjs"
+    },
+    "./testing/pty": {
+      "types": "./dist/types/subpath/testing/pty/index.d.ts",
+      "import": "./dist/testing-pty.mjs"
     },
     "./invoke": {
       "types": "./dist/types/subpath/invoke/index.d.ts",
@@ -36,10 +48,43 @@
     "./help": {
       "types": "./dist/types/subpath/help/index.d.ts",
       "import": "./dist/help.mjs"
+    },
+    "./json-output": {
+      "types": "./dist/types/subpath/json-output/index.d.ts",
+      "import": "./dist/json-output.mjs"
+    },
+    "./http": {
+      "types": "./dist/types/subpath/http/index.d.ts",
+      "import": "./dist/http.mjs"
+    },
+    "./http/testing": {
+      "types": "./dist/types/subpath/http/testing/index.d.ts",
+      "import": "./dist/http-testing.mjs"
+    },
+    "./net": {
+      "types": "./dist/types/subpath/net/index.d.ts",
+      "import": "./dist/net.mjs"
+    },
+    "./net/testing": {
+      "types": "./dist/types/subpath/net/testing/index.d.ts",
+      "import": "./dist/net-testing.mjs"
+    },
+    "./parser": {
+      "types": "./dist/types/subpath/parser/index.d.ts",
+      "import": "./dist/parser.mjs",
+      "require": "./dist/parser.cjs"
+    },
+    "./process": {
+      "types": "./dist/types/subpath/process/index.d.ts",
+      "import": "./dist/process.mjs"
+    },
+    "./process/testing": {
+      "types": "./dist/types/subpath/process/testing/index.d.ts",
+      "import": "./dist/process-testing.mjs"
     }
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=24.15.0"
   },
   "license": "MIT",
   "scripts": {

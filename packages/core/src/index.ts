@@ -4,7 +4,25 @@ export { Command, CommandMajor, CommandMissing, Handler } from './commands'
 
 export { Deprecated } from './deprecation'
 
-export { Args, Ctx, Inject, Stderr, Stdout } from './runtime/injection'
+export { Args, Ctx, Inject, Stderr, Stdin, Stdout } from './runtime/injection'
+export {
+  APP_FILTER,
+  APP_INTERCEPTOR,
+  Catch,
+  MODULE_FILTER,
+  MODULE_INTERCEPTOR,
+  MODULE_OPTION,
+  UseFilters,
+  UseInterceptors,
+} from './runtime/enhancers'
+export type {
+  CallHandler,
+  ExceptionFilter,
+  ExceptionMatcher,
+  Interceptor,
+} from './runtime/enhancers'
+export { OutputHost } from './runtime/output'
+export type { OutputChannel, OutputScope } from './runtime/output'
 
 export {
   ArrayNumber,
@@ -19,6 +37,7 @@ export {
   Required,
   Value,
   ValueValidate,
+  createValueDecorator,
 } from './options'
 
 export { Module, Injectable, createApp, createToken } from './application'
@@ -47,17 +66,17 @@ export type {
   FlagDecoratorInput,
   FlagDecoratorParams,
   ValueDecoratorInput,
+  ValueDecorator,
   ValueDecoratorParams,
   ValueOptionType,
+  ValueTransform,
 } from './options/types'
 export type {
   ClassProvider,
   FactoryProvider,
-  ExecutionOutcome,
   ModuleMetadata,
   InjectionToken,
   OnDispose,
-  OnError,
   OnInit,
   Provider,
   ProviderToken,
@@ -75,8 +94,7 @@ export type {
   ExceptionCode,
   ExceptionDetails,
   ExceptionOptions,
-  SerializedException,
 } from './shared/errors'
-export { Context, ExceptionContext } from './runtime/context'
+export { Context } from './runtime/context'
 export type { CommandInfo } from './commands/command-info'
 export type { ContextIO } from './runtime/context'

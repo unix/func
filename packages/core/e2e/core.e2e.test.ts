@@ -6,6 +6,7 @@ import {
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -81,6 +82,16 @@ interface PackageManifest {
       require?: string
       types?: string
     }
+    './json-output'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
+    './parser'?: {
+      import?: string
+      require?: string
+      types?: string
+    }
   }
   main?: string
   module?: string
@@ -109,9 +120,12 @@ const projects: ConsumerProject[] = projectCases.map(project => {
 })
 
 const runtimeApis = [
+  'APP_FILTER',
+  'APP_INTERCEPTOR',
   'Args',
   'ArrayNumber',
   'ArrayString',
+  'Catch',
   'Command',
   'CommandMajor',
   'CommandMissing',
@@ -122,23 +136,30 @@ const runtimeApis = [
   'Enum',
   'ErrorScope',
   'Exception',
-  'ExceptionContext',
   'Exclusive',
   'Flag',
   'Handler',
   'Inject',
   'Injectable',
+  'MODULE_FILTER',
+  'MODULE_INTERCEPTOR',
+  'MODULE_OPTION',
   'Module',
   'Option',
   'OptionCommand',
+  'OutputHost',
   'Override',
   'Required',
   'Stderr',
+  'Stdin',
   'Stdout',
+  'UseFilters',
+  'UseInterceptors',
   'Value',
   'ValueValidate',
   'createApp',
   'createToken',
+  'createValueDecorator',
   'formatExceptionCode',
   'isException',
 ]
@@ -147,6 +168,7 @@ const callableApis = [
   'Args',
   'ArrayNumber',
   'ArrayString',
+  'Catch',
   'Command',
   'CommandMajor',
   'CommandMissing',
@@ -165,11 +187,15 @@ const callableApis = [
   'Override',
   'Required',
   'Stderr',
+  'Stdin',
   'Stdout',
   'Value',
   'ValueValidate',
+  'UseFilters',
+  'UseInterceptors',
   'createApp',
   'createToken',
+  'createValueDecorator',
 ]
 
 const commandText = (command: string, args: string[]) => {
@@ -348,6 +374,11 @@ describe.each(projects)('$label consumer', project => {
     expect(probe.stdout.trim()).toBe('help-entry')
   })
 
+  test('keeps JSON output helpers in the json-output subpath', () => {
+    const probe = runProject(project, [], 'json-output-probe.js')
+    expect(probe.stdout.trim()).toBe('json-output-entry')
+  })
+
   test('keeps completion helpers in the completion subpath', () => {
     const probe = runProject(project, [], 'completion-probe.js')
     expect(probe.stdout.trim()).toBe('completion-entry')
@@ -356,6 +387,33 @@ describe.each(projects)('$label consumer', project => {
   test('keeps process signal handling in the signals subpath', () => {
     const probe = runProject(project, [], 'signals-probe.js')
     expect(probe.stdout.trim()).toBe('signals-entry')
+  })
+
+  test('keeps lightweight argument parsing in the parser subpath', () => {
+    const probe = runProject(project, [], 'parser-probe.js')
+    expect(probe.stdout.trim()).toBe('parser-entry')
+  })
+
+  test('ships a small standalone parser in both module formats', () => {
+    const packageRoot = join(project.root, 'node_modules', 'func')
+    const esmPath = join(packageRoot, 'dist', 'parser.mjs')
+    const cjsPath = join(packageRoot, 'dist', 'parser.cjs')
+    expect(statSync(esmPath).size).toBeLessThanOrEqual(10 * 1024)
+    expect(statSync(cjsPath).size).toBeLessThanOrEqual(10 * 1024)
+    expect(readFileSync(esmPath, 'utf8')).not.toContain('reflect-metadata')
+    expect(readFileSync(cjsPath, 'utf8')).not.toContain('reflect-metadata')
+
+    const output = runCommand(
+      'Loading the CommonJS parser entry',
+      process.execPath,
+      [
+        '--input-type=commonjs',
+        '--eval',
+        "const { createParser } = require('func/parser'); const result = createParser({ options: { help: Boolean } }).parse(['--help']); process.stdout.write(String(result.options.help));",
+      ],
+      project.root,
+    )
+    expect(output).toBe('true')
   })
 
   test('ships self-contained declarations for every public entry', () => {
@@ -375,7 +433,9 @@ describe.each(projects)('$label consumer', project => {
         'subpath/config/index.d.ts',
         'subpath/help/index.d.ts',
         'subpath/invoke/index.d.ts',
+        'subpath/json-output/index.d.ts',
         'subpath/log/index.d.ts',
+        'subpath/parser/index.d.ts',
         'subpath/signals/index.d.ts',
         'subpath/testing/index.d.ts',
       ]),
@@ -388,7 +448,7 @@ describe.each(projects)('$label consumer', project => {
     })
   })
 
-  test('publishes the expected ESM-only metadata', () => {
+  test('publishes the expected module metadata', () => {
     const manifestPath = join(project.root, 'node_modules', 'func', 'package.json')
     const manifest: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'))
     if (!isPackageManifest(manifest)) {
@@ -429,6 +489,15 @@ describe.each(projects)('$label consumer', project => {
           import: './dist/help.mjs',
           types: './dist/types/subpath/help/index.d.ts',
         },
+        './json-output': {
+          import: './dist/json-output.mjs',
+          types: './dist/types/subpath/json-output/index.d.ts',
+        },
+        './parser': {
+          import: './dist/parser.mjs',
+          require: './dist/parser.cjs',
+          types: './dist/types/subpath/parser/index.d.ts',
+        },
       },
       name: 'func',
       module: './dist/index.mjs',
@@ -438,7 +507,8 @@ describe.each(projects)('$label consumer', project => {
 
     expect(manifest.exports).not.toHaveProperty('./di')
     expect(manifest.main).toBeUndefined()
-    Object.values(manifest.exports ?? {}).forEach(entry => {
+    Object.entries(manifest.exports ?? {}).forEach(([subpath, entry]) => {
+      if (subpath === './parser') return
       expect(entry.require).toBeUndefined()
     })
   })
@@ -531,12 +601,11 @@ describe.each(projects)('$label consumer', project => {
     ])
     const global = runProject(project, ['--unknown'])
     expect(missing.stderr.trim()).toBe('missing:unknown')
-    expect(required.stderr).toContain('local:F_RUNTIME_PRINT_VALIDATION')
-    expect(required.stderr).toContain('Option "--target" is required.')
+    expect(required.stderr).toContain('local:F_RUNTIME_VALIDATION')
     expect(dependsOn.stderr).toContain('Option "--registry" depends on: --token.')
     expect(exclusive.stderr).toContain(
       'Option "--table" cannot be used with: --json.',
     )
-    expect(global.stderr).toContain('global:F_RUNTIME_PRINT_UNKNOWN_OPTION')
+    expect(global.stderr).toContain('global:F_RUNTIME_UNKNOWN_OPTION')
   })
 })

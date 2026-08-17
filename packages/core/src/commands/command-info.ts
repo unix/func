@@ -26,6 +26,7 @@ const readonlyFieldOption = (
   option: NonNullable<RegisterCommandParams['fieldOptions']>[number],
 ): DeepReadonly<NonNullable<RegisterCommandParams['fieldOptions']>[number]> => {
   const fieldOption = { ...option }
+  Reflect.deleteProperty(fieldOption, 'transform')
   Reflect.deleteProperty(fieldOption, 'validators')
   const constraints = {
     ...(fieldOption.dependsOn

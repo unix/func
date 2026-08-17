@@ -47,12 +47,15 @@ test.sequential('should inject a lazily initialized Logger', async () => {
   }
 
   @Module({
-    imports: [LogModule.register({ appName: `func-log-test-${random()}` })],
+    imports: [LogModule.register()],
     commands: [Major],
   })
   class AppModule {}
 
-  await run(AppModule, { argv: [] })
+  await run(AppModule, {
+    appName: `func-log-test-${random()}`,
+    argv: [],
+  })
 })
 
 test('should require registration before use', () => {
@@ -147,18 +150,51 @@ test('should disable logging and warn once when the file cannot be opened', () =
   expect(output.text().match(/Cannot write log file/g)).toHaveLength(1)
 })
 
+test('should require an application name during initialization', async () => {
+  @CommandMajor()
+  class Major {
+    constructor(_log: Logger) {}
+
+    @Handler()
+    run() {}
+  }
+
+  @Module({ commands: [Major], imports: [LogModule.register()] })
+  class AppModule {}
+
+  await expect(run(AppModule, { argv: [] })).rejects.toMatchObject({
+    code: 'F_SYSTEM_MISSING_APP_NAME',
+    message: 'F_SYSTEM_MISSING_APP_NAME',
+  })
+})
+
+test('should validate the application name during initialization', async () => {
+  @CommandMajor()
+  class Major {
+    constructor(_log: Logger) {}
+
+    @Handler()
+    run() {}
+  }
+
+  @Module({ commands: [Major], imports: [LogModule.register()] })
+  class AppModule {}
+
+  await expect(
+    run(AppModule, { appName: '../unsafe', argv: [] }),
+  ).rejects.toMatchObject({
+    code: 'F_SYSTEM_INVALID_APP_NAME',
+    message: 'F_SYSTEM_INVALID_APP_NAME',
+  })
+})
+
 test('should reject invalid module options', () => {
-  expect(() => LogModule.register({ appName: '../unsafe' })).toThrow(
+  expect(() => LogModule.register({ maxBytes: 0 })).toThrow(
     expect.objectContaining({
       code: logSystemErrorCode(LOG_SYSTEM.DEFINITION),
     }),
   )
-  expect(() => LogModule.register({ appName: 'func', maxBytes: 0 })).toThrow(
-    expect.objectContaining({
-      code: logSystemErrorCode(LOG_SYSTEM.DEFINITION),
-    }),
-  )
-  expect(() => LogModule.register({ appName: 'func', maxFiles: -1 })).toThrow(
+  expect(() => LogModule.register({ maxFiles: -1 })).toThrow(
     expect.objectContaining({
       code: logSystemErrorCode(LOG_SYSTEM.DEFINITION),
     }),

@@ -8,7 +8,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expectTypeOf } from 'vitest'
-import { CommandMajor, Module, Handler, createApp } from '../src'
+import { CommandMajor, Module, Handler } from '../src'
 import { Config, ConfigFile, ConfigModule } from '../src/subpath/config'
 import type { ConfigDefaults } from '../src/subpath/config'
 import { bindConfig } from '../src/subpath/config/runtime'
@@ -21,7 +21,6 @@ import {
   objectContaining,
   run,
   test,
-  testModule,
 } from './_test'
 
 const temporaryDirectories: string[] = []
@@ -49,70 +48,124 @@ test('should infer config keys and values from defaults', () => {
   >()
 })
 
-test('should reject duplicate default config file names', () => {
+test('should reject duplicate default config files during initialization', async () => {
   class ProfileConfig extends Config({ name: '' }) {}
   class ProjectConfig extends Config({ name: '' }) {}
 
-  expect(() =>
-    ConfigModule.register({
+  @CommandMajor()
+  class Major {
+    constructor(_profile: ProfileConfig, _project: ProjectConfig) {}
+
+    @Handler()
+    run() {}
+  }
+
+  @Module({
+    commands: [Major],
+    imports: [ConfigModule.register({ configs: [ProfileConfig, ProjectConfig] })],
+  })
+  class AppModule {}
+
+  await expect(
+    run(AppModule, {
       appName: 'func-config-test',
-      configs: [ProfileConfig, ProjectConfig],
+      argv: [],
     }),
-  ).toThrow(
-    expect.objectContaining({
-      code: configSystemErrorCode(CONFIG_SYSTEM.DUPLICATE_FILE),
-      details: objectContaining({
-        appName: 'func-config-test',
-        fileName: 'config.json',
-        name: 'config',
-      }),
+  ).rejects.toMatchObject({
+    code: configSystemErrorCode(CONFIG_SYSTEM.DUPLICATE_FILE),
+    details: objectContaining({
+      appName: 'func-config-test',
+      fileName: 'config.json',
+      name: 'config',
     }),
-  )
+  })
 })
 
-test('should reject the same file path across config module registrations', () => {
+test('should reject the same initialized file across config modules', async () => {
   class ProfileConfig extends Config({ name: '' }) {}
   class ProjectConfig extends Config({ name: '' }) {}
 
   const first = ConfigModule.register({
-    appName: 'func-config-test',
     configs: [ProfileConfig],
   })
   const second = ConfigModule.register({
-    appName: 'func-config-test',
     configs: [ProjectConfig],
   })
 
-  expect(() => createApp(testModule({ imports: [first, second] }))).toThrow(
-    expect.objectContaining({
-      code: configSystemErrorCode(CONFIG_SYSTEM.DUPLICATE_FILE),
-      details: objectContaining({
-        appName: 'func-config-test',
-        fileName: 'config.json',
-        name: 'config',
-      }),
+  @CommandMajor()
+  class Major {
+    constructor(_profile: ProfileConfig, _project: ProjectConfig) {}
+
+    @Handler()
+    run() {}
+  }
+
+  @Module({ commands: [Major], imports: [first, second] })
+  class AppModule {}
+
+  await expect(
+    run(AppModule, {
+      appName: 'func-config-test',
+      argv: [],
     }),
-  )
+  ).rejects.toMatchObject({
+    code: configSystemErrorCode(CONFIG_SYSTEM.DUPLICATE_FILE),
+    details: objectContaining({
+      appName: 'func-config-test',
+      fileName: 'config.json',
+      name: 'config',
+    }),
+  })
 })
 
-test('should allow the same config file path in separate applications', () => {
+test('should allow the same config file path in separate applications', async () => {
   class ProfileConfig extends Config({ name: '' }) {}
   class ProjectConfig extends Config({ name: '' }) {}
 
   const first = ConfigModule.register({
-    appName: 'func-config-test',
     configs: [ProfileConfig],
   })
   const second = ConfigModule.register({
-    appName: 'func-config-test',
     configs: [ProjectConfig],
   })
 
-  expect(() => createApp(testModule({ imports: [first] }))).not.toThrow()
-  expect(() => createApp(testModule({ imports: [second] }))).not.toThrow()
+  @CommandMajor()
+  class ProfileMajor {
+    constructor(_config: ProfileConfig) {}
+
+    @Handler()
+    run() {}
+  }
+
+  @CommandMajor()
+  class ProjectMajor {
+    constructor(_config: ProjectConfig) {}
+
+    @Handler()
+    run() {}
+  }
+
+  @Module({ commands: [ProfileMajor], imports: [first] })
+  class ProfileApp {}
+
+  @Module({ commands: [ProjectMajor], imports: [second] })
+  class ProjectApp {}
+
+  await expect(
+    run(ProfileApp, {
+      appName: 'func-config-test',
+      argv: [],
+    }),
+  ).resolves.toMatchObject({ exitCode: 0 })
+  await expect(
+    run(ProjectApp, {
+      appName: 'func-config-test',
+      argv: [],
+    }),
+  ).resolves.toMatchObject({ exitCode: 0 })
 })
 
-test('should allow the same app name with different config file names', () => {
+test('should allow the same app name with different config file names', async () => {
   @ConfigFile({ name: 'profile' })
   class ProfileConfig extends Config({ name: '' }) {}
 
@@ -120,31 +173,77 @@ test('should allow the same app name with different config file names', () => {
   class ProjectConfig extends Config({ name: '' }) {}
 
   const first = ConfigModule.register({
-    appName: 'func-config-test',
     configs: [ProfileConfig],
   })
   const second = ConfigModule.register({
-    appName: 'func-config-test',
     configs: [ProjectConfig],
   })
 
-  expect(() => createApp(testModule({ imports: [first, second] }))).not.toThrow()
+  @CommandMajor()
+  class Major {
+    constructor(_profile: ProfileConfig, _project: ProjectConfig) {}
+
+    @Handler()
+    run() {}
+  }
+
+  @Module({ commands: [Major], imports: [first, second] })
+  class AppModule {}
+
+  await expect(
+    run(AppModule, {
+      appName: 'func-config-test',
+      argv: [],
+    }),
+  ).resolves.toMatchObject({ exitCode: 0 })
 })
 
-test('should allow the same config file name under different app names', () => {
+test('should require an application name during initialization', async () => {
   class ProfileConfig extends Config({ name: '' }) {}
-  class ProjectConfig extends Config({ name: '' }) {}
 
-  const first = ConfigModule.register({
-    appName: 'func-config-first',
-    configs: [ProfileConfig],
-  })
-  const second = ConfigModule.register({
-    appName: 'func-config-second',
-    configs: [ProjectConfig],
-  })
+  @CommandMajor()
+  class Major {
+    constructor(_config: ProfileConfig) {}
 
-  expect(() => createApp(testModule({ imports: [first, second] }))).not.toThrow()
+    @Handler()
+    run() {}
+  }
+
+  @Module({
+    commands: [Major],
+    imports: [ConfigModule.register({ configs: [ProfileConfig] })],
+  })
+  class AppModule {}
+
+  await expect(run(AppModule, { argv: [] })).rejects.toMatchObject({
+    code: 'F_SYSTEM_MISSING_APP_NAME',
+    message: 'F_SYSTEM_MISSING_APP_NAME',
+  })
+})
+
+test('should validate the application name during initialization', async () => {
+  class ProfileConfig extends Config({ name: '' }) {}
+
+  @CommandMajor()
+  class Major {
+    constructor(_config: ProfileConfig) {}
+
+    @Handler()
+    run() {}
+  }
+
+  @Module({
+    commands: [Major],
+    imports: [ConfigModule.register({ configs: [ProfileConfig] })],
+  })
+  class AppModule {}
+
+  await expect(
+    run(AppModule, { appName: '../unsafe', argv: [] }),
+  ).rejects.toMatchObject({
+    code: 'F_SYSTEM_INVALID_APP_NAME',
+    message: 'F_SYSTEM_INVALID_APP_NAME',
+  })
 })
 
 test.sequential('should inject configs with and without @ConfigFile', async () => {
@@ -171,7 +270,6 @@ test.sequential('should inject configs with and without @ConfigFile', async () =
   @Module({
     imports: [
       ConfigModule.register({
-        appName: 'func-config-test',
         configs: [AppConfig, ProfileConfig],
       }),
     ],
@@ -179,7 +277,7 @@ test.sequential('should inject configs with and without @ConfigFile', async () =
   })
   class AppModule {}
 
-  await run(AppModule, { argv: [] })
+  await run(AppModule, { appName: 'func-config-test', argv: [] })
 })
 
 test('should lazily create, update, and reset a config file', () => {

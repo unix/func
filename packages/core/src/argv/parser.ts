@@ -1,16 +1,18 @@
-import type { UserOptionValue } from '../options/types'
+import { SYSTEM } from '@func/contracts/core-errors'
+import type { ParsedUserOptionValue } from '../options/types'
 import type {
   ArgOption,
   ArgParseFailure,
   ArgParseResult,
-  ArgPlan,
   ArgToken,
+  ArgvPlan,
   ParsedArgv,
 } from './interfaces'
 import { createOptionRecord } from './option-record'
+import { InternalException } from '../shared/errors'
 
 export const parseArgv = (
-  plan: ArgPlan,
+  plan: ArgvPlan,
   argv: readonly string[],
 ): ArgParseResult => {
   const options = createOptionRecord(plan.options)
@@ -53,8 +55,8 @@ interface ParsedOption {
 
 interface ParseState {
   readonly argv: readonly string[]
-  readonly options: Record<string, UserOptionValue>
-  readonly plan: ArgPlan
+  readonly options: Record<string, ParsedUserOptionValue>
+  readonly plan: ArgvPlan
   readonly supplied: Set<string>
   readonly unknown: string[]
 }
@@ -183,7 +185,9 @@ const setOption = (
     return
   }
 
-  throw new TypeError(`Option "--${name}" has an invalid parser plan.`)
+  throw new InternalException(SYSTEM.INTERNAL_INVARIANT, {
+    details: { option: name },
+  })
 }
 
 const missingValue = (token: string, option: ArgOption): OptionResult =>
@@ -211,8 +215,8 @@ const isSeparatedNumber = (option: ArgOption, value: string): boolean => {
   return Number.isFinite(Number(value)) || /^-(?:Infinity|NaN)$/.test(value)
 }
 
-const isNumberArray = (value: UserOptionValue): value is number[] =>
+const isNumberArray = (value: ParsedUserOptionValue): value is number[] =>
   Array.isArray(value) && (!value.length || typeof value[0] === 'number')
 
-const isStringArray = (value: UserOptionValue): value is string[] =>
+const isStringArray = (value: ParsedUserOptionValue): value is string[] =>
   Array.isArray(value) && (!value.length || typeof value[0] === 'string')

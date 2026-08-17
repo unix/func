@@ -1,4 +1,6 @@
+import { SYSTEM } from '@func/contracts/core-errors'
 import type { CompletionResult, CompletionShell } from './interfaces'
+import { InternalException } from '../../shared/errors'
 
 export const completionEnvironmentVariable = (bin: string): string => {
   validateBin(bin)
@@ -18,7 +20,9 @@ export const completionSource = (bin: string, shell: CompletionShell): string =>
     case 'zsh':
       return zshSource(bin, environment, functionName)
     default:
-      throw new TypeError(`Unsupported completion shell "${String(shell)}".`)
+      throw new InternalException(SYSTEM.INVALID_COMPLETION_SHELL, {
+        details: { shell },
+      })
   }
 }
 
@@ -209,7 +213,7 @@ const validateBin = (bin: string) => {
     bin.includes(String.fromCharCode(0)) ||
     /\s/.test(bin)
   )
-    throw new TypeError(
-      'Completion bin must be a non-empty token without whitespace.',
-    )
+    throw new InternalException(SYSTEM.INVALID_COMPLETION_BIN, {
+      details: { bin },
+    })
 }

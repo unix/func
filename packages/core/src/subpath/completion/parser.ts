@@ -1,4 +1,4 @@
-import type { ArgPlan, ArgToken } from '../../arg/interfaces'
+import type { ArgToken, ArgvPlan } from '../../argv/interfaces'
 
 export interface ParsedCompletionArgs {
   readonly endOfOptions: boolean
@@ -8,7 +8,7 @@ export interface ParsedCompletionArgs {
 }
 
 export const parseCompletionArgs = (
-  plan: ArgPlan,
+  plan: ArgvPlan,
   argv: readonly string[],
 ): ParsedCompletionArgs => {
   const positionals: string[] = []
@@ -52,7 +52,7 @@ export const parseCompletionArgs = (
 }
 
 const parseLongOption = (
-  plan: ArgPlan,
+  plan: ArgvPlan,
   input: string,
   supplied: Set<string>,
 ): ArgToken | undefined => {
@@ -67,7 +67,7 @@ const parseLongOption = (
 }
 
 const parseShortOptions = (
-  plan: ArgPlan,
+  plan: ArgvPlan,
   input: string,
   supplied: Set<string>,
 ): ArgToken | undefined => {

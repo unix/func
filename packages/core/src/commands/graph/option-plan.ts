@@ -1,6 +1,7 @@
 import { SYSTEM } from '@func/contracts/core-errors'
-import { ArgTokenConflict, compileArgPlan } from '../../arg'
-import type { ArgPlan } from '../../arg'
+import { ArgTokenConflict, compileArgvPlan } from '../../argv'
+import type { ArgvPlan } from '../../argv'
+import { providerRecords } from '../../di/module-compiler'
 import type { CompiledModule } from '../../di/module-compiler'
 import type { OptionParams } from '../../options/types'
 import type {
@@ -12,6 +13,7 @@ import type {
 import { isOptionProvider, optionsForModule } from '../../options/compiler'
 import type { CompiledFieldOption } from '../../options/field-metadata'
 import { InternalException } from '../../shared/errors'
+import { MODULE_OPTION } from '../../runtime/enhancers'
 import type {
   ActionEndpoint,
   CommandGraphParams,
@@ -40,7 +42,15 @@ interface ActionContribution {
   owner: string
 }
 
-type OptionContribution = ActionContribution | FieldContribution
+interface ProtocolContribution {
+  kind: 'protocol'
+  option: OptionParams
+  override: false
+  owner: string
+}
+
+type OptionContribution =
+  ActionContribution | FieldContribution | ProtocolContribution
 
 export const compileOptionPlan = (
   node: MutableCommandNode,
@@ -53,11 +63,15 @@ export const compileOptionPlan = (
   const rootOptions = moduleOptions.filter(option => option.owner === params.root)
   const ownerOptions = moduleOptions.filter(option => option.owner !== params.root)
   applyScope(table, moduleContributions(rootOptions, node.path), 'root module')
+  applyScope(table, protocolContributions(params.root), 'root module')
   applyScope(table, moduleContributions(ownerOptions, node.path), owner.name)
+  if (owner !== params.root) {
+    applyScope(table, protocolContributions(owner), owner.name)
+  }
   const commandOptions = commandContributions(node, records)
   const compatibleFields = applyCommandScope(table, commandOptions)
   const contributions = Array.from(table.values())
-  const argPlan = compilePlan(contributions, node.path)
+  const argvPlan = compilePlan(contributions, node.path)
   const providerBindings = providerBindingsFrom(contributions)
   const commandBindings = commandBindingsFrom(contributions.concat(compatibleFields))
   const commandOptionNames = new Map(
@@ -75,7 +89,7 @@ export const compileOptionPlan = (
 
   return {
     actions,
-    argPlan,
+    argvPlan,
     commandBindings,
     commandOptionNames,
     commonOptionNames: new Set(commonOptions.map(option => option.name)),
@@ -100,14 +114,40 @@ const optionOwner = (
   )
   if (!owners.length) return params.root
   if (owners.length === 1) return owners[0]
-  if (!owners.some(owner => optionsForModule(params.options, owner).length))
+  if (
+    !owners.some(
+      owner =>
+        optionsForModule(params.options, owner).length ||
+        providerRecords(owner, MODULE_OPTION).length,
+    )
+  )
     return params.root
 
   throw new InternalException(SYSTEM.AMBIGUOUS_OPTION_SCOPE, {
     details: { modules: owners.map(owner => owner.name), path: node.path },
-    message: `Command node "${node.path.join(' ')}" belongs to multiple module option scopes.`,
   })
 }
+
+const protocolContributions = (module: CompiledModule): ProtocolContribution[] =>
+  providerRecords(module, MODULE_OPTION).map(record => {
+    const value = 'useValue' in record.definition ? record.definition.useValue : null
+    if (!isOptionParams(value)) {
+      throw new InternalException(SYSTEM.INVALID_OPTION_DECLARATION, {
+        details: {
+          module: record.owner.name,
+          option: value,
+          reason: 'invalid-module-option-contribution',
+        },
+      })
+    }
+
+    return {
+      kind: 'protocol',
+      option: value,
+      override: false,
+      owner: record.owner.name,
+    }
+  })
 
 const scopedModuleOptions = (
   compiled: CompiledModuleOptions,
@@ -246,6 +286,14 @@ const applyScope = (
 
   local.forEach((contribution, name) => {
     const inherited = table.get(name)
+    if (
+      inherited?.kind === 'protocol' &&
+      contribution.kind === 'protocol' &&
+      compatibleOptions(inherited.option, contribution.option)
+    ) {
+      table.set(name, contribution)
+      return
+    }
     if (inherited && !contribution.override) {
       throw new InternalException(SYSTEM.OPTION_OVERRIDE_REQUIRED, {
         details: {
@@ -254,7 +302,6 @@ const applyScope = (
           option: name,
           scope,
         },
-        message: `Option "--${name}" in "${contribution.owner}" must explicitly override "${inherited.owner}".`,
       })
     }
     table.set(name, contribution)
@@ -264,9 +311,9 @@ const applyScope = (
 const compilePlan = (
   contributions: readonly OptionContribution[],
   path: readonly string[],
-): ArgPlan => {
+): ArgvPlan => {
   try {
-    return compileArgPlan(
+    return compileArgvPlan(
       contributions.map(contribution => ({
         option: contribution.option,
         owner: contribution.owner,
@@ -336,6 +383,27 @@ const compatibleOptionTypes = (
   return first[0] === second[0]
 }
 
+const isOptionParams = (value: unknown): value is OptionParams => {
+  if (typeof value !== 'object' || value === null) return false
+  const aliases: unknown = Reflect.get(value, 'aliases')
+  const name: unknown = Reflect.get(value, 'name')
+  const type: unknown = Reflect.get(value, 'type')
+  return (
+    Array.isArray(aliases) &&
+    aliases.every((alias: unknown) => typeof alias === 'string') &&
+    typeof name === 'string' &&
+    isOptionType(type)
+  )
+}
+
+const isOptionType = (value: unknown): value is OptionParams['type'] =>
+  value === Boolean ||
+  value === Number ||
+  value === String ||
+  (Array.isArray(value) &&
+    value.length === 1 &&
+    (value[0] === Number || value[0] === String))
+
 export const throwDuplicateOption = (
   token: string,
   first: string,
@@ -350,6 +418,5 @@ export const throwDuplicateOption = (
       token,
       type: 'option',
     },
-    message: `Duplicate option token "${token}" found in "${first}" and "${second}".`,
   })
 }

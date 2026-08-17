@@ -5,8 +5,11 @@ import type { InvocationOptions } from '../../application/invocation'
 import type { CompiledApplication } from '../../application/model'
 import type { Type } from '../../di/types'
 import type { InvocationResult } from '../../runtime/container'
+import type { ApplicationConfiguration } from '../../shared/application-configuration'
 
 export type { InvocationOptions, InvocationResult }
+
+export type InvokerOptions = ApplicationConfiguration
 
 export interface Invoker {
   invoke(
@@ -26,6 +29,9 @@ class ApplicationInvoker implements Invoker {
   }
 }
 
-export const createInvoker = (input: Type): Invoker => {
-  return new ApplicationInvoker(compileApplication(input))
+export const createInvoker = (
+  input: Type,
+  options: InvokerOptions = {},
+): Invoker => {
+  return new ApplicationInvoker(compileApplication(input, options))
 }

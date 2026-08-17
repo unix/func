@@ -1,4 +1,4 @@
-import { RUNTIME_PRINT } from '@func/contracts/core-errors'
+import { RUNTIME } from '@func/contracts/core-errors'
 import type { FieldOptionParams, UserOption, UserOptionEnumValue } from './types'
 import { ErrorScope, InternalException } from '../shared/errors'
 
@@ -32,10 +32,10 @@ export class ConstraintValidator {
     const missing = data.dependsOn.filter(item => !explicitNames.has(item))
     if (!missing.length) return
 
-    throw new InternalException(RUNTIME_PRINT.VALIDATION, {
+    throw new InternalException(RUNTIME.VALIDATION, {
       details: { dependsOn: data.dependsOn, missing, option: data.name },
       message: `Option "--${data.name}" depends on: ${missing.map(item => `--${item}`).join(', ')}.`,
-      scope: ErrorScope.RUNTIME_PRINT,
+      scope: ErrorScope.RUNTIME,
     })
   }
 
@@ -50,10 +50,10 @@ export class ConstraintValidator {
     )
     if (!invalid.length) return
 
-    throw new InternalException(RUNTIME_PRINT.VALIDATION, {
+    throw new InternalException(RUNTIME.VALIDATION, {
       details: { enum: enumValues, invalid, option: data.name },
       message: `Option "--${data.name}" must be one of: ${enumValues.join(', ')}.`,
-      scope: ErrorScope.RUNTIME_PRINT,
+      scope: ErrorScope.RUNTIME,
     })
   }
 
@@ -63,10 +63,10 @@ export class ConstraintValidator {
     const conflicts = data.exclusive.filter(item => explicitNames.has(item))
     if (!conflicts.length) return
 
-    throw new InternalException(RUNTIME_PRINT.VALIDATION, {
+    throw new InternalException(RUNTIME.VALIDATION, {
       details: { conflicts, exclusive: data.exclusive, option: data.name },
       message: `Option "--${data.name}" cannot be used with: ${conflicts.map(item => `--${item}`).join(', ')}.`,
-      scope: ErrorScope.RUNTIME_PRINT,
+      scope: ErrorScope.RUNTIME,
     })
   }
 }

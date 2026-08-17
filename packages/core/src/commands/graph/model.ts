@@ -1,4 +1,4 @@
-import type { ArgPlan } from '../../arg'
+import type { ArgvPlan } from '../../argv'
 import type { CommandInfo } from '../command-info'
 import type { CompiledModule } from '../../di/module-compiler'
 import type { HandlerParams } from '../types'
@@ -65,7 +65,7 @@ export interface ProviderOptionBinding {
 
 export interface OptionPlan {
   readonly actions: readonly ActionEndpoint[]
-  readonly argPlan: ArgPlan
+  readonly argvPlan: ArgvPlan
   readonly commandBindings: ReadonlyMap<
     HandlerRecord,
     readonly CompiledFieldOption[]

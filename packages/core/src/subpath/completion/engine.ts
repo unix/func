@@ -1,4 +1,5 @@
-import type { ArgToken } from '../../arg/interfaces'
+import { SYSTEM } from '@func/contracts/core-errors'
+import type { ArgToken } from '../../argv/interfaces'
 import { compileApplication } from '../../application/compiler'
 import type {
   ActionEndpoint,
@@ -17,6 +18,7 @@ import type {
 } from './interfaces'
 import { parseCompletionArgs } from './parser'
 import type { ParsedCompletionArgs } from './parser'
+import { InternalException } from '../../shared/errors'
 
 interface CompletionContext {
   readonly consumed: number
@@ -106,7 +108,7 @@ const contextsFrom = (
   argv: readonly string[],
 ): CompletionContext[] =>
   nodes.flatMap(node => {
-    const parsed = parseCompletionArgs(node.optionPlan.argPlan, argv)
+    const parsed = parseCompletionArgs(node.optionPlan.argvPlan, argv)
     const match = matchFrom(root, parsed.positionals)
     if (match.node !== node) return []
     return [
@@ -148,7 +150,7 @@ const valueTarget = (
   if (!incomplete.startsWith('--')) return []
   const equals = incomplete.indexOf('=')
   if (equals < 0) return []
-  const token = context.node.optionPlan.argPlan.tokens.get(
+  const token = context.node.optionPlan.argvPlan.tokens.get(
     incomplete.slice(0, equals),
   )
   if (!token || token.option.type === 'boolean') return []
@@ -347,10 +349,16 @@ const withDeprecation = (
 }
 
 const validateRequest = (request: CompletionRequest) => {
-  if (!Array.isArray(request.args))
-    throw new TypeError('Completion request args must be an array of strings.')
+  if (!Array.isArray(request.args)) throw invalidCompletionRequest(request)
   if (request.args.some(value => typeof value !== 'string'))
-    throw new TypeError('Completion request args must be an array of strings.')
+    throw invalidCompletionRequest(request)
   if (typeof request.incomplete !== 'string')
-    throw new TypeError('Completion request incomplete must be a string.')
+    throw new InternalException(SYSTEM.INVALID_COMPLETION_REQUEST, {
+      details: { reason: 'invalid-incomplete', request },
+    })
 }
+
+const invalidCompletionRequest = (request: CompletionRequest): InternalException =>
+  new InternalException(SYSTEM.INVALID_COMPLETION_REQUEST, {
+    details: { reason: 'invalid-args', request },
+  })

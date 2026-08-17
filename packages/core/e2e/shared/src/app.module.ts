@@ -1,15 +1,17 @@
-import { Module } from 'func'
-import type { Exception, ExceptionContext, OnError } from 'func'
+import { APP_FILTER, Catch, Module } from 'func'
+import type { Exception, ExceptionFilter } from 'func'
 import { commands } from './commands/index.js'
 import { ProjectService } from './services/project.service.js'
 
-@Module({
-  commands,
-  providers: [ProjectService],
-})
-export class AppModule implements OnError {
-  onError(exception: Exception, context: ExceptionContext) {
+@Catch()
+class AppFilter implements ExceptionFilter {
+  catch(exception: Exception) {
     console.error(`global:${exception.code}:${exception.message}`)
-    context.preventDefaultPrint()
   }
 }
+
+@Module({
+  commands,
+  providers: [ProjectService, { provide: APP_FILTER, useClass: AppFilter }],
+})
+export class AppModule {}

@@ -26,7 +26,6 @@ const validateKnownHandlers = (registry: HandlerRegistry) => {
   )
   throw new InternalException(SYSTEM.UNKNOWN_HANDLER, {
     details: { handlers: names },
-    message: `All handlers passed to Container must use a func decorator: ${names.join(', ')}.`,
   })
 }
 
@@ -38,8 +37,7 @@ const validateSpecialCount = (
   if (records.length <= 1) return
   const names = records.map(record => record.handler.name)
   throw new InternalException(code, {
-    details: { handlers: names, scope: 'command' },
-    message: `Only one ${kind} command can be registered: ${names.join(', ')}.`,
+    details: { handlers: names, kind, scope: 'command' },
   })
 }
 
@@ -48,7 +46,6 @@ const validateCommandShape = (record: HandlerRecord) => {
   if (!methodHandlers.length) {
     throw new InternalException(SYSTEM.MISSING_HANDLER, {
       details: { handler: record.handler.name },
-      message: `Command "${record.handler.name}" must define at least one @Handler method.`,
     })
   }
 
@@ -59,7 +56,6 @@ const validateCommandShape = (record: HandlerRecord) => {
       handler: record.handler.name,
       methods: defaults.map(handler => handler.methodName),
     },
-    message: `Command "${record.handler.name}" must define only one default @Handler method.`,
   })
 }
 

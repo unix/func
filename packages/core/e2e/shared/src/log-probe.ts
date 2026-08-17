@@ -1,7 +1,7 @@
 import { Logger, LogModule } from 'func/log'
 import type { LogModuleOptions } from 'func/log'
 
-const options: LogModuleOptions = { appName: 'func-core-e2e' }
+const options: LogModuleOptions = { maxFiles: 1 }
 const module = LogModule.register(options)
 
 if (typeof Logger !== 'function' || module.exports?.[0] !== Logger)

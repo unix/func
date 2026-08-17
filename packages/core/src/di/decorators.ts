@@ -13,7 +13,6 @@ export const Inject = (token: ProviderToken): ParameterDecorator => {
   if (!isProviderToken(token)) {
     throw new InternalException(SYSTEM.INVALID_TOKEN, {
       details: { token },
-      message: 'Inject requires a valid token.',
     })
   }
 

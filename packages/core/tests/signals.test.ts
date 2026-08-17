@@ -2,7 +2,7 @@ import * as func from '../src'
 import { CommandMajor, Context, Handler, Module, createApp } from '../src'
 import { withProcessSignals } from '../src/subpath/signals'
 import { createProcessSignalsFeature } from '../src/subpath/signals/feature'
-import { expect, test } from './_test'
+import { SYSTEM, expect, systemErrorCode, test } from './_test'
 
 type TestSignal = 'SIGINT' | 'SIGTERM'
 
@@ -55,7 +55,12 @@ test('should reject duplicate process signal features', () => {
     createApp(EmptyAppModule, {
       features: [withProcessSignals(), withProcessSignals()],
     }),
-  ).toThrow('Application feature "process-signals" is registered more than once.')
+  ).toThrow(
+    expect.objectContaining({
+      code: systemErrorCode(SYSTEM.DUPLICATE_APPLICATION_FEATURE),
+      message: systemErrorCode(SYSTEM.DUPLICATE_APPLICATION_FEATURE),
+    }),
+  )
 })
 
 test.sequential.each([

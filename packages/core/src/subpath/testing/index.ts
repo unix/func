@@ -6,10 +6,12 @@ import type { CompiledApplication } from '../../application/model'
 import { applyProviderOverrides } from './provider-overrides'
 import type { ProviderOverride } from './provider-overrides'
 import type { Type } from '../../di/types'
+import type { ApplicationConfiguration } from '../../shared/application-configuration'
+import type { Environment } from '../../shared/environment'
 
 export type { ModuleProviderOverride, ProviderOverride } from './provider-overrides'
 
-export interface TestingAppOptions {
+export interface TestingAppOptions extends ApplicationConfiguration {
   overrides?: ProviderOverride[]
 }
 
@@ -30,6 +32,7 @@ export interface TestingApp {
 
 export interface TestingInvocationOptions {
   cwd?: string
+  env?: Environment
   signal?: AbortSignal
   stdin?: string
 }
@@ -45,6 +48,7 @@ class TestingApplication implements TestingApp {
     const stdout = createCapturedOutput()
     const invocationOptions = {
       cwd: options.cwd,
+      env: options.env ?? {},
       signal: options.signal,
       stderr: stderr.stream,
       stdin: Readable.from([options.stdin ?? '']),
@@ -81,7 +85,7 @@ export const createTestingApp = (
   input: Type,
   options: TestingAppOptions = {},
 ): TestingApp => {
-  const application = compileApplication(input)
+  const application = compileApplication(input, options)
   const overrides = options.overrides ?? []
   if (overrides.length) applyProviderOverrides(application, overrides)
   return new TestingApplication(application)

@@ -1,4 +1,6 @@
 import {
+  APP_FILTER,
+  Catch,
   CommandMajor,
   Module,
   Handler,
@@ -6,7 +8,7 @@ import {
   Injectable,
   createToken,
 } from '../src'
-import type { OnError } from '../src'
+import type { ExceptionFilter } from '../src'
 import { createInvoker } from '../src/subpath/invoke'
 import { expect, run, test, testModule } from './_test'
 
@@ -175,17 +177,20 @@ test.sequential(
       }
     }
 
-    @Module({
-      commands: [Major],
-      providers: [InvocationService],
-    })
-    class AppModule implements OnError {
+    @Catch()
+    class AppFilter implements ExceptionFilter {
       constructor(private readonly service: InvocationService) {}
 
-      onError() {
+      catch() {
         expect(this.service).toBe(commandInstance)
       }
     }
+
+    @Module({
+      commands: [Major],
+      providers: [InvocationService, { provide: APP_FILTER, useClass: AppFilter }],
+    })
+    class AppModule {}
 
     await run(AppModule, { argv: [] })
   },

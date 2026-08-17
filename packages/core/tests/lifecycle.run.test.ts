@@ -1,26 +1,28 @@
 import {
+  APP_FILTER,
   Args,
   ArrayString,
+  Catch,
   Command,
   CommandMajor,
   Flag,
-  Exception,
-  ExceptionContext,
   Module,
   Handler,
   Required,
   Value,
   ValueValidate,
+  UseFilters,
   createApp,
+  createValueDecorator,
 } from '../src'
-import type { Args as ArgsValue, OnError } from '../src'
+import type { Args as ArgsValue, Exception, ExceptionFilter } from '../src'
 import {
-  RUNTIME_PRINT,
+  RUNTIME,
   SYSTEM,
   expect,
   random,
   run,
-  runtimePrintErrorCode,
+  runtimeErrorCode,
   systemErrorCode,
   test,
   testModule,
@@ -93,6 +95,14 @@ test.sequential('should select a handler by flag', async ({ runContainer }) => {
 
 test.sequential('should reject multiple selected handlers', async () => {
   expect.assertions(1)
+
+  @Catch()
+  class AppFilter implements ExceptionFilter {
+    catch(error: Exception) {
+      expect(error.code).toBe(runtimeErrorCode(RUNTIME.MULTIPLE_OPTIONS))
+    }
+  }
+
   @CommandMajor()
   class Major {
     @Handler({ flag: 'help', alias: 'h' })
@@ -102,13 +112,11 @@ test.sequential('should reject multiple selected handlers', async () => {
     version() {}
   }
 
-  @Module({ commands: [Major] })
-  class AppModule implements OnError {
-    onError(arg: Exception, context: ExceptionContext) {
-      expect(arg.code).toBe(runtimePrintErrorCode(RUNTIME_PRINT.MULTIPLE_OPTIONS))
-      context.preventDefaultPrint()
-    }
-  }
+  @Module({
+    commands: [Major],
+    providers: [{ provide: APP_FILTER, useClass: AppFilter }],
+  })
+  class AppModule {}
 
   await run(AppModule, { argv: ['-h', '-v'] })
 })
@@ -117,23 +125,156 @@ test.sequential(
   'should support required and validate for values',
   async ({ runContainer }) => {
     expect.assertions(1)
+
+    @Catch()
+    class ValidationFilter implements ExceptionFilter {
+      catch(error: Exception) {
+        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+      }
+    }
+
+    @UseFilters(ValidationFilter)
     @CommandMajor()
-    class Major implements OnError {
+    class Major {
       @Required()
       @Value()
       @ValueValidate(value => Number(value) > 0 || 'port must be positive')
       port?: number
-
-      onError(arg: Exception, context: ExceptionContext) {
-        expect(arg.code).toBe(runtimePrintErrorCode(RUNTIME_PRINT.VALIDATION))
-        context.preventDefaultPrint()
-      }
 
       @Handler()
       run() {}
     }
 
     await runContainer(['', '', '--port', '-1'], [Major])
+  },
+)
+
+test.sequential(
+  'should transform string input before field validation and binding',
+  async ({ runContainer }) => {
+    expect.assertions(5)
+    const Url = createValueDecorator(input => {
+      expect(input).toBe('https://example.com/releases')
+      return new URL(input)
+    })
+
+    @CommandMajor()
+    class Major {
+      @ValueValidate(value => {
+        expect(value).toBeInstanceOf(URL)
+        return true
+      })
+      @Url({ alias: 'u', name: 'endpoint' })
+      url!: URL
+
+      @Handler()
+      run(@Args() args: ArgsValue<{ endpoint: URL }>) {
+        expect(this.url).toBeInstanceOf(URL)
+        expect(this.url.href).toBe('https://example.com/releases')
+        expect(args.options.endpoint).toBe(this.url)
+      }
+    }
+
+    await runContainer(
+      ['', '', '--endpoint', 'https://example.com/releases'],
+      [Major],
+    )
+  },
+)
+
+test.sequential(
+  'should preserve transformed field defaults without running the transform',
+  async ({ runContainer }) => {
+    expect.assertions(2)
+    let transforms = 0
+    const Url = createValueDecorator(input => {
+      transforms += 1
+      return new URL(input)
+    })
+
+    @CommandMajor()
+    class Major {
+      @Url()
+      endpoint = new URL('https://default.example.com')
+
+      @Handler()
+      run() {
+        expect(this.endpoint.href).toBe('https://default.example.com/')
+      }
+    }
+
+    await runContainer(['', ''], [Major])
+    expect(transforms).toBe(0)
+  },
+)
+
+test.sequential(
+  'should normalize value transform failures as validation errors',
+  async ({ runContainer }) => {
+    expect.assertions(5)
+    let invoked = false
+    const Url = createValueDecorator(input => {
+      if (!URL.canParse(input)) throw new Error('endpoint must be a valid URL')
+      return new URL(input)
+    })
+
+    @Catch()
+    class ValidationFilter implements ExceptionFilter {
+      catch(error: Exception) {
+        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+        expect(error.message).toBe('endpoint must be a valid URL')
+        expect(error.details).toMatchObject({
+          option: 'endpoint',
+          value: 'not-a-url',
+        })
+        expect(error.cause).toBeInstanceOf(Error)
+      }
+    }
+
+    @UseFilters(ValidationFilter)
+    @CommandMajor()
+    class Major {
+      @Url()
+      endpoint!: URL
+
+      @Handler()
+      run() {
+        invoked = true
+      }
+    }
+
+    await runContainer(['', '', '--endpoint', 'not-a-url'], [Major])
+    expect(invoked).toBe(false)
+  },
+)
+
+test.sequential(
+  'should reject asynchronous value transforms',
+  async ({ runContainer }) => {
+    expect.assertions(2)
+    const AsyncValue = createValueDecorator(async input => input)
+
+    @Catch()
+    class ValidationFilter implements ExceptionFilter {
+      catch(error: Exception) {
+        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+        expect(error.message).toBe(
+          'Value transform for option "--value" must return synchronously.',
+        )
+      }
+    }
+
+    @UseFilters(ValidationFilter)
+    @CommandMajor()
+    class Major {
+      @AsyncValue()
+      value!: string
+
+      @Handler()
+      run() {}
+    }
+
+    await runContainer(['', '', '--value', 'input'], [Major])
   },
 )
 

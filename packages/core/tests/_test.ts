@@ -2,7 +2,7 @@ import {
   RUNTIME as CONFIG_RUNTIME,
   SYSTEM as CONFIG_SYSTEM,
 } from '@func/contracts/config-errors'
-import { RUNTIME, RUNTIME_PRINT, SYSTEM } from '@func/contracts/core-errors'
+import { RUNTIME, SYSTEM } from '@func/contracts/core-errors'
 import {
   RUNTIME as LOG_RUNTIME,
   SYSTEM as LOG_SYSTEM,
@@ -20,6 +20,7 @@ interface Fixtures {
 }
 
 interface RunOptions extends InvocationOptions {
+  appName?: string
   argv?: readonly string[]
 }
 
@@ -107,9 +108,12 @@ const run = async (
   input: Type,
   options: RunOptions = {},
 ): Promise<InvocationResult> => {
-  const { argv = process.argv.slice(2), ...invocationOptions } = options
+  const { appName, argv = process.argv.slice(2), ...invocationOptions } = options
   try {
-    const result = await createInvoker(input).invoke(argv, invocationOptions)
+    const result = await createInvoker(input, { appName }).invoke(
+      argv,
+      invocationOptions,
+    )
     process.exitCode = result.exitCode
     return result
   } catch (error) {
@@ -133,9 +137,6 @@ const logSystemErrorCode = (code: LOG_SYSTEM) =>
 const runtimeErrorCode = (code: RUNTIME) =>
   formatExceptionCode(ErrorScope.RUNTIME, code)
 
-const runtimePrintErrorCode = (code: RUNTIME_PRINT) =>
-  formatExceptionCode(ErrorScope.RUNTIME_PRINT, code)
-
 const systemErrorCode = (code: SYSTEM) =>
   formatExceptionCode(ErrorScope.SYSTEM, code)
 
@@ -145,7 +146,6 @@ export {
   LOG_RUNTIME,
   LOG_SYSTEM,
   RUNTIME,
-  RUNTIME_PRINT,
   SYSTEM,
   anyValue,
   applyClassDecorator,
@@ -161,7 +161,6 @@ export {
   random,
   run,
   runtimeErrorCode,
-  runtimePrintErrorCode,
   systemErrorCode,
   test,
   testModule,

@@ -36,7 +36,6 @@ export const Handler: HandlerDecorator = (input: HandlerDecoratorInput = {}) => 
     if (typeof target === 'function' || typeof propertyKey !== 'string') {
       throw new InternalException(SYSTEM.INVALID_METHOD_DECORATOR_TARGET, {
         details: { method: String(propertyKey) },
-        message: `Handler "${String(propertyKey)}" must decorate an instance method.`,
       })
     }
 
@@ -102,14 +101,12 @@ const normalizeHandler = (input: HandlerDecoratorInput): HandlerParams => {
   if (hasPath && hasFlag) {
     throw new InternalException(SYSTEM.HANDLER_FLAG_PATH_CONFLICT, {
       details: { flag: params.flag, path: params.path },
-      message: 'Handler flag and path cannot be used together.',
     })
   }
 
   if (!params.flag && aliases.length) {
     throw new InternalException(SYSTEM.HANDLER_ALIAS_REQUIRES_FLAG, {
       details: { alias: aliases[0], aliases, key: 'flag' },
-      message: 'Handler aliases require a flag.',
     })
   }
 

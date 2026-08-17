@@ -1,13 +1,15 @@
 import {
   Args,
+  Catch,
   CommandMissing,
   Flag,
   Module,
   Handler,
   Injectable,
+  UseFilters,
   createApp,
 } from '../src'
-import type { Args as ArgsValue, Exception, OnError } from '../src'
+import type { Args as ArgsValue, Exception, ExceptionFilter } from '../src'
 import { SYSTEM, expect, run, systemErrorCode, test, testModule } from './_test'
 
 test.sequential(
@@ -96,12 +98,16 @@ test.sequential('should select missing flag handlers', async () => {
 test.sequential('should catch missing handler exceptions locally', async () => {
   expect.assertions(1)
 
-  @CommandMissing()
-  class Missing implements OnError {
-    onError(exception: Exception) {
+  @Catch()
+  class LocalFilter implements ExceptionFilter {
+    catch(exception: Exception) {
       expect(exception.message).toBe('boom')
     }
+  }
 
+  @UseFilters(LocalFilter)
+  @CommandMissing()
+  class Missing {
     @Handler()
     run() {
       throw new Error('boom')

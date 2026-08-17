@@ -1,20 +1,23 @@
 import { SYSTEM } from '@func/contracts/config-errors'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { ModuleMetadata } from '../../application/definition'
-import { defineApplicationResources } from '../../application/resources'
 import type { Provider } from '../../di/types'
+import { Context } from '../../runtime/context'
 import { InternalException } from '../../shared/errors'
-import { isSafePathSegment } from '../../shared/path-segment'
+import { applicationDirectory } from '../sub-shared/application-directory'
+import { initializeApplicationResource } from '../sub-shared/application-resource'
+import { isSafePathSegment } from '../sub-shared/path-segment'
 import { configFileOptions } from './file'
-import type { ConfigConstructor, ConfigModuleOptions } from './interfaces'
+import type {
+  ConfigConstructor,
+  ConfigInstance,
+  ConfigModuleOptions,
+} from './interfaces'
 import { bindConfig, isConfigConstructor } from './runtime'
 
 interface ResolvedConfigFile {
-  appName: string
   config: ConfigConstructor
   fileName: string
-  filePath: string
   maxBytes?: number
   name: string
 }
@@ -24,45 +27,43 @@ export class ConfigModule {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   static register(options: ConfigModuleOptions): ModuleMetadata {
     assertModuleOptions(options)
-    const files = options.configs.map(config =>
-      resolveConfigFile(options.appName, config),
-    )
-    assertUniquePaths(files)
+    const files = options.configs.map(resolveConfigFile)
 
-    const module: ModuleMetadata = {
+    return {
       providers: files.flatMap(file => providers(file)),
       exports: options.configs,
     }
-    return defineApplicationResources(
-      module,
-      files.map(file => ({
-        duplicateError: () => duplicateFileError(file),
-        key: `config-file:${file.filePath}`,
-      })),
-    )
   }
 }
 
 const providers = (file: ResolvedConfigFile): Provider[] => [
   {
+    inject: [Context],
     provide: file.config,
-    useFactory: () =>
-      bindConfig(new file.config(), {
-        filePath: file.filePath,
-        maxBytes: file.maxBytes,
-      }),
+    useFactory: (context: Context) => initializeConfig(context, file),
   },
 ]
 
-const resolveConfigFile = (
-  appName: string,
-  config: ConfigConstructor,
-): ResolvedConfigFile => {
+const initializeConfig = (
+  context: Context,
+  file: ResolvedConfigFile,
+): ConfigInstance => {
+  const filePath = configFilePath(context.appName, file.fileName)
+  initializeApplicationResource(context, {
+    duplicateError: () => duplicateFileError(file, context.appName, filePath),
+    key: `config-file:${filePath}`,
+  })
+  return bindConfig(new file.config(), {
+    filePath,
+    maxBytes: file.maxBytes,
+  })
+}
+
+const resolveConfigFile = (config: ConfigConstructor): ResolvedConfigFile => {
   if (!isConfigConstructor(config)) {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      'ConfigModule.register() only accepts classes that extend Config().',
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { reason: 'invalid-config-class' },
+    })
   }
 
   const options = configFileOptions(config)
@@ -70,10 +71,8 @@ const resolveConfigFile = (
   const fileName = `${options.name}.json`
 
   return {
-    appName,
     config,
     fileName,
-    filePath: join(homedir(), `.${appName}`, fileName),
     maxBytes: options.maxBytes,
     name: options.name,
   }
@@ -81,45 +80,39 @@ const resolveConfigFile = (
 
 const assertModuleOptions = (options: unknown) => {
   if (!options || typeof options !== 'object') {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      'ConfigModule.register() requires an options object.',
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { reason: 'invalid-config-module-options' },
+    })
   }
-  const appName = 'appName' in options ? options.appName : undefined
   const configs = 'configs' in options ? options.configs : undefined
-  assertSafeSegment(appName, 'Config appName')
   if (!Array.isArray(configs) || !configs.length) {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      'ConfigModule.register() requires at least one config class.',
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { reason: 'missing-config-classes' },
+    })
   }
 }
 
-const assertUniquePaths = (files: ResolvedConfigFile[]) => {
-  const paths = new Set<string>()
-  files.forEach(file => {
-    if (paths.has(file.filePath)) throw duplicateFileError(file)
-    paths.add(file.filePath)
-  })
-}
-
-const duplicateFileError = (file: ResolvedConfigFile) =>
+const duplicateFileError = (
+  file: ResolvedConfigFile,
+  appName: string | undefined,
+  filePath: string,
+) =>
   new InternalException(SYSTEM.DUPLICATE_FILE, {
     details: {
-      appName: file.appName,
+      appName,
       fileName: file.fileName,
       name: file.name,
-      path: file.filePath,
+      path: filePath,
     },
-    message: `Config file "${file.filePath}" is registered more than once.`,
   })
 
 const assertSafeSegment = (value: unknown, label: string) => {
   if (isSafePathSegment(value)) return
+
   throw new InternalException(SYSTEM.DEFINITION, {
-    details: { value },
-    message: `${label} must be a safe path segment.`,
+    details: { label, reason: 'unsafe-path-segment', value },
   })
 }
+
+const configFilePath = (appName: string | undefined, fileName: string): string =>
+  join(applicationDirectory(appName), fileName)

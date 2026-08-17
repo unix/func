@@ -1,3 +1,4 @@
+import { SYSTEM } from '@func/contracts/core-errors'
 import type { ApplicationFeature } from '../../application/features'
 import { defineApplicationFeature } from '../../application/features'
 import { completeGraph } from './engine'
@@ -7,6 +8,7 @@ import {
   completionSource,
   formatCompletionResult,
 } from './source'
+import { InternalException } from '../../shared/errors'
 
 interface CompletionMode {
   readonly operation: 'complete' | 'source'
@@ -54,5 +56,7 @@ export const withCompletion = (
 const parseMode = (value: string): CompletionMode => {
   const mode = completionModes.get(value)
   if (mode) return mode
-  throw new TypeError(`Unsupported completion mode "${value}".`)
+  throw new InternalException(SYSTEM.INVALID_COMPLETION_MODE, {
+    details: { mode: value },
+  })
 }

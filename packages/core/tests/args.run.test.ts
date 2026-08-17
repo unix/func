@@ -7,6 +7,7 @@ import {
   Flag,
   Handler,
   Inject,
+  createValueDecorator,
 } from '../src'
 import type { Args as ArgsValue } from '../src'
 import { SYSTEM, expect, random, systemErrorCode, test } from './_test'
@@ -42,13 +43,17 @@ test.sequential(
 test.sequential(
   'should inject context by class token in constructors',
   async ({ runContainer }) => {
-    expect.assertions(11)
+    expect.assertions(12)
     const name = random()
+    const Url = createValueDecorator(input => new URL(input))
 
     @Command({ alias: 'b', aliases: ['build', 'b'], path: name })
     class BuildCommand {
       @ArrayString({ aliases: ['i'] })
       include: string[] = []
+
+      @Url()
+      endpoint = new URL('https://example.com')
 
       constructor(private context: Context) {}
 
@@ -66,7 +71,8 @@ test.sequential(
         expect(Object.isFrozen(command.path)).toBe(true)
         expect(Object.isFrozen(command.fieldOptions ?? {})).toBe(true)
         expect(Object.isFrozen(command.fieldOptions?.[0].type ?? {})).toBe(true)
-        expect(command.fieldOptions?.[0]).not.toHaveProperty('validators')
+        expect(command.fieldOptions?.[1]).not.toHaveProperty('transform')
+        expect(command.fieldOptions?.[1]).not.toHaveProperty('validators')
       }
     }
 

@@ -9,7 +9,6 @@ import {
 const ProbeConfig = Config({ enabled: true })
 ConfigFile({ name: 'probe' })(ProbeConfig)
 const module = ConfigModule.register({
-  appName: 'func-core-e2e',
   configs: [ProbeConfig],
 })
 const isExpectedValue = (actual: string, expected: string) => actual === expected

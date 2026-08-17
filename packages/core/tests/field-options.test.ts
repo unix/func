@@ -7,6 +7,7 @@ import {
   Required,
   Value,
   ValueValidate,
+  createValueDecorator,
 } from '../src'
 import { compileFieldOptions } from '../src/options/field-metadata'
 import { SYSTEM, expect, objectContaining, systemErrorCode, test } from './_test'
@@ -123,6 +124,27 @@ test('should infer scalar types and collect typed arrays', () => {
   ])
 })
 
+test('should create transformed value field options with string input', () => {
+  const transform = (input: string) => new URL(input)
+  const Url = createValueDecorator(transform)
+
+  class Options {
+    @Url({ alias: 'u', name: 'endpoint' })
+    url!: URL
+  }
+
+  expect(compileFieldOptions(Options)).toEqual([
+    expect.objectContaining({
+      aliases: ['u'],
+      kind: 'value',
+      name: 'endpoint',
+      propertyKey: 'url',
+      transform,
+      type: String,
+    }),
+  ])
+})
+
 test('should reject boolean types for @Value', () => {
   expect(() => {
     class InferredBoolean {
@@ -139,8 +161,7 @@ test('should reject boolean types for @Value', () => {
         property: 'enabled',
         type: 'Boolean',
       },
-      message:
-        '@Value type "Boolean" is unsupported. Declare the property as string or number. Use @Flag() for boolean options.',
+      message: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
     }),
   )
 })
@@ -161,8 +182,7 @@ test('should reject array types for @Value', () => {
         property: 'tags',
         type: 'Array',
       },
-      message:
-        '@Value type "Array" is unsupported. Declare the property as string or number. Use @ArrayString() or @ArrayNumber() for repeated options.',
+      message: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
     }),
   )
 })
@@ -184,8 +204,7 @@ test('should reject non-array fields for array decorators', () => {
         property: 'count',
         type: 'Number',
       },
-      message:
-        '@ArrayNumber requires an array property, but "count" has runtime type "Number". Declare the property as number[].',
+      message: systemErrorCode(SYSTEM.INVALID_OPTION_TYPE),
     }),
   )
 })
@@ -323,8 +342,7 @@ test('should require a supported property type when value type cannot be inferre
         property: 'when',
         reason: 'cannot-infer-value-type',
       }),
-      message:
-        'Cannot infer value type for "when". Declare the property as string or number and ensure emitDecoratorMetadata is enabled.',
+      message: systemErrorCode(SYSTEM.CANNOT_INFER_VALUE_TYPE),
     }),
   )
 })

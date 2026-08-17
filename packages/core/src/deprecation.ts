@@ -48,7 +48,6 @@ export const compileMethodHandlers = (target: Function): HandlerParams[] => {
         handler: handler.methodName,
         reason: 'deprecated-handler-requires-flag',
       },
-      message: `@Deprecated on handler "${handler.methodName}" requires @Handler({ flag }).`,
     })
   })
 }

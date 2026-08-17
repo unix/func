@@ -1,12 +1,17 @@
 import type { Deprecation } from '../deprecation'
+import type { TextOutput } from '../shared/output'
 
-export type UserOptionValue =
+export type ParsedUserOptionValue =
   boolean | string | number | string[] | number[] | undefined
 
 export type UserOptionEnumValue = boolean | string | number
 
+export interface ParsedUserOption {
+  [key: string]: ParsedUserOptionValue
+}
+
 export interface UserOption {
-  [key: string]: UserOptionValue
+  [key: string]: unknown
 }
 
 interface AliasDecoratorParams {
@@ -33,10 +38,12 @@ export interface OptionCommandDecoratorParams extends AliasDecoratorParams {
   description?: string
   name: string
   overrideAll?: boolean
+  textOutput?: TextOutput
 }
 
 export type OptionCommandParams = Omit<OptionParams, 'negatable' | 'type'> & {
   overrideAll?: boolean
+  textOutput?: TextOutput
   type: BooleanConstructor
 }
 
@@ -91,9 +98,13 @@ export type ValueDecoratorParams = FieldOptionDecoratorParams
 
 export type ValueDecoratorInput = string | ValueDecoratorParams
 
+export type ValueDecorator = (input?: ValueDecoratorInput) => PropertyDecorator
+
+export type ValueTransform<Output = unknown> = (input: string) => Output
+
 export type ValueValidatorResult = boolean | string | void | undefined
 
 export type ValueValidator = (
-  value: UserOptionValue,
+  value: unknown,
   options: UserOption,
 ) => ValueValidatorResult

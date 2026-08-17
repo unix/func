@@ -21,10 +21,21 @@
     "src/subpath/completion/index.ts",
     "src/subpath/config/index.ts",
     "src/subpath/help/index.ts",
+    "src/subpath/http/index.ts",
+    "src/subpath/http/testing/index.ts",
     "src/subpath/invoke/index.ts",
+    "src/subpath/json-output/index.ts",
     "src/subpath/log/index.ts",
+    "src/subpath/net/index.ts",
+    "src/subpath/net/testing/index.ts",
+    "src/subpath/parser/index.ts",
+    "src/subpath/process/index.ts",
+    "src/subpath/process/testing/index.ts",
     "src/subpath/signals/index.ts",
-    "src/subpath/testing/index.ts"
+    "src/subpath/testing/index.ts",
+    "src/subpath/testing/cli/index.ts",
+    "src/subpath/testing/fixtures/index.ts",
+    "src/subpath/testing/pty/index.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

@@ -22,6 +22,5 @@ export interface ConfigConstructor<T extends ConfigDefaults = ConfigDefaults> {
 }
 
 export interface ConfigModuleOptions {
-  appName: string
   configs: ConfigConstructor[]
 }

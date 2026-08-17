@@ -1,7 +1,7 @@
 import type { OptionParams } from '../options/types'
-import type { ArgOption, ArgPlan, ArgToken, ArgValueType } from './interfaces'
+import type { ArgOption, ArgToken, ArgValueType, ArgvPlan } from './interfaces'
 
-export interface ArgPlanDefinition {
+export interface ArgvPlanDefinition {
   readonly option: OptionParams
   readonly owner: string
 }
@@ -16,9 +16,9 @@ export class ArgTokenConflict extends Error {
   }
 }
 
-export const compileArgPlan = (
-  definitions: readonly ArgPlanDefinition[],
-): ArgPlan => {
+export const compileArgvPlan = (
+  definitions: readonly ArgvPlanDefinition[],
+): ArgvPlan => {
   const options: ArgOption[] = []
   const tokens = new Map<string, ArgToken>()
   const owners = new Map<string, string>()

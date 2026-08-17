@@ -154,6 +154,38 @@ test.sequential('should create a bootstrap application from a Module', async () 
   )
 })
 
+test.sequential('should expose the configured application name', async () => {
+  expect.assertions(1)
+
+  @CommandMajor()
+  class Major {
+    constructor(private readonly context: Context) {}
+
+    @Handler()
+    run() {
+      expect(this.context.appName).toBe('func-test')
+    }
+  }
+
+  @Module({ commands: [Major] })
+  class AppModule {}
+
+  const previousExitCode = process.exitCode
+  const app = createApp(AppModule, { appName: 'func-test' })
+  try {
+    await app.bootstrap({ argv: [] })
+  } finally {
+    process.exitCode = previousExitCode
+  }
+})
+
+test('should collect an application name without interpreting it', () => {
+  @Module({})
+  class AppModule {}
+
+  expect(() => createApp(AppModule, { appName: '../opaque' })).not.toThrow()
+})
+
 test.sequential('should bootstrap a process application only once', async () => {
   let invoked = false
   const previousExitCode = process.exitCode
@@ -173,9 +205,10 @@ test.sequential('should bootstrap a process application only once', async () => 
   try {
     await expect(app.bootstrap({ argv: [] })).resolves.toBeUndefined()
     expect(invoked).toBe(true)
-    await expect(app.bootstrap({ argv: [] })).rejects.toThrow(
-      'An application can only be bootstrapped once.',
-    )
+    await expect(app.bootstrap({ argv: [] })).rejects.toMatchObject({
+      code: 'F_RUNTIME_APPLICATION_ALREADY_BOOTSTRAPPED',
+      message: 'An application can only be bootstrapped once.',
+    })
   } finally {
     process.exitCode = previousExitCode
   }

@@ -15,23 +15,29 @@ import { compileFieldOptions } from '../options/field-metadata'
 import { InternalException } from '../shared/errors'
 import { handlers, metadata } from '../commands/metadata'
 import { isBuiltInToken } from '../runtime/injection'
+import { filtersFor, interceptorsFor } from '../runtime/enhancers'
 import { moduleMetadata } from './definition'
 import type { ModuleInput } from './definition'
 import type { CompiledApplication } from './model'
-import { validateApplicationResources } from './resources'
+import {
+  collectApplicationConfiguration,
+  type ApplicationConfiguration,
+} from '../shared/application-configuration'
 
 export type RegisteredHandler = HandlerRecord
 
-export const compileApplication = (input: Type): CompiledApplication => {
+export const compileApplication = (
+  input: Type,
+  configurationInput: ApplicationConfiguration = {},
+): CompiledApplication => {
   if (typeof input !== 'function') {
     throw new InternalException(SYSTEM.INVALID_MODULE_INPUT, {
       details: { module: '(module config)' },
-      message: 'The application root must be a class decorated with @Module.',
     })
   }
 
+  const configuration = collectApplicationConfiguration(configurationInput)
   const graph = compileModules(input)
-  validateApplicationResources(graph)
   validateContextProviders(graph)
   const options = compileModuleOptions(graph)
   const records = collectHandlers(graph.modules)
@@ -53,6 +59,9 @@ export const compileApplication = (input: Type): CompiledApplication => {
   })
 
   return {
+    ...(configuration.appName === undefined
+      ? {}
+      : { appName: configuration.appName }),
     commandGraph,
     graph,
   }
@@ -63,17 +72,18 @@ const collectHandlers = (modules: readonly CompiledModule[]): RegisteredHandler[
     commandsFor(module.input).map(handler => compileHandler(handler, module)),
   )
 
-const compileHandler = (
-  handler: Type,
-  owner: CompiledModule,
-): RegisteredHandler => ({
-  command: commandMetadata(handler),
-  fieldOptions: compileFieldOptions(handler),
-  handler,
-  kind: handlerKindMetadata(handler),
-  methodHandlers: compileMethodHandlers(handler),
-  owner,
-})
+const compileHandler = (handler: Type, owner: CompiledModule): RegisteredHandler => {
+  return {
+    command: commandMetadata(handler),
+    fieldOptions: compileFieldOptions(handler),
+    filters: filtersFor(handler),
+    handler,
+    interceptors: interceptorsFor(handler),
+    kind: handlerKindMetadata(handler),
+    methodHandlers: compileMethodHandlers(handler),
+    owner,
+  }
+}
 
 const commandMetadata = (target: Type): CommandParams | undefined => {
   const value: unknown = Reflect.getOwnMetadata(metadata.COMMAND_IDENTIFIER, target)
@@ -114,7 +124,6 @@ const validateContextProviders = (graph: CompiledGraph) => {
           module: module.name,
           token: providerTokenName(token),
         },
-        message: `System provider "${providerTokenName(token)}" can only be configured through application options.`,
       })
     })
   })
@@ -135,7 +144,6 @@ const validateHandlerHosts = (graph: CompiledGraph, allowed: readonly Type[]) =>
           handlers: methodHandlers.map(handler => handler.methodName),
           host: target.name || '(anonymous class)',
         },
-        message: `@Handler methods must belong to a @Command or @OptionCommand class.`,
       })
     })
   })

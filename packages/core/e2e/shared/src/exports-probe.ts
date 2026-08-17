@@ -4,6 +4,7 @@ const callableApis = [
   'Args',
   'ArrayNumber',
   'ArrayString',
+  'Catch',
   'Command',
   'CommandMajor',
   'CommandMissing',
@@ -22,11 +23,15 @@ const callableApis = [
   'Override',
   'Required',
   'Stderr',
+  'Stdin',
   'Stdout',
   'Value',
   'ValueValidate',
+  'UseFilters',
+  'UseInterceptors',
   'createApp',
   'createToken',
+  'createValueDecorator',
 ] as const
 
 console.log(

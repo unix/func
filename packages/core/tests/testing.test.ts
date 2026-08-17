@@ -284,23 +284,32 @@ test.sequential(
   },
 )
 
-test.sequential('should return one for an unhandled invocation error', async () => {
-  @CommandMajor()
-  class Major {
-    @Handler()
-    run() {
-      throw new Error('boom')
+test.sequential(
+  'should return one for a default-routed invocation error',
+  async () => {
+    @CommandMajor()
+    class Major {
+      @Handler()
+      run() {
+        throw new Error('boom')
+      }
     }
-  }
 
-  const result = await createTestingApp(testModule({ commands: [Major] })).invoke()
-  expect(result.exitCode).toBe(1)
-  expect(result.error?.message).toBe('boom')
-})
+    const result = await createTestingApp(testModule({ commands: [Major] })).invoke()
+    expect(result.exitCode).toBe(1)
+    expect(result.error).toBeUndefined()
+    expect(result.stderr).toBe('boom\n')
+  },
+)
 
 test.sequential(
   'should return handled failures without an escaped error',
   async () => {
+    @func.Catch()
+    class SilentFilter implements func.ExceptionFilter {
+      catch() {}
+    }
+
     @CommandMajor()
     class Major {
       @Handler()
@@ -309,16 +318,16 @@ test.sequential(
       }
     }
 
-    @Module({ commands: [Major] })
-    class AppModule implements func.OnError {
-      onError(_exception: func.Exception, context: func.ExceptionContext) {
-        context.preventDefaultPrint()
-      }
-    }
+    @Module({
+      commands: [Major],
+      providers: [{ provide: func.APP_FILTER, useClass: SilentFilter }],
+    })
+    class AppModule {}
 
     const result = await createTestingApp(AppModule).invoke()
     expect(result.exitCode).toBe(1)
     expect(result.error).toBeUndefined()
+    expect(result.stderr).toBe('')
   },
 )
 

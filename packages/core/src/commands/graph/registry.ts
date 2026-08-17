@@ -3,11 +3,14 @@ import type { Type } from '../../di/types'
 import type { CommandParams, HandlerParams } from '../types'
 import type { CompiledFieldOption } from '../../options/field-metadata'
 import { handlers } from '../metadata'
+import type { ExceptionFilter, Interceptor } from '../../runtime/enhancers'
 
 export interface HandlerRecord {
   command?: CommandParams
   fieldOptions: CompiledFieldOption[]
+  filters: readonly Type<ExceptionFilter>[]
   handler: Type
+  interceptors: readonly Type<Interceptor>[]
   kind?: handlers
   methodHandlers: HandlerParams[]
   owner: CompiledModule

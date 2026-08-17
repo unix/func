@@ -3,65 +3,31 @@ import {
   formatErrorCode,
   type ErrorCode,
 } from '@func/contracts/core-errors'
-import type { Writable } from 'node:stream'
+import {
+  Exception as ContractException,
+  isException as isContractException,
+  type ExceptionDetails,
+  type ExceptionOptions as ContractExceptionOptions,
+} from '@func/contracts/exception'
 
 export { ErrorScope }
 
 export type ExceptionCode<Code extends string = string> = ErrorCode<ErrorScope, Code>
 
-export type ExceptionDetails = Record<string, unknown>
+export type { ExceptionDetails }
 
-export interface ExceptionOptions {
-  cause?: Error
-  details?: ExceptionDetails
-  message?: string
-  name?: string
+export interface ExceptionOptions extends ContractExceptionOptions {
   scope?: ErrorScope
 }
 
-export interface SerializedException<Code extends string = string> {
-  cause?: {
-    message: string
-    name: string
-  }
-  code: ExceptionCode<Code>
-  details: ExceptionDetails
-  message: string
-  name: string
-  scope: ErrorScope
-  stack?: string
-}
-
-export class Exception<Code extends string = string> extends Error {
-  readonly code: ExceptionCode<Code>
-  readonly details: ExceptionDetails
-  readonly scope: ErrorScope
-
+export class Exception<Code extends string = string> extends ContractException<
+  ErrorScope,
+  Code
+> {
   constructor(code: Code, options: ExceptionOptions | string = {}) {
     const normalizedOptions = normalizeExceptionOptions(options)
-    const scope = normalizedOptions.scope ?? ErrorScope.RUNTIME
-    const formattedCode = formatExceptionCode(scope, code)
-    super(normalizedOptions.message ?? formattedCode, {
-      cause: normalizedOptions.cause,
-    })
-    this.name = normalizedOptions.name ?? 'Exception'
-    this.code = formattedCode
-    this.details = normalizedOptions.details ?? {}
-    this.scope = scope
-  }
-
-  toJSON(): SerializedException<Code> {
-    return {
-      ...(this.cause instanceof Error
-        ? { cause: { message: this.cause.message, name: this.cause.name } }
-        : {}),
-      code: this.code,
-      details: this.details,
-      message: this.message,
-      name: this.name,
-      scope: this.scope,
-      ...(this.stack ? { stack: this.stack } : {}),
-    }
+    const { scope = ErrorScope.RUNTIME, ...contractOptions } = normalizedOptions
+    super(scope, code, contractOptions)
   }
 }
 
@@ -83,15 +49,11 @@ export class InternalException<
 export const formatExceptionCode = formatErrorCode
 
 export const isException = (error: unknown): error is Exception =>
-  error instanceof Exception
-
-export const printException = (
-  exception: Exception,
-  output: Writable = process.stderr,
-) => {
-  output.write(`${exception.message}\n`)
-}
+  isContractException(error) && isErrorScope(error.scope)
 
 const normalizeExceptionOptions = (
   options: ExceptionOptions | string,
 ): ExceptionOptions => (typeof options === 'string' ? { message: options } : options)
+
+const isErrorScope = (value: string): value is ErrorScope =>
+  Object.values(ErrorScope).some(scope => scope === value)

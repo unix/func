@@ -1,4 +1,4 @@
-import type { UserOption } from '../options/types'
+import type { ParsedUserOption } from '../options/types'
 
 export type ArgValueType = 'boolean' | 'number' | 'string'
 
@@ -13,7 +13,7 @@ export interface ArgToken {
   readonly option: ArgOption
 }
 
-export interface ArgPlan {
+export interface ArgvPlan {
   readonly options: readonly ArgOption[]
   readonly tokens: ReadonlyMap<string, ArgToken>
 }
@@ -28,7 +28,7 @@ export type ArgParseResult =
   | { readonly failure: ArgParseFailure; readonly success: false }
 
 export interface ParsedArgv {
-  readonly options: UserOption
+  readonly options: ParsedUserOption
   readonly positionals: readonly string[]
   readonly supplied: ReadonlySet<string>
   readonly unknown: readonly string[]

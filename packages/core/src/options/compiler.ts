@@ -57,7 +57,6 @@ export const compileModuleOptions = (
             modules: [existing.name, module.name],
             token: target.name || '(anonymous class)',
           },
-          message: `Option provider "${target.name || '(anonymous class)'}" is registered by more than one module.`,
         })
       }
       owners.set(target, module)
@@ -90,8 +89,11 @@ const optionsFor = (module: CompiledModule): Type[] => {
   if (options.every(option => typeof option === 'function')) return options
   const invalid = options.find(option => typeof option !== 'function')
   throw new InternalException(SYSTEM.INVALID_OPTION_DECLARATION, {
-    details: { module: module.name, option: invalid },
-    message: `Module "${module.name}" options must contain @Option or @OptionCommand classes.`,
+    details: {
+      module: module.name,
+      option: invalid,
+      reason: 'invalid-module-option',
+    },
   })
 }
 
@@ -109,7 +111,6 @@ const validateOptionTarget = (target: Type, module: CompiledModule) => {
           ? 'multiple-option-kinds'
           : 'missing-option-decorator',
     },
-    message: `Module option "${target.name || '(anonymous class)'}" must use exactly one of @Option or @OptionCommand.`,
   })
 }
 
@@ -139,14 +140,16 @@ const compileModuleOption = (
       details: {
         handlers: methodHandlers.map(handler => handler.methodName),
         option: target.name || '(anonymous class)',
+        reason: 'option-has-handlers',
       },
-      message: `@Option class "${target.name || '(anonymous class)'}" cannot declare @Handler methods.`,
     })
   }
   if (!fieldOptions.length) {
     throw new InternalException(SYSTEM.INVALID_OPTION_DECLARATION, {
-      details: { option: target.name || '(anonymous class)' },
-      message: `@Option class "${target.name || '(anonymous class)'}" must declare at least one option field.`,
+      details: {
+        option: target.name || '(anonymous class)',
+        reason: 'option-has-no-fields',
+      },
     })
   }
 
@@ -195,8 +198,8 @@ const validateOptionCommand = (
       details: {
         handlers: methodHandlers,
         option: target.name || '(anonymous class)',
+        reason: 'invalid-option-command-handler',
       },
-      message: `@OptionCommand class "${target.name || '(anonymous class)'}" must declare exactly one default @Handler method.`,
     })
   }
   if (!fieldOptions.length) return
@@ -205,7 +208,7 @@ const validateOptionCommand = (
     details: {
       fields: fieldOptions.map(option => option.propertyKey),
       option: target.name || '(anonymous class)',
+      reason: 'option-command-has-fields',
     },
-    message: `@OptionCommand class "${target.name || '(anonymous class)'}" cannot declare option fields.`,
   })
 }

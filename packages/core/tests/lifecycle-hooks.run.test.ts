@@ -1,13 +1,23 @@
-import { Command, Exception, Module, Handler, Injectable } from '../src'
-import type { ExecutionOutcome, OnDispose, OnError, OnInit } from '../src'
+import {
+  Catch,
+  Command,
+  Context,
+  Handler,
+  Injectable,
+  Module,
+  OutputHost,
+  UseFilters,
+} from '../src'
+import type { ExceptionFilter, OnDispose, OnInit } from '../src'
+import { createTestingApp } from '../src/subpath/testing'
 import { expect, run, test } from './_test'
 
 test.sequential(
   'should run module, command, and provider lifecycle in activation order',
   async () => {
-    expect.assertions(3)
+    expect.assertions(2)
     const events: string[] = []
-    const outcomes = new Set<ExecutionOutcome>()
+    const disposeArgumentCounts: number[] = []
 
     @Injectable()
     class Resource implements OnInit, OnDispose {
@@ -15,9 +25,9 @@ test.sequential(
         events.push('resource:init')
       }
 
-      onDispose(outcome: ExecutionOutcome) {
-        outcomes.add(outcome)
-        events.push(`resource:dispose:${outcome.status}`)
+      onDispose(...args: unknown[]) {
+        disposeArgumentCounts.push(args.length)
+        events.push('resource:dispose')
       }
     }
 
@@ -35,9 +45,9 @@ test.sequential(
         return 'ready'
       }
 
-      onDispose(outcome: ExecutionOutcome) {
-        outcomes.add(outcome)
-        events.push(`command:dispose:${outcome.status}`)
+      onDispose(...args: unknown[]) {
+        disposeArgumentCounts.push(args.length)
+        events.push('command:dispose')
       }
     }
 
@@ -47,9 +57,9 @@ test.sequential(
         events.push('feature:init')
       }
 
-      onDispose(outcome: ExecutionOutcome) {
-        outcomes.add(outcome)
-        events.push(`feature:dispose:${outcome.status}`)
+      onDispose(...args: unknown[]) {
+        disposeArgumentCounts.push(args.length)
+        events.push('feature:dispose')
       }
     }
 
@@ -59,9 +69,9 @@ test.sequential(
         events.push('app:init')
       }
 
-      onDispose(outcome: ExecutionOutcome) {
-        outcomes.add(outcome)
-        events.push(`app:dispose:${outcome.status}`)
+      onDispose(...args: unknown[]) {
+        disposeArgumentCounts.push(args.length)
+        events.push('app:dispose')
       }
     }
 
@@ -72,55 +82,118 @@ test.sequential(
       'resource:init',
       'command:init',
       'handler',
-      'command:dispose:success',
-      'feature:dispose:success',
-      'app:dispose:success',
-      'resource:dispose:success',
+      'command:dispose',
+      'feature:dispose',
+      'app:dispose',
+      'resource:dispose',
     ])
-    expect(outcomes.size).toBe(1)
-    expect(Object.isFrozen([...outcomes][0])).toBe(true)
+    expect(disposeArgumentCounts).toEqual([0, 0, 0, 0])
   },
 )
 
-test.sequential('should pass handled errors to every dispose hook', async () => {
+test.sequential('should keep disposal independent from handled errors', async () => {
   expect.assertions(1)
   const events: string[] = []
 
+  @Catch()
+  class CommandFilter implements ExceptionFilter {
+    catch() {
+      events.push('command:error')
+    }
+  }
+
+  @UseFilters(CommandFilter)
   @Command('deploy')
-  class DeployCommand implements OnError, OnDispose {
+  class DeployCommand implements OnDispose {
     @Handler()
     run() {
       throw new Error('boom')
     }
 
-    onError(_exception: Exception) {
-      events.push('command:error')
-    }
-
-    onDispose(outcome: ExecutionOutcome) {
-      events.push(`command:dispose:${outcome.status}`)
+    onDispose() {
+      events.push('command:dispose')
     }
   }
 
   @Module({ commands: [DeployCommand] })
-  class AppModule implements OnError, OnDispose {
-    onError() {
-      events.push('app:error')
-    }
-
-    onDispose(outcome: ExecutionOutcome) {
-      events.push(
-        `app:dispose:${outcome.status}:${outcome.status === 'error' && outcome.handled}`,
-      )
+  class AppModule implements OnDispose {
+    onDispose() {
+      events.push('app:dispose')
     }
   }
 
   await run(AppModule, { argv: ['deploy'] })
-  expect(events).toEqual([
-    'command:error',
-    'command:dispose:error',
-    'app:dispose:error:true',
-  ])
+  expect(events).toEqual(['command:error', 'command:dispose', 'app:dispose'])
+})
+
+test.sequential(
+  'should settle context and deferred output before disposal',
+  async () => {
+    @Command('deploy')
+    class DeployCommand {
+      @Handler()
+      run() {
+        return 'ready'
+      }
+    }
+
+    @Module({ commands: [DeployCommand] })
+    class AppModule implements OnDispose {
+      constructor(
+        private readonly context: Context,
+        private readonly output: OutputHost,
+      ) {}
+
+      onDispose() {
+        this.output.defer('stdout', 'late output\n')
+        this.context.exitCode = 9
+      }
+    }
+
+    const result = await createTestingApp(AppModule).invoke(['deploy'])
+    expect(result).toMatchObject({
+      error: undefined,
+      exitCode: 0,
+      result: 'ready',
+      stderr:
+        'Lifecycle hook module "AppModule".onDispose() failed: Context.exitCode cannot change after invocation settlement.\n',
+      stdout: '',
+    })
+  },
+)
+
+test.sequential('should continue disposing scopes after a fault', async () => {
+  const events: string[] = []
+
+  @Command('deploy')
+  class DeployCommand implements OnDispose {
+    @Handler()
+    run() {
+      return 'ready'
+    }
+
+    onDispose() {
+      events.push('command:dispose')
+      throw new Error('command cleanup failed')
+    }
+  }
+
+  @Module({ commands: [DeployCommand] })
+  class AppModule implements OnDispose {
+    onDispose() {
+      events.push('app:dispose')
+    }
+  }
+
+  const result = await createTestingApp(AppModule).invoke(['deploy'])
+  expect(events).toEqual(['command:dispose', 'app:dispose'])
+  expect(result).toMatchObject({
+    error: undefined,
+    exitCode: 0,
+    result: 'ready',
+    stderr:
+      'Lifecycle hook command "DeployCommand".onDispose() failed: command cleanup failed\n',
+  })
 })
 
 test.sequential(

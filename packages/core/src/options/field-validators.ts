@@ -7,8 +7,7 @@ import { updateFieldMetadata } from './field-metadata'
 
 const throwInvalidFieldTarget = (propertyKey: string | symbol): never => {
   throw new InternalException(SYSTEM.INVALID_FIELD_DECORATOR_TARGET, {
-    details: { property: String(propertyKey) },
-    message: `Field validator "${String(propertyKey)}" must decorate an instance property.`,
+    details: { kind: 'validator', property: String(propertyKey) },
   })
 }
 

@@ -12,7 +12,12 @@ export interface HelpTransform {
   transform(meta: HelpMeta, context: HelpContext): HelpMeta | Promise<HelpMeta>
 }
 
-@OptionCommand({ alias: 'h', description: 'show help', name: 'help' })
+@OptionCommand({
+  alias: 'h',
+  description: 'show help',
+  name: 'help',
+  textOutput: 'stdout',
+})
 export class HelpOption implements HelpTransform {
   transform(meta: HelpMeta, context: HelpContext): HelpMeta | Promise<HelpMeta> {
     void context
@@ -24,9 +29,10 @@ export class HelpOption implements HelpTransform {
     @Args() args: CommandArgs,
     @Ctx() context: Context,
     @Stdout() stdout: Writable,
-  ): Promise<void> {
+  ): Promise<HelpMeta> {
     const helpContext = new HelpContext(args, context)
     const meta = await this.transform(helpContext.createMeta(), helpContext)
     stdout.write(HelpFormatter.format(meta))
+    return meta
   }
 }

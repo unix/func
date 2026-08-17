@@ -30,12 +30,12 @@ export const normalizeProvider = (provider: unknown): NormalizedProvider => {
   }
 
   if (!provider || typeof provider !== 'object') {
-    throw invalidProvider(provider, 'Provider must be a class or provider object.')
+    throw invalidProvider(provider, 'invalid-input')
   }
 
   const provide = propertyValue(provider, 'provide')
   if (!isProviderToken(provide)) {
-    throw invalidProvider(provider, 'Provider must declare a valid token.')
+    throw invalidProvider(provider, 'invalid-token')
   }
 
   const hasUseClass = Object.prototype.hasOwnProperty.call(provider, 'useClass')
@@ -43,16 +43,13 @@ export const normalizeProvider = (provider: unknown): NormalizedProvider => {
   const hasUseFactory = Object.prototype.hasOwnProperty.call(provider, 'useFactory')
   const strategies = [hasUseClass, hasUseValue, hasUseFactory].filter(Boolean)
   if (strategies.length !== 1) {
-    throw invalidProvider(
-      provider,
-      'Provider must declare exactly one of useClass, useValue, or useFactory.',
-    )
+    throw invalidProvider(provider, 'invalid-strategy-count')
   }
 
   if (hasUseClass) {
     const useClass = propertyValue(provider, 'useClass')
     if (!isType(useClass)) {
-      throw invalidProvider(provider, 'useClass must be a constructible class.')
+      throw invalidProvider(provider, 'invalid-class')
     }
     validateInjectable(useClass, provide)
 
@@ -65,14 +62,11 @@ export const normalizeProvider = (provider: unknown): NormalizedProvider => {
   if (hasUseFactory) {
     const useFactory = propertyValue(provider, 'useFactory')
     if (!isFactory(useFactory)) {
-      throw invalidProvider(provider, 'useFactory must be a function.')
+      throw invalidProvider(provider, 'invalid-factory')
     }
     const inject = propertyValue(provider, 'inject')
     if (inject !== undefined && !isProviderTokenList(inject)) {
-      throw invalidProvider(
-        provider,
-        'useFactory inject must contain valid provider tokens.',
-      )
+      throw invalidProvider(provider, 'invalid-factory-dependencies')
     }
 
     return {
@@ -123,12 +117,10 @@ const validateInjectable = (target: Type, token: ProviderToken) => {
       provider: target.name,
       token: providerTokenName(token),
     },
-    message: `Provider "${providerTokenName(token)}" must use an @Injectable class.`,
   })
 }
 
-const invalidProvider = (provider: unknown, message: string) =>
+const invalidProvider = (provider: unknown, reason: string) =>
   new InternalException(SYSTEM.INVALID_PROVIDER, {
-    details: { provider },
-    message,
+    details: { provider, reason },
   })

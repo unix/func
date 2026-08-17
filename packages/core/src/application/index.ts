@@ -1,5 +1,5 @@
 export { Injectable } from '../di/decorators'
-export type { ExecutionOutcome, OnDispose, OnError, OnInit } from '../di/lifecycle'
+export type { OnDispose, OnInit } from '../di/lifecycle'
 export type {
   ClassProvider,
   FactoryProvider,

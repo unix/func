@@ -1,6 +1,6 @@
-import { RUNTIME_PRINT, SYSTEM } from '@func/contracts/core-errors'
-import { parseArgv } from '../arg'
-import type { ArgParseFailure, ParsedArgv } from '../arg'
+import { RUNTIME, SYSTEM } from '@func/contracts/core-errors'
+import { parseArgv } from '../argv'
+import type { ArgParseFailure, ParsedArgv } from '../argv'
 import { handlers } from '../commands/metadata'
 import type {
   ActionEndpoint,
@@ -127,7 +127,7 @@ class InvocationResolver {
     plan: OptionPlan,
     errors: ArgParseFailure[],
   ): ParsedArgv | undefined {
-    const result = parseArgv(plan.argPlan, this.argv)
+    const result = parseArgv(plan.argvPlan, this.argv)
     if (result.success) return result.parsed
     errors.push(result.failure)
     return undefined
@@ -147,7 +147,7 @@ class InvocationResolver {
       )
       if (longest.length === 1) return longest[0]
     }
-    throw new InternalException(RUNTIME_PRINT.AMBIGUOUS_INVOCATION, {
+    throw new InternalException(RUNTIME.AMBIGUOUS_INVOCATION, {
       details: {
         input: this.argv,
         paths: candidates.map(candidate => candidate.match.node.path),
@@ -155,19 +155,19 @@ class InvocationResolver {
       message: `Invocation matches multiple command scopes: ${candidates
         .map(candidate => candidate.match.node.path.join(' ') || '(root)')
         .join(', ')}.`,
-      scope: ErrorScope.RUNTIME_PRINT,
+      scope: ErrorScope.RUNTIME,
     })
   }
 
   private selectTarget(candidate: InvocationCandidate): ResolvedInvocation {
     const actions = this.matchedActions(candidate)
     if (actions.length > 1) {
-      throw new InternalException(RUNTIME_PRINT.MULTIPLE_OPTIONS, {
+      throw new InternalException(RUNTIME.MULTIPLE_OPTIONS, {
         details: { options: actions.map(action => action.option.name) },
         message: `Only one action option can be invoked at a time: ${actions
           .map(action => `--${action.option.name}`)
           .join(', ')}.`,
-        scope: ErrorScope.RUNTIME_PRINT,
+        scope: ErrorScope.RUNTIME,
       })
     }
 
@@ -183,7 +183,6 @@ class InvocationResolver {
     if (!action && !endpoint && candidate.match.node !== applicationRoot) {
       throw new InternalException(SYSTEM.NO_MATCHING_HANDLER, {
         details: { path: candidate.match.node.path },
-        message: `Command "${candidate.match.node.path.join(' ')}" does not have a matching @Handler method.`,
       })
     }
 
@@ -216,10 +215,10 @@ class InvocationResolver {
     const options = disallowed.concat(candidate.parsed.unknown)
     if (!options.length) return
 
-    throw new InternalException(RUNTIME_PRINT.UNKNOWN_OPTION, {
+    throw new InternalException(RUNTIME.UNKNOWN_OPTION, {
       details: { options },
       message: `Unknown option${options.length > 1 ? 's' : ''}: ${options.join(', ')}.`,
-      scope: ErrorScope.RUNTIME_PRINT,
+      scope: ErrorScope.RUNTIME,
     })
   }
 
@@ -229,17 +228,17 @@ class InvocationResolver {
   ): never {
     const first = positionals[0]
     if (first) {
-      throw new InternalException(RUNTIME_PRINT.UNKNOWN_COMMAND, {
+      throw new InternalException(RUNTIME.UNKNOWN_COMMAND, {
         details: { command: first, input: this.argv },
         message: `Unknown command "${first}".`,
-        scope: ErrorScope.RUNTIME_PRINT,
+        scope: ErrorScope.RUNTIME,
       })
     }
 
-    throw new InternalException(RUNTIME_PRINT.UNKNOWN_OPTION, {
+    throw new InternalException(RUNTIME.UNKNOWN_OPTION, {
       details: { options: unknown },
       message: `Unknown option${unknown.length > 1 ? 's' : ''}: ${unknown.join(', ')}.`,
-      scope: ErrorScope.RUNTIME_PRINT,
+      scope: ErrorScope.RUNTIME,
     })
   }
 }
@@ -250,9 +249,9 @@ export const resolveInvocation = (
 ): ResolvedInvocation => new InvocationResolver(commandGraph, argv).resolve()
 
 const throwParseFailure = (failure: ArgParseFailure): never => {
-  throw new InternalException(RUNTIME_PRINT.PARSE, {
+  throw new InternalException(RUNTIME.PARSE, {
     details: failure.details,
     message: failure.message,
-    scope: ErrorScope.RUNTIME_PRINT,
+    scope: ErrorScope.RUNTIME,
   })
 }

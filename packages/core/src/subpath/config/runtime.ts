@@ -123,10 +123,9 @@ export const bindConfig = <T extends ConfigDefaults>(
   binding: ConfigBinding,
 ): ConfigInstance<T> => {
   if (!(instance instanceof ConfigRuntime)) {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      'Config provider must extend Config().',
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { reason: 'invalid-config-provider' },
+    })
   }
   instance.bind(binding)
   return instance

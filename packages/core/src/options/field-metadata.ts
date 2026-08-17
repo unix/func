@@ -3,6 +3,7 @@ import type {
   CompiledFieldOptionParams,
   FieldOptionParams,
   UserOptionEnumValue,
+  ValueTransform,
   ValueValidator,
 } from './types'
 import { SYSTEM } from '@func/contracts/core-errors'
@@ -19,13 +20,19 @@ export interface FieldConstraints {
 interface FieldMetadataEntry {
   constraints: FieldConstraints
   deprecated?: Deprecation
-  options: FieldOptionParams[]
+  options: FieldMetadataOption[]
   override: boolean
   required: boolean
   validators: ValueValidator[]
 }
 
+interface FieldMetadataOption {
+  option: FieldOptionParams
+  transform?: ValueTransform
+}
+
 export type CompiledFieldOption = CompiledFieldOptionParams & {
+  transform?: ValueTransform
   validators: readonly ValueValidator[]
 }
 
@@ -58,18 +65,18 @@ export const compileFieldOptions = (target: Function): CompiledFieldOption[] =>
       throw new InternalException(SYSTEM.INVALID_OVERRIDE_TARGET, {
         details: {
           className: target.name || '(anonymous class)',
-          options: field.options.map(option => option.name),
+          options: field.options.map(({ option }) => option.name),
           property: propertyKey,
         },
-        message: `@Override on "${target.name || '(anonymous class)'}.${propertyKey}" must target exactly one option field.`,
       })
     }
 
-    return field.options.map(option => ({
+    return field.options.map(({ option, transform }) => ({
       ...option,
       ...field.constraints,
       ...(field.deprecated ? { deprecated: field.deprecated } : {}),
       ...(field.override ? { override: true } : {}),
+      ...(transform ? { transform } : {}),
       required: field.required,
       validators: field.validators.slice(),
     }))

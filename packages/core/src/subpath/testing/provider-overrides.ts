@@ -25,7 +25,6 @@ export const applyProviderOverrides = (
     if (isBuiltInToken(normalized.token)) {
       throw new InternalException(SYSTEM.INVALID_PROVIDER, {
         details: { token: providerTokenName(normalized.token) },
-        message: `System provider "${providerTokenName(normalized.token)}" can only be configured through application options.`,
       })
     }
 
@@ -37,7 +36,6 @@ export const applyProviderOverrides = (
     if (!matches.length) {
       throw new InternalException(SYSTEM.MISSING_PROVIDER, {
         details: { token: providerTokenName(normalized.token) },
-        message: `Provider "${providerTokenName(normalized.token)}" cannot be overridden because it is not registered.`,
       })
     }
     if (matches.length > 1) {
@@ -46,7 +44,6 @@ export const applyProviderOverrides = (
           modules: matches.map(record => record.owner.name),
           token: providerTokenName(normalized.token),
         },
-        message: `Provider "${providerTokenName(normalized.token)}" cannot be overridden by token because it is registered in more than one module.`,
       })
     }
 
@@ -57,7 +54,6 @@ export const applyProviderOverrides = (
           module: record.owner.name,
           token: providerTokenName(normalized.token),
         },
-        message: `Provider "${providerTokenName(normalized.token)}" is overridden more than once in module "${record.owner.name}".`,
       })
     }
 

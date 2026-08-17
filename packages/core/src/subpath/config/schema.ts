@@ -61,16 +61,14 @@ export const assertJsonValue: AssertJsonValue = (
     return
   if (typeof value === 'number' && Number.isFinite(value)) return
   if (!value || typeof value !== 'object') {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      `${label} must be JSON serializable.`,
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { label, reason: 'non-json-value' },
+    })
   }
   if (ancestors.has(value)) {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      `${label} cannot contain circular references.`,
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { label, reason: 'circular-json-value' },
+    })
   }
 
   const nextAncestors = new Set(ancestors).add(value)
@@ -79,10 +77,9 @@ export const assertJsonValue: AssertJsonValue = (
     return
   }
   if (!isConfigRecord(value)) {
-    throw new InternalException(
-      SYSTEM.DEFINITION,
-      `${label} must contain only plain objects.`,
-    )
+    throw new InternalException(SYSTEM.DEFINITION, {
+      details: { label, reason: 'non-plain-object' },
+    })
   }
   Object.values(value).forEach(item => assertJsonValue(item, label, nextAncestors))
 }
