@@ -2,8 +2,12 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "rootDir": "."
+    "paths": {
+      "func/parser": ["../core/src/subpath/parser/index.ts"]
+    },
+    "rootDir": "..",
+    "skipLibCheck": true
   },
   "files": [],
-  "include": ["*.config.mts"]
+  "include": ["*.config.mts", "e2e/**/*.ts", "src/**/*.ts", "tests/**/*.ts"]
 }

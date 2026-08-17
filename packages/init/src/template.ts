@@ -1,3 +1,4 @@
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import fs from 'fs'
 import https from 'https'
 import os from 'os'
@@ -36,13 +37,18 @@ export const downloadTemplate = async (destination: string): Promise<void> => {
 }
 
 export const resolveTemplateTarball = (metadata: Buffer): string => {
-  const pkg: unknown = JSON.parse(metadata.toString('utf-8'))
+  let pkg: unknown
+  try {
+    pkg = JSON.parse(metadata.toString('utf-8'))
+  } catch (error) {
+    throw templateMetadataError(nativeError(error))
+  }
   if (!isPackageMetadata(pkg)) {
-    throw new Error(`Cannot resolve tarball for ${FUNC_TEMPLATE_URL}.`)
+    throw templateMetadataError()
   }
   const tarball = pkg.dist?.tarball
   if (!tarball) {
-    throw new Error(`Cannot resolve tarball for ${FUNC_TEMPLATE_URL}.`)
+    throw templateMetadataError()
   }
 
   return tarball
@@ -62,7 +68,12 @@ const fetchUrl = (url: string): Promise<Buffer> => {
 
         if (statusCode < 200 || statusCode >= 300) {
           response.resume()
-          reject(new Error(`Request failed: ${url} (${statusCode})`))
+          reject(
+            new ScaffoldException(SCAFFOLD.TEMPLATE_DOWNLOAD_FAILED, {
+              details: { statusCode, url },
+              message: `Request failed: ${url} (${statusCode})`,
+            }),
+          )
           return
         }
 
@@ -77,16 +88,39 @@ const fetchUrl = (url: string): Promise<Buffer> => {
             chunks.push(value)
             return
           }
-          reject(new TypeError(`Unsupported response chunk from ${url}.`))
+          reject(
+            new ScaffoldException(SCAFFOLD.TEMPLATE_DOWNLOAD_FAILED, {
+              details: { url },
+              message: `Unsupported response chunk from ${url}.`,
+            }),
+          )
           response.destroy()
         })
         response.on('end', () => {
           resolve(concatBytes(chunks))
         })
       })
-      .on('error', reject)
+      .on('error', error => {
+        reject(
+          new ScaffoldException(SCAFFOLD.TEMPLATE_DOWNLOAD_FAILED, {
+            cause: error,
+            details: { url },
+            message: `Request failed: ${url}.`,
+          }),
+        )
+      })
   })
 }
+
+const templateMetadataError = (cause?: Error): ScaffoldException =>
+  new ScaffoldException(SCAFFOLD.TEMPLATE_METADATA_INVALID, {
+    ...(cause ? { cause } : {}),
+    details: { url: FUNC_TEMPLATE_URL },
+    message: `Cannot resolve tarball for ${FUNC_TEMPLATE_URL}.`,
+  })
+
+const nativeError = (error: unknown): Error | undefined =>
+  error instanceof Error ? error : undefined
 
 const isPackageMetadata = (value: unknown): value is PackageMetadata =>
   typeof value === 'object' && value !== null

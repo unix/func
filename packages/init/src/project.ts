@@ -1,3 +1,4 @@
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -18,7 +19,10 @@ export const createProject = async (requestedName?: string): Promise<void> => {
   let createdTarget = false
 
   if (fs.existsSync(targetDir)) {
-    throw new Error(`Project "${name}" already exists at ${targetDir}.`)
+    throw new ScaffoldException(SCAFFOLD.PROJECT_EXISTS, {
+      details: { name, path: targetDir },
+      message: `Project "${name}" already exists at ${targetDir}.`,
+    })
   }
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-func-'))
@@ -79,21 +83,43 @@ export const promptProjectName = async (prompt: PromptSession): Promise<string> 
 
 export const assertProjectName = (name: string): void => {
   if (!name.trim()) {
-    throw new Error('Project name is required.')
+    throw invalidProjectName(name, 'required', 'Project name is required.')
   }
 
   if (name.startsWith('-')) {
-    throw new Error('Project name cannot start with "-".')
+    throw invalidProjectName(
+      name,
+      'leading-dash',
+      'Project name cannot start with "-".',
+    )
   }
 
   if (path.isAbsolute(name) || name === '.' || name === '..') {
-    throw new Error('Project name must be a relative directory name.')
+    throw invalidProjectName(
+      name,
+      'not-relative',
+      'Project name must be a relative directory name.',
+    )
   }
 
   if (/[\\/]/.test(name)) {
-    throw new Error('Project name cannot contain path separators.')
+    throw invalidProjectName(
+      name,
+      'path-separator',
+      'Project name cannot contain path separators.',
+    )
   }
 }
+
+const invalidProjectName = (
+  name: string,
+  reason: string,
+  message: string,
+): ScaffoldException =>
+  new ScaffoldException(SCAFFOLD.INVALID_PROJECT_NAME, {
+    details: { name, reason },
+    message,
+  })
 
 const copyDirectory = (source: string, destination: string): void => {
   const entries = fs.readdirSync(source, { withFileTypes: true })

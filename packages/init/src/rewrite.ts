@@ -1,3 +1,4 @@
+import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import fs from 'fs'
 import path from 'path'
 
@@ -16,9 +17,14 @@ export const rewriteDownloadedTemplate = (
 const updatePackageMetadata = (targetDir: string, packageName: string): void => {
   const packagePath = path.join(targetDir, 'package.json')
   if (!fs.existsSync(packagePath)) return
-  const value: unknown = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+  let value: unknown
+  try {
+    value = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+  } catch (error) {
+    throw invalidPackageMetadata(packagePath, nativeError(error))
+  }
   if (!isUnknownRecord(value)) {
-    throw new TypeError(`Invalid package metadata in "${packagePath}".`)
+    throw invalidPackageMetadata(packagePath)
   }
   const pkg = value
   const bin = resolveBinEntry(pkg.bin)
@@ -36,6 +42,19 @@ const updatePackageMetadata = (targetDir: string, packageName: string): void => 
 
 const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
+
+const invalidPackageMetadata = (
+  packagePath: string,
+  cause?: Error,
+): ScaffoldException =>
+  new ScaffoldException(SCAFFOLD.INVALID_PACKAGE_METADATA, {
+    ...(cause ? { cause } : {}),
+    details: { path: packagePath },
+    message: `Invalid package metadata in "${packagePath}".`,
+  })
+
+const nativeError = (error: unknown): Error | undefined =>
+  error instanceof Error ? error : undefined
 
 const updateAppName = (targetDir: string, packageName: string): void => {
   const configPath = path.join(targetDir, ...APP_CONFIG_PATH)

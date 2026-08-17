@@ -1,3 +1,4 @@
+import { SCAFFOLD, formatScaffoldErrorCode } from '@func/contracts/scaffold-errors'
 import { describe, expect, test } from 'vitest'
 import fs from 'fs'
 import os from 'os'
@@ -18,6 +19,14 @@ describe('resolveTemplateTarball', () => {
 
     expect(resolveTemplateTarball(metadata)).toBe(
       'https://registry.npmjs.org/func-template/-/func-template-1.0.0.tgz',
+    )
+  })
+
+  test('reports invalid package metadata with a scaffold error code', () => {
+    expect(() => resolveTemplateTarball(Buffer.from('{'))).toThrow(
+      expect.objectContaining({
+        code: formatScaffoldErrorCode(SCAFFOLD.TEMPLATE_METADATA_INVALID),
+      }),
     )
   })
 })

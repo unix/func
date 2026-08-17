@@ -1,3 +1,4 @@
+import { SCAFFOLD, formatScaffoldErrorCode } from '@func/contracts/scaffold-errors'
 import { describe, expect, test } from 'vitest'
 import fs from 'fs'
 import os from 'os'
@@ -43,9 +44,13 @@ describe('promptProjectName', () => {
 
 describe('assertProjectName', () => {
   test('rejects invalid project names', () => {
-    expect(() => assertProjectName('')).toThrow('required')
-    expect(() => assertProjectName('--help')).toThrow('cannot start')
-    expect(() => assertProjectName('../app')).toThrow('path separators')
+    for (const name of ['', '--help', '../app']) {
+      expect(() => assertProjectName(name)).toThrow(
+        expect.objectContaining({
+          code: formatScaffoldErrorCode(SCAFFOLD.INVALID_PROJECT_NAME),
+        }),
+      )
+    }
   })
 
   test('accepts plain project names', () => {
@@ -61,6 +66,21 @@ describe('packageNameFromProjectName', () => {
 })
 
 describe('rewriteDownloadedTemplate', () => {
+  test('reports invalid package JSON with a scaffold error code', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-func-project-'))
+
+    try {
+      fs.writeFileSync(path.join(tempDir, 'package.json'), '{')
+      expect(() => rewriteDownloadedTemplate(tempDir, 'my-app')).toThrow(
+        expect.objectContaining({
+          code: formatScaffoldErrorCode(SCAFFOLD.INVALID_PACKAGE_METADATA),
+        }),
+      )
+    } finally {
+      fs.rmSync(tempDir, { force: true, recursive: true })
+    }
+  })
+
   test('rewrites template files for a user project', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-func-project-'))
 
