@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmit": true,
+    "paths": {
+      "func": ["../packages/core/src/index.ts"]
+    },
+    "strict": true,
+    "target": "esnext",
+    "typeRoots": ["../packages/core/node_modules/@types"],
+    "types": ["node"]
+  },
+  "include": ["*.ts"]
+}
