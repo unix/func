@@ -11,10 +11,8 @@ assert.equal(func.isException(systemError), true)
 assert.equal(systemError.code, 'F_SYSTEM_INVALID_TOKEN')
 assert.equal(systemError.details.source, 'ecosystem')
 
-const exceptionContext = new func.ExceptionContext()
-assert.equal(exceptionContext.printPrevented, false)
-exceptionContext.preventDefaultPrint()
-assert.equal(exceptionContext.printPrevented, true)
+assert.equal(typeof func.Catch, 'function')
+assert.equal(typeof func.UseFilters, 'function')
 
 class AppModule {}
 func.Module({ commands: [] })(AppModule)

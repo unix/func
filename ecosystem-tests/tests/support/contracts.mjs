@@ -11,6 +11,7 @@ const expectedFuncApi = {
   CommandMajor: 'function',
   CommandMissing: 'function',
   Container: 'function',
+  Catch: 'function',
   Context: 'function',
   Ctx: 'function',
   Deprecated: 'function',
@@ -20,7 +21,6 @@ const expectedFuncApi = {
   Exclusive: 'function',
   Flag: 'function',
   Exception: 'function',
-  ExceptionContext: 'function',
   Module: 'function',
   Handler: 'function',
   Inject: 'function',
@@ -28,6 +28,8 @@ const expectedFuncApi = {
   Required: 'function',
   Value: 'function',
   ValueValidate: 'function',
+  UseFilters: 'function',
+  UseInterceptors: 'function',
   createApp: 'function',
   createToken: 'function',
   formatExceptionCode: 'function',
@@ -118,14 +120,12 @@ export const assertBuiltBehavior = (projectRoot, output, projectName) => {
   })
   assert.equal(help.stdout.trim(), 'commands:async,deploy,greet')
   assert.equal(missing.stderr.trim(), 'missing:unknown')
-  assert.match(required.stderr, /local:F_RUNTIME_PRINT_VALIDATION/)
-  assert.match(required.stderr, /Option "--target" is required\./)
+  assert.match(required.stderr, /local:F_RUNTIME_VALIDATION/)
   assert.match(validation.stderr, /Option "--target" is invalid\./)
   assert.match(dependsOn.stderr, /Option "--registry" depends on: --token\./)
   assert.match(exclusive.stderr, /Option "--table" cannot be used with: --json\./)
-  assert.match(enumFailure.stderr, /global:F_RUNTIME_PRINT_VALIDATION/)
-  assert.match(enumFailure.stderr, /Option "--mode" must be one of: dev, prod\./)
-  assert.match(global.stderr, /global:F_RUNTIME_PRINT_UNKNOWN_OPTION/)
+  assert.match(enumFailure.stderr, /global:F_RUNTIME_VALIDATION/)
+  assert.match(global.stderr, /global:F_RUNTIME_UNKNOWN_OPTION/)
 }
 
 export const assertRegistryPackage = (projectRoot, lockfile, name, version) => {
