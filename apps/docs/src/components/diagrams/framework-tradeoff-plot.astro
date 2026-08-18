@@ -138,6 +138,7 @@ const points = frameworkIds.map(id => {
   return {
     active: activeFrameworkIds.has(id),
     bundleKiB,
+    detailsPersistent: id === 'func',
     floorPosition,
     id,
     label: frameworkNames[id],
@@ -373,7 +374,7 @@ const methodology = `${labels.methodologyPrefix}${labels.report}${labels.methodo
               aria-label={`${point.label}: ${point.bundleKiB.toFixed(1)} KiB, ${point.startupMs.toFixed(1)} ms`}
               class="group outline-none"
               role="img"
-              tabindex={point.active ? undefined : 0}>
+              tabindex={point.detailsPersistent ? undefined : 0}>
               <circle
                 class="fill-transparent"
                 cx={point.x}
@@ -395,7 +396,7 @@ const methodology = `${labels.methodologyPrefix}${labels.report}${labels.methodo
                 <tspan
                   class:list={[
                     'fill-muted-foreground text-[9px] font-normal',
-                    !point.active &&
+                    !point.detailsPersistent &&
                       'opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100',
                   ]}
                   dy="13"
