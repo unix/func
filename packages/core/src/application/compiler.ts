@@ -6,7 +6,7 @@ import type { Type } from '../di/types'
 import { providerTokenName } from '../di/provider-utils'
 import { HandlerRegistry } from '../commands/graph/registry'
 import type { HandlerRecord } from '../commands/graph/registry'
-import { CommandGraph } from '../commands/graph/compiler'
+import { compileCommandGraph } from '../commands/graph/compiler'
 import { compileMethodHandlers } from '../deprecation'
 import type { CommandParams } from '../commands/types'
 import { compileModuleOptions } from '../options/compiler'
@@ -52,7 +52,7 @@ export const compileApplication = (
       ),
   )
   const registry = new HandlerRegistry(records)
-  const commandGraph = new CommandGraph({
+  const commandGraph = compileCommandGraph({
     options,
     registry,
     root: graph.root,

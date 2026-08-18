@@ -8,7 +8,6 @@ import { handlers } from '../metadata'
 import type {
   CommandEndpoint,
   CommandGraphParams,
-  CommandMatch,
   CommandNode,
   CompiledCommandGraph,
   FlagCommandEndpoint,
@@ -21,6 +20,7 @@ import type {
 import { compileOptionPlan, throwDuplicateOption } from './option-plan'
 import { validateRegistration } from './registration'
 import type { HandlerRecord } from './registry'
+import { CommandGraph } from './runtime'
 
 export type {
   ActionEndpoint,
@@ -33,6 +33,7 @@ export type {
   OptionPlan,
   ProviderOptionBinding,
 } from './model'
+export { CommandGraph } from './runtime'
 
 class CommandGraphBuilder {
   private readonly registeredCommands: CommandInfo[] = []
@@ -241,96 +242,12 @@ class CommandGraphBuilder {
   }
 }
 
-export class CommandGraph {
-  private readonly commandInfos: readonly CommandInfo[]
-  private readonly commandNodes: readonly CommandNode[]
-  private readonly handlerRecords: readonly HandlerRecord[]
-  private readonly namedCommandNodes: readonly CommandNode[]
-  private readonly root: CommandNode
-  private readonly specialCommandNodes: ReadonlyMap<
-    SpecialCommandKind,
-    readonly CommandNode[]
-  >
-  private readonly specialRoots: ReadonlyMap<SpecialCommandKind, CommandNode>
-
-  constructor(params: CommandGraphParams) {
-    const graph = new CommandGraphBuilder(params).build()
-    this.commandInfos = graph.commandInfos
-    this.commandNodes = graph.nodes
-    this.namedCommandNodes = graph.nodes.filter(node => node.path.length)
-    this.handlerRecords = params.registry
-      .commands()
-      .concat(params.registry.majors(), params.registry.missing())
-    this.root = graph.root
-    this.specialCommandNodes = graph.specialNodes
-    this.specialRoots = graph.specialRoots
-  }
-
-  commands(): readonly CommandInfo[] {
-    return this.commandInfos
-  }
-
-  nodes(): readonly CommandNode[] {
-    return this.commandNodes
-  }
-
-  namedNodes(): readonly CommandNode[] {
-    return this.namedCommandNodes
-  }
-
-  records(): readonly HandlerRecord[] {
-    return this.handlerRecords
-  }
-
-  specialNodes(kind: SpecialCommandKind): readonly CommandNode[] {
-    return this.specialCommandNodes.get(kind) ?? []
-  }
-
-  rootNode(): CommandNode {
-    return this.root
-  }
-
-  specialRoot(kind: SpecialCommandKind): CommandNode | undefined {
-    return this.specialRoots.get(kind)
-  }
-
-  match(argv: readonly string[]): CommandMatch | undefined {
-    return this.matchFrom(this.root, argv, false)
-  }
-
-  matchSpecial(
-    kind: SpecialCommandKind,
-    argv: readonly string[],
-  ): CommandMatch | undefined {
-    const root = this.specialRoots.get(kind)
-    if (!root) return undefined
-    return this.matchFrom(root, argv, true)
-  }
-
-  private matchFrom(
-    root: CommandNode,
-    argv: readonly string[],
-    allowRoot: boolean,
-  ): CommandMatch | undefined {
-    let node = root
-    let consumed = 0
-
-    while (consumed < argv.length) {
-      const token = argv[consumed]
-      if (!token || token.startsWith('-')) break
-      const child = node.transitions.get(token)
-      if (!child) break
-      node = child
-      consumed += 1
-    }
-
-    if (!allowRoot && !consumed) return undefined
-    return {
-      consumed,
-      invokedPath: argv.slice(0, consumed),
-      node,
-    }
-  }
+export const compileCommandGraph = (params: CommandGraphParams): CommandGraph => {
+  const graph = new CommandGraphBuilder(params).build()
+  const records = params.registry
+    .commands()
+    .concat(params.registry.majors(), params.registry.missing())
+  return new CommandGraph(graph, records)
 }
 
 const buildCommandNode = (path: string[]): MutableCommandNode => ({

@@ -31,6 +31,8 @@
     "src/subpath/parser/index.ts",
     "src/subpath/process/index.ts",
     "src/subpath/process/testing/index.ts",
+    "src/subpath/precompiled/index.ts",
+    "src/subpath/precompiler/index.ts",
     "src/subpath/signals/index.ts",
     "src/subpath/testing/index.ts",
     "src/subpath/testing/cli/index.ts",

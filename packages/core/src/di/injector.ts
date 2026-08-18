@@ -5,12 +5,8 @@ import { metadata } from './metadata'
 import { parameterTokens } from './decorators'
 import { hasOnDispose, hasOnInit } from './lifecycle'
 import type { LifecycleFault } from './lifecycle'
-import { providerRecord } from './module-compiler'
-import type {
-  CompiledGraph,
-  CompiledModule,
-  ProviderRecord,
-} from './module-compiler'
+import { providerRecord } from './module-graph'
+import type { CompiledGraph, CompiledModule, ProviderRecord } from './module-graph'
 import type { FactoryProvider, ProviderToken, Type } from './types'
 import { isProviderToken, providerTokenName } from './provider-utils'
 

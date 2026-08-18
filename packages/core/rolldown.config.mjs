@@ -15,6 +15,8 @@ const application = {
     'net-testing': 'src/subpath/net/testing/index.ts',
     process: 'src/subpath/process/index.ts',
     'process-testing': 'src/subpath/process/testing/index.ts',
+    precompiled: 'src/subpath/precompiled/index.ts',
+    precompiler: 'src/subpath/precompiler/index.ts',
     signals: 'src/subpath/signals/index.ts',
     testing: 'src/subpath/testing/index.ts',
     'testing-cli': 'src/subpath/testing/cli/index.ts',

@@ -1,4 +1,4 @@
-import type { CompiledModule } from '../../di/module-compiler'
+import type { CompiledModule } from '../../di/module-graph'
 import type { Type } from '../../di/types'
 import type { CommandParams, HandlerParams } from '../types'
 import type { CompiledFieldOption } from '../../options/field-metadata'

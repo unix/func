@@ -1,5 +1,5 @@
-import type { CommandGraph } from '../commands/graph/compiler'
-import type { CompiledGraph } from '../di/module-compiler'
+import type { CommandGraph } from '../commands/graph/runtime'
+import type { CompiledGraph } from '../di/module-graph'
 
 export interface CompiledApplication {
   readonly appName?: string

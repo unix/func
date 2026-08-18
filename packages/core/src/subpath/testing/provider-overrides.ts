@@ -1,5 +1,5 @@
 import { SYSTEM } from '@func/contracts/core-errors'
-import type { ProviderRecord } from '../../di/module-compiler'
+import type { ProviderRecord } from '../../di/module-graph'
 import type { ExplicitProvider, Provider, ProviderToken, Type } from '../../di/types'
 import { normalizeProvider, providerTokenName } from '../../di/provider-utils'
 import { isBuiltInToken } from '../../runtime/injection'

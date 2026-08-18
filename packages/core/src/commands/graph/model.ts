@@ -1,6 +1,6 @@
 import type { ArgvPlan } from '../../argv'
 import type { CommandInfo } from '../command-info'
-import type { CompiledModule } from '../../di/module-compiler'
+import type { CompiledModule } from '../../di/module-graph'
 import type { HandlerParams } from '../types'
 import type { OptionParams } from '../../options/types'
 import type {

@@ -3,34 +3,17 @@ import { hasModuleMetadata, moduleMetadata } from '../application/definition'
 import type { ModuleInput } from '../application/definition'
 import { InternalException, isException } from '../shared/errors'
 import { isMultiProviderToken } from '../runtime/enhancers'
-import type { ExplicitProvider, Provider, ProviderToken } from './types'
+import type { Provider } from './types'
+import type { CompiledGraph, CompiledModule, ProviderRecord } from './module-graph'
+import { providerRecord, providerRecords } from './module-graph'
 import {
   isProviderToken,
   normalizeProvider,
   providerTokenName,
 } from './provider-utils'
 
-export interface ProviderRecord {
-  definition: ExplicitProvider
-  kind: 'option' | 'provider'
-  owner: CompiledModule
-  token: ProviderToken
-}
-
-export interface CompiledModule {
-  exports: Map<ProviderToken, ProviderRecord | readonly ProviderRecord[]>
-  imports: CompiledModule[]
-  input: ModuleInput
-  multiProviders: Map<ProviderToken, ProviderRecord[]>
-  name: string
-  options: ProviderRecord[]
-  providers: Map<ProviderToken, ProviderRecord>
-}
-
-export interface CompiledGraph {
-  modules: readonly CompiledModule[]
-  root: CompiledModule
-}
+export type { CompiledGraph, CompiledModule, ProviderRecord } from './module-graph'
+export { providerRecord, providerRecords } from './module-graph'
 
 interface CompilerState {
   cache: Map<ModuleInput, CompiledModule>
@@ -160,35 +143,6 @@ export const registerProviders = (
     return record
   })
 
-export const providerRecord = (
-  requester: CompiledModule,
-  token: ProviderToken,
-): ProviderRecord | undefined => {
-  const local = requester.providers.get(token)
-  if (local) return local
-  let matched: ProviderRecord | undefined
-
-  requester.imports.forEach(imported => {
-    const exported = imported.exports.get(token)
-    const candidate = isProviderRecordList(exported) ? undefined : exported
-    if (!candidate || candidate === matched) return
-    if (!matched) {
-      matched = candidate
-      return
-    }
-
-    throw new InternalException(SYSTEM.DUPLICATE_PROVIDER, {
-      details: {
-        module: requester.name,
-        providers: [matched.owner.name, candidate.owner.name],
-        token: providerTokenName(token),
-      },
-    })
-  })
-
-  return matched
-}
-
 export const registerMultiProviders = (
   owner: CompiledModule,
   providers: readonly Provider[],
@@ -223,18 +177,6 @@ export const registerMultiProviders = (
     return record
   })
 
-export const providerRecords = (
-  requester: CompiledModule,
-  token: ProviderToken,
-): readonly ProviderRecord[] => {
-  const records = (requester.multiProviders.get(token) ?? []).slice()
-  requester.imports.forEach(imported => {
-    const exported = imported.exports.get(token)
-    if (isProviderRecordList(exported)) records.push(...exported)
-  })
-  return records
-}
-
 const moduleName = (input: ModuleInput): string => {
   const metadata = moduleMetadata(input)
   if (metadata.name) return metadata.name
@@ -246,10 +188,6 @@ const providerName = (token: unknown): string => {
   if (isProviderToken(token)) return providerTokenName(token)
   return String(token)
 }
-
-const isProviderRecordList = (
-  value: ProviderRecord | readonly ProviderRecord[] | undefined,
-): value is readonly ProviderRecord[] => Array.isArray(value)
 
 const isMultiProvider = (provider: unknown): boolean => {
   if (

@@ -11,8 +11,8 @@ import {
   selectContextResultOutput,
   settleContext,
 } from './context'
-import { providerRecord, providerRecords } from '../di/module-compiler'
-import type { CompiledModule, ProviderRecord } from '../di/module-compiler'
+import { providerRecord, providerRecords } from '../di/module-graph'
+import type { CompiledModule, ProviderRecord } from '../di/module-graph'
 import { RuntimeInjector } from '../di/injector'
 import { hasOnDispose, hasOnInit } from '../di/lifecycle'
 import type { LifecycleFault } from '../di/lifecycle'

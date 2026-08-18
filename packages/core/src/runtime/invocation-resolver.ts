@@ -5,11 +5,11 @@ import { handlers } from '../commands/metadata'
 import type {
   ActionEndpoint,
   CommandEndpoint,
-  CommandGraph,
   CommandMatch,
   CommandNode,
   OptionPlan,
-} from '../commands/graph/compiler'
+} from '../commands/graph/model'
+import type { CommandGraph } from '../commands/graph/runtime'
 import type { HandlerRecord } from '../commands/graph/registry'
 import type { OptionParams } from '../options/types'
 import { ErrorScope, InternalException } from '../shared/errors'

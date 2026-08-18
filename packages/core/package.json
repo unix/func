@@ -1,6 +1,6 @@
 {
   "name": "func",
-  "version": "3.0.0-canary.1",
+  "version": "3.0.0-canary.2",
   "type": "commonjs",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -8,6 +8,14 @@
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/index.mjs"
+    },
+    "./_internal/precompiled-v1": {
+      "types": "./dist/types/subpath/precompiled/index.d.ts",
+      "import": "./dist/precompiled.mjs"
+    },
+    "./_internal/precompiler-v1": {
+      "types": "./dist/types/subpath/precompiler/index.d.ts",
+      "import": "./dist/precompiler.mjs"
     },
     "./testing": {
       "types": "./dist/types/subpath/testing/index.d.ts",

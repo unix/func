@@ -3,10 +3,10 @@ import type { ArgToken } from '../../argv/interfaces'
 import { compileApplication } from '../../application/compiler'
 import type {
   ActionEndpoint,
-  CommandGraph,
   CommandNode,
   OptionPlan,
-} from '../../commands/graph/compiler'
+} from '../../commands/graph/model'
+import type { CommandGraph } from '../../commands/graph/runtime'
 import type { Type } from '../../di/types'
 import type { Deprecation } from '../../deprecation'
 import type { OptionParams, UserOptionEnumValue } from '../../options/types'

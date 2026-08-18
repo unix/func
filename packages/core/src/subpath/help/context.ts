@@ -7,11 +7,8 @@ import type {
 import type { Args } from '../../runtime/args'
 import { contextInvocation } from '../../runtime/context'
 import type { Context } from '../../runtime/context'
-import type {
-  CommandGraph,
-  CommandNode,
-  OptionPlan,
-} from '../../commands/graph/compiler'
+import type { CommandNode, OptionPlan } from '../../commands/graph/model'
+import type { CommandGraph } from '../../commands/graph/runtime'
 import { handlers } from '../../commands/metadata'
 import type {
   HelpCommandMeta,

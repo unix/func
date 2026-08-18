@@ -17,6 +17,8 @@ export default defineConfig({
     'subpath/parser/index': 'src/subpath/parser/index.ts',
     'subpath/process/index': 'src/subpath/process/index.ts',
     'subpath/process/testing/index': 'src/subpath/process/testing/index.ts',
+    'subpath/precompiled/index': 'src/subpath/precompiled/index.ts',
+    'subpath/precompiler/index': 'src/subpath/precompiler/index.ts',
     'subpath/signals/index': 'src/subpath/signals/index.ts',
     'subpath/testing/index': 'src/subpath/testing/index.ts',
     'subpath/testing/cli/index': 'src/subpath/testing/cli/index.ts',
