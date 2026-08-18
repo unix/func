@@ -34,6 +34,26 @@ Standard tooling for [`func`](https://github.com/unix/func) development.
 
 <br/>
 
+### Application precompilation
+
+`funcgo build` precompiles statically analyzable `func` application graphs by
+default and falls back to runtime graph compilation for dynamic definitions.
+Configure the behavior through `package.json`:
+
+```json
+{
+  "func": {
+    "precompile": "auto"
+  }
+}
+```
+
+- `"auto"` (default): precompile when safe, otherwise fall back.
+- `"required"`: fail the build unless the complete graph is precompiled.
+- `false`: disable application graph precompilation.
+
+<br/>
+
 ### LICENSE
 
 [MIT](./LICENSE)

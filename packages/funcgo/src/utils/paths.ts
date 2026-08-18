@@ -9,6 +9,7 @@ export const packagePath = path.join(cwd, 'package.json')
 export interface FuncConfig {
   entry?: string
   outDir?: string
+  precompile?: 'auto' | 'required' | false
 }
 
 export interface ProjectPackage {

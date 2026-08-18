@@ -2,6 +2,7 @@ import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
 import fs from 'fs'
 import path from 'path'
 import { funcgoParser } from '../parser'
+import { applicationPrecompilePlugin } from '../plugins/application-precompile'
 import { valueTypeValidationPlugin } from '../plugins/value-type-validation'
 import { resolveWatchTargets, watchBuild } from '../utils/build-watch'
 import { withErrorTrackingUrl } from '../utils/error-tracking'
@@ -26,6 +27,7 @@ interface ProjectBuildOptions {
   entry: string
   external: string[]
   output: string
+  precompile?: 'auto' | 'required' | false
 }
 
 const runBuild = async (args: BuildArgs): Promise<void> => {
@@ -43,6 +45,7 @@ const runBuild = async (args: BuildArgs): Promise<void> => {
     entry,
     external: args.external,
     output,
+    precompile: pkg.func?.precompile,
   }
   if (!args.watch) {
     await buildWithRolldown(buildOptions)
@@ -83,12 +86,20 @@ export const buildWithRolldown = async (
   spinner.start('Bundling...')
   try {
     const { build: bundle } = await import('rolldown')
+    const tsconfig = resolveTsconfig(options.entry)
     await bundle({
       input: options.entry,
       external: options.external,
       platform: 'node',
-      plugins: [valueTypeValidationPlugin({ cwd })],
-      tsconfig: resolveTsconfig(options.entry),
+      plugins: [
+        applicationPrecompilePlugin({
+          entry: options.entry,
+          mode: options.precompile ?? 'auto',
+          tsconfig,
+        }),
+        valueTypeValidationPlugin({ cwd }),
+      ],
+      tsconfig,
       transform: {
         target: 'node24.15',
       },
