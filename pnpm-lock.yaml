@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  funcgo@1.2.0-canary.0>func: 3.0.0-canary.1
-
 pnpmfileChecksum: sha256-9ou1MNT8seCjU1JRqMOR9vJxNvNql7kVSKfOaH2SPfg=
 
 importers:
@@ -196,8 +193,8 @@ importers:
         specifier: 15.0.0
         version: 15.0.0
       func:
-        specifier: 3.0.0-canary.1
-        version: 3.0.0-canary.1
+        specifier: 3.0.0-canary.2
+        version: 3.0.0-canary.2
       yargs:
         specifier: 18.1.0
         version: 18.1.0
@@ -224,8 +221,8 @@ importers:
         specifier: ^10.8.1
         version: 10.8.1(jiti@2.7.0)(supports-color@8.1.1)
       funcgo:
-        specifier: 1.2.0-canary.0
-        version: 1.2.0-canary.0(@swc/core@1.15.47)(@types/node@25.9.5)
+        specifier: 1.2.0-canary.3
+        version: 1.2.0-canary.3(@swc/core@1.15.47)(@types/node@25.9.5)
       globals:
         specifier: ^17.9.0
         version: 17.9.0
@@ -3221,12 +3218,12 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  func@3.0.0-canary.1:
-    resolution: {integrity: sha512-oNjPLjy9lzjWqwYN3CvpT9Tg+sTqSKY3fbRBf4ZqtzHGYCAuJ0u3thDMU9LVhSJfeGBQqgVA6K80DQna3twyNw==}
+  func@3.0.0-canary.2:
+    resolution: {integrity: sha512-0BPept6xHbAQe7vkoVxtN6aDOV91wK2orO3EgGSMsZKVJ5AkNXbvSxl7aXH4LSq/sTk3nI/XkvnH/wsFHD5x9w==}
     engines: {node: '>=24.15.0'}
 
-  funcgo@1.2.0-canary.0:
-    resolution: {integrity: sha512-mTztvqAT+TFPAvU+7tnbd2QqLwkIU4KaA3oz+WYu6gBmxDImqS2K/AnPMEtBi3qwoe8aGsYcGw0+p3nEXhpIHQ==}
+  funcgo@1.2.0-canary.3:
+    resolution: {integrity: sha512-WjmhNLA5uI8jt6MsIvZ54FbrycoX7fyOVrAlTXpbzwHTDBiYZasraSLCef2yHCTlDMcSPJdFRt1VxI4i0SyvsA==}
     engines: {node: '>=24.15.0'}
     hasBin: true
 
@@ -7349,14 +7346,14 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  func@3.0.0-canary.1:
+  func@3.0.0-canary.2:
     dependencies:
       reflect-metadata: 0.2.2
 
-  funcgo@1.2.0-canary.0(@swc/core@1.15.47)(@types/node@25.9.5):
+  funcgo@1.2.0-canary.3(@swc/core@1.15.47)(@types/node@25.9.5):
     dependencies:
       '@parcel/watcher': 2.6.0
-      func: 3.0.0-canary.1
+      func: 3.0.0-canary.2
       picomatch: 4.0.5
       rolldown: 1.2.3
       ts-node: 10.9.2(@swc/core@1.15.47)(@types/node@25.9.5)(typescript@6.0.3)
