@@ -1,6 +1,5 @@
-import { spawnSync } from 'child_process'
-import path from 'path'
 import { describe, expect, test } from 'vitest'
+import { devErrorMessage } from '../src/utils/dev-error-message'
 import { errorTrackingUrl, withErrorTrackingUrl } from '../src/utils/error-tracking'
 
 describe('error tracking', () => {
@@ -61,28 +60,13 @@ describe('error tracking', () => {
   })
 
   test('prints actionable guidance as the final dev error line', () => {
-    const handler = path.resolve(
-      process.cwd(),
-      'src',
-      'utils',
-      'dev-error-handler.ts',
-    )
-    const script = [
-      "const error = new Error('Duplicate handler')",
-      "error.name = 'InternalException'",
-      "error.code = 'F_SYSTEM_DUPLICATE_COMMAND_TOKEN'",
-      'throw error',
-    ].join(';')
-    const result = spawnSync(
-      process.execPath,
-      ['-r', 'ts-node/register', '-r', handler, '-e', script],
-      { encoding: 'utf-8' },
-    )
-
-    expect(result.status).toBe(1)
-    expect(result.stderr).toContain('Duplicate handler')
-    expect(result.stderr).toContain('F_SYSTEM_DUPLICATE_COMMAND_TOKEN')
-    expect(result.stderr.trimEnd().split('\n').at(-1)).toBe(
+    const error = Object.assign(new Error('Duplicate handler'), {
+      code: 'F_SYSTEM_DUPLICATE_COMMAND_TOKEN',
+    })
+    const message = devErrorMessage(error, { debug: false })
+    expect(message).toContain('Duplicate handler')
+    expect(message).toContain('F_SYSTEM_DUPLICATE_COMMAND_TOKEN')
+    expect(message?.trimEnd().split('\n').at(-1)).toBe(
       'Learn how to fix this error: https://f.witt.im/DUPLICATE_COMMAND_TOKEN',
     )
   })

@@ -1,6 +1,6 @@
 {
   "name": "funcgo",
-  "version": "1.2.0-canary.3",
+  "version": "1.2.0-canary.6",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
@@ -16,8 +16,8 @@
     "clean": "node -e \"require('fs').rmSync('dist', { force: true, recursive: true })\"",
     "chmod-bin": "node -e \"require('fs').chmodSync('dist/bin.js', 0o755)\"",
     "test": "vitest run",
-    "test:manual:build": "cd manual-e2e/build && ts-node --project ../../tsconfig.json ../../src/bin.ts build",
-    "test:manual:watch": "cd manual-e2e/watch-build && ts-node --project ../../tsconfig.json ../../src/bin.ts build --watch",
+    "test:manual:build": "cd manual-e2e/build && node ../../dist/bin.js build",
+    "test:manual:watch": "cd manual-e2e/watch-build && node ../../dist/bin.js build --watch",
     "release": "pnpm build && pnpm publish --access public --no-git-checks",
     "release:canary": "pnpm build && pnpm publish --access public --tag canary --no-git-checks",
     "format": "prettier --write .",
@@ -36,11 +36,10 @@
   },
   "prettier": "@unix/prettier",
   "dependencies": {
-    "@parcel/watcher": "^2.6.0",
+    "chokidar": "^5.0.0",
     "func": "workspace:*",
     "picomatch": "^4.0.5",
     "rolldown": "^1.2.3",
-    "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   },
   "devDependencies": {

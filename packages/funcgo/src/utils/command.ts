@@ -3,6 +3,7 @@ import { spawn } from 'child_process'
 
 export interface RunOptions {
   cwd?: string
+  env?: NodeJS.ProcessEnv
   shell?: boolean
   stdio?: 'inherit' | 'ignore' | 'pipe'
   silentFailure?: boolean
@@ -63,7 +64,8 @@ export const run = (
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
-      shell: options.shell ?? process.platform === 'win32',
+      env: options.env,
+      shell: options.shell ?? false,
       stdio: options.stdio ?? 'inherit',
     })
 

@@ -3,6 +3,19 @@ import { describe, expect, test } from 'vitest'
 import { run } from '../src/utils/command'
 
 describe('run', () => {
+  test('passes arguments directly without shell interpretation', async () => {
+    const argument = 'value with spaces & (shell)'
+    await run(
+      process.execPath,
+      [
+        '-e',
+        `if (process.argv[1] !== ${JSON.stringify(argument)}) process.exit(1)`,
+        argument,
+      ],
+      { stdio: 'ignore' },
+    )
+  })
+
   test('reports unsuccessful child commands with a scaffold error code', async () => {
     await expect(
       run(process.execPath, ['-e', 'process.exit(2)'], {

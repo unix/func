@@ -111,6 +111,39 @@ describe('resolveWatchTargets', () => {
 })
 
 describe('watchBuild', () => {
+  test('watches filesystem changes with Chokidar without rebuilding initial files', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'funcgo-watch-'))
+    const srcDir = path.join(tempDir, 'src')
+    const sourceFile = path.join(srcDir, 'index.ts')
+    fs.mkdirSync(srcDir)
+    fs.writeFileSync(sourceFile, 'export const value = 1\n')
+    const controller = new AbortController()
+    const build = vi.fn().mockResolvedValue(undefined)
+    const onReady = vi.fn()
+    const running = watchBuild({
+      build,
+      cwd: tempDir,
+      debounceMs: 10,
+      onBuildError: vi.fn(),
+      onReady,
+      onWatchError: vi.fn(),
+      output: path.join(tempDir, 'dist'),
+      signal: controller.signal,
+      targets: resolveWatchTargets([], { cwd: tempDir }),
+    })
+
+    try {
+      await vi.waitFor(() => expect(onReady).toHaveBeenCalledOnce())
+      expect(build).toHaveBeenCalledOnce()
+      fs.writeFileSync(sourceFile, 'export const value = 2\n')
+      await vi.waitFor(() => expect(build).toHaveBeenCalledTimes(2))
+    } finally {
+      controller.abort()
+      await running
+      fs.rmSync(tempDir, { force: true, recursive: true })
+    }
+  })
+
   test('builds immediately, filters events, survives failures, and unsubscribes', async () => {
     const controller = new AbortController()
     const error = new Error('build failed')

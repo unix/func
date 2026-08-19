@@ -1,16 +1,9 @@
-import { withErrorTrackingUrl } from './error-tracking'
-import { formatSystemError, isSystemError } from './system-error-format'
+import { devErrorMessage } from './dev-error-message'
 
 const exitWithError = (error: unknown): never => {
-  if (isSystemError(error)) {
-    let message = formatSystemError(error, {
-      cwd: process.cwd(),
-      stream: process.stderr,
-    })
-    if (process.env.FUNCGO_DEBUG === '1' && error instanceof Error) {
-      message = `${message}\n\n${error.stack}`
-    }
-    console.error(withErrorTrackingUrl(message, error))
+  const message = devErrorMessage(error)
+  if (message) {
+    console.error(message)
     process.exit(1)
   }
 

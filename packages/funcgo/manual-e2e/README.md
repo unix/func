@@ -1,7 +1,13 @@
 # Manual end-to-end tests
 
-These fixtures exercise `funcgo` from its TypeScript source in a real terminal.
-They are intentionally excluded from the automated test suite.
+These fixtures exercise the compiled `funcgo` CLI in a real terminal. They are
+intentionally excluded from the automated test suite.
+
+Build `funcgo` once before running these commands:
+
+```sh
+pnpm --filter funcgo build
+```
 
 ## Build
 

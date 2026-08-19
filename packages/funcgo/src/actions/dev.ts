@@ -1,6 +1,13 @@
 import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
+import { buildWithRolldown } from './build'
 import { funcgoParser } from '../parser'
 import { isCommandFailureError, run } from '../utils/command'
+import {
+  commitDevBundle,
+  discardDevBundle,
+  prepareDevBundle,
+} from '../utils/dev-cache'
+import { resolveDevErrorHandler } from '../utils/dev-error-handler-path'
 import { cwd, resolveEntry } from '../utils/paths'
 
 export interface DevArgs {
@@ -18,15 +25,33 @@ export const dev = async (input: string[] | DevArgs): Promise<void> => {
     })
   }
 
-  const tsNodeRegister = resolveTsNodeRegister()
   const devErrorHandler = resolveDevErrorHandler()
+  const bundle = prepareDevBundle({ cwd, entry })
+  let committed = bundle.hit
 
   try {
+    if (!bundle.hit) {
+      const result = await buildWithRolldown({
+        entry,
+        external: [],
+        minify: false,
+        output: bundle.output,
+        report: false,
+        sourcemap: 'inline',
+      })
+      commitDevBundle(bundle, result.files)
+      committed = true
+    }
     await run(
-      'node',
-      ['-r', tsNodeRegister, '-r', devErrorHandler, entry, ...args.userArgs],
+      process.execPath,
+      ['--enable-source-maps', '-r', devErrorHandler, bundle.file, ...args.userArgs],
       {
         cwd,
+        env: {
+          ...process.env,
+          NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE ?? bundle.compileCache,
+        },
+        shell: false,
         silentFailure: true,
       },
     )
@@ -37,6 +62,8 @@ export const dev = async (input: string[] | DevArgs): Promise<void> => {
     }
 
     throw error
+  } finally {
+    if (!committed) discardDevBundle(bundle)
   }
 }
 
@@ -53,16 +80,4 @@ export const parseDevArgs = (argv: string[]): DevArgs => {
     file: parsed.options.file,
     userArgs: parsed.inputs.slice(),
   }
-}
-
-const resolveTsNodeRegister = (): string => {
-  try {
-    return require.resolve('ts-node/register', { paths: [cwd] })
-  } catch {
-    return require.resolve('ts-node/register')
-  }
-}
-
-export const resolveDevErrorHandler = (): string => {
-  return require.resolve('../utils/dev-error-handler')
 }

@@ -23,11 +23,18 @@ export const build = async (input: string[] | BuildArgs): Promise<void> => {
   await runBuild(args)
 }
 
-interface ProjectBuildOptions {
+export interface ProjectBuildOptions {
   entry: string
   external: string[]
+  minify?: boolean
   output: string
   precompile?: 'auto' | 'required' | false
+  report?: boolean
+  sourcemap?: 'inline'
+}
+
+export interface ProjectBuildResult {
+  files: string[]
 }
 
 const runBuild = async (args: BuildArgs): Promise<void> => {
@@ -81,13 +88,14 @@ const runBuild = async (args: BuildArgs): Promise<void> => {
 
 export const buildWithRolldown = async (
   options: ProjectBuildOptions,
-): Promise<void> => {
+): Promise<ProjectBuildResult> => {
   const startedAt = performance.now()
-  spinner.start('Bundling...')
+  const report = options.report ?? true
+  if (report) spinner.start('Bundling...')
   try {
     const { build: bundle } = await import('rolldown')
     const tsconfig = resolveTsconfig(options.entry)
-    await bundle({
+    const result = await bundle({
       input: options.entry,
       external: options.external,
       platform: 'node',
@@ -107,15 +115,33 @@ export const buildWithRolldown = async (
         codeSplitting: false,
         file: path.join(options.output, 'index.js'),
         format: 'cjs',
-        minify: true,
+        minify: options.minify ?? true,
+        sourcemap: options.sourcemap,
       },
     })
     writeBin(options.output)
-    spinner.succeed(`Bundled in ${formatDuration(performance.now() - startedAt)}`)
+    if (report) {
+      spinner.succeed(`Bundled in ${formatDuration(performance.now() - startedAt)}`)
+    }
+
+    return {
+      files: buildFiles(result.output, options.entry, tsconfig),
+    }
   } catch (error) {
-    spinner.fail('Build failed')
+    if (report) spinner.fail('Build failed')
     throw error
   }
+}
+
+const buildFiles = (
+  output: Array<{ moduleIds?: string[]; type: string }>,
+  entry: string,
+  tsconfig: string | true,
+): string[] => {
+  const files = output.flatMap(item => item.moduleIds ?? [])
+  files.push(entry)
+  if (typeof tsconfig === 'string') files.push(tsconfig)
+  return [...new Set(files)]
 }
 
 export const parseBuildArgs = (argv: string[]): BuildArgs => {

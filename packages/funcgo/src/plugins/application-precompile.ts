@@ -23,9 +23,9 @@ interface CompiledApplication {
   referencesByFile: ReadonlyMap<string, readonly string[]>
 }
 
-const PRECOMPILED_RUNTIME = 'func/_internal/precompiled-v1'
-const PRECOMPILER = 'func/_internal/precompiler-v1'
-const CREATE_APP = '__func_create_app_from_plan_v1'
+const PRECOMPILED_RUNTIME = 'func/_internal/precompiled-v2'
+const PRECOMPILER = 'func/_internal/precompiler-v2'
+const CREATE_APP = '__func_create_app_from_plan_v2'
 
 export const applicationPrecompilePlugin = (
   options: ApplicationPrecompileOptions,
@@ -122,7 +122,7 @@ const prepareApplication = (
   Array.from(grouped.keys())
     .sort()
     .forEach((file, index) => {
-      aliases.set(file, `__func_precompiled_refs_v1_${index}`)
+      aliases.set(file, `__func_precompiled_refs_v2_${index}`)
     })
   const accessors = analysis.references.map(reference => {
     const position = positions.get(reference.id)

@@ -33,9 +33,6 @@ describe('analyzeStaticApplication', () => {
       name: 'AppModule',
       options: [{ kind: 'value' }, { kind: 'action' }],
     })
-    expect(
-      analysis.references.some(reference => reference.builtin === 'APP_FILTER'),
-    ).toBe(true)
     const plan = compileStaticApplication(analysis.definition)
     const entry = path.join(workspace, 'benchmarks/src/adapters/func.ts')
     const transformed = transformStaticApplicationSource(
@@ -45,8 +42,8 @@ describe('analyzeStaticApplication', () => {
       plan,
     )
 
-    expect(transformed).toContain('func/_internal/precompiled-v1')
-    expect(transformed).toContain('__func_create_app_from_plan_v1(')
+    expect(transformed).toContain('func/_internal/precompiled-v2')
+    expect(transformed).toContain('__func_create_app_from_plan_v2(')
     expect(transformed).not.toContain('createApp(AppModule,')
   })
 
@@ -80,7 +77,7 @@ describe('analyzeStaticApplication', () => {
       plan,
     )
 
-    expect(externalSource).toContain('export const __func_precompiled_refs_v1_')
+    expect(externalSource).toContain('export const __func_precompiled_refs_v2_')
     expect(entrySource).toContain(`from ${JSON.stringify(external.file)}`)
   })
 

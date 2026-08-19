@@ -1,7 +1,7 @@
 import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
+import { watch as watchFiles } from 'chokidar'
 import fs from 'fs'
 import path from 'path'
-import parcelWatcher from '@parcel/watcher'
 import picomatch from 'picomatch'
 
 const DEFAULT_WATCH_PATTERN = 'src/**/*.ts'
@@ -57,7 +57,7 @@ export const resolveWatchTargets = (
 
 export const watchBuild = async (options: WatchBuildOptions): Promise<void> => {
   if (options.signal.aborted) return
-  const subscribe = options.subscribe ?? parcelWatcher.subscribe
+  const subscribe = options.subscribe ?? subscribeWithChokidar
   const subscriptions: WatchSubscription[] = []
   const debounceMs = Math.max(0, options.debounceMs ?? DEFAULT_BUILD_DEBOUNCE_MS)
   let activeBuild: Promise<void> | undefined
@@ -150,6 +150,69 @@ export const watchBuild = async (options: WatchBuildOptions): Promise<void> => {
     )
     await activeBuild
   }
+}
+
+const subscribeWithChokidar: WatchSubscribe = async (
+  directory,
+  callback,
+  options,
+) => {
+  const watcher = watchFiles(directory, {
+    ignored: createIgnoreMatcher(directory, options?.ignore ?? []),
+    ignoreInitial: true,
+  })
+
+  watcher.on('all', (event, file) => {
+    const type = watchEventType(event)
+    if (!type) return
+    callback(null, [
+      {
+        path: path.resolve(directory, file),
+        type,
+      },
+    ])
+  })
+  watcher.on('error', error => callback(asError(error), []))
+  await new Promise<void>(resolve => watcher.once('ready', resolve))
+
+  return {
+    unsubscribe: () => watcher.close(),
+  }
+}
+
+const createIgnoreMatcher = (
+  directory: string,
+  patterns: Array<string | RegExp>,
+): ((file: string) => boolean) => {
+  const matchers = patterns.map(pattern => {
+    if (pattern instanceof RegExp) {
+      return (file: string): boolean => {
+        pattern.lastIndex = 0
+        return pattern.test(file)
+      }
+    }
+
+    const normalizedPattern = normalizePath(path.resolve(directory, pattern))
+    if (picomatch.scan(normalizedPattern).isGlob) {
+      return picomatch(normalizedPattern, {
+        dot: true,
+        nocase: process.platform === 'win32',
+      })
+    }
+
+    return (file: string): boolean => isPathInside(normalizedPattern, file)
+  })
+
+  return file => {
+    const normalizedFile = normalizePath(path.resolve(directory, file))
+    return matchers.some(matches => matches(normalizedFile))
+  }
+}
+
+const watchEventType = (event: string): WatchEvent['type'] | undefined => {
+  if (event === 'change') return 'update'
+  if (event === 'add' || event === 'addDir') return 'create'
+  if (event === 'unlink' || event === 'unlinkDir') return 'delete'
 }
 
 const resolveWatchTarget = (watchPath: string, cwd: string): WatchTarget => {

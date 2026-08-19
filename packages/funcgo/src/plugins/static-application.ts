@@ -1,28 +1,18 @@
 import path from 'node:path'
 import ts from 'typescript'
 
-const APPLICATION_DEFINITION_ABI = 1 as const
+const APPLICATION_DEFINITION_ABI = 2 as const
 const FUNC_MODULE = 'func'
 const BUILTIN_REFERENCES = new Set([
-  'APP_FILTER',
-  'APP_INTERCEPTOR',
   'ARGS',
   'Context',
-  'MODULE_FILTER',
-  'MODULE_INTERCEPTOR',
   'MODULE_OPTION',
   'OutputHost',
   'STDERR',
   'STDIN',
   'STDOUT',
 ])
-const MULTI_PROVIDER_REFERENCES = new Set([
-  'APP_FILTER',
-  'APP_INTERCEPTOR',
-  'MODULE_FILTER',
-  'MODULE_INTERCEPTOR',
-  'MODULE_OPTION',
-])
+const MULTI_PROVIDER_REFERENCES = new Set(['MODULE_OPTION'])
 const RESERVED_PROVIDER_REFERENCES = new Set([
   'ARGS',
   'Context',
@@ -70,9 +60,7 @@ interface StaticFieldOption {
 interface StaticHandler {
   command?: Record<string, unknown>
   fieldOptions: StaticFieldOption[]
-  filters: number[]
   handler: number
-  interceptors: number[]
   kind?: 'command' | 'major' | 'missing'
   methodHandlers: Record<string, unknown>[]
 }
@@ -305,7 +293,7 @@ class StaticApplicationAnalyzer {
     const module =
       decorators.find(item => item.name === 'Module') ??
       unsupported('application modules must use @Module')
-    this.assertDecorators(decorators, ['Module', 'UseFilters', 'UseInterceptors'])
+    this.assertDecorators(decorators, ['Module'])
     const argument =
       module.call.arguments.at(0) ?? unsupported('@Module requires static metadata')
     return objectOf(this.evaluate(argument))
@@ -315,13 +303,7 @@ class StaticApplicationAnalyzer {
     const declaration = this.references.declaration(reference)
     this.assertSimpleClass(declaration)
     const decorators = this.classDecorators(declaration)
-    this.assertDecorators(decorators, [
-      'Command',
-      'CommandMajor',
-      'CommandMissing',
-      'UseFilters',
-      'UseInterceptors',
-    ])
+    this.assertDecorators(decorators, ['Command', 'CommandMajor', 'CommandMissing'])
     const command = decorators.find(item => item.name === 'Command')
     const major = decorators.some(item => item.name === 'CommandMajor')
     const missing = decorators.some(item => item.name === 'CommandMissing')
@@ -334,9 +316,7 @@ class StaticApplicationAnalyzer {
           }
         : {}),
       fieldOptions: this.fieldOptions(declaration),
-      filters: this.decoratorReferences(decorators, 'UseFilters'),
       handler: reference,
-      interceptors: this.decoratorReferences(decorators, 'UseInterceptors'),
       kind: command ? 'command' : major ? 'major' : 'missing',
       methodHandlers: this.methodHandlers(declaration),
     }
@@ -346,12 +326,7 @@ class StaticApplicationAnalyzer {
     const declaration = this.references.declaration(reference)
     this.assertSimpleClass(declaration)
     const decorators = this.classDecorators(declaration)
-    this.assertDecorators(decorators, [
-      'Option',
-      'OptionCommand',
-      'UseFilters',
-      'UseInterceptors',
-    ])
+    this.assertDecorators(decorators, ['Option', 'OptionCommand'])
     const option = decorators.some(item => item.name === 'Option')
     const action = decorators.find(item => item.name === 'OptionCommand')
     if (option === Boolean(action)) unsupported('module option kind is ambiguous')
@@ -441,16 +416,9 @@ class StaticApplicationAnalyzer {
     const declaration = this.references.declaration(reference)
     this.assertSimpleClass(declaration)
     const decorators = this.classDecorators(declaration)
-    this.assertDecorators(decorators, [
-      'Catch',
-      'Injectable',
-      'Option',
-      'OptionCommand',
-      'UseFilters',
-      'UseInterceptors',
-    ])
+    this.assertDecorators(decorators, ['Injectable', 'Option', 'OptionCommand'])
     const injectable = decorators.some(decorator =>
-      ['Catch', 'Injectable', 'Option', 'OptionCommand'].includes(decorator.name),
+      ['Injectable', 'Option', 'OptionCommand'].includes(decorator.name),
     )
     if (!injectable) unsupported('class providers must be injectable')
     const hasHandlers = declaration.members.some(member =>
@@ -629,17 +597,6 @@ class StaticApplicationAnalyzer {
       type,
       validators: [],
     }
-  }
-
-  private decoratorReferences(
-    decorators: readonly NamedDecorator[],
-    name: string,
-  ): number[] {
-    const decorator = decorators.find(item => item.name === name)
-    if (!decorator) return []
-    return decorator.call.arguments.map(argument =>
-      referenceOf(this.evaluate(argument)),
-    )
   }
 
   private classDecorators(declaration: ts.ClassDeclaration): NamedDecorator[] {
@@ -921,16 +878,11 @@ const normalizeOptionCommand = (
   const deprecated = normalizeDeprecation(params.deprecated)
   const description = optionalString(params.description)
   const name = requiredString(params.name, 'option command name')
-  const textOutput = optionalString(params.textOutput)
-  if (textOutput && textOutput !== 'return' && textOutput !== 'stdout') {
-    unsupported('invalid option command text output')
-  }
   return {
     aliases: normalizeAliases(params),
     ...(deprecated ? { deprecated } : {}),
     ...(description ? { description } : {}),
     ...(params.overrideAll === true ? { overrideAll: true } : {}),
-    ...(textOutput ? { textOutput } : {}),
     name,
   }
 }

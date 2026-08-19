@@ -75,7 +75,7 @@ describe('parseBuildArgs', () => {
         }),
       )
 
-      await buildWithRolldown({
+      const build = await buildWithRolldown({
         entry,
         external: [],
         output,
@@ -89,6 +89,7 @@ describe('parseBuildArgs', () => {
         "#!/usr/bin/env node\nrequire('./index.js')\n",
       )
       expect(fs.statSync(bin).mode & 0o111).toBeGreaterThan(0)
+      expect(build.files).toEqual(expect.arrayContaining([entry, tsconfig]))
       const result = spawnSync(process.execPath, [bin], { encoding: 'utf-8' })
       expect(result.status).toBe(0)
       expect(result.stdout).toBe('ok\n')
