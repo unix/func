@@ -11,7 +11,7 @@ options, feature modules, custom decorators, tests, and production builds.
 Create a project from the template:
 
 ```sh
-npm init func
+npm init func@latest
 ```
 
 Run fast in-memory command tests during development:

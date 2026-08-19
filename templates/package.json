@@ -1,6 +1,6 @@
 {
   "name": "func-template",
-  "version": "1.1.5",
+  "version": "1.2.2",
   "main": "dist/index.js",
   "license": "MIT",
   "engines": {
@@ -10,9 +10,7 @@
     "dev": "funcgo dev --",
     "build": "funcgo build",
     "test": "vitest run",
-    "test:cli": "pnpm build && vitest run --config vitest.cli.config.mts",
-    "format": "prettier --write .",
-    "prettier": "prettier --write . --ignore-path ../.prettierignore"
+    "test:cli": "pnpm build && vitest run --config vitest.cli.config.mts"
   },
   "files": [
     "src",
@@ -27,7 +25,6 @@
     "entry": "src/index.ts",
     "outDir": "dist"
   },
-  "prettier": "@unix/prettier",
   "bin": {
     "template": "./dist/bin.js"
   },
@@ -36,9 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
-    "@unix/prettier": "^0.1.0",
     "funcgo": "latest",
-    "prettier": "^3.9.6",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   }

@@ -9,6 +9,7 @@
     "docs:dev": "pnpm --filter docs dev",
     "lint": "eslint .",
     "prettier": "prettier --write . --ignore-path .prettierignore",
+    "prettier:template": "prettier --write templates --ignore-path .prettierignore",
     "test": "pnpm --filter func test"
   },
   "repository": {

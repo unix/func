@@ -22,7 +22,7 @@
 </p>
 
 ```sh
-npm init func
+npm init func@latest
 ```
 
 ## Thanks
