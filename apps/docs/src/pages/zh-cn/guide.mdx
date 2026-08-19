@@ -1,7 +1,7 @@
 ---
 title: 快速开始
 description: 使用默认 TypeScript 模板创建、开发和打包 CLI 项目。
-lastModified: '2026-08-18'
+lastModified: '2026-08-19'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -197,6 +197,10 @@ pnpm pack --dry-run`,
 bun pm pack --dry-run`,
 }
 
+export const buildTargetCode = `npm run build
+npm run build -- --target n22
+npm run build -- --target n20`
+
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="guide">
   <Callout locale="zh-cn" title="你将完成什么" variant="note">
 
@@ -360,6 +364,20 @@ npm 标签中的 `npm run dev -- <参数>` 使用的是 npm 参数透传规范�
 ## 打包并准备发布
 
 build script 会把配置的 TypeScript 入口打包到 `func.outDir`（模板默认 为 `dist`），并创建可执行的 `bin.js`。包内的 `bin` 字段决定用户安装后可以调用的命令名。
+
+### 构建打包
+
+<Callout locale="zh-cn" title="最终用户兼容性" variant="caution">
+
+`--target` 指定的是最终用户运行构建产物时的 Node.js 兼容版本下限，不是本地开发环境或执行 `funcgo build` 时使用的 Node.js 版本。
+
+</Callout>
+
+`funcgo build` 默认使用 `n24`，生成面向 Node.js 24.15 及以上版本的产物。需要兼容较低版本时，可以通过 `--target` 选择 `n22` 或 `n20`。Node.js 20 已停止维护，选择 `n20` 时每次构建都会显示 EOL 警告。
+
+<CodeBlock code={buildTargetCode} lang="shell" />
+
+构建只检查 `package.json#engines.node` 是否与目标版本一致并给出警告，不会主动改写 package 信息。准备发布前，请确保 `n20`、`n22`、`n24` 分别对应最低版本 `20.19.0`、`22.12.0`、`24.15.0`。
 
 <CodeBlock
   code={buildCommands.npm}

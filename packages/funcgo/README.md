@@ -16,6 +16,8 @@ Standard tooling for [`func`](https://github.com/unix/func) development.
 
 - build cli project with Rolldown: `funcgo build`
 
+- build for an explicit Node.js target: `funcgo build --target n20|n22|n24`
+
 - continuously build when TypeScript files change: `funcgo build --watch`
 
 - continuously build using custom paths or globs:
@@ -30,7 +32,8 @@ Standard tooling for [`func`](https://github.com/unix/func) development.
 - `funcgo dev`: [-f, 'entry file'] [--, 'command args']
 
 - `funcgo build`: [-f, 'entry file'] [-o, 'output dir'] [-e, 'external package']
-  [--watch] [--watch-path, 'file, directory, or positive glob']
+  [--target, 'n20, n22, or n24'] [--watch]
+  [--watch-path, 'file, directory, or positive glob']
 
 <br/>
 
