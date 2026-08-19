@@ -1,22 +1,27 @@
 ---
 title: JSON 输出
-description: 使用 func/json-output 从同一份 handler 返回值生成普通文本或机器可读 JSON。
-lastModified: '2026-08-17'
+description: 为通用返回内容同时生成机器可读 JSON。
+lastModified: '2026-08-19'
 ---
 
 import Callout from '@/components/content/callout.astro'
 import CodeBlock from '@/components/content/code-block.astro'
+import TerminalDemo from '@/components/demos/terminal-demo.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
 export const setupCode = [
-  "import { Command, Handler, Module } from 'func'",
-  "import { JsonOutputModule } from 'func/json-output'",
+  "import { Command, Handler, Module, Stdout } from 'func'",
+  "import { JsonOutput, JsonOutputModule } from 'func/json-output'",
+  "import type { Writable } from 'node:stream'",
   '',
   "@Command('status')",
   'class StatusCommand {',
+  '  constructor(private readonly output: JsonOutput) {}',
+  '',
   '  @Handler()',
-  '  run() {',
-  "    return { status: 'ready' }",
+  '  run(@Stdout() stdout: Writable) {',
+  "    stdout.write('Checking service status...\\n')",
+  "    this.output.json({ status: 'ready' })",
   '  }',
   '}',
   '',
@@ -27,44 +32,30 @@ export const setupCode = [
   'export class AppModule {}',
 ].join('\n')
 
-export const preserveStdoutCode = [
-  "import { Module } from 'func'",
-  "import { JsonOutputModule } from 'func/json-output'",
-  '',
-  '@Module({',
-  '  imports: [',
-  '    JsonOutputModule.register({',
-  '      suppressStdout: false,',
-  '    }),',
-  '  ],',
-  '})',
-  'export class AppModule {}',
-].join('\n')
-
 export const errorCode = [
-  "import { Catch, MODULE_FILTER, Module } from 'func'",
-  "import type { Exception, ExceptionFilter } from 'func'",
-  "import { JsonOutputModule } from 'func/json-output'",
+  "import { Module, Stderr } from 'func'",
+  "import type { Exception, OnError } from 'func'",
+  "import { JsonOutput, JsonOutputModule } from 'func/json-output'",
+  "import type { Writable } from 'node:stream'",
   '',
-  '@Catch()',
-  'class JsonErrorFilter implements ExceptionFilter {',
-  '  catch(exception: Exception) {',
-  '    return {',
+  '@Module({ imports: [JsonOutputModule] })',
+  'export class AppModule implements OnError {',
+  '  constructor(',
+  '    private readonly output: JsonOutput,',
+  '    @Stderr() private readonly stderr: Writable,',
+  '  ) {}',
+  '',
+  '  onError(exception: Exception) {',
+  '    this.output.json({',
   '      error: {',
   '        code: exception.code,',
   '        message: exception.message,',
   '      },',
-  '    }',
+  '    })',
+  '',
+  '    this.stderr.write(`${exception.message}\\n`)',
   '  }',
   '}',
-  '',
-  '@Module({',
-  '  imports: [JsonOutputModule],',
-  '  providers: [',
-  '    { provide: MODULE_FILTER, useClass: JsonErrorFilter },',
-  '  ],',
-  '})',
-  'export class AppModule {}',
 ].join('\n')
 
 <DocsLayout
@@ -72,75 +63,91 @@ export const errorCode = [
   locale="zh-cn"
   page="capabilities/json-output">
 
-`func/json-output` 为 module 添加 `--json`，并把 handler return 作为命令结果。业务代码只返回一份原始数据；组件负责根据调用方式生成普通文本或 JSON，不要求 command 使用特定的排版、色彩库或输出函数。
+`func/json-output` 为模块添加 `--json` 能力，并提供显式的 JSON output。
+这个功能在对于机器可读非常有用，大部分 Agent 运行 CLI 工具后都预期接收 JSON 风格的返回值，结构化数据可以帮助 Agent 理解意图，更精准的执行下一步指令。
 
-  <Callout locale="zh-cn" title="按需引入" variant="note">
+业务代码自行决定何时写入普通文本、何时发送结构化数据；此组件没有任何隐式处理，也不要求 Command 使用特定的排版、色彩库或输出函数。
 
-JSON 输出只从 `func/json-output` 导出，不会由 `func` 主入口自动启用。组件只提供 module 与 AppModule 作用域，不提供 command 装饰器。
+  <Callout locale="zh-cn" title="完整项目示例" variant="note">
+
+JSON 输出只从 `func/json-output` 导出，不会由 `func` 主入口自动启用。GitHub 上的 [`examples/json-output`](https://github.com/unix/func/tree/main/examples/json-output) 包含基础命令、结构化错误和自动化测试；可以直接查看这个完整项目，了解各部分如何组合。
 
   </Callout>
 
 ## 启用 `--json`
 
-把 `JsonOutputModule` 导入需要 JSON 输出的 module，并让 handler 返回可序列化的原始数据：
+把 `JsonOutputModule` 导入需要 JSON 输出的 Module，并注入 `JsonOutput`。普通输出继续写入 Node.js `Writable`；机器可读结果通过 `output.json()` 显式发送：
 
 <CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
 
-执行结果为：
+带上 `--json` 后，普通 stdout 被抑制，只提交结构化结果。可以直接从终端命令中删除 `--json`，对比普通输出效果：
 
-| 调用                 | stdout                                      |
-| -------------------- | ------------------------------------------- |
-| `ship status`        | 使用固定普通文本规则输出 handler return。   |
-| `ship status --json` | 把同一份 handler return 序列化为缩进 JSON。 |
+<TerminalDemo
+  command="ship status --json"
+  demo="json-output"
+  locale="zh-cn"
+  rows={5}
+  sourceUrl="/demos/json-output.ts"
+/>
 
-普通模式下，字符串保持原样，布尔值、数字、BigInt 和 `null` 使用字符串表示，对象与数组使用缩进 JSON。JSON 模式遵循 `JSON.stringify` 的数据约束；没有结果时应显式返回 `null`，返回 `undefined`、循环引用或 BigInt 会产生运行时错误。
+两种执行结果的区别为：
+
+| 调用                 | stdout                                                      |
+| -------------------- | ----------------------------------------------------------- |
+| `ship status`        | 输出 `Checking service status...`；`output.json()` 被丢弃。 |
+| `ship status --json` | 抑制注入的 stdout，只输出缩进 JSON。                        |
+
+这两个 API 是独立通道。`@Stdout()` 和 `Context.io.stdout` 负责面向人的输出，`output.json(value)` 负责面向机器的响应。Handler 和 `onError` 的 return 不会被自动渲染，也不需要为了隐藏 JSON 返回 `undefined`。
 
 ## 选择作用域
 
-导入位置决定组件影响范围：
+导入位置决定 `--json` 和 `JsonOutput` 的可见范围：
 
-- 根 AppModule 导入后，`--json` 对整个应用可见。
-- feature module 导入后，只影响该 module 直接拥有的 commands。
-- 不支持在单个 command 上使用 `@JsonCommand()` 一类装饰器。
+- 根 AppModule 导入后，对整个应用可见，包括尚未选中 Command 的解析错误。
+- feature Module 导入后，只影响该 Module 直接拥有的 Commands。
+- 不支持在单个 Command 上使用装饰器隐式开启。
 
-相同作用域中的 handler 始终经过结果拦截器，因此未传入 `--json` 时也会输出 return。如果普通模式需要完全自定义 UI，可以自行写入注入的 stdout，并让 handler 返回 `undefined`；JSON 模式则要求返回实际数据。
+不包含 `JsonOutputModule` 的作用域不会声明 `--json`，也不能注入 `JsonOutput`。
+
+## 输出消费规则
+
+普通模式调用 `output.json(value)` 是 no-op：输入不会被序列化，也不会写入任何流。JSON 模式会暂存输出并在调用完成时提交：
+
+- 一次调用可以多次调用 `output.json()`，最后一次成功发送的值覆盖前一次。
+- `output.used` 初始为 `false`；JSON 模式成功消费一次 `json()` 后变为 `true`。
+- 普通模式下 `output.used` 始终为 `false`。它表示输出是否已经消费，不是用于预判 `--json` 是否存在的 `requested` 标志。
+
+JSON 模式遵循 `JSON.stringify(value, null, 2)` 的数据约束。`undefined`、循环引用和 BigInt 会产生运行时序列化错误；普通模式不会序列化输入，因此相同数据不会仅因传给 `json()` 而报错。
 
 ## stdout、stderr 与 ANSI
 
-JSON 模式默认抑制 handler 通过 `@Stdout()` 或 `Context.io.stdout` 写入的内容，最终 stdout 因而保持为单一 JSON 文档。stderr 不受影响，仍可承载警告和诊断。
+JSON 模式抑制 Handler、Provider 和 `onError` 通过 `@Stdout()` 或 `Context.io.stdout` 写入的内容，最终 stdout 因而保持为单一 JSON 文档。stderr 不受影响，仍可承载警告和诊断。
 
-JSON 模式下，直接调用全局 `console.log()` 或写入 `process.stdout` 会绕过注入的 managed stdout，组件无法抑制这些内容。需要稳定的 JSON 协议时，应使用 func 注入的 stdout，并把进度、警告等诊断写入 stderr。
+直接调用全局 `console.log()` 或写入 `process.stdout` 会绕过注入的 stdout，组件无法抑制这些内容。需要稳定的 JSON 协议时，应使用 `func` 注入的 stdout，并把进度、警告等诊断写入 stderr。
 
-JSON 序列化会递归移除字符串值中的 ANSI 控制序列，但不会修改原始 return。普通模式不会主动移除字符串中的色彩数据。
-
-确实需要在 JSON 模式保留 handler 写入的 stdout 时，可以关闭唯一的配置项：
-
-<CodeBlock code={preserveStdoutCode} filename="src/app.module.ts" lang="ts" />
-
-此时已有 stdout 与最终 JSON 会同时出现，结果通常不再是单一合法 JSON 文档。
+`output.json()` 不会递归清理字符串中的 ANSI 控制序列。输出对象本身就是协议数据，调用方应发送不含终端样式的原始值。
 
 ## 返回结构化错误
 
-func 核心和 JSON 组件都不规定错误 schema，也不会自动把 `Exception` 暴露为 JSON。应用可以用 Filter 选择字段并返回普通结构化数据；返回值会进入与 handler 相同的拦截器链：
+`func` 核心和 JSON 输出模块都不规定错误 schema，也不会自动把 `Exception` 暴露为 JSON。实现 `OnError` 的 Module 可以通过构造器注入同一个 output，显式发送允许公开的字段；发送后再用 `used` 决定是否需要普通错误输出：
 
 <CodeBlock code={errorCode} filename="src/app.module.ts" lang="ts" />
 
-根 AppModule 中的 Filter 也可以处理命令解析错误。当调用包含 `--json` 时，Filter return 会被序列化，并保留失败退出码。Filter 未处理的默认错误继续写入 stderr。完整的匹配与作用域规则见[错误处理](/zh-cn/error-handler)。
+根 AppModule 的 `onError` 也可以处理命令解析错误。JSON 模式下，`onError` 的 `json()` 会覆盖此前暂存但尚未提交的成功输出，并保留失败退出码。未处理的默认错误继续写入 stderr。完整的传播规则见[错误处理](/zh-cn/error-handler)。
 
 ## Help 与生命周期
 
-当前作用域同时注册 `HelpOption` 时，普通 `--help` 继续输出格式化文本，`--help --json` 输出结构化 `HelpMeta`。
+`HelpOption` 只负责向注入的 stdout 写普通帮助。JSON 输出模块不处理它返回的 `HelpMeta`，因此不会自动生成 JSON Help；如有需要，应由自定义 Help action 显式调用 `output.json(meta)`。
 
-最终 JSON 会在业务执行与 Filter 完成后确定，并延迟到资源释放结束后提交。`onDispose` 失败只产生 Runtime 生命周期诊断，不会进入 Filter、回滚 JSON 或改变已经确定的 exit code。
+最终 JSON 会延迟到资源释放和 `onError` 全部完成后提交。`onDispose` 错误会进入对应的 `onError` 链，因此仍可替换暂存的 JSON；最终未处理的错误会回滚暂存输出。
 
 ## API 速查
 
-| API                                  | 用途                                                        |
-| ------------------------------------ | ----------------------------------------------------------- |
-| `JsonOutputModule`                   | 使用默认配置启用 module 级 JSON 输出。                      |
-| `JsonOutputModule.register(options)` | 配置并启用 JSON 输出。                                      |
-| `suppressStdout`                     | JSON 模式是否抑制注入的 stdout，默认为 `true`。             |
-| `JsonOutputInterceptor`              | 捕获并输出结果的公开 Interceptor，可用于组合自定义 module。 |
-| `JSON_OUTPUT_OPTIONS`                | 自定义组合时注入规范化配置的 token。                        |
+| API                  | 用途                                                          |
+| -------------------- | ------------------------------------------------------------- |
+| `JsonOutputModule`   | 在 Module 作用域声明 `--json` 并提供 output。                 |
+| `JsonOutput`         | 可注入的显式 JSON 输出对象。                                  |
+| `output.json(value)` | JSON 模式暂存输出，普通模式丢弃输入；多次调用时最后一次生效。 |
+| `output.used`        | 本次调用是否已经成功消费 JSON 输出。                          |
 
 </DocsLayout>

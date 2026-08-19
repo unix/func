@@ -1,7 +1,7 @@
 ---
 code: F_SYSTEM_CIRCULAR_MODULE_IMPORT
 title: 模块循环导入
-description: Module.imports 中的依赖路径回到了已经正在编译的 module。
+description: Module.imports 中的依赖路径回到了已经正在编译的 Module。
 lastModified: '2026-08-15'
 ---
 
@@ -23,10 +23,10 @@ export const reproductionCode = [
 
 ## 复现
 
-module import 图包含闭环：
+Module import 图包含闭环：
 
 <CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
 
 ## 如何修复
 
-根据 `details.dependencyPath` 找到回到起点的 import。把共享 provider 提取到第三个 module，由原来的两个 module 单向 import；不要让 feature modules 互相 import。仅需要类型时使用 type-only import，不要把它加入 `Module.imports`。
+根据 `details.dependencyPath` 找到回到起点的 import。把共享 Provider 提取到第三个 Module，由原来的两个 Module 单向 import；不要让 feature Modules 互相 import。仅需要类型时使用 type-only import，不要把它加入 `Module.imports`。

@@ -2,12 +2,12 @@
 code: F_SYSTEM_INVALID_COMPLETION_SHELL
 title: 补全 Shell 无效
 description: completionSource() 收到了不支持的 shell 名称。
-lastModified: '2026-08-17'
+lastModified: '2026-08-19'
 ---
 
 ## 这个错误是什么
 
-`completionSource(bin, shell)` 只能为 `bash`、`zsh`、`fish` 或 `powershell` 生成适配器。通过 JavaScript、配置文件或类型断言传入其他值时会抛出此错误，原始值位于 `details.shell`。
+`completionSource(bin, shell)` 只能为 `bash`、`elvish`、`fish`、`nushell`、`powershell` 或 `zsh` 生成适配器。通过 JavaScript、配置文件或类型断言传入其他值时会抛出此错误，原始值位于 `details.shell`。
 
 ## 如何修复
 

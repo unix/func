@@ -1,22 +1,27 @@
 import ChangelogRelease from '@/components/content/changelog-release.astro'
+import ChangelogVersion from '@/components/content/changelog-version.astro'
 import { changelogReleases } from '@/lib/changelog'
 
-<ChangelogRelease {...changelogReleases['3.0.0-canary.0']} locale="zh-cn">
+<ChangelogVersion locale="zh-cn" version={3}>
 
-- 引入 v3 module runtime：根应用必须使用 `@Module()`，依赖改为 module 作用域的 providers 与显式 exports，并统一使用 `onInit`、`onError` 和 `onDispose` 生命周期。
-- 将 command 与 handler path 编译为可共享前缀的命令图，加入根/feature module options、`@Option`、`@OptionCommand` 与显式 override。
-- 更新参数模型：`Args` 提供冻结的 `raw`、`invokedPath`、`path`、`inputs` 和 `options`，运行时信息与 IO 通过可注入 `Context` 提供。
-- 将重复值拆为 `@ArrayString()` 与 `@ArrayNumber()`，并加入 negatable flags、multiple aliases 与 deprecation metadata。
-- 核心包改为 ESM-only 入口，并加入独立的 `func/help`、`func/testing`、`func/config`、`func/log` 与 opt-in `func/completion` 子路径。
-- 移除旧的 service、registry、catch 与 error decorator API；结构化 `Exception` 与 module/command hooks 取代旧错误模型。
+<ChangelogRelease {...changelogReleases['3.0.0']} locale="zh-cn">
+
+- 重构 Module runtime 与 Command graph，统一模块边界、生命周期和命令定义。
+- 重新设计参数、选项、运行时上下文和错误处理 API。
+- 新增 `func/help`、`func/testing`、`func/config`、`func/log` 和 `func/completion` 子路径，可按需组合 CLI 能力。
 
 </ChangelogRelease>
+
+</ChangelogVersion>
+
+<ChangelogVersion locale="zh-cn" version={2}>
 
 <ChangelogRelease {...changelogReleases['2.3.1']} locale="zh-cn">
 
 - 追加了一些 `F_SYSTEM_*` 错误码，以便更加细致地定位错误。
 - 改进 `funcgo` 诊断能力，增加构建时值类型校验、源码位置、代码片段以及对应错误文档链接。
 - 要求使用 `Node.js 24` 及以上版本，并在工作区统一采用 NodeNext 模块解析。
+- 如需查阅 v2 的旧版文档，可前往 [func-v2](https://func-v2.witt.im)。
 
 </ChangelogRelease>
 
@@ -78,3 +83,5 @@ import { changelogReleases } from '@/lib/changelog'
 - 将核心包迁入 pnpm 工作区，并把测试套件迁移到 Vitest。
 
 </ChangelogRelease>
+
+</ChangelogVersion>

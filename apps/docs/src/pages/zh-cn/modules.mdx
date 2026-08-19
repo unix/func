@@ -1,38 +1,152 @@
 ---
 title: 模块
-description: 使用 module 把相关命令与 provider 组织成完整功能，并组合出清晰的应用结构。
-lastModified: '2026-08-16'
+description: 模块是 Func 框架中的基础组织单元，了解并学习如何自定义模块。
+lastModified: '2026-08-18'
 ---
 
 import Callout from '@/components/content/callout.astro'
 import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-export const projectModuleCode = [
-  "import { Command, Handler, Injectable, Module } from 'func'",
+export const projectServiceCode = [
+  "import { Injectable } from 'func'",
   '',
   '@Injectable()',
-  'class ProjectService {',
+  'export class ProjectService {',
   '  list() {',
   "    return ['func']",
   '  }',
   '}',
+].join('\n')
+
+export const projectCommandCode = [
+  "import { Command, Handler } from 'func'",
+  "import { ProjectService } from '../services/project.service'",
   '',
   "@Command('project')",
-  'class ProjectCommand {',
+  'export class ProjectCommand {',
   '  constructor(private readonly projects: ProjectService) {}',
   '',
   '  @Handler()',
-  '  run() {',
+  '  list() {',
   '    console.log(this.projects.list())',
   '  }',
   '}',
+].join('\n')
+
+export const projectModuleCode = [
+  "import { Module } from 'func'",
+  "import { ProjectCommand } from './commands/project.command'",
+  "import { ProjectService } from './services/project.service'",
   '',
   '@Module({',
   '  commands: [ProjectCommand],',
   '  providers: [ProjectService],',
   '})',
   'export class ProjectModule {}',
+].join('\n')
+
+export const valueProviderCode = [
+  "import { createToken } from 'func'",
+  '',
+  "export const API_URL = createToken<string>('API_URL')",
+  '',
+  'export const apiUrlProvider = {',
+  '  provide: API_URL,',
+  "  useValue: 'https://api.example.com',",
+  '}',
+].join('\n')
+
+export const tokenInjectionCode = [
+  "import { Inject, Injectable } from 'func'",
+  "import { API_URL } from '../providers/api-url.provider'",
+  '',
+  '@Injectable()',
+  'export class ProjectClient {',
+  '  constructor(@Inject(API_URL) readonly apiUrl: string) {}',
+  '}',
+].join('\n')
+
+export const classProviderCode = [
+  "import { Injectable, Module, createToken } from 'func'",
+  '',
+  'interface ProjectStorage {',
+  '  findAll(): string[]',
+  '}',
+  '',
+  'export const PROJECT_STORAGE =',
+  "  createToken<ProjectStorage>('PROJECT_STORAGE')",
+  '',
+  '@Injectable()',
+  'class FileProjectStorage implements ProjectStorage {',
+  '  findAll() {',
+  "    return ['func']",
+  '  }',
+  '}',
+  '',
+  'export const projectStorageProvider = {',
+  '  provide: PROJECT_STORAGE,',
+  '  useClass: FileProjectStorage,',
+  '}',
+  '',
+  '@Module({',
+  '  providers: [projectStorageProvider],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const factoryProviderCode = [
+  "import { Module } from 'func'",
+  "import { API_URL, apiUrlProvider } from './providers/api-url.provider'",
+  '',
+  'class ProjectClient {',
+  '  constructor(readonly apiUrl: string) {}',
+  '}',
+  '',
+  'export const projectClientProvider = {',
+  '  provide: ProjectClient,',
+  '  inject: [API_URL],',
+  '  useFactory: (apiUrl: string) => new ProjectClient(apiUrl),',
+  '}',
+  '',
+  '@Module({',
+  '  providers: [apiUrlProvider, projectClientProvider],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const sharedProviderCode = [
+  "import { Module } from 'func'",
+  '',
+  "import { ProjectCommand } from './commands/project.command'",
+  "import { ProjectService } from './services/project.service'",
+  '',
+  '@Module({',
+  '  commands: [ProjectCommand],',
+  '  providers: [ProjectService],',
+  '  exports: [ProjectService],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const consumerModuleCode = [
+  "import { Injectable, Module } from 'func'",
+  '',
+  "import { ReleaseCommand } from './commands/release.command'",
+  "import { ProjectModule } from '../projects/project.module'",
+  "import { ProjectService } from '../projects/services/project.service'",
+  '',
+  '@Injectable()',
+  'class ReleaseService {',
+  '  constructor(private readonly projects: ProjectService) {}',
+  '}',
+  '',
+  '@Module({',
+  '  imports: [ProjectModule],',
+  '  commands: [ReleaseCommand],',
+  '  providers: [ReleaseService],',
+  '})',
+  'export class ReleaseModule {}',
 ].join('\n')
 
 export const appModuleCode = [
@@ -48,44 +162,11 @@ export const appModuleCode = [
   'export class AppModule {}',
 ].join('\n')
 
-export const sharedProviderCode = [
-  "import { Module } from 'func'",
-  "import { ProjectCommand } from './commands/project.command'",
-  "import { ProjectService } from './providers/project.service'",
-  '',
-  '@Module({',
-  '  commands: [ProjectCommand],',
-  '  providers: [ProjectService],',
-  '  exports: [ProjectService],',
-  '})',
-  'export class ProjectModule {}',
-].join('\n')
-
-export const consumerModuleCode = [
-  "import { Injectable, Module } from 'func'",
-  '',
-  "import { ReleaseCommand } from './commands/release.command'",
-  "import { ProjectModule } from '../projects/project.module'",
-  "import { ProjectService } from '../projects/providers/project.service'",
-  '',
-  '@Injectable()',
-  'class ReleaseService {',
-  '  constructor(private readonly projects: ProjectService) {}',
-  '}',
-  '',
-  '@Module({',
-  '  imports: [ProjectModule],',
-  '  commands: [ReleaseCommand],',
-  '  providers: [ReleaseService],',
-  '})',
-  'export class ReleaseModule {}',
-].join('\n')
-
 export const configurableModuleCode = [
   "import { Module } from 'func'",
   "import { LogModule } from 'func/log'",
   "import { ReleaseCommand } from './commands/release.command'",
-  "import { ReleaseService } from './providers/release.service'",
+  "import { ReleaseService } from './services/release.service'",
   '',
   '@Module({',
   '  imports: [LogModule.register()],',
@@ -102,25 +183,58 @@ export const projectStructure = [
   '├─ projects/',
   '│  ├─ project.module.ts',
   '│  ├─ commands/',
-  '│  └─ providers/',
+  '│  ├─ services/',
+  '│  └─ repositories/',
   '├─ releases/',
   '│  ├─ release.module.ts',
   '│  ├─ commands/',
-  '│  └─ providers/',
+  '│  └─ services/',
   '└─ infrastructure/',
-  '   ├─ storage.module.ts',
-  '   └─ storage.provider.ts',
+  '   └─ storage/',
+  '      ├─ storage.module.ts',
+  '      └─ storage.service.ts',
 ].join('\n')
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="modules">
 
-module 用来把一组相关的 commands、providers 和共享 options 组织成完整功能。用户从 module 可以直接看出：这个功能提供哪些命令、内部依赖哪些能力、又使用了哪些其他功能。
+一个完整的 `func` 应用通常由许多相互协作的对象组成：Command 接收用户输入，service 处理业务，repository 访问数据，client 连接外部系统。
+当一个对象需要另一个对象才能完成工作时，它们就构成了依赖关系。随着应用增长，如果每个对象都自行创建和组织依赖，业务逻辑很快就会与具体实现和初始化过程混在一起。
 
-每个 func 应用至少有一个根 module。小型应用可以把所有声明都放在根 `AppModule`；随着工程增长，再把项目管理、发布、账号等业务分别整理为 feature modules，最后由根 module 组合起来。
+依赖注入（[Dependency Injection](https://zh.wikipedia.org/wiki/%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5)，简称 DI）将依赖的创建与使用分开。
+在 `func` 中，Command 或 service 只需声明自己依赖什么，框架会查找对应的 Provider、创建实例并将它传入；模块则负责登记当前功能拥有的 Commands 和 Providers，
+并确定它们之间的依赖关系。这样，业务对象可以专注于使用能力，而不必了解这些能力之间的复杂依赖关系。
 
-## 定义一个 module
+## DI 基础
 
-module 是使用 `@Module()` 装饰的 class。下面的 `ProjectModule` 把项目命令和它需要的业务能力放在一起：
+我们通过一个简化的项目命令了解 DI 如何工作。
+
+### 1. 定义 Provider
+
+`ProjectService` 是我们假定的业务逻辑服务，`@Injectable()` 表示这个 class 可以由 `func` 管理：
+
+<CodeBlock
+  code={projectServiceCode}
+  filename="src/projects/services/project.service.ts"
+  lang="ts"
+/>
+
+Service 是 Provider 最常见的形式。Repository、client 和其他可复用能力也可以成为 Provider。
+
+### 2. 声明依赖
+
+随后我们认为，`ProjectCommand` 需要调用此业务逻辑，随即我们在 `ProjectCommand` 中声明依赖即可：
+
+<CodeBlock
+  code={projectCommandCode}
+  filename="src/projects/commands/project.command.ts"
+  lang="ts"
+/>
+
+`ProjectCommand` 不需要创建 service。构造函数参数已经说明：运行这个 Command 需要一个 `ProjectService`。
+
+### 3. 注册 Provider
+
+最后，在模块中注册 Command 和 Provider：
 
 <CodeBlock
   code={projectModuleCode}
@@ -128,81 +242,188 @@ module 是使用 `@Module()` 装饰的 class。下面的 `ProjectModule` 把项�
   lang="ts"
 />
 
-`ProjectCommand` 与 `ProjectService` 都属于项目功能。command 负责接收 CLI 输入并选择动作，provider 负责可复用的业务逻辑。因为它们位于同一个 module，command 可以直接注入这里注册的 provider。
+`commands` 表示这个 Module 提供的 Commands，`providers` 表示其中可以被注入的依赖。现在 `func` 已经知道如何创建 `ProjectCommand` 需要的 `ProjectService`。
 
-module class 通常可以保持为空；`@Module()` 中的声明才是阅读应用结构的主要入口。只有当这一组功能需要自己的生命周期或错误处理时，才需要在 class 中实现对应 hook。
+这个过程包含三个关键步骤：
 
-## 认识 @Module() 中的字段
+1. `@Injectable()` 将 `ProjectService` 标记为可管理的 class；
+2. `ProjectCommand` 通过构造函数请求 `ProjectService`；
+3. `ProjectModule` 将 `ProjectService` 注册到 `providers`。
 
-| 字段        | 用途                                                                  |
-| ----------- | --------------------------------------------------------------------- |
-| `commands`  | 当前功能对用户提供的命令。                                            |
-| `providers` | 当前功能使用的业务能力，例如 service、repository 或 client。          |
-| `imports`   | 当前功能依赖的其他 modules。                                          |
-| `exports`   | 允许其他 modules 使用的 providers；未导出的 provider 保持为内部实现。 |
-| `options`   | 多个命令共享的字段或动作，例如 `--help`、`--profile`。                |
+创建 `ProjectCommand` 时，`func` 会使用 `ProjectService` 这个 token 查找 Provider，创建实例并传入构造函数。如果 service 还有其他依赖，`func` 会继续解析它们。
+这样的自动化依赖分析在拥有复杂依赖关系的大型应用中格外有用。
 
-不需要为了“填满字段”而声明空数组。一个只组合其他功能的根 module 可以只有 `imports`，一个简单 feature module 也可能只有 `commands` 和 `providers`。
+## 标准 Provider
 
-## 根 module 组合整个应用
+最常用的注册方式是直接写入 class：
 
-根 module 是 `createApp()` 或 `createInvoker()` 接收的应用入口。它适合表达应用由哪些功能组成，并承载真正作用于整个 CLI 的 options 与 hooks：
+```ts
+providers: [ProjectService]
+```
 
-<CodeBlock code={appModuleCode} filename="src/app.module.ts" lang="ts" />
+这是下面写法的简写：
 
-这里导入 `ProjectModule` 与 `ReleaseModule` 后，它们声明的命令都会加入当前应用。根 module 不需要重新列出 feature 内部的 commands 和 providers。
+```ts
+providers: [
+  {
+    provide: ProjectService,
+    useClass: ProjectService,
+  },
+]
+```
 
-<Callout locale="zh-cn" title="module 不会生成命令路径" variant="decision">
+`provide` 是查找依赖时使用的 token，`useClass` 表示这个 token 应当得到哪个 class 的实例。在标准写法中，class 同时充当 token 和实现。
 
-`ProjectModule` 只是组织代码，不会自动给命令添加 `project` 前缀。用户看到的路径仍然由 `@Command(path)` 与 `@Handler(path)` 声明。不同 modules 中的命令也需要避免 path 冲突。
+<Callout locale="zh-cn" title="Provider 按需创建">
+
+Class Provider 在一次调用中只会创建一次并被重复使用。没有被当前命令依赖的 Provider 不会创建，下一次调用会得到新的实例。
 
 </Callout>
 
-## 用 feature module 组织功能
+标准 Provider 已经能满足大多数 service。需要提供配置值、替换实现或动态创建对象时，可以使用自定义 Provider。
 
-feature module 围绕一个业务领域或工作流组织代码，例如项目管理、发布流程、账号认证或配置管理。一个好的 feature module 通常具备这些特征：
+## 自定义 Provider
 
-- commands 面向同一类用户任务；
-- providers 主要服务这些 commands；
-- options、错误处理和生命周期策略可以由这组命令共同理解；
-- module 名称能够自然说明它负责什么。
+自定义 Provider 仍然包含 `provide`，但可以选择不同的提供方式：
 
-按功能组织后，新增发布命令时可以先进入 `releases/`，而不必在全局 commands、services 和 repositories 目录之间来回寻找：
+- `useValue` 直接提供一个值；
+- `useClass` 指定一个 class 实现；
+- `useFactory` 使用函数创建结果。
 
-<CodeBlock code={projectStructure} filename="按功能组织的工程" />
+### Value Provider：useValue
 
-这是一种推荐结构，不是强制目录规范。代码量很小时，先使用单个 `AppModule` 通常更清楚；当某组代码已经形成独立职责时，再提取 feature module。
+`useValue` 适合配置、常量、已有对象和测试替身：
 
-## 在 modules 之间共享 provider
+<CodeBlock
+  code={valueProviderCode}
+  filename="src/projects/providers/api-url.provider.ts"
+  lang="ts"
+/>
 
-provider 默认服务声明它的 module。只被 `ProjectCommand` 使用的 `ProjectService` 不需要导出；即使根 module 导入了 `ProjectModule`，项目命令仍然可以正常使用自己的 provider。
+把 `apiUrlProvider` 放入 Module 的 `providers` 后，请求 `API_URL` 就会得到 `'https://api.example.com'`：
 
-当另一个 feature 也需要直接注入 `ProjectService` 时，在提供方的 `exports` 中公开它，并在使用方的 `imports` 中导入提供方：
+```ts
+@Module({
+  providers: [apiUrlProvider],
+})
+export class ProjectModule {}
+```
+
+`useValue` 返回注册时给出的原值，不会调用构造函数。若传入对象，同一个对象会在不同调用之间继续使用。
+
+### 非 class token
+
+Class 可以直接作为 token，但 TypeScript interface、字符串配置等内容在运行时没有可用的 class。`func` 使用 `createToken<T>()` 表示这类依赖：
+
+```ts
+export const API_URL = createToken<string>('API_URL')
+```
+
+使用非 class token 时，通过 `@Inject()` 指定它：
+
+<CodeBlock
+  code={tokenInjectionCode}
+  filename="src/projects/clients/project.client.ts"
+  lang="ts"
+/>
+
+Token 应定义为常量并在注册处与使用处导入。同样的描述文字不会让两个 `createToken()` 变成同一个 token。
+
+### Class Provider：useClass
+
+`useClass` 可以让一个 token 对应具体的 class 实现：
+
+<CodeBlock
+  code={classProviderCode}
+  filename="src/projects/project.module.ts"
+  lang="ts"
+/>
+
+业务代码可以依赖 `PROJECT_STORAGE`，而不必知道当前使用 `FileProjectStorage`。以后切换到内存或远程实现时，只需要替换 Provider 配置。
+
+`useClass` 指定的 class 需要使用 `@Injectable()`。
+
+### Factory Provider：useFactory
+
+当依赖需要根据配置或其他 Providers 创建时，可以使用 factory：
+
+<CodeBlock
+  code={factoryProviderCode}
+  filename="src/projects/project.module.ts"
+  lang="ts"
+/>
+
+`inject` 中的 tokens 会按顺序解析，并传给 `useFactory` 的参数。Factory 可以直接返回结果，也可以返回 Promise。
+
+Provider 不只用于 service。Factory 可以返回 client、配置对象、函数或任何业务需要的值。
+
+<Callout locale="zh-cn" title="Func 支持的 Provider 写法">
+
+`func` 支持 class 简写、`useClass`、`useValue` 和 `useFactory`，非 class token 请使用 `createToken()`。
+
+</Callout>
+
+## Module 组织依赖
+
+Module 是带有 `@Module()` 的 class。它将 Commands 和 Providers 组织为一项功能，并决定哪些能力可以被其他 Modules 使用。
+
+| 字段        | 用途                                      |
+| ----------- | ----------------------------------------- |
+| `commands`  | 当前 Module 提供的 Commands。             |
+| `providers` | 当前 Module 中可以注入的 Providers。      |
+| `imports`   | 当前 Module 使用的其他 Modules。          |
+| `exports`   | 允许其他 Modules 使用的 Provider tokens。 |
+| `options`   | 多个 Commands 共享的字段或动作。          |
+
+Module class 通常保持为空。一个简单 Module 只需要 `commands` 和 `providers`，不必声明没有使用的字段。
+
+## 在 Modules 之间共享 Provider
+
+Provider 默认只在声明它的 Module 中可见。如果另一个功能需要 `ProjectService`，`ProjectModule` 必须将它导出：
 
 <CodeBlock
   code={sharedProviderCode}
   filename="src/projects/project.module.ts"
   lang="ts"
 />
+
+然后由使用方导入 `ProjectModule`：
+
 <CodeBlock
   code={consumerModuleCode}
   filename="src/releases/release.module.ts"
   lang="ts"
 />
 
-此时 `ReleaseModule` 中的 command 和 provider 可以注入 `ProjectService`。导出的是一项跨 module 能力，不是整个 module 的所有内部实现。
+现在 `ReleaseService` 可以注入 `ProjectService`。
 
-<Callout locale="zh-cn" title="只导出真正共享的能力">
+`exports` 是 Module 对外提供的能力。只在项目功能内部使用的 repository、client 和配置应保持私有。文件中的 `export class` 只允许 TypeScript import；`Module.exports` 才允许其他 Modules 通过 DI 使用它。
 
-文件中的 `export class ProjectService` 让 TypeScript 可以 import 这个类；`Module.exports` 才允许导入方在运行时注入它。只在当前 feature 内使用的 provider 应保持私有，避免把 `providers` 原样复制到 `exports`。
+自定义 Provider 通过 token 导出：
+
+```ts
+@Module({
+  providers: [apiUrlProvider],
+  exports: [API_URL],
+})
+export class ProjectModule {}
+```
+
+## 组合应用
+
+每个应用至少有一个根模块。根模块通常只负责组合功能：
+
+<CodeBlock code={appModuleCode} filename="src/app.module.ts" lang="ts" />
+
+导入 `ProjectModule` 和 `ReleaseModule` 后，它们的 Commands 都会加入应用，根模块不需要重新注册这些 Commands 和 Providers。
+
+<Callout locale="zh-cn" title="Module 不会生成命令路径">
+
+Module 只组织代码。命令路径仍然由 `@Command()` 和 `@Handler()` 定义，`ProjectModule` 不会自动添加 `project` 前缀。
 
 </Callout>
 
-如果一个 module 只是转接其他 module 的 provider，导入方不会自动看到更深层的能力。让实际使用 provider 的 feature 直接导入提供方，通常比建立很长的转发链更容易理解。
-
-## 导入可配置的 module
-
-部分通用能力需要在导入时接收配置。它们通常提供 `register()` 方法，并像普通 module 一样放入 `imports`：
+部分通用功能需要在导入时接收配置。它们通常提供 `register()` 方法：
 
 <CodeBlock
   code={configurableModuleCode}
@@ -210,34 +431,27 @@ provider 默认服务声明它的 module。只被 `ProjectCommand` 使用的 `Pr
   lang="ts"
 />
 
-`LogModule.register()` 返回一个配置好的 module。当前 feature 可以使用它导出的 `Logger`，同时保持日志的创建方式集中在 `func/log` 内。配置文件也可以通过相同方式使用 `ConfigModule.register()`。两者使用的应用目录名称由 `createApp({ appName })` 统一提供。
+`LogModule.register()` 返回一个配置好的 Module。使用方可以使用它导出的日志能力，不需要关心内部 Providers 如何创建。
 
-## Options 和 hooks 放在哪里
+## 按业务划分 Module
 
-根 module 注册的 options 面向整个应用，适合帮助、全局配置等能力。feature module 注册的 options 只面向它直接声明的 commands，适合一组业务命令共享的字段和动作。具体写法见[共享字段](/zh-cn/shared-fields)。
+Module 应该表示一项完整的业务功能，而不是一种文件类型：
 
-错误格式化、应用级日志与清理放在根 module；只属于某个 feature 的错误处理与生命周期策略放在直接声明相关 commands 的 feature module。完整 hook 规则见[错误处理](/zh-cn/error-handler)。
+- `ProjectModule` 组织项目命令、项目 service 和内部 repository；
+- `ReleaseModule` 组织发布命令与发布流程；
+- `StorageModule` 提供多个业务共同使用的存储能力；
+- `AppModule` 负责组合这些功能。
 
-## 什么时候应该拆分 module
+推荐按功能组织目录：
 
-出现下面任一情况时，可以考虑提取 feature module：
+<CodeBlock code={projectStructure} filename="src/" />
 
-- 根 module 中已经混合了多组无关 commands；
-- 一组 commands 共享多项 provider 或 options；
-- 某项能力需要被另一个 feature 明确导入；
-- 希望单独测试、替换或维护一组完整功能；
-- 团队可以按照业务领域分别负责不同目录。
+这样修改项目业务时，大部分工作都发生在 `projects/` 内，而不需要在全局 `commands/`、`services/` 和 `repositories/` 目录之间来回寻找。
 
-不要机械地让每个 command 或 provider 都拥有一个 module。module 应表示内聚的功能，而不是额外的文件层级。provider 只被一个 feature 使用时直接留在该 feature；被多个 features 复用时，再提取小型基础设施 module 并导出稳定能力。
+## 接下来
 
-## 推荐做法
-
-- 从简单的根 module 开始，随着职责出现再拆分；
-- feature module 同时拥有自己的 commands 和内部 providers；
-- 根 module 保持精简，主要负责 imports 和应用级策略；
-- providers 默认私有，只导出其他 modules 确实需要的能力；
-- 保持单向、清晰的 imports，避免 modules 互相循环依赖。
-
-接下来可以阅读[共享字段](/zh-cn/shared-fields)了解 module options，或阅读[深入了解运行时](/zh-cn/runtime)了解 func 如何使用这些声明执行一次调用。精确字段和 provider 定义见 [API 参考](/zh-cn/apis)。
+- [共享字段](/zh-cn/shared-fields)：为一个 Module 中的 Commands 提供共享字段和动作。
+- [运行时执行模型](/zh-cn/runtime)：了解 Providers 何时创建与释放。
+- [API 参考](/zh-cn/apis)：查看 Module 和 Provider 的完整类型。
 
 </DocsLayout>

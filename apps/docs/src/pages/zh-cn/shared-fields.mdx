@@ -1,6 +1,6 @@
 ---
 title: 共享字段
-description: 通过 module 在多个命令间共享字段与动作，并理解它们的作用域和显式覆盖规则。
+description: 通过 Module 在多个命令间共享字段与动作，并理解它们的作用域和显式覆盖规则。
 lastModified: '2026-08-16'
 ---
 
@@ -57,18 +57,18 @@ export const overrideCode = [
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="shared-fields">
 
-单个命令需要的 flag 和 value 应直接声明在 command 中。只有当多个命令确实需要同一组选项，或应用需要跨命令动作时，才把它们提升到 module。这样可以先理解[字段选项](/zh-cn/options)，再按需学习共享和覆盖规则。
+单个命令需要的 flag 和 value 应直接声明在 Command 中。只有当多个命令确实需要同一组选项，或应用需要跨命令动作时，才把它们提升到 Module。这样可以先理解[字段选项](/zh-cn/options)，再按需学习共享和覆盖规则。
 
-module 的 `options` 可以注册两种类：
+Module 的 `options` 可以注册两种类：
 
 | 需求                                  | 声明方式           | 运行效果                           |
 | ------------------------------------- | ------------------ | ---------------------------------- |
 | 为多个命令提供相同字段和值            | `@Option()`        | 参与当前命令的解析、绑定与校验。   |
-| 提供 `--version` 一类独立的跨命令动作 | `@OptionCommand()` | 选择独立 handler，不执行业务动作。 |
+| 提供 `--version` 一类独立的跨命令动作 | `@OptionCommand()` | 选择独立 Handler，不执行业务动作。 |
 
-## 通过 module 共享选项
+## 通过 Module 共享选项
 
-同一 feature 直接声明的多个 command 需要共享 CLI 选项时，把字段放入一个 `@Option()` 类，并通过 module 的 `options` 数组注册：
+同一 feature 直接声明的多个 Command 需要共享 CLI 选项时，把字段放入一个 `@Option()` 类，并通过 Module 的 `options` 数组注册：
 
 <CodeBlock
   code={moduleOptionsCode}
@@ -76,35 +76,35 @@ module 的 `options` 可以注册两种类：
   lang="ts"
 />
 
-option class 是普通的 DI 受管依赖。它的直接 module 和 commands 都可以注入 `DeployOptions`，也可以像其他 provider 一样实现 `onInit` 与 `onDispose`。字段会在 `onInit` 之前完成绑定，因此 hook 和 handler 可以读取本次调用的值。
+option class 是普通的 DI 受管依赖。它的直接 Module 和 Commands 都可以注入 `DeployOptions`，也可以像其他 Provider 一样实现 `onInit` 与 `onDispose`。字段会在 `onInit` 之前完成绑定，因此 hook 和 Handler 可以读取本次调用的值。
 
 共享范围取决于注册位置：
 
 | 注册位置       | 字段适用范围                    | 注入范围                      |
 | -------------- | ------------------------------- | ----------------------------- |
 | 根 `AppModule` | 应用内所有命令节点。            | 应用内任意可见位置。          |
-| feature module | 该 module 直接声明的 commands。 | 该 module 及其直接 commands。 |
+| feature Module | 该 Module 直接声明的 Commands。 | 该 Module 及其直接 Commands。 |
 
-feature module 的 options 不会沿 `imports` 传播，也不会应用到仅由子 module 声明的 command。把真正全局的选项放在根 module；只服务某组命令的选项留在直接拥有这些命令的 feature module。
+feature Module 的 options 不会沿 `imports` 传播，也不会应用到仅由子 Module 声明的 Command。把真正全局的选项放在根模块；只服务某组命令的选项留在直接拥有这些命令的 feature Module。
 
-## 通过 module 提供动作选项
+## 通过 Module 提供动作选项
 
-`@OptionCommand()` 把一个选项绑定到独立 handler，适合 `--version`、诊断等互斥动作。它必须通过 module 的 `options` 注册，类中只能有一个默认 `@Handler()`：
+`@OptionCommand()` 把一个选项绑定到独立 Handler，适合 `--version`、诊断等互斥动作。它必须通过 Module 的 `options` 注册，类中只能有一个默认 `@Handler()`：
 
 <CodeBlock code={moduleActionCode} filename="src/app.module.ts" lang="ts" />
 
-根 module 注册的动作在所有命令节点可用；feature module 注册的动作只应用于该 module 直接拥有的命令。动作被选中时会跳过当前命令的字段校验，因此它不会因为当前业务命令缺少必填字段而失败。
+根模块注册的动作在所有命令节点可用；feature Module 注册的动作只应用于该 Module 直接拥有的命令。动作被选中时会跳过当前命令的字段校验，因此它不会因为当前业务命令缺少必填字段而失败。
 
 动作选项与字段选项的表面语法相似，但职责不同。`@Flag()` 为已经选中的业务动作提供布尔值；`@OptionCommand()` 会替换业务动作，且一次调用最多选择一个动作选项。如果需要为应用提供 `--help`，请直接参考[帮助](/zh-cn/capabilities/help)文档启用对应能力。
 
 ## 显式覆盖上层选项
 
-同一个 command 作用域内，根 option、owner module option、command option 和 handler flag 默认不能占用相同的公开名称或 alias。冲突会产生 `F_SYSTEM_OPTION_OVERRIDE_REQUIRED`，避免上层字段被较内层字段意外遮蔽。
+同一个 Command 作用域内，根 option、owner Module option、Command option 和 Handler flag 默认不能占用相同的公开名称或 alias。冲突会产生 `F_SYSTEM_OPTION_OVERRIDE_REQUIRED`，避免上层字段被较内层字段意外遮蔽。
 
-如果 command 字段或 feature `@Option()` 字段确实需要替换上层字段，在唯一的字段选项装饰器旁添加 `@Override()`：
+如果 Command 字段或 feature `@Option()` 字段确实需要替换上层字段，在唯一的字段选项装饰器旁添加 `@Override()`：
 
 <CodeBlock code={overrideCode} filename="src/commands/build.command.ts" lang="ts" />
 
-覆盖后，公开 token 只绑定到较内层字段，上层 option provider 上的同名字段保留默认值。feature `@OptionCommand()` 需要替换根动作时，使用它的 `overrideAll: true` 参数。只有语义上确实属于当前作用域的替代项才应覆盖；普通重复声明应改名。
+覆盖后，公开 token 只绑定到较内层字段，上层 option Provider 上的同名字段保留默认值。feature `@OptionCommand()` 需要替换根动作时，使用它的 `overrideAll: true` 参数。只有语义上确实属于当前作用域的替代项才应覆盖；普通重复声明应改名。
 
 </DocsLayout>

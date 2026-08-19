@@ -1,13 +1,13 @@
 ---
 code: F_SYSTEM_INTERNAL_INVARIANT
 title: 运行时内部状态不一致
-description: func 编译器或参数解析器遇到了按公开 API 约束不应出现的内部状态。
+description: Func 编译器或参数解析器遇到了按公开 API 约束不应出现的内部状态。
 lastModified: '2026-08-17'
 ---
 
 ## 这个错误是什么
 
-该错误表示 func 已经通过了外部声明校验，但后续命令图、字段选项或 argv parser 中缺少预期数据。它不是普通用户输入错误，也不应通过 Filter 转换为业务失败。
+该错误表示 `func` 已经通过了外部声明校验，但后续命令图、字段选项或 argv parser 中缺少预期数据。它不是普通用户输入错误，也不应通过 `onError` 转换为业务失败。
 
 根据发生位置，details 可能包含：
 
@@ -17,4 +17,4 @@ lastModified: '2026-08-17'
 
 ## 如何修复
 
-先确认所有 `func` 子路径包来自同一版本，并重新安装依赖。如果错误仍可复现，请保留完整 stack、错误 details、func 版本和最小 module/command 声明，向 func 提交问题。不要依赖该错误的 message 或尝试在业务代码中恢复内部状态。
+先确认所有 `func` 子路径包来自同一版本，并重新安装依赖。如果错误仍可复现，请保留完整 stack、错误 details、`func` 版本和最小 module/command 声明，向 `func` 提交问题。不要依赖该错误的 message 或尝试在业务代码中恢复内部状态。

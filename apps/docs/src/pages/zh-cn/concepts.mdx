@@ -1,6 +1,6 @@
 ---
 title: 核心概念
-description: 参考 func 的设计思路，理解框架如何组织命令、模块与 provider。
+description: 参考 Func 的设计思路，理解框架如何组织命令、模块与 Provider。
 lastModified: '2026-08-16'
 ---
 
@@ -13,17 +13,10 @@ export const conceptModel = [
   '@Module()',
   '├─ 注册命令图',
   '│  ├─ @CommandMajor()       没有具名路径时的入口',
-  "│  ├─ @Command('<name>')   匹配一段或多段命令路径",
+  "│  ├─ @Command('<name>')    匹配一段或多段命令路径",
   '│  └─ @CommandMissing()     无法匹配时的可选后备',
   '├─ 注册 options             跨命令字段与动作',
   '└─ 注册 providers           可复用的业务能力',
-  '',
-  '一次进入执行的 CLI 调用',
-  '└─ 选择一个命令节点',
-  '   └─ 选择一个 @Handler() 或 @OptionCommand()',
-  '      ├─ 读取当前节点可用的字段选项',
-  '      ├─ 通过 @Args() 读取位置输入',
-  '      └─ 调用注入的 provider 完成业务',
 ].join('\n')
 
 export const commandAnatomy = [
@@ -74,74 +67,184 @@ export const mappedApplicationCode = [
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="concepts">
 
-`func` 框架内用户一般不用关心具体调用在做什么，仅跟随应用架构声明具体的命令与 provider 即可完成工作。当你理解设计模型后，几乎不需要深入底层，这与开发常见的 Web 应用没有什么区别。
+`func` 的核心哲学深受 Angular 与 NestJS 启发，旨在为命令式应用提供一致、高度解耦、易于维护且可靠的现代应用架构。
 
-在开发者完成命令声明后，框架会通过反射获取元信息并编译命令图。每当用户运行脚本唤起时，`func` 就从命令图中选择唯一匹配的命令节点与处理器，并把用户提供的上下文数据传递给处理器。这些数据在到达处理器之前会经过预先声明的类型转换、校验和约束。
+在 `func` 中，你通常不需要关心具体的调用在底层如何完成。只需遵循统一的应用结构，声明应用支持的命令以及所依赖的服务，框架便会负责组织并连接这些能力。
+
+这意味着，使用 `func` 开发命令式应用，与开发常见的 Web 应用并没有本质区别。理解 `func` 的设计模型后，大多数开发工作都可以停留在应用层，而不必深入框架内部。
+这允许开发者将更多精力投入真正重要的业务逻辑。
+
+## 架构概览
+
+一个 `func` 应用主要围绕以下概念组织：
+
+1. 应用（Application）：应用是所有能力的组合入口，定义有哪些命令和 Provider 共同参与运行。
+2. 命令（Command）：命令描述应用可以完成的具体工作，是用户意图进入应用的入口。
+3. Provider：Provider 封装可复用的业务或基础设施能力，例如数据访问、外部服务和领域逻辑，并可以被命令或其他 Provider 使用。
+4. 依赖关系：命令只声明自己需要哪些能力，而不负责创建或连接这些能力。`func` 根据声明解析依赖，并在运行时完成组合。
 
 ## 定义与调用
 
-Command 是最基础的单元，通常一个工程中包含多个 Command 类，这些类是命令运行的入口。
+`func` 以 Command 作为组织命令能力的基本单元。一个 Command Class 可以包含字段选项、一个或多个 Handler，以及完成业务所需的 Provider。其中：
 
-`@Module()` 定义应用装配边界，注册命令、模块选项和 provider。命令图负责解释 CLI 输入并选择动作；provider 提供可复用的业务能力。每次调用只会从已注册的命令中选择一条执行路径，而不会依次运行多个命令类。
+一次调用会根据完整输入匹配一个命令节点，并从中选择唯一的 Handler。Command Class 中的多个 Handler 不是顺序执行的步骤，而是不同的可执行入口。
 
-<CodeBlock code={conceptModel} filename="func 心智模型" />
+例如，一个 Command 可以同时提供默认动作、路径动作和标志动作，但 `func` 每次只会执行实际匹配的那一个。
+被选中的 Handler 可以读取已经解析和校验的输入，也可以调用注入的 Provider 完成业务。
 
-## Command 类型
+<CodeBlock code={conceptModel} filename="Func 心智模型" />
 
-命令节点是本次调用最终归属的路径。具名命令可以声明一段或多段 path，处理器 path 会继续追加在命令 path 之后。func 还有主命令与缺失命令两种特殊入口；未注册时，对应输入不会凭空创建默认处理器：
+从这张模型中可以看到，应用首先由 Module 注册 Commands 与相关依赖；用户调用进入应用后，`func` 选择对应的 Command 与 Handler，再将输入和所需能力交给目标方法。
 
-| 命令入口 | 选择条件                                            | func API                    |
+对于刚开始使用 `func` 的开发者，可以按下述简要规则：
+
+- Command 组织命令能力
+- Handler 执行具体动作，输入提供数据，
+- Provider 完成业务
+
+Module 的组合方式、Provider 可见性与依赖注入规则将在[模块](/zh-cn/modules)中系统介绍。
+
+## 分析调用链
+
+下述是一个命令示例，它表达的用户意图是：为 `project` 添加成员 `alice`，将角色设为 `owner`，并允许强制执行。
+
+<CodeBlock code={commandAnatomy} filename="输入片段与 Func 概念" />
+
+| 输入片段     | 对应概念     | 声明方式                              | 作用                                        |
+| ------------ | ------------ | ------------------------------------- | ------------------------------------------- |
+| `ship`       | 可执行文件   | `package.json#bin`                    | 启动应用，不属于 Command path。             |
+| `project`    | Command path | `@Command('project')`                 | 选择负责项目领域的 Command。                |
+| `member add` | Handler path | `@Handler(['member', 'add'])`         | 选择 Command 中添加成员的动作。             |
+| `alice`      | 位置输入     | `@Args().inputs`                      | 向动作提供无法预先写成固定路径的数据。      |
+| `--role`     | 值选项       | `@Value()`                            | 接收一个带名称的字符串或数字。              |
+| `--force`    | 标志选项     | `@Flag()`                             | 接收一个带名称的布尔状态。                  |
+| 无输入片段   | Provider     | `@Injectable()` 与 `Module.providers` | 封装并向 Command 提供可复用的应用内部能力。 |
+
+这些概念可以分成两组：Command、Handler、位置输入和字段选项共同描述应用的**调用界面**；
+Module 与 Provider 描述应用内部的**代码组织与能力依赖**。
+
+下面是这条调用对应的完整应用定义：
+
+<CodeBlock code={mappedApplicationCode} filename="src/app.module.ts" lang="ts" />
+
+## Application：整个应用
+
+Application 表示一组可以共同运行的命令与内部能力，不对应某一条具体的 CLI 路径。根模块 (`app.module.ts`) 是它的定义入口：`func` 从这里发现应用包含哪些 Command、Provider 和共享能力，并将这些声明编译为可调用的应用。
+
+同一份 Application 定义既可以作为 CLI 进程启动，也可以由其他程序发起命令式调用。两种方式共享相同的 Command、输入规则与 Provider；区别只在于调用从哪里进入应用。
+
+## Command：调用入口
+
+Command 是 `func` 中面向用户组织能力的基本单元，由带有 Command 装饰器的 class 表示。
+它通常对应一个业务领域或一组紧密相关的任务，例如 `project`、`config profile` 或 `deploy`。
+
+Command path 是用户必须输入的固定语法。它可以包含一段或多段路径；多个 Command 也可以共享路径前缀。
+`func` 会将 Command path 与 Handler path 编译成命令图，并在调用时选择匹配最完整且唯一的可执行节点。
+
+### Command 子类型
+
+大多数业务使用具名命令。主命令与缺失命令用于处理没有进入具名命令的调用，是应用可以按需声明的特殊入口：
+
+| 命令入口 | 选择条件                                            | `func` API                  |
 | -------- | --------------------------------------------------- | --------------------------- |
-| 主命令   | 没有匹配具名路径，可执行其默认或 path handler       | `@CommandMajor()`           |
-| 具名命令 | 位置 token 最长匹配 command path 与 handler path    | `@Command('<name>')`        |
+| 主命令   | 没有匹配具名路径，可执行其默认或 path Handler       | `@CommandMajor()`           |
+| 具名命令 | 位置 token 最长匹配 Command path 与 Handler path    | `@Command('<name>')`        |
 | 缺失命令 | 位置 token 无法匹配具名路径，并且仍有未消费位置输入 | `@CommandMissing()（可选）` |
 
 <Callout locale="zh-cn" title="命令路径可以共享前缀" variant="decision">
 
-对于 `ship project member add`，可以用 `@Command('project')` 加 `@Handler(['member', 'add'])` 建模，也可以由另一个类声明 `@Command(['project', 'member'])`。func 会编译一棵命令图，并选择最长且唯一的可执行节点。
+对于 `ship project member add`，可以用 `@Command('project')` 加 `@Handler(['member', 'add'])` 建模，也可以由另一个类声明 `@Command(['project', 'member'])`。`func` 会编译一棵命令图，并选择最长且唯一的可执行节点。
 
 </Callout>
 
-## 一个命令节点只执行一个处理器
+## Handler：执行处理器
 
-处理器是命令类中执行具体动作的方法，由 `@Handler()` 声明。一个命令类可以提供三种动作入口：
+Handler 是 Command class 中实际执行业务动作的方法，由 `@Handler()` 声明。同一个 Command 可以提供多个 Handler。
 
-- **默认处理器**没有路径或标志，在当前命令节点没有选择其他动作时执行；
-- **路径处理器**使用一段固定的位置 token 扩展命令路径，例如 `member add`；
-- **标志处理器**使用 `--version` 一类选项切换到互斥动作。
+Handler 有三种选择方式：
 
-模块级 `@OptionCommand()` 也可以提供 `--help` 一类跨命令动作。无论声明了多少入口，一次调用最终只执行其中一个。精确选择顺序见[深入了解运行时](/zh-cn/runtime)。
+- **默认处理器**：没有路径或标志，在当前命令节点没有选择其他动作时执行；
+- **路径处理器**：使用一段固定的位置 token 扩展命令路径，例如 `member add`；
+- **标志处理器**：使用 `--version` 一类选项切换到互斥动作。
 
-<Callout locale="zh-cn" title="相同表面语法可以承担不同职责" variant="decision">
+一次调用最终只会执行一个 Handler，不会因为一个 Command class 中声明了多个方法就依次执行它们。
+模块级 `@OptionCommand()` 也可以提供 `--help` 一类跨命令动作，它同样会替代当前业务动作，而不是与业务 Handler 一同运行。
+
+<Callout locale="zh-cn" title="相同终端语法可能表示不同职责" variant="decision">
 
 `@Flag()` 声明的 `--force` 向已经选中的动作提供布尔数据；`@Handler({ flag: 'version' })` 或 `@OptionCommand({ name: 'help' })` 则选择另一个动作。它们都以连字符开头，但职责不同。
 
 </Callout>
 
-## 命令对应的 func 概念
+判断一个输入应该建模为 Handler path 还是位置数据，关键在于它是否属于固定语法：`member add` 是开发者预先声明的动作路径，而 `alice` 是每次调用都可能变化的业务数据。
 
-下面只使用一个调用贯穿所有概念：它命中 `@Command('project')` 与 `member add` 处理器，其余片段分别提供位置数据和具名数据：
+## 输入：提供数据
 
-<CodeBlock code={commandAnatomy} filename="输入片段与 func API" />
+字段选项与位置输入决定“当前动作使用什么数据执行”。
 
-只有最终命中的 command 会被实例化，类中是否执行某个方法取决于完整路径和动作选项的选择。此处命中 `addMember` 的 `['member', 'add']` 路径，因此该方法会被执行：
+### 字段选项
 
-<CodeBlock code={mappedApplicationCode} filename="src/app.module.ts" lang="ts" />
+字段选项是带名称的输入，声明在 Command 或 option Provider 的属性上。`func` 会负责识别名称与别名、转换类型、写入属性并执行校验，Handler 可以直接读取最终字段值。
+
+| 用户需要的数据                 | 输入示例                        | `func` API                         |
+| ------------------------------ | ------------------------------- | ---------------------------------- |
+| 布尔状态                       | `--force`                       | `@Flag()`                          |
+| 单个字符串或数字               | `--role owner`、`--port 3000`   | `@Value()`                         |
+| 可以重复出现的字符串或数字列表 | `--include src --include tests` | `@ArrayString()`、`@ArrayNumber()` |
+
+字段选项适合拥有稳定名称、类型、默认值或校验规则的数据。详细定义方式见[字段选项](/zh-cn/options)。
+
+### 位置输入
+
+位置输入没有选项名，它的含义由所在位置决定。Command path 和 Handler path 完成匹配后，剩余的位置 token 可以通过 `@Args().inputs` 读取。例如示例中的 `alice` 不是固定语法，因此会作为位置输入交给 `addMember()`。
+
+位置输入适合文件路径、搜索关键词、用户名等动态数据。`@Args()` 还提供标准路径、实际调用路径和归一化选项快照；这些运行时参数见[参数与上下文](/zh-cn/parameters)。
+
+## Provider：可复用服务
+
+Provider 通常封装领域逻辑或基础设施能力，例如 service、repository、配置和外部 API client，使 Handler 只需要编排一次调用，而不必负责创建依赖或实现全部细节。
+
+在上面的示例中，`ProjectCommand` 负责理解 `project member add` 及其输入，`ProjectService` 负责真正的成员管理能力。两者通过构造函数依赖关联：Command 声明需要 `ProjectService`，`func` 在执行时创建并传入实例。
+
+这种分工有几个直接作用：
+
+- 同一服务可以被不同 Command 或其他 Provider 复用；
+- Command 专注于输入与动作编排，业务逻辑保持独立；
+- 依赖可以被替换，便于测试和演进基础设施实现；
+- 生命周期与资源清理由框架统一协调。
+
+带有 `@Injectable()` 的 class 是最常见的 Provider，但 Provider 也可以由固定值或 factory 提供。这里只需要理解它代表“由应用提供并受框架管理的能力”。
+
 <Callout locale="zh-cn" title="并非所有概念都对应输入片段">
 
-`@Module()` 和 `@Injectable()` 负责组织应用代码，不对应任何 CLI token。命令、处理器和输入描述用户如何调用应用；模块与 provider 描述应用内部如何组织能力。
+`@Module()` 和 `@Injectable()` 负责组织应用代码，不对应任何 CLI token。Command、Handler 和输入描述用户如何调用应用；Module 与 Provider 描述应用内部如何组织能力。
 
 </Callout>
 
+## 把概念串成一次调用
+
+回到 `ship project member add alice --role owner --force`，`func` 会按职责完成以下工作：
+
+1. `project` 将调用定位到 `ProjectCommand`；
+2. `member add` 在该命令中选择 `addMember()` Handler；
+3. `--role owner` 与 `--force` 被解析、转换并绑定到 Command 字段；
+4. `alice` 作为剩余位置输入出现在 `@Args().inputs` 中；
+5. `ProjectService` 按 Command 的依赖声明被创建并注入；
+6. 校验通过后，`func` 只执行这一次调用选中的 `addMember()`。
+
+这就是 `func` 最核心的协作模型：**Command 划分用户能力，Handler 表示具体动作，字段选项和位置输入提供数据，Provider 承载可复用能力，Module 将这些声明组合成应用。**
+
+本页关注的是这些概念之间的职责关系。命令图如何选择最长路径、实例何时创建、校验和生命周期按什么顺序发生，可继续阅读[运行时执行模型](/zh-cn/runtime)。
+
 ## 接下来读什么
 
-- [模块](/zh-cn/modules)：组织 feature、控制 provider 可见性，并划分 options 与 hooks 的作用域。
-- [命令](/zh-cn/commands)：定义命令路径、别名、默认处理器和处理器路径。
-- [字段选项](/zh-cn/options)：接收标志、值、重复值并执行校验。
-- [参数注入](/zh-cn/parameters)：读取位置输入、运行时上下文和其他 provider。
+- [命令](/zh-cn/commands)：从最小 Command 开始，定义路径、别名与多个 Handler。
+- [字段选项](/zh-cn/options)：接收标志、单值与重复值，并为输入添加校验。
+- [参数与上下文](/zh-cn/parameters)：读取位置输入、标准路径、IO 与当前调用上下文。
+- [模块](/zh-cn/modules)：系统学习应用组合、Provider 注册与共享，以及依赖注入规则。
 - [共享字段](/zh-cn/shared-fields)：在多个命令间共享字段与动作。
 - [输入与输出](/zh-cn/input-output)：正确使用 stdin、stdout、stderr 和管道。
-- [深入了解运行时](/zh-cn/runtime)：查看模块解析、命令图匹配、实例创建和完整执行顺序。
+- [运行时执行模型](/zh-cn/runtime)：查看命令图匹配、实例创建和完整执行顺序。
 - [术语索引](/zh-cn/glossary)：查询本文概念的精确定义。
 
 </DocsLayout>

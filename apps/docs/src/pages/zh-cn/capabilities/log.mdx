@@ -1,6 +1,6 @@
 ---
 title: 日志
-description: 使用 func/log 为每次 CLI 调用写入隔离的诊断日志，并控制大小与保留数量。
+description: 写 CLI 提供写入隔离的诊断日志。
 lastModified: '2026-08-16'
 ---
 
@@ -57,7 +57,7 @@ export const limitsCode = [
 
 <CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
 
-上例的日志目录为 `~/.ship/logs`。应用名由 `createApp({ appName })` 统一提供，func 只负责收集并透传；Log 会在 `Logger` provider 初始化时验证应用名。每次调用拥有不同文件；文件名包含时间、进程 ID 和随机标识。
+上例的日志目录为 `~/.ship/logs`。应用名由 `createApp({ appName })` 统一提供，`func` 只负责收集并透传；Log 会在 `Logger` Provider 初始化时验证应用名。每次调用拥有不同文件；文件名包含时间、进程 ID 和随机标识。
 
 `Logger.push(...data)` 使用 Node.js console 的格式化语义，把参数组合成一条带 ISO 时间戳的文本记录。ANSI 控制字符会被移除，日志文件始终保存纯文本。
 
@@ -75,25 +75,25 @@ Logs were written to "/Users/ada/.ship/logs/func-....log".
 
 ## 控制大小和保留数量
 
-默认单次调用最多写入 10 MiB，并保留最近 10 个 func 日志文件。可以在注册时调整：
+默认单次调用最多写入 10 MiB，并保留最近 10 个 `func` 日志文件。可以在注册时调整：
 
 <CodeBlock code={limitsCode} lang="ts" />
 
-| 设置          | 行为                                                 |
-| ------------- | ---------------------------------------------------- |
-| `maxBytes`    | 限制单次调用写入的总字节数，必须是正整数。           |
-| `maxFiles`    | 限制目录中保留的 func 日志文件数量，必须是非负整数。 |
-| `maxFiles: 0` | 完全关闭文件日志。                                   |
+| 设置          | 行为                                                   |
+| ------------- | ------------------------------------------------------ |
+| `maxBytes`    | 限制单次调用写入的总字节数，必须是正整数。             |
+| `maxFiles`    | 限制目录中保留的 `func` 日志文件数量，必须是非负整数。 |
+| `maxFiles: 0` | 完全关闭文件日志。                                     |
 
 超过大小限制后，本次调用的后续记录会被忽略，并最多输出一次警告。文件创建、写入、关闭或历史清理失败也不会替代原命令的执行结果。
 
-历史清理只处理符合 func 日志命名格式的文件，不会删除同一目录中的其他文件。
+历史清理只处理符合 `func` 日志命名格式的文件，不会删除同一目录中的其他文件。
 
 ## API 速查
 
 | API                            | 用途                               |
 | ------------------------------ | ---------------------------------- |
-| `LogModule.register(options?)` | 注册按调用创建的 Logger provider。 |
+| `LogModule.register(options?)` | 注册按调用创建的 Logger Provider。 |
 | `Logger.push(...data)`         | 追加一条带时间戳的诊断记录。       |
 | `Logger.path`                  | 获取本次调用解析出的日志路径。     |
 | `LogModuleOptions`             | 配置 maxBytes 和 maxFiles。        |

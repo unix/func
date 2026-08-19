@@ -18,7 +18,7 @@ export const fixCode = [
 
 ## 这个错误是什么
 
-Config、Log 等能力需要根据应用身份创建 `~/.<appName>` 目录。应用没有配置 `appName` 时，它们无法安全确定存储位置。错误通常在相关 provider 初始化时出现，而不是在导入 module 时出现；`details.appName` 此时为 `undefined`。
+Config、Log 等能力需要根据应用身份创建 `~/.<appName>` 目录。应用没有配置 `appName` 时，它们无法安全确定存储位置。错误通常在相关 Provider 初始化时出现，而不是在导入 Module 时出现；`details.appName` 此时为 `undefined`。
 
 ## 如何修复
 

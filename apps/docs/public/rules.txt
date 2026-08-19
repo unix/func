@@ -1,82 +1,178 @@
 func project structure and testing rules for coding agents
 
-Use these rules when the user has not supplied a stronger repository-specific convention. Existing repository instructions always take precedence.
+Use these rules for new code and structural cleanup when the repository does not define a stronger convention. Preserve user-visible CLI paths, aliases, option names, output, exit behavior, package scripts, and package.json#bin unless the user explicitly requests a behavior change.
 
-1. Choose a project boundary
+1. Organize by business feature
 
-- Prefer a dedicated package or directory for a func CLI, especially inside an existing application or monorepo. This keeps the CLI entry, dependencies, tests, and build output out of the host application's bundle.
-- In a standalone CLI package, keep runtime source under `src`, tests under `tests`, and generated output under the configured `func.outDir` (normally `dist`).
-- If the CLI must share an application package, isolate it under a directory such as `src/cli` and use explicit funcgo entry and output paths. Import shared application services into the CLI; do not make the application bootstrap import or run the CLI entry.
+Use the official template as the default shape:
 
-2. Give each file one role
+.
+|-- src
+|   |-- app.module.ts
+|   |-- commands
+|   |   +-- <feature>
+|   |       |-- <feature>.command.ts
+|   |       |-- <feature>.module.ts
+|   |       +-- <feature>.service.ts
+|   |-- decorators
+|   |   +-- <value>.decorator.ts
+|   |-- shared
+|   |   |-- services
+|   |   |   +-- <shared>.service.ts
+|   |   +-- shared.module.ts
+|   +-- index.ts
+|-- tests
+|   |-- commands
+|   |   +-- <feature>.test.ts
+|   |-- cli
+|   |   +-- smoke.test.ts
+|   +-- utils
+|       +-- cli.ts
+|-- package.json
+|-- tsconfig.json
+|-- vitest.config.mts
++-- vitest.cli.config.mts
 
-- `src/index.ts`: the executable entry. It should import the root module and call `run(RootModule)`.
-- `src/app.module.ts`: the composition root. It registers commands, imports feature modules, and registers services.
-- `src/commands/*.command.ts`: small or cross-cutting command classes. Keep parsing declarations next to the handler that consumes them.
-- `src/<feature>/<feature>.module.ts`: a feature boundary when one business area owns several commands or services.
-- `src/<feature>/*.command.ts`: commands for that feature.
-- `src/<feature>/*.service.ts`: reusable business logic, filesystem or network access, and other work that should not live in a command handler.
-- `src/config.ts`: package metadata and static settings when several commands need them.
-- `tests/commands/*.test.ts`: executable behavior tests from the CLI user's point of view.
-- `tests/utils/*`: shared process-spawning and fixture helpers only; do not hide business assertions here.
+- Keep the func CLI in a dedicated package when practical, especially in an application monorepo. If it must share a package, isolate it under a boundary such as src/cli and configure explicit func.entry and func.outDir paths.
+- Rename <feature> for the business capability, not a technical file type. Keep a small feature's command, module, and service together so a change stays within one directory.
+- When one business area grows, promote it to src/<feature>/ with <feature>.module.ts and focused commands, services, repositories, or clients beneath it. Do not create global commands, services, and repositories registries that mix unrelated domains.
+- src/shared is for stable providers used by multiple features. A provider used by only one feature stays in that feature.
+- Keep generated output under package.json#func.outDir, normally dist. Keep fixtures, credentials, caches, and local state out of src and version control.
+- Do not create empty modules, services, shared directories, barrel files, or test helpers only to make the tree look complete. Add a boundary when it has a real responsibility.
 
-3. Model the CLI deliberately
+2. Keep the application entry and root module small
 
-- Use `@Command('<name>')` for a stable top-level word such as `build`, `deploy`, or `config`.
-- Use one `@Command` class per top-level business area. Add fixed actions inside it with `@Handler([...])`.
-- Use `@CommandMajor()` for invocation without a named command and for truly top-level options such as `--help` or `--version`.
-- Use `@CommandMissing()` only when unknown first input is meaningful data or when the product needs a custom unknown-command response.
-- Use a default `@Handler()` for the command's normal action. Handler flags select mutually exclusive actions; `@Flag()` fields are boolean data and do not select a handler.
-- Use `@Flag`, `@Value`, `@ArrayString`, and `@ArrayNumber` instead of manually parsing known options from `process.argv`.
-- Use `@Args()` only for remaining positional input or runtime metadata that field decorators do not represent.
-- Put reusable work in `@Service()` classes and inject them. Command handlers should coordinate input, services, and output.
-- Group large applications with `@Module({ imports })`; do not create a single command registry file that imports every implementation detail across all domains.
+src/index.ts is the only executable entry. Its normal form is:
 
-4. Preserve runtime boundaries
+import { createApp } from 'func'
+import { AppModule } from './app.module'
 
-- Importing decorated command or service classes defines metadata but should not start the CLI. Only the executable entry should call `run(...)`.
-- Do not import `src/index.ts` from application code, tests, or reusable modules because importing it executes the CLI.
-- Keep build output, temporary fixtures, credentials, and local state out of source directories and version control.
-- Keep user-facing output stable. Write normal results to stdout and failures to stderr. Never log secrets or full credential values.
+const app = createApp(AppModule)
 
-5. Create tests from user-visible behavior
+void app.bootstrap()
 
-- Prefer black-box tests that spawn the built `package.json#bin` target with an argument array. This covers dispatch, parsing, validation, dependency registration, output, and exit behavior together.
-- Build once in the test setup when the package's normal test script requires the executable. Do not rebuild separately in every test.
-- Give each test one observable reason to fail. Assert exit code plus the smallest stable stdout or stderr fragment that proves the behavior.
-- Do not assert ANSI colors, timing, absolute paths, full stack traces, or entire help screens unless formatting itself is the requirement.
-- Use argument arrays instead of shell command strings so spaces and special characters are tested safely and consistently across platforms.
-- Use temporary directories for filesystem behavior and delete them after the test. Stub external network services or inject a fake service; tests must not depend on production accounts.
+- Add createApp options such as appName or application features only when the selected documented capability requires them.
+- Importing command, module, decorator, or service files must not start the CLI. Never import src/index.ts from reusable code or tests.
+- src/app.module.ts is the composition root. Import feature modules there and keep only application-wide options, providers, and OnError behavior at the root.
+- A feature module owns its commands and providers. Module imports make another module available; Module exports expose only the provider tokens that consumers need. Module names do not create CLI paths.
 
-6. Cover the acceptance surface that changed
+3. Create commands through func declarations
 
-For a new named command, cover:
+For a new business command:
 
-- its canonical command name;
-- each alias, when aliases are declared;
-- the default handler's successful result;
-- every added path handler or handler flag;
-- required, repeated, enum, dependency, exclusivity, or custom validation introduced by the change;
-- unknown or extra input only when the command defines behavior for it;
-- expected stderr and exit behavior for failures owned by the application.
+1. For a small new feature, create src/commands/<feature>/<feature>.command.ts. In an established larger feature, add the command to that feature's commands directory. Decorate the class with @Command(...).
+2. Add one default @Handler() or explicit @Handler(path) / @Handler({ flag }) actions.
+3. Declare named input with @Flag, @Value, @ArrayString, or @ArrayNumber. Use @Args() only for remaining dynamic positional input or invocation metadata.
+4. Add @Required, @Enum, @DependsOn, @Exclusive, or @ValueValidate next to the field that owns the rule. A required user-supplied value must not have a default initializer.
+5. Register the command in the feature module's commands list, then import that module from the root or its owning parent module.
 
-For a changed service, cover the service logic directly when it has meaningful branching, then keep at least one CLI-level test proving the command is wired to it.
+- Use @Command('deploy') or @Command({ path, aliases, description }) for stable command words. Use a string array for a multi-token path.
+- Use a default @Handler() for the command's normal action. Use handler paths for fixed trailing actions and handler flags for mutually exclusive actions. A field @Flag() is boolean data; it does not select another handler.
+- Keep input declarations and lightweight action coordination in the command. Move reusable business rules, filesystem work, network access, repositories, and clients into providers.
+- Write normal results through @Stdout() or Context.io.stdout and diagnostics through @Stderr() or Context.io.stderr. Do not use global console.log or console.error for application output; func/testing does not capture them.
+- Let errors propagate to the command or module OnError boundary unless the command can add meaningful domain context. Do not recreate removed filter/interceptor APIs or manually parse known options from process.argv.
 
-For help or discovery output, assert the relevant command name, aliases, and description through `Context.commands` or `func/help` output. Do not duplicate framework metadata tests for every command.
+4. Create injectable services and shared providers
 
-7. Finish with focused verification
+For reusable work:
 
-- Run the repository's formatter and linter when available.
-- Run the smallest relevant test set first, then the package test command when the change affects registration, shared services, or common error handling.
-- Verify a representative command manually when process execution, output streams, or global linking changed.
-- Report what was verified and any check that could not run. Do not claim coverage that was not executed.
+1. Create a focused class beside the small feature or in the established feature's services directory, and mark it with @Injectable().
+2. Register the class in the owning @Module({ providers: [...] }).
+3. Request it through a command or provider constructor. Let func create and inject the instance.
+4. If another module needs it, add its token to the owning module's exports and import that module from the consumer. Do not duplicate the provider registration.
+
+- @Injectable(), not @Service(), is the class-provider decorator implemented by func.
+- Prefer class providers for normal services. Use createToken with useValue, useClass, or useFactory only when configuration, an interface boundary, a replacement implementation, or dynamic construction requires it.
+- Keep providers private by default. Extract a shared or infrastructure module only after multiple features need the same stable capability.
+- Services should return values or throw errors; commands normally own CLI input interpretation and final stdout/stderr formatting.
+
+5. Create reusable value decorators at the input boundary
+
+Use createValueDecorator when several commands need the same conversion from one CLI string into a domain value such as URL:
+
+import { createValueDecorator } from 'func'
+
+export const Url = createValueDecorator(input => {
+  if (!URL.canParse(input)) throw new Error('Expected a valid absolute URL.')
+
+  return new URL(input)
+})
+
+- Place reusable decorators in src/decorators/<name>.decorator.ts. A decorator owned by only one feature may stay inside that feature.
+- The transform receives one raw string, must be synchronous, and should be pure. Network access, filesystem work, and other async side effects belong in a service or handler.
+- Return the final field type and throw a clear Error for invalid input. Declare the decorated property with that output type.
+- The custom decorator already declares a value option. Do not add @Value() to the same field. It can be composed with @Required, @Deprecated, @DependsOn, @Exclusive, and @ValueValidate.
+- A field initializer is already the output type and is not transformed. Omit it when the user must explicitly provide the option.
+
+6. Use in-memory command tests by default
+
+Place everyday command behavior tests in tests/commands and invoke the real root module without building or spawning a process:
+
+import { createTestingApp } from 'func/testing'
+import { expect, test } from 'vitest'
+import { AppModule } from '../../src/app.module'
+
+const app = createTestingApp(AppModule)
+
+test('deploy should accept an endpoint', async () => {
+  const result = await app.invoke([
+    'deploy',
+    '--endpoint',
+    'https://example.com/releases',
+  ])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stderr).toBe('')
+  expect(result.stdout).toMatch(/Deploying/)
+})
+
+- argv starts after the executable name. Pass an array of strings, never a shell command.
+- createTestingApp compiles the module once; every app.invoke creates an isolated invocation container, IO, and dependency graph.
+- Assert the exit code and the smallest stable stdout or stderr text that proves user-visible behavior. Avoid ANSI styling, timing, absolute paths, stack traces, and entire help screens unless they are the requirement.
+- The default test env is empty and does not inherit process.env. Pass the minimum explicit env, cwd, stdin, or AbortSignal needed by the test.
+- Only @Stdout(), @Stderr(), and Context.io writes appear in result.stdout and result.stderr. A handled error is not returned as result.error.
+- Use createTestingApp provider overrides for network clients or other side effects. Prefer useFactory for mutable per-invocation fakes; scope an override with its module when the same token is registered more than once.
+- Use withProjectFixture from func/testing/fixtures for isolated filesystem behavior. It creates a temporary directory and cleans it after the callback. Use createProjectFixture only when a test hook must own the lifecycle, and call cleanup explicitly.
+- Test pure functions and service branches directly with the project's test runner when the func runtime adds no useful behavior.
+
+7. Add process and terminal tests only for their boundaries
+
+- Put a small number of built-artifact smoke tests in tests/cli. Use createCliRunner from func/testing/cli and resolve package.json#bin from the package root.
+- The CLI runner does not build. Keep process tests behind a separate script, such as test:cli, that builds once and then runs the CLI test configuration. Do not rebuild in every test.
+- Use CLI tests for package bin resolution, the generated process entry, real cwd/env/stdin, signals, timeouts, and exit behavior. Keep command parsing and business cases in the faster in-memory layer.
+- Use func/testing/pty only when prompts, isTTY, terminal dimensions, resize, or keyboard interaction must be verified. It supplies adapter interfaces, not a PTY implementation; use the project's selected PTY backend.
+
+8. Cover the changed acceptance surface
+
+For a new or changed command, cover the applicable behavior:
+
+- canonical command and handler paths;
+- declared command aliases and handler flags;
+- default and alternate handler success output;
+- required values, repeated values, enums, dependencies, exclusivity, and custom decorator validation introduced by the change;
+- remaining positional input only when the application defines it;
+- application-owned errors, stderr, and exit behavior;
+- help discovery for a new public path or option, without duplicating func's internal metadata tests.
+
+For a changed service, test meaningful service branching directly and keep at least one command test proving module registration and injection. Do not re-test func internals that the application does not own.
+
+9. Finish with focused verification
+
+- For structural cleanup, run the relevant tests before and after moving code and manually compare a representative command when practical.
+- Run the repository formatter and linter, then the smallest relevant command or service tests. Run the package test script when registration, shared providers, root error handling, or common output changes.
+- Build only when the requested artifact or built-CLI tests require it.
+- Report the files and boundaries changed, preserved CLI behavior, commands actually run, and any check that could not run.
 
 Reference documentation:
 
+- https://func.witt.im/guide.md
 - https://func.witt.im/commands.md
-- https://func.witt.im/concepts.md
+- https://func.witt.im/modules.md
 - https://func.witt.im/options.md
-- https://func.witt.im/parameters.md
+- https://func.witt.im/custom-decorators.md
+- https://func.witt.im/input-output.md
 - https://func.witt.im/error-handler.md
-- https://func.witt.im/errors.md
+- https://func.witt.im/zh-cn/capabilities/testing.md
 - https://func.witt.im/tooling.md
+
+Do not invent func APIs. The installed implementation, generated template, and linked documentation are the source of truth.

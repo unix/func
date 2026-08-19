@@ -41,11 +41,12 @@ export const commandCode = [
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="custom-decorators">
 
-`@Value()` 负责内置的字符串和有限数字输入。应用需要 `URL`、`Date` 或自己的领域值时，可以通过 `createValueDecorator()` 创建字段装饰器，让转换逻辑集中在输入边界，而不是散落在每个 handler 中。
+`func` 内置的 `@Value()` 负责内置的字符串和有限数字输入，这是一个简化、公共的提取器。通常在应用中可能还存在我们自己独有的业务逻辑，
+如果希望将业务模型中的选项参数部分抽象出来反复使用，自定义装饰器是非常合适的，这可以大幅减少 Command 文件中的样板代码。
 
 ## 创建 URL 装饰器
 
-`createValueDecorator()` 接收一个同步转换函数。func 始终把一个原始字符串传给它，并把返回值赋给装饰的字段：
+`createValueDecorator()` 接收一个同步转换函数。`func` 始终把一个原始字符串传给它，并把返回值赋给装饰的字段：
 
 <CodeBlock
   code={decoratorCode}
@@ -53,7 +54,10 @@ export const commandCode = [
   lang="ts"
 />
 
-这个 `@Url()` 同时完成两件事：声明一个接收单值的 CLI 选项，以及把有效的 HTTP(S) 字符串转换成标准 `URL` 对象。转换函数抛出错误时，func 会产生 `F_RUNTIME_VALIDATION`，保留原始错误作为 `cause`，并且不会调用 handler。
+这里 `@Url()` 同时完成两件事：
+
+- 声明一个接收单值的 CLI 选项，以及把有效的 HTTP(S) 字符串转换成标准 `URL` 对象。
+- 转换函数抛出错误时，`func` 会产生 `F_RUNTIME_VALIDATION`，保留原始错误作为 `cause`，并且不会调用 Handler。
 
 ## 在命令中使用
 
@@ -72,16 +76,16 @@ ship deploy -u https://api.example.com/releases
 
 ## 转换时机与默认值
 
-转换函数只在用户显式提供选项时执行一次。用户省略选项时，func 会保留字段初始值或 `undefined`，因此默认值必须已经是输出类型：
+转换函数只在用户显式提供选项时执行一次。用户省略选项时，`func` 会保留字段初始值或 `undefined`，因此默认值必须已经是输出类型：
 
 ```ts
 @Url()
 endpoint = new URL('https://api.example.com')
 ```
 
-不要把默认值写成原始字符串；func 不会再次转换它。`@Required()` 和字段校验器在转换后运行，因此 `@ValueValidate()` 看到的是 `URL`，而不是原始字符串。
+不要把默认值写成原始字符串；`func` 不会再次转换它。`@Required()` 和字段校验器在转换后运行，因此 `@ValueValidate()` 看到的是 `URL`，而不是原始字符串。
 
-转换函数必须同步，推荐保持纯净且不执行网络请求、文件读写或其他副作用。异步工作属于 service 或 handler；返回 Promise 会产生校验错误。
+转换函数必须同步，推荐保持纯净且不执行网络请求、文件读写或其他副作用。异步工作属于 service 或 Handler；返回 Promise 会产生校验错误。
 
 ## 类型边界
 

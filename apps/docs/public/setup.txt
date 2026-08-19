@@ -1,25 +1,64 @@
-func setup for coding agents
+func project setup for coding agents
 
-func is a decorator-based TypeScript framework for command-line applications. Use it when a CLI needs named commands, typed options, validation, reusable services, and a production bundle without a large framework.
+Use this guide when the user asks you to create a new func CLI project. Repository instructions and explicit user requirements take precedence.
 
-When the user asks you to create a func project:
+func is a decorator-based TypeScript framework for command-line applications. The official creator generates the current recommended application, feature-module, custom-decorator, and testing structure. Start from that template instead of assembling a project from remembered APIs.
 
-1. Read the repository's agent instructions and preserve its package manager and conventions.
-2. Ensure Node.js 24.15 or newer and an npm-compatible package manager are available. Determine this yourself; do not give the user a preliminary environment-check command. If Node.js is missing or older, prefer an existing version manager such as mise, asdf, nvm, or Volta and install an active LTS release that satisfies the requirement. If no version manager exists, use the platform's standard package manager (for example Homebrew on macOS or winget on Windows) or the official Node.js distribution. If the repository declares `packageManager`, activate that manager with Corepack when available; otherwise use npm. Avoid system-wide installs with sudo. Only ask the user when permissions or network policy prevent you from completing installation.
-3. For a new standalone project, choose the project name first and pass it as the final positional argument, for example `npm init func@latest my-cli` or `pnpm create func my-cli`. Enter the new directory and install dependencies.
-4. For an existing repository, prefer a new, self-contained package or directory for the CLI instead of mixing it into an existing application package.
-5. Read the generated source before editing it. Keep `src/index.ts` as the runtime entry, register commands and services through `@Module`, and place each business command in a focused command class.
-6. Run the CLI through the package script and pass user arguments after `--`, for example `npm run dev -- greet --name Ada`.
-7. Add or update tests for the requested behavior. Follow https://func.witt.im/rules.txt for project structure and test coverage.
-8. Verify the relevant command behavior and tests. Build only when the task requires a distributable executable or the repository's test script builds as part of its normal verification.
+1. Inspect the target repository
+
+- Read its agent instructions, package.json files, lockfiles, workspace configuration, runtime-version files, and ignore rules before changing anything.
+- Preserve the repository's package manager and naming conventions. Inside a monorepo, put the CLI in the normal workspace location as a self-contained package and confirm that the workspace patterns include it.
+- For a standalone request, create one new project directory. Never merge generated files into an unrelated application package and never overwrite an existing target directory.
+
+2. Prepare the environment
+
+- func requires Node.js 24.15.0 or newer. Inspect the installed version yourself. Do not make the user run a preliminary environment-check command for you.
+- If Node.js is missing or too old, prefer the repository's declared version manager. Otherwise use an existing mise, asdf, nvm, or Volta installation, then the platform's standard package manager or the official Node.js distribution. Install a supported active LTS release and avoid sudo-based global installs.
+- Use package.json#packageManager, the lockfile, and workspace configuration to select npm, pnpm, Yarn, or Bun. Activate or install the declared package-manager version when necessary; do not introduce a second lockfile.
+- Install only the environment and project dependencies needed for the requested project. Ask the user only when permissions, network policy, or a required system change prevents completion.
+
+3. Create the project
+
+Choose a valid, explicit project name and pass it as the final positional argument. Use the repository's package manager:
+
+- npm: npm init func@latest <project-name>
+- pnpm: pnpm create func <project-name>
+- Yarn: yarn create func <project-name>
+- Bun: bun create func <project-name>
+
+The creator downloads the official TypeScript template, creates a new directory, and rewrites package metadata and package.json#bin for the project name. It intentionally refuses to replace an existing directory.
+
+4. Install and inspect
+
+- Enter the generated directory and install dependencies with the selected package manager.
+- Read the generated README, package.json, src, tests, TypeScript configuration, and Vitest configuration before editing them.
+- Preserve the generated boundaries: src/index.ts creates the application with createApp(AppModule) and calls app.bootstrap(); src/app.module.ts composes feature modules; each generated command feature owns its command, module, and injectable service; reusable value decorators live under src/decorators; shared providers are exported by a shared module.
+- Do not replace createApp/app.bootstrap with an older run-style entry, invent @Service, or flatten the generated feature modules into registry barrel files.
+
+5. Implement only the requested behavior
+
+- Follow https://func.witt.im/rules.txt for commands, services, custom decorators, project structure, output, and tests.
+- Use the generated examples as local API evidence. When a requested capability is not demonstrated there, read the relevant Markdown documentation before editing.
+- Keep package scripts, func.entry, func.outDir, and package.json#bin aligned. Use funcgo setup as a read-only configuration check for an existing hand-written package; review its output before considering funcgo setup --fix.
+
+6. Verify the new project
+
+- Run the generated dev script with --help, using the selected package manager's normal argument-forwarding syntax.
+- Run one representative generated command, such as greet --name Ada, and verify its exit behavior and output.
+- Run the default test script. These command tests use func/testing in memory and do not require a build.
+- Run the repository's formatter and linter when available. Build only when the user requests a distributable artifact or when running the separate built-CLI test script is part of the requested verification.
+- Report the created directory, package manager, any environment dependency installed, commands actually run, and their results. Do not claim checks that were not executed.
 
 Essential documentation:
 
 - Quick start: https://func.witt.im/guide.md
 - Commands: https://func.witt.im/commands.md
-- Core concepts: https://func.witt.im/concepts.md
+- Modules and providers: https://func.witt.im/modules.md
 - Field options: https://func.witt.im/options.md
+- Custom decorators: https://func.witt.im/custom-decorators.md
+- Input and output: https://func.witt.im/input-output.md
+- Testing: https://func.witt.im/zh-cn/capabilities/testing.md
 - Tooling: https://func.witt.im/tooling.md
-- Project and test rules: https://func.witt.im/rules.txt
+- Project rules: https://func.witt.im/rules.txt
 
-Do not invent func APIs. If the requested behavior is not covered here, read the linked Markdown documentation or the API reference at https://func.witt.im/apis.md before changing files.
+Do not invent func APIs. The implementation and linked documentation are the source of truth.

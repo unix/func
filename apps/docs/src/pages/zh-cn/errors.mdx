@@ -1,6 +1,6 @@
 ---
 title: 错误索引
-description: 根据 func 系统错误码定位问题，了解触发原因并采用最小且可靠的修复方式。
+description: 根据 Func 系统错误码定位问题，了解触发原因并参考修复方式。
 lastModified: '2026-08-08'
 ---
 
@@ -9,7 +9,7 @@ import DocsLayout from '@/layouts/docs.astro'
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="errors">
 
-`F_SYSTEM_*` 表示命令定义或应用注册无效。这类错误面向开发者：func 会立即停止，不会把它们传递给命令局部或全局错误处理器。
+`F_SYSTEM_*` 表示命令定义或应用注册无效。这类错误面向开发者：`func` 会立即停止，不会把它们传递给命令局部或全局错误处理器。
 
 `F_SCAFFOLD_*` 表示 funcgo、create-func 与相关生态工具失败。对应页面会说明需要修正的项目配置或环境输入，以及重新执行命令前的最小解决步骤。
 

@@ -10,11 +10,11 @@ lastModified: '2026-08-15'
 `Module.options` 只接受 class，且每个 class 必须恰好使用 `@Option()` 或 `@OptionCommand()` 一种角色：
 
 - `@Option` 必须至少声明一个字段选项，不能包含 `@Handler`；
-- `@OptionCommand` 必须恰好声明一个默认 `@Handler()`，不能包含字段选项、path handler 或 flag handler；
-- provider 对象与只有 `@Injectable()` 的 class 应放入 `Module.providers`。
+- `@OptionCommand` 必须恰好声明一个默认 `@Handler()`，不能包含字段选项、path Handler 或 flag Handler；
+- Provider 对象与只有 `@Injectable()` 的 class 应放入 `Module.providers`。
 
-`details.reason` 会区分缺少 option 装饰器或同时声明多种角色，其他 details 会列出无效字段或 handlers。
+`details.reason` 会区分缺少 option 装饰器或同时声明多种角色，其他 details 会列出无效字段或 Handlers。
 
 ## 如何修复
 
-先判断这个 class 是共享字段、互斥动作还是普通依赖，再分别使用 `@Option`、`@OptionCommand` 或 `@Injectable` 并放入正确的 module 数组。不要让同一个 class 同时承担多个角色。
+先判断这个 class 是共享字段、互斥动作还是普通依赖，再分别使用 `@Option`、`@OptionCommand` 或 `@Injectable` 并放入正确的 Module 数组。不要让同一个 class 同时承担多个角色。

@@ -1,7 +1,7 @@
 ---
 code: F_SYSTEM_INVALID_ARGS_DECORATOR_TARGET
 title: '@Args 装饰目标无效'
-description: '@Args 被用于构造函数，而不是 command 的 handler 参数。'
+description: '@Args 被用于构造函数，而不是 Command 的 Handler 参数。'
 lastModified: '2026-08-17'
 ---
 
@@ -31,7 +31,7 @@ export const fixCode = [
 
 ## 复现
 
-`@Args()` 依赖已经选中的 command invocation，因此不能注入构造函数：
+`@Args()` 依赖已经选中的 Command invocation，因此不能注入构造函数：
 
 <CodeBlock code={reproductionCode} filename="src/deploy.command.ts" lang="ts" />
 

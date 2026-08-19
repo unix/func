@@ -8,7 +8,8 @@ import DocsLayout from '@/layouts/docs.astro'
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="ecosystem">
 
-`func` 负责命令模型、类型化输入和依赖注入，不限制 CLI 的存储、呈现与交互方式。下面按常见需求整理 Node.js 内置模块和生态功能包，并说明各自更适合的场景，方便在默认推荐和其他可选方案之间比较。
+`func` 负责命令模型、类型化输入和依赖注入，不限制 CLI 的存储、呈现与交互方式。
+下面按常见需求整理 Node.js 内置模块和生态功能包，同时标注各自适合的场景，方便在默认推荐和其他可选方案之间比较。
 
 ## 如何阅读对比数据
 
@@ -46,7 +47,7 @@ export class DatabaseService implements OnDispose {
 }
 ```
 
-在所属 module 的 `providers` 中注册 `DatabaseService`，再通过构造函数注入需要它的 command。`func` 只会在选中的 command 需要时创建这个 service，并在本次调用结束后执行 `onDispose()`。
+在所属 Module 的 `providers` 中注册 `DatabaseService`，再通过构造函数注入需要它的 Command。`func` 只会在选中的 Command 需要时创建这个 service，并在本次调用结束后执行 `onDispose()`。
 
 来自用户的值应通过 prepared statement 绑定，并保持事务简短。多个本地进程可能访问同一数据库时，可以考虑启用 <a href="https://www.sqlite.org/wal.html" rel="noreferrer" target="_blank">WAL</a>，但不要把 WAL 数据库放在网络文件系统上。由于每个 `DatabaseSync` 操作都会阻塞当前 JavaScript 线程，长时间查询、高并发写入或跨主机共享数据应改用 Worker，或者外部数据库及其驱动。
 

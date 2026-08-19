@@ -1,11 +1,12 @@
 ---
 title: 帮助
-description: 使用 func/help 从命令图生成结构化帮助，并按需调整内容与格式。
-lastModified: '2026-08-16'
+description: 自动按元数据生成结构化帮助，并按需调整内容与格式。
+lastModified: '2026-08-19'
 ---
 
 import Callout from '@/components/content/callout.astro'
 import CodeBlock from '@/components/content/code-block.astro'
+import TerminalDemo from '@/components/demos/terminal-demo.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
 export const setupCode = [
@@ -39,7 +40,8 @@ export const customHelpCode = [
 ].join('\n')
 
 export const commandOverrideCode = [
-  "import { Command, Flag, Handler, Override } from 'func'",
+  "import { Command, Flag, Handler, Override, Stdout } from 'func'",
+  "import type { Writable } from 'node:stream'",
   '',
   "@Command('deploy')",
   'class DeployCommand {',
@@ -48,13 +50,13 @@ export const commandOverrideCode = [
   '  help = false',
   '',
   '  @Handler()',
-  '  run() {',
+  '  run(@Stdout() stdout: Writable) {',
   '    if (this.help) {',
-  "      console.log('🚀 ship deploy\\n\\nUsage: ship deploy [--help]')",
+  "      stdout.write('🚀 ship deploy\\n\\nUsage: ship deploy [--help]\\n')",
   '      return',
   '    }',
   '',
-  "    console.log('Deploying...')",
+  "    stdout.write('Deploying...\\n')",
   '  }',
   '}',
 ].join('\n')
@@ -64,7 +66,8 @@ export const commandOverrideCode = [
   locale="zh-cn"
   page="capabilities/help">
 
-`func/help` 提供基于当前命令图的 `--help` 动作。它读取 command、handler 和字段选项已经声明的元数据，因此不需要另外维护一份命令清单。
+`func/help` 提供基于当前命令图的 `--help` 动作。它读取 Command、Handler 和字段选项已经声明的元数据自动进行组装，
+引入后无需进行其他配置。
 
   <Callout locale="zh-cn" title="按需引入" variant="note">
 
@@ -74,11 +77,19 @@ export const commandOverrideCode = [
 
 ## 启用 `--help`
 
-把 `HelpOption` 注册到根 module 的 `options`：
+把 `HelpOption` 注册到根模块的 `options`：
 
 <CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
 
-根 module 的 option action 对所有命令节点可见，因此 `ship --help`、`ship deploy --help` 等调用会展示对应节点的帮助。帮助动作被选中时不会要求当前业务命令的必填字段通过校验。
+<TerminalDemo
+  command="ship --help"
+  demo="guide-help"
+  locale="zh-cn"
+  rows={8}
+  sourceUrl="/demos/guide-help.ts"
+/>
+
+根模块的 option action 对所有命令节点可见，因此 `ship --help`、`ship deploy --help` 等调用会展示对应节点的帮助。帮助动作被选中时不会要求当前业务命令的必填字段通过校验。
 
 ## 完善命令元数据
 
@@ -87,10 +98,10 @@ export const commandOverrideCode = [
 | 内容             | 来源                                                     |
 | ---------------- | -------------------------------------------------------- |
 | 命令路径与别名   | `@Command()` 和 `@Handler(path)`                         |
-| 命令说明         | command 或 handler 的 `description`                      |
+| 命令说明         | Command 或 Handler 的 `description`                      |
 | 选项名称与别名   | `@Flag()`、`@Value()` 等字段装饰器                       |
 | 必填、枚举和约束 | `@Required()`、`@Enum()`、`@DependsOn()`、`@Exclusive()` |
-| 废弃信息         | command 的 `deprecated` 或 `@Deprecated()`               |
+| 废弃信息         | Command 的 `deprecated` 或 `@Deprecated()`               |
 
 如果帮助中缺少说明，优先补全对应声明的 `description`，让帮助、补全和运行时元数据共用同一个信息来源。
 
@@ -106,7 +117,7 @@ export const commandOverrideCode = [
 
 ## 为单个命令覆盖帮助
 
-根 module 注册的 `HelpOption` 默认对所有命令生效。如果某个 command 需要另一套帮助内容，可以在该 command 中声明同名的 `@Flag()`，并由默认 handler 输出自定义帮助：
+根模块注册的 `HelpOption` 默认对所有命令生效。如果某个 Command 需要另一套帮助内容，可以在该 Command 中声明同名的 `@Flag()`，并由默认 Handler 输出自定义帮助：
 
 <CodeBlock
   code={commandOverrideCode}
@@ -114,20 +125,23 @@ export const commandOverrideCode = [
   lang="ts"
 />
 
-`@Override()` 让 `DeployCommand.help` 显式替换从根 module 继承的 `--help`。因此 `ship deploy --help` 进入 `DeployCommand` 的默认 handler 并输出定制内容，`ship status --help` 等其他命令仍使用根 module 注册的 `HelpOption`。
+`@Override()` 让 `DeployCommand.help` 显式替换从根模块继承的全局帮助信息。因此 `ship deploy --help` 进入 `DeployCommand` 的默认 Handler 并输出定制内容，
+`ship status --help` 等其他命令仍使用根模块注册的 `HelpOption`。
 
-这里直接通过 `console.log()` 输出用户定义的字符串，没有引入 `func/help` 的上下文或格式化实现。`help` 是普通字段 flag，不是独立动作；默认 handler 应先判断它并立即返回，当前 command 的其他字段绑定与校验仍会照常发生。如果没有注册根级 `HelpOption`，则不会产生 token 冲突，也不需要添加 `@Override()`。
+这里通过 `@Stdout()` 注入本次调用的 stdout，并直接写入用户定义的字符串，没有引入 `func/help` 的上下文或格式化实现。
+`help` 是普通字段 flag，不是独立动作；默认 Handler 应先判断它并立即返回，当前 Command 的其他字段绑定与校验仍会照常发生。
+如果没有注册根级 `HelpOption`，则不会产生 token 冲突，也不需要添加 `@Override()`。
 
-这种方式只覆盖当前 command，不需要声明新的 `@OptionCommand()`。
+这种方式只覆盖当前 Command，不需要声明新的 `@OptionCommand()`。
 
 ## API 速查
 
 | API                                   | 用途                                                      |
 | ------------------------------------- | --------------------------------------------------------- |
-| `HelpOption`                          | 可直接注册的 `--help` module action。                     |
+| `HelpOption`                          | 可直接注册的 `--help` Module action。                     |
 | `HelpOption.transform(meta, context)` | 在默认格式化前转换结构化帮助。                            |
 | `HelpContext.createMeta()`            | 采集当前命令节点的 `HelpMeta`。                           |
 | `HelpFormatter.format(meta)`          | 把 `HelpMeta` 格式化为纯文本。                            |
-| `HelpMeta`                            | 描述 title、path、usage、commands 和 options 的只读结构。 |
+| `HelpMeta`                            | 描述 title、path、usage、Commands 和 options 的只读结构。 |
 
 </DocsLayout>

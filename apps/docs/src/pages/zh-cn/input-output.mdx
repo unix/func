@@ -1,7 +1,7 @@
 ---
 title: 输入与输出
 description: 理解 stdin、stdout 与 stderr 的职责，正确处理管道、诊断信息、退出码和自动化测试。
-lastModified: '2026-08-17'
+lastModified: '2026-08-18'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -46,6 +46,49 @@ export const inputCode = [
   '}',
 ].join('\n')
 
+export const backpressureCode = [
+  "import { once } from 'node:events'",
+  "import type { Writable } from 'node:stream'",
+  '',
+  'const writeRows = async (',
+  '  stdout: Writable,',
+  '  rows: AsyncIterable<unknown>,',
+  ') => {',
+  '  for await (const row of rows) {',
+  '    const chunk = `${JSON.stringify(row)}\\n`',
+  '',
+  "    if (!stdout.write(chunk)) await once(stdout, 'drain')",
+  '  }',
+  '}',
+].join('\n')
+
+export const pipelineCode = [
+  "import { createReadStream } from 'node:fs'",
+  "import { Writable, type Readable } from 'node:stream'",
+  "import { pipeline } from 'node:stream/promises'",
+  "import { Command, Handler, Stdout } from 'func'",
+  '',
+  'const createWriteOnlyTarget = (destination: Writable) =>',
+  '  new Writable({',
+  '    write(chunk, encoding, callback) {',
+  '      destination.write(chunk, encoding, callback)',
+  '    },',
+  '  })',
+  '',
+  'const pipeToStdout = async (source: Readable, stdout: Writable) => {',
+  '  await pipeline(source, createWriteOnlyTarget(stdout))',
+  '}',
+  '',
+  "@Command('download')",
+  'export class DownloadCommand {',
+  '  @Handler()',
+  '  async run(@Stdout() stdout: Writable) {',
+  "    const source = createReadStream('large-result.ndjson')",
+  '    await pipeToStdout(source, stdout)',
+  '  }',
+  '}',
+].join('\n')
+
 export const testingCode = [
   "import { CommandMajor, Context, Handler, Module } from 'func'",
   "import { createTestingApp } from 'func/testing'",
@@ -77,9 +120,10 @@ export const testingCode = [
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="input-output">
 
-CLI 不只是在终端里打印文字。它通常处在 shell 管道中，上一个程序的输出可能成为它的输入，它的结果也可能交给文件、另一个程序或测试代码。stdin、stdout 和 stderr 是这份可组合契约的三个标准数据流。
+CLI 不只是在终端里打印文字。它通常处在 shell 管道中，上一个程序的输出可能成为它的输入，它的结果也可能交给文件、另一个程序或测试代码。
+stdin、stdout 和 stderr 是常见的三个标准数据流。
 
-| 数据流 | 方向       | func 默认值      | 主要职责                                     |
+| 数据流 | 方向       | `func` 默认值    | 主要职责                                     |
 | ------ | ---------- | ---------------- | -------------------------------------------- |
 | stdin  | 外部 → CLI | `process.stdin`  | 管道数据、重定向文件或交互输入。             |
 | stdout | CLI → 外部 | `process.stdout` | 命令的正常结果，以及可供后续程序消费的数据。 |
@@ -89,7 +133,8 @@ CLI 不只是在终端里打印文字。它通常处在 shell 管道中，上一
 
 ## 区分 stdout 与 stderr
 
-一个实用判断是：如果调用者只保留命令结果，这段内容是否仍然应该存在？应该存在的写入 stdout；帮助用户理解执行过程、但不属于结果本身的写入 stderr。
+如果最终命令结果中需要包含的内容，应该进入 stdout，帮助用户理解执行过程、但不属于结果本身的写入 stderr。
+这只是约定，不是绝对的，命令行框架不会阻止你以其他方式写入数据。
 
 | 内容                           | 推荐数据流 | 原因                                             |
 | ------------------------------ | ---------- | ------------------------------------------------ |
@@ -98,30 +143,53 @@ CLI 不只是在终端里打印文字。它通常处在 shell 管道中，上一
 | spinner、下载进度、调试诊断    | stderr     | 属于执行过程，不应成为管道数据。                 |
 | 提示符与交互反馈               | stderr     | 保持 stdout 可用于最终结果；具体库可能另有约定。 |
 
-例如 `ship inspect --json > result.json` 只把 stdout 写入文件，stderr 仍显示在终端；`ship inspect --json 2> diagnostic.log` 则单独保存诊断信息。`ship inspect --json | jq '.status'` 只会把 stdout 送给 `jq`。正确分流后，警告和进度不会破坏 JSON。
+例如下方正确分流后，警告和进度不会破坏 JSON 输出。
 
-写入 stderr 不会自动让调用失败，写入 stdout 也不代表一定成功。命令是否成功由 `Context.exitCode` 和错误处理结果表达：默认退出码为 `0`，未处理异常默认为 `1`，应用也可以显式设置 `0` 到 `255` 的整数。
+- `ship inspect --json > result.json` 只把 stdout 写入文件，stderr 仍显示在终端；
+- `ship inspect --json 2> diagnostic.log` 则单独保存诊断信息。
+- `ship inspect --json | jq '.status'` 只会把 stdout 送给 `jq`。
+
+**写入 stderr 不会自动让调用失败，写入 stdout 也不代表一定成功**。命令是否成功由 `Context.exitCode` 和错误处理结果表达：
+默认退出码为 `0`，未处理异常默认为 `1`，应用也可以显式设置 `0` 到 `255` 的整数。
 
 ## 为什么不直接使用 console.log
 
-在默认进程环境中，`console.log()` 最终通常也会写入 `process.stdout`，所以手动运行时看起来没有区别。问题在于它绕过了 func 为本次调用配置的 IO：
+在默认进程环境中，`console.log()` 最终通常也会写入 `process.stdout`，所以手动运行时看起来没有区别。问题在于它绕过了 `func` 为本次调用配置的 IO：
 
-- `app.bootstrap()`、`invoker.invoke()` 可以为一次调用替换 stdout 和 stderr，`console.log()` 仍使用全局 console。
-- `func/testing` 捕获的是调用上下文中的 streams，直接调用 `console.log()` 会把内容写到测试进程，而不是 `result.stdout`。
-- `console.log()` 会格式化多个参数并自动追加换行；`Writable.write()` 输出的内容更明确，适合稳定的 CLI 文本或 JSON 协议。
-- 依赖注入让业务代码不必绑定到单例进程，因此同一应用更容易嵌入其他 Node.js 程序或在内存中重复调用。
+- 副作用：`app.bootstrap()`、`invoker.invoke()` 可以为一次调用替换 stdout 和 stderr，`console.log()` 仍使用全局 console。
+- 测试兼容：`func/testing` 捕获的是调用上下文中的 streams，直接调用 `console.log()` 会把内容写到测试进程，而不是 `result.stdout`。
+- 输出稳定：`console.log()` 会格式化多个参数并自动追加换行；`Writable.write()` 输出的内容更明确，适合稳定的 CLI 文本或 JSON 协议。
+- 污染：依赖注入让业务代码不必绑定到单例进程，因此同一应用更容易嵌入其他 Node.js 程序或在内存中重复调用。
 
-同理，业务命令也应通过注入的 stderr 代替全局 `console.error()`。底层库如果只返回数据或抛出错误，而把最终输出留给 command，通常更容易复用和测试。
+同理，业务命令也应通过注入的 stderr 代替全局 `console.error()`。底层库如果只返回数据或抛出错误，而把最终输出留给 Command，通常更容易复用和测试。
 
 ## 直接注入标准流
 
-command 只需要单个标准流时，使用 `@Stdin()`、`@Stdout()` 或 `@Stderr()` 注入本次调用的 Node.js stream：
+Command 只需要单个标准流时，使用 `@Stdin()`、`@Stdout()` 或 `@Stderr()` 注入本次调用的 Node.js stream：
 
 <CodeBlock code={outputCode} filename="src/commands/status.command.ts" lang="ts" />
 
-这些装饰器可用于 DI 管理的构造函数和 handler 参数。func 默认直接提供本次 invocation 配置的 stream；仅在 JSON 等调用模式需要抑制 stdout 时，才提供只管理写入的 stream。func 不会关闭底层 stream 或自动换行；需要换行时显式写入 `\n`，也不要对注入的 stream 调用 `end()`。对于少量 CLI 输出可以直接 `write()`；持续写入大量内容时，应遵循 Node.js stream 的背压规则，或使用 stream pipeline。
+这些装饰器可用于 DI 管理的构造函数和 Handler 参数。`func` 默认直接提供本次 invocation 配置的 stream；仅在 JSON 等调用模式需要抑制 stdout 时，才提供只管理写入的 stream。`func` 不会关闭底层 stream 或自动换行；需要换行时显式写入 `\n`，也不要对注入的 stream 调用 `end()`。对于少量 CLI 输出可以直接 `write()`；持续写入大量内容时，应遵循 Node.js stream 的背压规则，或使用 stream pipeline。
 
-如果 command、module 或 provider 同时需要输入、输出和其他运行信息，直接注入 `Context`，再使用 `context.io.stdout` 与 `context.io.stderr`。
+### 持续写入大量内容
+
+`Writable.write()` 返回 `true` 时可以继续写入；返回 `false` 表示内部缓冲区已达到阈值，应暂停生产数据并等待 `drain`。忽略这个返回值会让待写数据继续堆积在内存中。
+
+<CodeBlock code={backpressureCode} filename="src/shared/write-rows.ts" lang="ts" />
+
+逐块生成结果时使用这种写法，不要用 `Promise.all()` 并发写入所有 chunk。它既能限制内存占用，也能保持输出顺序；循环结束后直接返回，不要调用 `stdout.end()`。
+
+如果数据已经是 `Readable`，或者需要串联压缩、编码等 transform，优先使用 `pipeline()`，让 Node.js 统一处理背压和错误。不过 `pipeline()` 会管理传给它的 stream 生命周期：正常完成时会结束末端，失败时可能销毁参与管道的 stream。因此不要把注入的 stdout 或 stderr 直接作为管道末端，而应增加一个只转发写入、但不转发 `end()` 和 `destroy()` 的适配层：
+
+<CodeBlock
+  code={pipelineCode}
+  filename="src/commands/download.command.ts"
+  lang="ts"
+/>
+
+`pipeline()` 可以安全地结束或销毁这个临时 `Writable`，底层注入流仍由 invocation 宿主拥有。适配层通过底层 `write()` 的 callback 推进上游，因此仍会施加背压，并把异步写入错误交给 `pipeline()`。
+
+如果 Command、Module 或 Provider 同时需要输入、输出和其他运行信息，直接注入 `Context`，再使用 `context.io.stdout` 与 `context.io.stderr`。
 
 ## 从 stdin 读取内容
 
@@ -135,7 +203,7 @@ command 只需要单个标准流时，使用 `@Stdin()`、`@Stdout()` 或 `@Stde
 
 `app.bootstrap(options)` 和 `invoker.invoke(argv, options)` 接受 `stdin`、`stdout` 与 `stderr`。未传入时使用当前进程的标准流；嵌入应用、编写适配器或测试时，可以传入其他 `Readable` 和 `Writable`。
 
-这些 streams 由调用方拥有。func 只读取或写入它们，不负责关闭。一次调用中的 `Context.io`、`@Stdin()`、`@Stdout()` 和 `@Stderr()` 始终指向同一组对象，因此 command 与 provider 可以遵循一致的 IO 边界。
+这些 streams 由调用方拥有。`func` 只读取或写入它们，不负责关闭。一次调用中的 `Context.io`、`@Stdin()`、`@Stdout()` 和 `@Stderr()` 始终指向同一组对象，因此 Command 与 Provider 可以遵循一致的 IO 边界。
 
 ## 测试输入与输出
 
@@ -143,8 +211,8 @@ command 只需要单个标准流时，使用 `@Stdin()`、`@Stdout()` 或 `@Stde
 
 <CodeBlock code={testingCode} filename="tests/io.test.ts" lang="ts" />
 
-测试时应至少覆盖正常结果、诊断信息和失败退出码。对于 JSON 输出，可以先断言 stderr 为空，再对 `result.stdout` 使用 `JSON.parse()`；这样能同时验证输出格式没有被警告或调试文本污染。组件的作用域、错误返回和 ANSI 处理详见 [JSON 输出](/zh-cn/capabilities/json-output)。
+测试时应至少覆盖正常结果、诊断信息和失败退出码。对于 JSON 输出，可以先断言 stderr 为空，再对 `result.stdout` 使用 `JSON.parse()`；这样能同时验证输出格式没有被警告或调试文本污染。组件的作用域、错误响应和 ANSI 处理详见 [JSON 输出](/zh-cn/capabilities/json-output)。
 
-如果测试看到了终端日志，但 `result.stdout` 为空，通常表示代码仍在调用全局 `console.log()`。把 IO 改为 `@Stdin()`、`@Stdout()`、`@Stderr()` 或 `Context.io` 后，生产环境替换和测试捕获才会使用同一条路径。完整测试应用和 provider override 方式见[测试](/zh-cn/capabilities/testing)。
+如果测试看到了终端日志，但 `result.stdout` 为空，通常表示代码仍在调用全局 `console.log()`。把 IO 改为 `@Stdin()`、`@Stdout()`、`@Stderr()` 或 `Context.io` 后，生产环境替换和测试捕获才会使用同一条路径。完整测试应用和 Provider override 方式见[测试](/zh-cn/capabilities/testing)。
 
 </DocsLayout>

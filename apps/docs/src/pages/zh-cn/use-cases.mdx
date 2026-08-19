@@ -1,6 +1,6 @@
 ---
 title: 使用案例
-description: 了解常见 CLI 需求在 func 中的实现方式。
+description: 了解常见 CLI 需求在 Func 中的实现方式。
 lastModified: '2026-08-15'
 ---
 
@@ -158,7 +158,7 @@ export const scaleCode = [
   sourceUrl="/demos/use-cases.ts"
 />
 
-注册域名时，用户还可以选择是否创建 issue、是否执行 DNS 检查。 `register` 是顶层命令，两个布尔开关使用 `@Flag` 声明， 域名使用必填的 `@Value` 声明。`func` 会在 handler 执行前完成解析、赋值和校验。
+注册域名时，用户还可以选择是否创建 issue、是否执行 DNS 检查。 `register` 是顶层命令，两个布尔开关使用 `@Flag` 声明， 域名使用必填的 `@Value` 声明。`func` 会在 Handler 执行前完成解析、赋值和校验。
 
 <CodeBlock
   code={registerCode}
@@ -201,10 +201,10 @@ export const scaleCode = [
 ## 实现命令前的检查项
 
 - 写下完整的调用示例，并区分固定语法和用户数据。
-- command path 只用于固定语法，不要把任意用户数据当成命令。
+- Command path 只用于固定语法，不要把任意用户数据当成命令。
 - 固定的嵌套单词使用处理器路径，可变的位置数据使用 `@Args().inputs`。
 - 带类型、默认值、别名、描述或校验的具名数据使用字段选项。
-- 一次调用只执行一个命令或动作入口，多步骤业务可通过注入 provider 组织。
+- 一次调用只执行一个命令或动作入口，多步骤业务可通过注入 Provider 组织。
 - 测试常用输入，以及每个对外别名、路径和校验规则。
 
 多种写法都可行时，应避免将无效输入误判为有效命令。详细规则见 [命令](/zh-cn/commands)和[字段选项](/zh-cn/options)。

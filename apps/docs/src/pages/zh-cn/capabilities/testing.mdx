@@ -1,12 +1,44 @@
 ---
 title: 测试
-description: 使用内存调用、真实 CLI 和项目 fixture 分层测试 func 应用，并按需对接 PTY 工具。
-lastModified: '2026-08-17'
+description: 根据命令、CLI 进程和终端交互的测试目标，选择对应的 Func 测试工具。
+lastModified: '2026-08-18'
 ---
 
 import Callout from '@/components/content/callout.astro'
 import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
+
+export const runTestCommands = {
+  npm: 'npm test',
+  yarn: 'yarn test',
+  pnpm: 'pnpm test',
+  bun: 'bun run test',
+}
+
+export const basicTestingCode = [
+  "import { createTestingApp } from 'func/testing'",
+  "import { expect, test } from 'vitest'",
+  "import { AppModule } from '../../src/app.module'",
+  '',
+  'const app = createTestingApp(AppModule)',
+  '',
+  "test('greet should support a name', async () => {",
+  "  const result = await app.invoke(['greet', '--name', 'Ada'])",
+  '',
+  '  expect(result.exitCode).toBe(0)',
+  "  expect(result.stdout).toContain('Hello, Ada!')",
+  "  expect(result.stderr).toBe('')",
+  '})',
+].join('\n')
+
+export const processEnvCode = [
+  "const result = await app.invoke(['deploy'], {",
+  '  env: {',
+  '    ...process.env,',
+  "    NODE_ENV: 'test',",
+  '  },',
+  '})',
+].join('\n')
 
 export const testingCode = [
   "import { createTestingApp } from 'func/testing'",
@@ -93,28 +125,80 @@ export const cliCode = [
   locale="zh-cn"
   page="capabilities/testing">
 
-func 提供三个主要测试入口。日常命令行为优先使用 `func/testing`，需要进程边界时使用 `func/testing/cli`，需要磁盘项目时使用 `func/testing/fixtures`。`func/testing/pty` 只提供可选的适配数据接口，不包含 PTY 实现。
+测试是命令行项目中非常重要的环节，自动化测试设施能够帮助用户模拟各类交互环境、参数解析、进程行为，确保分发后的命令行工具始终具备预期中的软件质量。
 
-## 在内存中测试命令
+`func/testing` 为我们预制了多种测试接入能力与模板，无需使用额外接口或编写环境垫片，直接引用真实的 `app.module` 即可完成测试。
 
-`createTestingApp` 编译一次 module；每次 `invoke` 都会创建新的调用容器、IO 和依赖图，不会启动子进程：
+## 选择测试类型
+
+- **命令功能测试**：使用 `func/testing` 在当前测试进程中调用完整命令，针对命令分发、参数解析、Provider、输出和错误处理。它不要求先构建项目，也是日常覆盖命令行为的默认选择。
+- **CLI 进程测试**：使用 `func/testing/cli` 启动已构建的 package bin，针对真实进程边界、启动环境、工作目录、退出码和信号。通常用于验证构建后的产物或子进程。
+- **终端交互测试**：通过 `func/testing/pty` 对接项目选择的 PTY 工具，针对提示符、TTY 检测、终端尺寸、resize 和其他交互行为。普通 stdout、stderr pipe 能覆盖的场景不需要 PTY。
+
+`func/testing/fixtures` 是可组合的项目 fixture 工具，不限定测试类型。命令功能测试或 CLI 进程测试需要真实文件读写、代码生成或独立工作目录时，都可以用它创建临时项目。
+Provider override 同样是一种隔离依赖的手段，而不是单独的测试类型。
+
+纯函数、单个 Service、校验器和格式化逻辑等与 `func` 框架无关的纯逻辑仍然可以直接用 Vitest 编写单元测试，`func` 不为这些不经过命令入口的测试增加额外封装。
+
+## 添加第一个命令功能测试
+
+在 `tests/commands` 中新建测试文件，使用根模块创建测试应用，传入用户在可执行文件名之后输入的参数，然后断言退出码和输出：
+
+<CodeBlock
+  code={basicTestingCode}
+  filename="tests/commands/greet-name.test.ts"
+  lang="ts"
+/>
+
+运行模板的 `test` script：
+
+<CodeBlock
+  code={runTestCommands.npm}
+  lang="shell"
+  packageManagerCommands={runTestCommands}
+/>
+
+这个测试不会构建项目或启动子进程，因此执行速度快，适合覆盖绝大多数命令行为。每次 `app.invoke()` 都会创建独立的调用上下文，可以继续添加不同的参数组合、错误输入和输出断言。
+
+<Callout locale="zh-cn" title="app.invoke 是隔离的" variant="caution">
+`func/testing` 允许多个 `invoke` 同时执行，并且自动隔离，每次 `invoke` 都会创建新的调用容器、IO 和依赖图，
+不会启动子进程，没有串行队列或全局运行时容器。你可以使用 `Promise.all` 一次运行多个测试命令。
+</Callout>
+
+## 编写命令功能测试
+
+尽管 `invoke` 会自动隔离创建新的容器，但 `createTestingApp` 仍旧只会编译一次 Module，这意味着编译开销在测试阶段不会出现多次，
+这能够确保用户能够以高性能的方式同时运行大量测试。
 
 <CodeBlock code={testingCode} filename="tests/deploy.test.ts" lang="ts" />
 
 `invoke` 的第一个参数是省略可执行文件名后的 argv。第二个参数控制本次调用：
 
-| 选项     | 用途                                                    |
-| -------- | ------------------------------------------------------- |
+| 选项     | 用途                                                     |
+| -------- | -------------------------------------------------------- |
 | `cwd`    | 设置本次调用的 `Context.cwd`，不会调用 `process.chdir`。 |
-| `env`    | 设置完整的 `Context.env`，不会自动继承 `process.env`。  |
-| `stdin`  | 作为本次调用的标准输入。                                |
-| `signal` | 向命令传递 `AbortSignal`。                              |
+| `env`    | 设置完整的 `Context.env`，不会自动继承 `process.env`。   |
+| `stdin`  | 作为本次调用的标准输入。                                 |
+| `signal` | 向命令传递 `AbortSignal`。                               |
 
-  <Callout locale="zh-cn" title="env 必须显式传递" variant="warning">
+### 进程环境安全
 
-`invoke` 和 CLI runner 的默认环境都是空对象。测试依赖 `PATH`、`HOME`、CI 变量或凭据时，应传入最小环境；确实要继承测试进程时，显式使用 `{ ...process.env, OVERRIDE: 'value' }`。这样测试不会意外依赖开发机环境。
+默认执行测试时，不会自动捕获全局进程等信息，Invoker 和 CLI runner 的默认环境都是空对象：
 
-  </Callout>
+- env：空对象 `{}`，不继承 `process.env`；
+- argv：空数组 `[]`，不读取 `process.argv`；
+- cwd：读取调用时的 `process.cwd()`，但不会执行 `process.chdir()`；
+- stdin：空字符串；
+- stdout / stderr：分别捕获到当前测试结果；
+- signal：为当前调用创建独立的未中止信号；
+- process.exitCode：不读取或修改，退出码只返回在 `result.exitCode`。
+
+如果在测试时需要依赖`PATH`、`HOME`、CI 变量或凭据时，应在 env 中传入最小环境，
+
+<CodeBlock code={processEnvCode} filename="tests/deploy.test.ts" lang="ts" />
+
+传入的环境会在调用开始时被规范化并冻结，因此之后修改 `process.env` 不会影响正在执行的测试。全局 `console.log` 和 `console.error` 也不会被捕获，
+只有通过 `Context.io`、`@Stdout()` 和 `@Stderr()` 写入的内容才会出现在测试结果中。
 
 `invoke` 始终返回 `{ exitCode, result, stdout, stderr, error }`。已被 `onError` 处理的异常不会出现在 `error` 中，调用也不会修改测试进程的 `process.exitCode`。
 
@@ -124,58 +208,63 @@ func 提供三个主要测试入口。日常命令行为优先使用 `func/testi
 
   </Callout>
 
-## 替换 provider
+## 测试模拟
+
+### 覆盖依赖
+
+如果一个依赖服务与副作用、业务关键信息、服务端鉴权等强相关，容易阻塞测试，我们可以使用独立的服务组件进行模拟。
 
 使用 `overrides` 把真实依赖替换为 fake、stub 或测试值：
 
 <CodeBlock code={overrideCode} filename="tests/deploy.test.ts" lang="ts" />
 
-`appName` 与 `createApp` 使用相同的应用身份；测试 Config、Log 等依赖应用目录的能力时需要设置。`useClass` 和 `useFactory` 随每次调用创建，`useValue` 则始终使用调用者传入的同一个对象；可变测试对象若需要逐次隔离，应改用 `useFactory`。
+`appName` 与 `createApp` 使用相同的应用身份；测试 Config、Log 等依赖应用目录的能力时需要设置。`useClass` 和 `useFactory` 随每次调用创建。
 
-当同一个 token 在多个 module 中注册时，通过 `{ module, provider }` 指定目标：
+`useValue` 则始终使用调用者传入的同一个对象，可变测试对象若需要逐次隔离，应改用 `useFactory`。
+
+当同一个 token 在多个 Module 中注册时，通过 `{ module, provider }` 指定目标：
 
 <CodeBlock code={scopedOverrideCode} filename="tests/deploy.test.ts" lang="ts" />
 
-## 创建结构化项目 fixture
+### 使用项目 fixture
 
 `func/testing/fixtures` 创建独立临时目录，按相对路径写入初始文件，并在回调结束后清理：
 
 <CodeBlock code={fixtureCode} filename="tests/project.test.ts" lang="ts" />
 
-fixture 提供 `path`、`resolve`、`read`、`write`、`exists` 和幂等的 `cleanup`。所有路径都限制在 fixture 根目录内。优先使用 `withProjectFixture`；需要跨钩子持有目录时，再使用 `createProjectFixture` 并在 `afterEach` 中显式清理。
+fixture 提供 `path`、`resolve`、`read`、`write`、`exists` 和幂等的 `cleanup`。所有路径都限制在 fixture 根目录内。
 
-## 测试真实 CLI 进程
+- `withProjectFixture`：适合在单个测试或回调中使用。回调结束后会自动删除临时目录。适合大部分项目的测试环境。
+- `createProjectFixture`：适合需要在 `beforeEach` 中创建，并在多个测试钩子或测试阶段之间共享 fixture 的场景。由于它不会自动确定何时用完，必须在 afterEach 中调用 cleanup()。
+
+## CLI 进程测试
 
 `func/testing/cli` 从 `package.json#bin` 定位已构建入口，使用当前 Node 可执行文件启动子进程，并捕获 stdout、stderr、退出码和信号：
 
 <CodeBlock code={cliCode} filename="tests/cli.test.ts" lang="ts" />
 
-runner 不会自动构建项目。建议把大多数测试留在内存层，只在独立的 CLI 测试脚本中先构建，再覆盖 package bin、进程退出、启动环境和真实文件系统集成。多 bin package 通过 `binName` 指定入口，也可以直接传 `bin`。
+Runner 不会自动构建项目，因此要顺利运行进程测试还需要你预先编译项目。
 
-`cwd` 是子进程工作目录；`env` 是子进程的完整环境，两者都应在测试中显式设置。`timeoutMs` 到期时会向子进程发送 `SIGTERM`，并在结果中设置 `timedOut`。
+建议在独立的 CLI 测试脚本中先构建，再覆盖 package bin、进程退出、启动环境和真实文件系统集成。多 bin package 通过 `binName` 指定入口，也可以直接传 `bin`。
 
-## 对接自行选择的 PTY 工具
+## 终端交互测试
 
-普通子进程 pipe 不能验证 `isTTY`、提示符交互和终端尺寸，这类场景属于端到端测试。func 不启动 PTY，也不依赖 `node-pty` 或 Python 运行时。
+PTY（Pseudo Terminal，伪终端）测试用于验证程序在“真实终端环境”中的交互行为，而不只是检查 stdout 输出文本。
+主要用于高级命令行项目验证交互提示、键盘操作、界面排版、光标移动等行为。
 
-`func/testing/pty` 仅导出 `PtyAdapter`、`PtyProcess`、`PtySpawnOptions`、`PtyExitEvent` 和 `PtyDisposable` 数据接口。项目可以按自身平台与安装策略用 Python `pty`、`node-pty` 或 ConPTY 实现接口；进程生命周期、输出聚合、等待提示符和清理由项目自己的测试工具负责。
+大部分命令行项目不需要额外的 PTY 测试，只有涉及提示符、TTY 判断、动态界面或键盘交互时，PTY 测试才有必要。
+`func` 不自动下载和启动 PTY (这通常是较大的额外软件)，只提供对应接口。用户可根据项目需求与安装策略自行使用 Python `pty`、`node-pty` 或 ConPTY 实现测试。
 
-## 推荐的默认测试范式
-
-1. 用 Vitest 和 `createTestingApp` 覆盖命令分发、参数、provider、输出与错误，这是默认且最快的一层。
-2. 用 project fixture 覆盖配置文件、生成物和工作目录行为。
-3. 用单独的 `test:cli` 脚本覆盖少量已构建 CLI 冒烟测试。
-4. 提示符、TTY 检测和终端 resize 等端到端行为，由项目自行选择 PTY 工具并通过可选接口对接。
-
-默认 TypeScript 模板已经提供 Vitest 的 decorator 转换配置，并把内存测试与构建后的 CLI 测试拆成 `pnpm test` 和 `pnpm test:cli`。
+`func/testing/pty` 仅导出 `PtyAdapter`、`PtyProcess`、`PtySpawnOptions`、`PtyExitEvent` 和 `PtyDisposable` 数据接口。
+进程生命周期、输出聚合、等待提示符和清理由项目自己的测试工具负责。
 
 ## API 速查
 
-| 入口                    | 主要 API                                                |
-| ----------------------- | ------------------------------------------------------- |
-| `func/testing`          | `createTestingApp`、`TestingApp.invoke`、provider 覆盖。 |
-| `func/testing/fixtures` | `createProjectFixture`、`withProjectFixture`。           |
-| `func/testing/cli`      | `createCliRunner`、`CliRunner.run`。                     |
-| `func/testing/pty`      | 仅提供 backend-neutral 的 PTY 适配数据接口。            |
+| 入口                    | 用途         | 主要 API                                                 |
+| ----------------------- | ------------ | -------------------------------------------------------- |
+| `func/testing`          | 命令功能测试 | `createTestingApp`、`TestingApp.invoke`、Provider 覆盖。 |
+| `func/testing/fixtures` | 项目 fixture | `createProjectFixture`、`withProjectFixture`。           |
+| `func/testing/cli`      | CLI 进程测试 | `createCliRunner`、`CliRunner.run`。                     |
+| `func/testing/pty`      | 终端交互测试 | 仅提供 backend-neutral 的 PTY 适配数据接口。             |
 
 </DocsLayout>

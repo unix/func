@@ -1,7 +1,7 @@
 ---
 title: Shell 补全
-description: 使用 func/completion 为 Bash、Zsh、Fish 和 PowerShell 提供动态命令补全。
-lastModified: '2026-08-16'
+description: 为 Bash、Zsh、Fish、PowerShell、Nushell 和 Elvish 提供动态命令补全。
+lastModified: '2026-08-19'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -29,6 +29,17 @@ export const posixSetupCode = [
   '',
   '# Fish',
   '_SHIP_COMPLETE=fish_source ship | source',
+  '',
+  '# Elvish',
+  'eval (env _SHIP_COMPLETE=elvish_source ship | slurp)',
+].join('\n')
+
+export const nushellSetupCode = [
+  '# 运行一次，生成适配器文件',
+  "_SHIP_COMPLETE=nushell_source ship | save --force ($nu.default-config-dir | path join 'ship-completion.nu')",
+  '',
+  '# 然后添加到 config.nu',
+  "source ($nu.default-config-dir | path join 'ship-completion.nu')",
 ].join('\n')
 
 export const powershellSetupCode = [
@@ -72,30 +83,41 @@ export const directCode = [
 
 ## 在 Shell 中加载适配器
 
-把对应命令加入用户的 shell profile：
+> 这是需要用户进行的操作，而非开发者。
+> 如果你希望可以无感知帮助用户处理，可以创建 `<bin> completion install` 这类命令帮助用户修改 shell profile，这可能会引起副作用，
+> 应当在用户同意后再执行。
+
+用户需要把对应的适配器加载命令加入 Shell 配置文件。Bash、Zsh、Fish 和 Elvish 可以直接加载命令输出：
 
 <CodeBlock code={posixSetupCode} lang="shell" />
+
+Nushell 0.108 及以上版本使用命令级 `@complete`。先运行生成命令创建适配器文件，再把 `source` 行加入 `config.nu`：
+
+<CodeBlock code={nushellSetupCode} lang="shell" />
+
+Nushell 的 `source` 是解析期关键字，不能把命令输出直接通过管道交给它。适配器文件只负责桥接；加载后，每次补全仍会动态查询当前可执行文件。
 
 PowerShell 使用环境变量请求适配器，再执行返回的脚本：
 
 <CodeBlock code={powershellSetupCode} lang="powershell" />
 
 每次补全都会查询当前可执行文件，因此命令图更新后不需要重新生成静态清单。修改入口中的 `bin` 或 `package.json#bin` 后，需要同步更新 profile 中的命令和环境变量。
+(因为此时已是新的命令，如从 `git` 迁移到 `gis`)
 
 ## 候选项来源
 
 补全引擎会根据当前输入位置提供：
 
-| 场景                     | 候选                             |
-| ------------------------ | -------------------------------- |
-| 命令路径尚未完成         | 子命令及其别名。                 |
-| 正在输入 `-` 或 `--`     | 当前节点可见且尚未被排除的选项。 |
-| 值选项带有 `@Enum()`     | 与当前前缀匹配的枚举值。         |
-| 没有 func 候选的位置输入 | 回退到 shell 的文件补全。        |
+| 场景                       | 候选                             |
+| -------------------------- | -------------------------------- |
+| 命令路径尚未完成           | 子命令及其别名。                 |
+| 正在输入 `-` 或 `--`       | 当前节点可见且尚未被排除的选项。 |
+| 值选项带有 `@Enum()`       | 与当前前缀匹配的枚举值。         |
+| 没有 `func` 候选的位置输入 | 回退到 shell 的文件补全。        |
 
-候选说明复用 command、handler 和 option 的 `description`。已提供的选项、互斥约束和 `--` 结束符也会参与筛选。
+候选说明复用 Command、Handler 和 option 的 `description`。已提供的选项、互斥约束和 `--` 结束符也会参与筛选。
 
-补全查询只编译命令图，不会实例化 module、command 或 provider，也不会执行 handler。
+补全查询只编译命令图，不会实例化 Module、Command 或 Provider，也不会执行 Handler。
 
 ## 直接查询结构化候选
 
@@ -112,7 +134,7 @@ PowerShell 使用环境变量请求适配器，再执行返回的脚本：
 | `withCompletion({ bin })`            | 创建接入 `createApp({ features })` 的补全 feature。 |
 | `complete(module, request)`          | 直接生成结构化 `CompletionResult`。                 |
 | `completionEnvironmentVariable(bin)` | 计算指定命令对应的补全环境变量。                    |
-| `completionSource(bin, shell)`       | 生成 Bash、Zsh、Fish 或 PowerShell 适配脚本。       |
-| `CompletionItem`                     | 描述 command、option 或 value 候选。                |
+| `completionSource(bin, shell)`       | 生成六种受支持 Shell 的适配脚本。                   |
+| `CompletionItem`                     | 描述 Command、option 或 value 候选。                |
 
 </DocsLayout>

@@ -1,7 +1,7 @@
 ---
 code: F_SYSTEM_INVALID_MODULE_EXPORT
 title: 模块导出无效
-description: Module.exports 包含本 module 未注册、未导入或不可见的 provider token。
+description: Module.exports 包含本 Module 未注册、未导入或不可见的 Provider token。
 lastModified: '2026-08-15'
 ---
 
@@ -21,10 +21,10 @@ export const reproductionCode = [
 
 ## 复现
 
-只有当前 module 可见的 provider 才能导出：
+只有当前 Module 可见的 Provider 才能导出：
 
 <CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
 
 ## 如何修复
 
-如果由当前 module 提供，先把 token 加入 `providers`；如果来自 imported module，确保来源 module 已经 export，并由当前 module import 后再 re-export。command class 不是 provider，不能放入 `exports`。
+如果由当前 Module 提供，先把 token 加入 `providers`；如果来自 imported Module，确保来源 Module 已经 export，并由当前 Module import 后再 re-export。Command class 不是 Provider，不能放入 `exports`。

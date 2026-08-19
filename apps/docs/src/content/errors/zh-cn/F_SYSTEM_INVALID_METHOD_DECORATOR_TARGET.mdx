@@ -1,7 +1,7 @@
 ---
 code: F_SYSTEM_INVALID_METHOD_DECORATOR_TARGET
 title: 方法装饰器目标无效
-description: '方法装饰器被用于不支持的目标或 handler 类型。'
+description: '方法装饰器被用于不支持的目标或 Handler 类型。'
 lastModified: '2026-08-14'
 ---
 
@@ -25,7 +25,7 @@ export const fixCode = [
 
 ## 复现
 
-方法装饰器需要实例，以便 func 注入依赖并调用方法：
+方法装饰器需要实例，以便 `func` 注入依赖并调用方法：
 
 <CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
 
@@ -35,4 +35,4 @@ export const fixCode = [
 
 <CodeBlock code={fixCode} filename="src/build.command.ts" lang="ts" />
 
-当 `@Deprecated()` 装饰默认 handler 或 path handler 时也会出现此错误。`@Deprecated()` 支持 `@Handler({ flag })` 动作选项；如需废弃默认或基于路径的命令入口，请使用 `@Command` 的 `deprecated` 参数。
+当 `@Deprecated()` 装饰默认 Handler 或 path Handler 时也会出现此错误。`@Deprecated()` 支持 `@Handler({ flag })` 动作选项；如需废弃默认或基于路径的命令入口，请使用 `@Command` 的 `deprecated` 参数。

@@ -1,6 +1,6 @@
 ---
 title: 配置文件
-description: 使用 func/config 定义类型化 JSON 配置文件，并将配置作为 provider 注入应用。
+description: 自动生成类型化的 JSON 配置文件，存储用户配置。
 lastModified: '2026-08-16'
 ---
 
@@ -12,7 +12,7 @@ export const setupCode = [
   "import { Module, createApp } from 'func'",
   "import { Config, ConfigFile, ConfigModule } from 'func/config'",
   '',
-  "@ConfigFile({ name: 'profile', maxBytes: 64 * 1024 })",
+  '@ConfigFile({ maxBytes: 64 * 1024 })',
   'export class ProfileConfig extends Config({',
   "  username: '',",
   "  email: '',",
@@ -64,13 +64,8 @@ export const usageCode = [
   locale="zh-cn"
   page="capabilities/config">
 
-`func/config` 使用 defaults 同时定义配置结构、默认值和 TypeScript 类型，并把每个配置类注册为可注入 provider。配置保存在用户主目录下的 JSON 文件中。下面以 `ship login` 保存用户名和 email 为例。
-
-  <Callout locale="zh-cn" title="适用范围" variant="note">
-
-它适合保存 CLI 自己的用户配置。项目源码配置、凭据或需要跨设备同步的数据应使用更符合其生命周期的存储方式。
-
-  </Callout>
+`func/config` 会为 `func` 应用自动生成配置文件，并帮助用户屏蔽底层的权限、读写、原子化操作，可用于存储用户信息、默认应用配置等。
+下面以 `ship login` 保存用户名和 email 为例。
 
 ## 定义并注册配置
 
@@ -78,23 +73,24 @@ export const usageCode = [
 
 <CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
 
-上例的文件路径为 `~/.ship/profile.json`。没有使用 `@ConfigFile` 时，文件名默认为 `config.json`。
+上述代码会自动为用户创建 `~/.ship/config.json` 并提供基础 API 支持。在默认设置中，文件名为 `config.json`，你可以指定覆盖，
+如有必要，你也可以创建多个配置文件。
 
-func 使用 Node.js 识别到的用户主目录，不依赖当前工作目录。以上例为准，各系统通常会把配置文件保存到：
+`func` 使用 Node.js 识别到的用户主目录，不依赖当前工作目录。以上例为准，各系统通常会把配置文件保存到：
 
-| 系统    | 默认位置                               |
-| ------- | -------------------------------------- |
-| macOS   | `/Users/<用户名>/.ship/profile.json`   |
-| Linux   | `/home/<用户名>/.ship/profile.json`    |
-| Windows | `C:\Users\<用户名>\.ship\profile.json` |
+| 系统    | 默认位置                              |
+| ------- | ------------------------------------- |
+| macOS   | `/Users/<用户名>/.ship/config.json`   |
+| Linux   | `/home/<用户名>/.ship/config.json`    |
+| Windows | `C:\Users\<用户名>\.ship\config.json` |
 
 主目录可能受系统账户和运行环境影响；例如 Linux 的 root 用户通常对应 `/root/.ship/profile.json`。
 
-应用名由 `createApp({ appName })` 统一提供，func 只负责收集并透传。Config、Log 等使用应用目录的能力会在各自的 provider 初始化时验证 `appName`。应用名和文件名都必须是安全的单个路径片段，不能包含斜杠、反斜杠、空白边界或 `.`、`..`。
+应用名由 `createApp({ appName })` 统一提供，`func` 只负责收集并透传。Config、Log 等使用应用目录的能力会在各自的 Provider 初始化时验证 `appName`。应用名和文件名都必须是安全的单个路径片段，不能包含斜杠、反斜杠、空白边界或 `.`、`..`。
 
 ## 读取和更新配置
 
-注册后的配置类可以像普通 provider 一样注入 command、module 或其他 provider：
+注册后的配置类可以像普通 Provider 一样注入 Command、Module 或其他 Provider：
 
 <CodeBlock code={usageCode} filename="src/commands/login.command.ts" lang="ts" />
 
@@ -123,7 +119,15 @@ defaults 会把字符串、数字、布尔值、null、数组和嵌套对象映�
 - 类型不匹配、无效 JSON 或非对象根值会产生运行时异常；
 - 失败读取不会自动覆盖原文件。
 
-`maxBytes` 同时限制读取文件和准备写入的 JSON 大小。一个 module 可以注册多个配置类，但相同文件路径不能重复注册。
+`maxBytes` 同时限制读取文件和准备写入的 JSON 大小。一个 Module 可以注册多个配置类，但相同文件路径不能重复注册。
+
+### 读取写入失败
+
+读取失败是会发生的，这常见于用户手动编辑了配置文件但格式错误，开发者可以捕获此类错误，默认用户可以接收到最终抛出的错误，
+作为简单的解决方案，我们可以提供 `ship config reset` 作为重置修复，如果需要进一步的处理细节，则可以在应用中手动使用 `try...catch` 或是监听全局错误，
+进行更细致的提示。
+
+写入失败发生于权限不足，这会阻止正常的命令行应用工作流程。除非用户手动编辑了配置文件的权限，否则一般不会发生，不建议为其添加额外的容错逻辑。
 
 ## API 速查
 
@@ -131,7 +135,7 @@ defaults 会把字符串、数字、布尔值、null、数组和嵌套对象映�
 | ------------------------------------ | ------------------------------------------ |
 | `Config(defaults)`                   | 创建从 defaults 推断类型的配置基类。       |
 | `@ConfigFile({ name, maxBytes? })`   | 设置文件名与可选大小限制。                 |
-| `ConfigModule.register({ configs })` | 注册并导出一个或多个配置 provider。        |
+| `ConfigModule.register({ configs })` | 注册并导出一个或多个配置 Provider。        |
 | `ConfigInstance`                     | 描述 get、getAll、set、reset 和 resetAll。 |
 | `CONFIG_SYSTEM` / `CONFIG_RUNTIME`   | 配置能力的稳定错误码枚举。                 |
 

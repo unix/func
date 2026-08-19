@@ -1,7 +1,7 @@
 ---
 title: 运行时执行模型
-description: 了解 func 如何装配模块、编译命令图，并完成参数解析、入口选择、依赖激活、校验、执行和错误路由。
-lastModified: '2026-08-16'
+description: 了解 Func 如何编译应用与执行顺序。。
+lastModified: '2026-08-18'
 ---
 
 import FlowDiagram from '@/components/diagrams/flow-diagram.astro'
@@ -10,104 +10,88 @@ import DocsLayout from '@/layouts/docs.astro'
 export const runtimeStages = [
   {
     label: '编译应用',
-    description:
-      '展开模块，校验 provider 与 option，并把 command 和 handler path 编译成命令图。',
+    description: '展开模块并校验声明，生成命令图和每个节点的 option 规则。',
   },
   {
-    label: '解析候选',
-    description:
-      '按各命令节点可见的 option 规则解析完整 argv，再用位置 token 匹配命令图。',
+    label: '解析调用',
+    description: '解析 argv，匹配命令路径，并确定唯一的 handler 或 option action。',
   },
   {
-    label: '选择入口',
-    description: '优先选择最长且唯一的具名路径，再处理根动作、主命令或缺失命令。',
+    label: '准备作用域',
+    description: '创建本次调用的 Context、依赖容器，并激活需要的模块与 provider。',
   },
   {
-    label: '激活作用域',
-    description:
-      '创建根 module、直接 owner module、当前 option provider 和所需依赖。',
+    label: '执行管线',
+    description: '完成字段绑定与校验，然后调用所选入口。',
   },
   {
-    label: '绑定与校验',
-    description: '写入字段值，执行 required、enum、自定义校验和跨字段约束。',
-  },
-  {
-    label: '执行与释放',
-    description: '调用唯一入口，路由错误，并按固定顺序执行 onDispose。',
+    label: '处理与释放',
+    description: '处理异常，确定结果与退出码，并释放本次调用创建的实例。',
   },
 ]
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="runtime">
 
-func 的运行时分为两个时期。`createApp` 首先把 module 声明编译成完整应用；随后一次性的 `app.bootstrap()` 根据 argv 选择唯一入口并创建本次调用需要的实例。命令式调用则通过 `func/invoke` 创建独立 invoker。装饰器只提供声明与元数据，不会在 import 时执行 handler。
+`func` 会先把应用声明编译成可执行结构，再根据每次传入的 `argv` 完成一次调用。装饰器只描述模块、命令、字段和处理器之间的关系；真正的实例创建与方法调用都发生在运行时。
 
-例如 `ship --profile work project member add alice --role owner --force` 会得到 `project member add` 标准路径、用户实际输入的 invoked path、`profile`、`role` 与 `force` 选项，以及剩余的 `alice` 位置输入。option 可以位于 command path 前后；每个阶段只消费自己负责的部分。
+`createApp()` 面向进程应用：编译完成后，`bootstrap()` 执行一次并设置进程退出码。`createInvoker()` 同样只编译一次，但可以反复调用 `invoke()`，每次返回自己的结果与退出码。
 
-<FlowDiagram stages={runtimeStages} title="func 运行时管线" />
+<FlowDiagram stages={runtimeStages} title="Func 运行时管线" />
 
 ## 编译应用
 
-无论根 module 交给 `createApp` 启动进程应用，还是交给 `func/invoke` 导出的 `createInvoker` 进行可重复的命令式调用，它都必须是显式带有 `@Module()` 的 class。func 递归展开 `imports`，为每个 module 建立独立的 provider 可见性边界，并收集 `commands`、`options`、`providers` 与 `exports`。
+调用 `createApp()` 或 `createInvoker()` 时，`func` 会从根模块开始展开 `imports`，检查 Provider 的声明与可见性，并收集 Commands 与 options。随后，Command path、Handler path 与 alias 会被编译成一张命令图。
 
-同一个 module 内的 provider token 必须唯一；imported provider 只有显式 export 后才对导入方可见，也不会穿过中间 module 自动传递。循环 module import、无效 export、无效 provider 和重复 provider 都会在这一阶段阻止应用编译。
+重复 token、无效 export、循环 import、冲突路径等应用结构问题会在这里直接报错。编译阶段只生成和校验结构，不会提前创建 Module、Command 或 Provider 实例。
 
-command path 与 handler path 随后被合并为命令图。`@Command(['config', 'profile'])` 创建两段路径；其 `@Handler('set')` 对应完整路径 `config profile set`。不同 command class 可以共享前缀，alias 会作为同一节点的另一条边。应用最多注册一个 `@CommandMajor` 和一个 `@CommandMissing`。
+模块与依赖的完整规则见[模块](/zh-cn/modules)。
 
-编译只生成结构，不创建 command、module 或 provider 实例。需要为应用启用命令补全时，请参考 [Shell 补全](/zh-cn/capabilities/completion)。
+## 解析一次调用
 
-## 按候选节点解析 argv
+每次调用都会收到 shell 已经处理好的 `argv` 字符串数组。`func` 根据不同命令节点可见的 options 分别解析 argv，再用剩余的位置参数匹配命令图。因此，只要 option 在目标节点可见，它可以写在 Command path 前面或后面；`--` 之后的内容则全部作为位置输入保留。
 
-shell 已经完成引号、转义和变量展开后，才把字符串数组交给程序。func 不重新拆分字符串。由于根 module option、feature option 和 command 字段具有不同作用域，运行时会按候选命令节点的有效 option plan 解析完整 argv，然后用解析后的位置 token 匹配命令图。
+入口大致按照以下顺序确定：
 
-这意味着 option 可以出现在 command path 前后：`ship --profile work deploy --env prod` 与 `ship deploy --profile work --env prod` 都可以命中 deploy，只要这些选项对 deploy 节点可见。`--` 会停止 option 解析，后续 token 全部保留为位置输入。
+1. 优先选择匹配最深且唯一的具名 Command 或 Handler path。
+2. 没有具名入口时，尝试根级 option action。
+3. 再尝试 `@CommandMajor`、`@CommandMissing` 或根命令的默认行为。
 
-已声明的 option 在这一阶段完成 alias 归一化和 Boolean、String、Number、重复 String 或 Number 转换。长值选项支持 `--name value` 与 `--name=value`；已知短标志可以组合。有限数字接受负数；非有限数字与缺失值会产生输入错误。
+一次调用最终只会选中一个入口。多个 action 同时出现、同样具体的多个候选或目标节点不可见的 option 都会产生解析错误，而不会依赖注册顺序猜测。
 
-## 选择唯一入口
+普通字段 option 只提供数据；由 `@Handler({ flag })` 或 `@OptionCommand()` 声明的 action 会改为执行对应入口。action 被选中时，不会校验与它无关的业务字段，因此 `deploy --help` 不会因为缺少 deploy 所需参数而失败。
 
-运行时从成功解析的候选中选择唯一入口：
+## 创建本次调用的作用域
 
-1. 选择消费位置 token 最多的具名 command 或 handler path。
-2. 没有具名入口时，检查根 module 的 `@OptionCommand` 动作。
-3. 再尝试 `@CommandMajor` 的 path handler。
-4. 仍有未知位置输入时，尝试 `@CommandMissing`。
-5. 最后使用 `@CommandMajor` 的默认 handler；空应用也可以无操作成功。
+`func` 为每次调用创建新的 `Context` 和运行时依赖容器。根模块始终属于当前调用；命令匹配成功后，运行时还会激活直接声明该命令的 owner Module。仅用于连接 imports 的中间模块不会自动成为执行作用域。
 
-如果一个 argv 在不同 option schema 下同时匹配多个作用域，运行时会产生 `F_RUNTIME_AMBIGUOUS_INVOCATION`，不会依赖注册顺序猜测。多个动作选项同时显式出现也会被拒绝。
+class 与 factory Provider 在第一次被请求时创建，并在当前调用内复用；下一次调用会得到新的实例。value Provider 则直接返回注册时提供的值。未被当前入口使用的 Provider 不会创建。
 
-字段 option 提供数据，不会改变入口；`@Handler({ flag })` 与 `@OptionCommand()` 属于动作选项，会替代当前节点的默认 command handler。动作选中时不会要求无关业务字段通过 required 或其他校验，这让 `deploy --help` 可以在缺少 deploy 参数时正常输出帮助。
+模块会在执行入口前完成初始化，其他依赖的 `onInit()` 在实例首次创建时运行。option Provider 会先完成字段绑定，再进入 `onInit()`，因此不要在构造函数中假设 argv 已经写入字段。
 
-## 激活 module 与 provider
+## 执行所选入口
 
-每次 invocation 都创建新的 `Context` 和依赖图。根 module 参与所有调用；确定命令后，再激活直接声明所选 command 或 option action 的 owner module。仅用于 imports 链接的中间 module 不会自动成为生命周期或错误切面。
+成功解析后，拦截器从外到内包裹本次调用：应用级 → owner Module → Command。内层执行完成后，结果再按相反方向返回给外层拦截器。
 
-provider 按需创建，并在本次调用的依赖图中复用。class provider 必须带有自己的 `@Injectable()` 元数据；value 与 factory provider 使用显式 token。factory 的 `inject` 决定依赖顺序，也可以异步返回实例。当前调用不会使用的 provider 不会构造。
+普通 Command 的核心执行顺序是：
 
-根 option provider 对所有节点可见；feature option provider 只作用于该 module 直接拥有的 commands。它们先接收 CLI 字段值，再执行 `onInit`，因此 option provider 与 module 的 `onInit` 可以读取完成绑定的字段；构造函数不应依赖 argv 已经写入字段。
+1. 创建 Command 及其构造函数依赖。
+2. 写入字段值与默认值，并执行 required、validator 和跨字段 constraint。
+3. 生成冻结的 `Args` 快照，运行 Command 的 `onInit()`。
+4. 解析 Handler 参数并调用唯一的 Handler。
 
-## 准备并执行所选 command
+Handler 可以同步返回，也可以返回 Promise；两者会进入相同的结果处理流程。`Args` 包含原始 argv、实际与标准命令路径、剩余位置输入和归一化 options；`Context` 则提供当前命令、IO、cwd、signal、结果输出方式与退出码。
 
-选中普通 command 后，运行时创建 command 实例，将显式 option 写入字段，未提供的字段保留属性初始值，然后依次执行 required、字段 validator 与跨字段 constraint。校验通过后才解析 handler 参数并调用唯一方法。
+参数注入见[处理器参数](/zh-cn/parameters)，资源的初始化与释放规则见[错误与生命周期](/zh-cn/error-handler)。
 
-`@Args()` 得到冻结的 `raw`、`invokedPath`、标准 `path`、剩余 `inputs` 和归一化 `options` 快照。`Context` 则提供 appName、当前 command、所有可发现命令、IO、cwd、signal 和 exit code。同步返回值与 Promise 使用相同的完成语义，最终进入 `InvocationResult.result`。
+## 异常处理与释放
 
-## 按阶段路由错误
+运行时异常会交给当前已经激活的 `onError`。已经选中命令时，按 Command → direct-owner Module → root Module 的方向处理；
+`onError` 正常返回表示异常已处理，继续抛出错误则上交给外层。解析失败时尚无 Command 与 owner Module，此时错误只会进入根模块。
 
-`F_SYSTEM` 始终表示应用声明缺陷，不进入 `onError`。其他异常会规范化为 `Exception`，并在已经激活的作用域中从内到外处理：command 或 option action → 直接 owner module → 根 module。正常返回表示已处理；hook 抛出的新异常继续向外传播。
+没有被 `onError` 处理的常规运行时错误会写入 stderr，并让调用以退出码 `1` 结束。`onError` 也可以通过 `Context` 调整退出码并控制输出流。
+详细传播规则见[错误处理](/zh-cn/error-handler)。
 
-解析阶段尚未创建 command 与 owner module，因此未知 option、未知 command 或歧义候选只能由根 module 处理。字段绑定、校验和 handler 执行已经拥有 command 实例，会先进入 command 的 `onError`。
-
-无论成功或失败，已激活实例都会执行无参数的 `onDispose()`。command 与 module 先释放，provider 按创建顺序逆序释放。清理异常由 Runtime 吸收并报告，不进入 Filter，也不改变已经确定的 result、exit code 与输出。详细错误分类、默认打印与清理顺序见[错误处理](/zh-cn/error-handler)。
-
-### Q&A
-
-| 问题                                         | 运行时答案                                                                  |
-| -------------------------------------------- | --------------------------------------------------------------------------- |
-| 根 module 的 option 是全局 option 吗？       | 是。feature module option 只应用于该 module 直接拥有的 commands。           |
-| option 可以写在 command path 前面吗？        | 可以。每个候选使用自己的 option plan 解析完整 argv，再匹配剩余位置 token。  |
-| 一次调用会执行多个处理器吗？                 | 不会。普通 command、handler flag 与 OptionCommand 最终只选择一个入口。      |
-| 匹配 command 与 handler path 后 token 去哪？ | 它们记录到 `path` 与 `invokedPath`，不会出现在最终 `inputs` 中。            |
-| 构造函数中能读取解析后的字段吗？             | 不能依赖。字段绑定发生在实例构造后；`onInit` 与 handler 可以读取。          |
-| command 的 onError 能处理未知 option 吗？    | 不能。解析错误发生在 command 创建前，只会进入已经激活的根 module 错误处理。 |
+业务执行后，`func` 会依次查找本次调用中已经激活的 Command、Module 和 Provider。Command 与 Module 按作用域激活顺序逆序释放，
+Provider 按创建顺序逆序释放。
 
 </DocsLayout>

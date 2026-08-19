@@ -1,6 +1,6 @@
 ---
 title: 微型应用
-description: 使用 func/parser 构建小型 CLI，并判断何时应迁移到完整的 func 应用。
+description: 使用 func/parser 构建用于原型验证的小型 CLI。
 lastModified: '2026-08-16'
 ---
 
@@ -108,40 +108,36 @@ export const migrationCode = [
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="micro-apps">
 
-微型应用是只有少量固定语法、由一小段命令式代码即可清楚表达的 CLI。例如包初始化器、仓库维护脚本、已有程序的薄包装器，通常只需要解析几个选项，再调用一个业务函数。
+`func` 应用本身的体积并不高，通常适合绝大多数场景，但如果用户处于 Node.js 兼容环境中并希望使用极低的体积进行快速原型测试，
+或是应用逻辑简单暂时不需要学习 `func` 的思维模型，那么 `func/parser` 会更合适。
 
-`func/parser` 为这类应用提供独立的类型化参数解析入口。它复用 func 的核心 argv 编译与解析能力，但不会加载完整的装饰器应用模型，也不会接管命令执行；`parse()` 返回数据后，分支、帮助、输出、退出码和业务调用仍由应用自己负责。
+`func/parser` 是微型应用的极佳选择，本身只携带少量语法，适合一小段命令式代码可表达的 CLI 项目。如包初始化器、仓库维护脚本、已有程序的薄包装器，通常只需要解析几个选项，调用一个业务函数等。
 
-<Callout locale="zh-cn" title="仍然属于 func 生态" variant="note">
+`func/parser` 实现是复用 `func` 的核心 argv 编译与解析能力，不会加载完整的装饰器应用模型，也不会接管命令执行；`parse()` 返回数据后，分支、帮助、输出、退出码和业务调用需要开发者自行实现。
 
-`func/parser` 仍然引用 func 的核心能力，不是独立的 parser 包，而是 func 生态中面向微型应用的轻量入口。
+<Callout locale="zh-cn" title="仍然属于 Func 生态" variant="note">
 
-</Callout>
-
-<Callout locale="zh-cn" title="默认产物 gzip 后约 3.1 KB" variant="tip">
-
-`func/parser` 的默认产物 gzip 后约为 3.1 KB，体积极小，非常适合从微型 CLI 应用起步。最终 CLI 还会叠加选项定义与业务代码。
+`func/parser` 仍然引用 `func` 的核心能力，不是独立的 parser 包，而是 `func` 生态中面向微型应用的轻量入口。默认产物 gzip 后约为 `3 KB`。
 
 </Callout>
 
 ## 何时适合使用
 
-同时满足大部分条件时，`func/parser` 通常比完整应用模型更直接：
+同时满足大部分条件时，`func/parser` 通常比完整应用模型更省事：
 
-- CLI 只有根选项，或少量单层命令。
-- 选项只需要 Boolean、String、有限 Number 或重复的 String / Number。
-- 位置输入可以作为字符串数组交给业务函数，不需要声明式校验。
-- 帮助文本很短，手写后不容易和实现失去同步。
-- 业务依赖可以直接 import 和调用，不需要依赖注入或资源生命周期。
-- 调用另一个程序时，需要原样保留它的参数。
+- CLI 只有根选项，或少量单层命令；
+- 选项只需要 Boolean、String、非常有限的参数数量；
+- 位置输入可以作为字符串数组交给业务函数，不需要声明式校验；
+- 帮助文本很短，手写后不容易和实现失去同步；
+- 业务依赖较少，通常可以在单文件内直接处理，不需要依赖注入或资源生命周期。
 
 典型场景包括 `create-*` 初始化器、单用途代码生成器、CI 辅助脚本、Git hook 入口，以及只增加一层默认配置的进程包装器。
 
-如果项目已经需要嵌套命令、共享服务、结构化帮助、统一错误输出或可靠的调用级测试，直接使用 `func` 会减少之后的二次建模。
+如果项目已经需要嵌套命令、共享服务、结构化帮助、统一错误输出或可靠的调用级测试，直接使用 `func` 可以减少之后的二次建模。
 
 ## 定义并调用 parser
 
-从 `func/parser` 导入 `createParser`，传入根选项和可选的命令表。parser 会从定义推导结果类型；先缩小 `command`，TypeScript 就能知道当前命令特有的选项。
+从 `func/parser` 导入 `createParser`，传入根选项和可选的命令表。parser 会从定义推导结果类型。
 
 <CodeBlock code={parserCode} filename="src/index.ts" lang="ts" />
 
@@ -155,14 +151,15 @@ tool build entry.ts -o dist -t next
 
 `parse()` 返回四个字段：
 
-| 字段       | 内容                                                                 |
-| ---------- | -------------------------------------------------------------------- |
-| `command`  | 选中的单层命令名称；没有命令时为 `undefined`。                        |
-| `inputs`   | parser 未消费的位置输入，保留原顺序。                                 |
-| `options`  | 以定义键名为属性的类型化值。                                          |
-| `supplied` | 用户显式提供过的定义键名；可区分省略选项和显式的 `--no-<name>`。     |
+| 字段       | 内容                                                             |
+| ---------- | ---------------------------------------------------------------- |
+| `command`  | 选中的单层命令名称；没有命令时为 `undefined`。                   |
+| `inputs`   | parser 未消费的位置输入，保留原顺序。                            |
+| `options`  | 以定义键名为属性的类型化值。                                     |
+| `supplied` | 用户显式提供过的定义键名；可区分省略选项和显式的 `--no-<name>`。 |
 
-根选项会对每个命令可见，也可以写在命令名称前后。普通值接受 `--name value` 与 `--name=value`；已知的短布尔选项可以组合。未提供时，Boolean 为 `false`，单值为 `undefined`，重复值为空数组。后出现的单值覆盖先前值，重复值按输入顺序累积。
+根选项会对每个命令可见，也可以写在命令名称前后。普通值接受 `--name value` 与 `--name=value`；已知的短布尔选项可以组合。
+未提供时，Boolean 为 `false`，单值为 `undefined`，重复值为空数组。后出现的单值覆盖先前值，重复值按输入顺序累积。
 
 ### 选项定义
 
@@ -180,16 +177,17 @@ const parser = createParser({
 
 对象形式可以调整公开名称与解析行为：
 
-| 属性        | 作用                                                               |
-| ----------- | ------------------------------------------------------------------ |
-| `type`      | 必填；只能是 `Boolean`、`String` 或 `Number`。                      |
-| `name`      | `--<name>` 使用的公开长名称；默认采用对象中的键。                   |
-| `alias`     | 一个非数字的单字符短别名。                                         |
-| `aliases`   | 多个单字符短别名；会与 `alias` 合并并去重。                         |
-| `multiple`  | 只适用于 String / Number，把重复输入收集为只读数组。                |
-| `negatable` | 只适用于 Boolean，额外接受 `--no-<name>`。                          |
+| 属性        | 作用                                                 |
+| ----------- | ---------------------------------------------------- |
+| `type`      | 必填；只能是 `Boolean`、`String` 或 `Number`。       |
+| `name`      | `--<name>` 使用的公开长名称；默认采用对象中的键。    |
+| `alias`     | 一个非数字的单字符短别名。                           |
+| `aliases`   | 多个单字符短别名；会与 `alias` 合并并去重。          |
+| `multiple`  | 只适用于 String / Number，把重复输入收集为只读数组。 |
+| `negatable` | 只适用于 Boolean，额外接受 `--no-<name>`。           |
 
-未知命令、未知选项和无效值会抛出 `ParserError`。`code` 分别为 `unknown-command`、`unknown-option` 或 `invalid-argument`；定义本身无效时，`createParser()` 会以 `invalid-definition` 失败。应用仍需决定错误写到哪里、是否展示帮助，以及使用什么退出码。
+未知命令、未知选项和无效值会抛出 `ParserError`。`code` 分别为 `unknown-command`、`unknown-option` 或 `invalid-argument`；
+定义本身无效时，`createParser()` 会以 `invalid-definition` 失败。
 
 ## 包装其他程序
 
@@ -203,15 +201,15 @@ const parser = createParser({
 
 `func/parser` 刻意只解决 argv 到类型化数据的转换。以下需求需要应用自行实现，或改用完整的 `func`：
 
-| 需求                 | `func/parser` 的边界                                                   |
-| -------------------- | ---------------------------------------------------------------------- |
-| 命令结构             | 只有一层命令表；没有嵌套 path、命令 alias、handler 或缺失命令。        |
-| 位置输入             | 只返回 `string[]`；没有名称、数量、类型或必填规则。                     |
-| 默认值与校验         | 只有固定空值；没有自定义默认值、required、enum、依赖、互斥或校验器。   |
-| 帮助与发现           | 不保存 description，也不生成帮助、版本、弃用提示或 Shell 补全。       |
-| 应用执行             | 不分派业务函数，不管理 stdin/stdout、退出码、取消信号或进程错误。       |
-| 代码组织             | 不提供 module、依赖注入、provider 可见性和初始化或清理生命周期。       |
-| 测试                 | 可以直接测试 `parse(argv)`，但没有调用级依赖覆盖、IO 捕获或执行结果。   |
+| 需求         | `func/parser` 功能                                                    |
+| ------------ | --------------------------------------------------------------------- |
+| 命令结构     | 仅单层命令表；没有嵌套 path、命令 alias、Handler 或缺失命令。         |
+| 位置输入     | 只返回 `string[]`；没有名称、数量、类型或必填规则。                   |
+| 默认值与校验 | 只有固定空值；没有自定义默认值、required、enum、依赖、互斥或校验器。  |
+| 帮助与发现   | 不保存 description，也不生成帮助、版本、弃用提示或 Shell 补全。       |
+| 应用执行     | 不分派业务函数，不管理 stdin/stdout、退出码、取消信号或进程错误。     |
+| 代码组织     | 不提供 Module、依赖注入、Provider 可见性和初始化或清理生命周期。      |
+| 测试         | 可以直接测试 `parse(argv)`，但没有调用级依赖覆盖、IO 捕获或执行结果。 |
 
 parser 会严格拒绝未知选项，不提供 `allowUnknown` 模式。需要透传时，应为对应命令显式启用 `passthrough`，并确定从哪里开始把输入交给下游。
 
@@ -219,37 +217,29 @@ parser 会严格拒绝未知选项，不提供 `allowUnknown` 模式。需要透
 
 出现以下任一信号时，完整应用模型通常开始比手写控制流更简单：
 
-- 命令或动作超过一层，或者分支代码不断重复解析后的类型判断。
-- 手写帮助、实际选项和测试需要同时修改，已经发生过不一致。
-- 多个命令需要共享配置、客户端、缓存或其他有清理需求的资源。
-- 需要 required、enum、跨字段约束、默认值或更明确的位置语义。
-- 需要统一 IO、错误格式、退出码、取消信号、日志、配置或 Shell 补全。
-- 测试需要执行完整命令，同时替换 provider 并捕获 stdout / stderr。
+- 命令或动作超过一层，或者分支代码不断重复解析后的类型判断；
+- 手写帮助、实际选项和测试需要同时修改，已经发生过不一致；
+- 多个命令需要共享配置、客户端、缓存或其他有清理需求的资源；
+- 需要 required、enum、跨字段约束、默认值或更明确的位置语义；
+- 需要统一 IO、错误格式、退出码、取消信号、日志、配置或 Shell 补全；
+- 测试需要执行完整命令，同时替换 Provider 并捕获 stdout / stderr。
 
-迁移不要求重写业务逻辑。先让 parser 分支只负责把输入交给纯函数或服务，再把命令语法搬到 `func`：
+迁移不要求重写业务逻辑。可以尝试按下述对应方案把命令层搬到 `func`：
 
-| `func/parser`                               | `func`                                                           |
-| ------------------------------------------- | ---------------------------------------------------------------- |
-| `commands.build`                            | `@Command('build')`                                              |
-| `Boolean`                                   | `@Flag()`                                                        |
-| `String` / `Number`                         | 带有 `string` / `number` 属性的 `@Value()`                       |
-| `{ multiple: true, type: String / Number }` | `@ArrayString()` / `@ArrayNumber()`                              |
-| `inputs`                                    | `@Args()` 的 `args.inputs`                                      |
-| `if (command === ...)`                      | `@Handler()` 或有 path 的 handler                               |
-| 根选项                                      | 根 `@Option()`；帮助等独立动作使用 `@OptionCommand()` 或能力包   |
-| 手写 `try/catch` 与清理                     | command / module 的 `onError`、`onInit` 与 `onDispose`           |
+| `func/parser`                               | `func`                                                         |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| `commands.build`                            | `@Command('build')`                                            |
+| `Boolean`                                   | `@Flag()`                                                      |
+| `String` / `Number`                         | 带有 `string` / `number` 属性的 `@Value()`                     |
+| `{ multiple: true, type: String / Number }` | `@ArrayString()` / `@ArrayNumber()`                            |
+| `inputs`                                    | `@Args()` 的 `args.inputs`                                     |
+| `if (command === ...)`                      | `@Handler()` 或有 path 的 Handler                              |
+| 根选项                                      | 根 `@Option()`；帮助等独立动作使用 `@OptionCommand()` 或能力包 |
+| 手写 `try/catch` 与清理                     | Command / Module 的 `onError`、`onInit` 与 `onDispose`         |
 
-下面是前面 `build` 命令的等价起点。业务 `build()` 保持不变，但命令选择、字段绑定和帮助入口交给 `func`：
+下面是前面 `build` 命令的等价起点。业务 `build()` 保持不变，但命令选择、字段绑定和帮助入口使用 `func` 实现：
 
 <CodeBlock code={migrationCode} filename="src/index.ts" lang="ts" />
-
-实际迁移时可以按这个顺序进行：
-
-1. 用现有 parser 测试固定 argv、输出和退出码，作为兼容基线。
-2. 把每个命令分支中的业务逻辑提取为不依赖 parser 结果的函数或 provider。
-3. 将命令与选项逐项映射到装饰器，并把业务调用放入 handler。
-4. 把全局帮助、错误处理和共享资源提升到根 module；再按需启用[帮助](/zh-cn/capabilities/help)、[测试](/zh-cn/capabilities/testing)等能力。
-5. 对照原有基线测试命令行行为，确认兼容后删除 parser 定义和手写分派。
 
 完整项目结构见[快速开始](/zh-cn/guide)，命令与字段的建模规则分别见[命令](/zh-cn/commands)和[字段选项](/zh-cn/options)。如果仍处于技术选型阶段，可以继续阅读[生态选型](/zh-cn/ecosystem)。
 

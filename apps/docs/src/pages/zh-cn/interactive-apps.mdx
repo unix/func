@@ -1,7 +1,7 @@
 ---
 title: 交互式应用
-description: 接入终端 UI 库，同时避免自动化流程等待和命令输出污染。
-lastModified: '2026-08-16'
+description: 在 Func 中接入流行的开源终端 UI 库最佳实践。
+lastModified: '2026-08-19'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -17,10 +17,12 @@ export const installCommands = {
 export const inkCode = [
   "import { render } from 'ink'",
   '',
+  'const { stdin, stdout, stderr } = context.io',
+  '',
   'const application = render(view, {',
-  '  stdin: context.io.stdin,',
-  '  stdout: context.io.stderr,',
-  '  stderr: context.io.stderr,',
+  '  stdin,',
+  '  stdout,',
+  '  stderr,',
   '  exitOnCtrlC: false,',
   '  patchConsole: false,',
   '})',
@@ -39,7 +41,7 @@ export const inquirerCode = [
   "  { message: 'Project name' },",
   '  {',
   '    input: context.io.stdin,',
-  '    output: context.io.stderr,',
+  '    output: context.io.stdout,',
   '    signal: context.signal,',
   '  },',
   ')',
@@ -88,15 +90,15 @@ export const serviceCode = [
   '  constructor(private readonly context: Context) {}',
   '',
   '  projectName() {',
-  '    const { stdin, stderr } = this.context.io',
-  '    if (!ClackService.IsTTY(stdin) || !ClackService.IsTTY(stderr)) {',
+  '    const { stdin, stdout } = this.context.io',
+  '    if (!ClackService.IsTTY(stdin) || !ClackService.IsTTY(stdout)) {',
   "      throw new TypeError('Interactive input requires a terminal.')",
   '    }',
   '',
   '    return text({',
   "      message: 'Project name',",
   '      input: stdin,',
-  '      output: stderr,',
+  '      output: stdout,',
   '      signal: this.context.signal,',
   '    })',
   '  }',
@@ -126,17 +128,18 @@ export const commandCode = [
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="interactive-apps">
 
-func 不替应用选择或封装终端 UI 库。应用根据需要安装第三方库，再把它绑定到当前 `Context`。本页用多个开源库分别说明不同的接入边界；`@clack/prompts` 只是其中一个示例，不是默认推荐。
+`func` 不替应用选择或封装终端 UI 库。应用根据需要安装第三方库，再把它绑定到当前 `Context`。
+本页用多个开源库分别说明不同的接入边界；`@clack/prompts` 只是其中一个示例，不是默认推荐。
 
-终端 UI 库的 `output` 可以理解为 UI 的 render target。Prompt、spinner、光标移动与其他渲染帧应写入 stderr；stdout 保留给最终文本、JSON 和 Shell 管道数据。把 UI 渲染到 stdout，相当于把调试界面写进 API 响应。
+终端应用的主界面和 Prompt 应绑定到本次调用的 stdout；警告、错误与独立的进度展示继续使用 stderr。通过 `Context.io` 而不是进程级全局 streams 接入，可以保留 invocation 宿主的输出策略、stream 替换和测试隔离。同一个交互 session 中的 renderer 应使用同一个输出 stream，避免光标更新相互竞争。
 
 ## 使用 Ink 渲染终端应用
 
-[Ink](https://github.com/vadimdemedes/ink) 是 React renderer。传入本次调用的 streams，但把 stderr 用作 render target，让 stdout 保持机器可读。关闭 `exitOnCtrlC` 和 `patchConsole`，因为 signal 与应用输出由 func 管理：
+[Ink](https://github.com/vadimdemedes/ink) 是 React renderer。将主 render target 绑定到本次调用的 stdout，同时保留独立的 stderr 通道。关闭 `exitOnCtrlC` 和 `patchConsole`，因为 signal 与应用输出由 `func` 管理：
 
 <CodeBlock code={inkCode} lang="ts" />
 
-所有路径都应 unmount；command 取消时，再让 `Context.signal` 提前触发 unmount。可复制的 [Ink service](https://github.com/unix/func/blob/main/snippets/ink.service.ts) 已包含 signal 绑定。
+所有路径都应 unmount；Command 取消时，再让 `Context.signal` 提前触发 unmount。可复制的 [Ink service](https://github.com/unix/func/blob/main/snippets/ink.service.ts) 已包含 signal 绑定。
 
 ## 使用 Inquirer 明确 stdin 所有权
 
@@ -146,19 +149,22 @@ func 不替应用选择或封装终端 UI 库。应用根据需要安装第三�
 
 Prompt 启动前应检查输入与渲染 stream 都是 TTY。在 CI、Shell 管道或其他非交互环境中，改用命令选项或默认值，并在缺少必要数据时立即报错。不要让同一个 stdin 既承载管道数据，又充当交互按键输入。参见可复制的 [Inquirer service](https://github.com/unix/func/blob/main/snippets/inquirer.service.ts)。
 
-等待 Prompt 只会暂停 command 到输入到达，不会阻塞 Node.js 事件循环；同步任务仍会阻塞输入、signal 处理与所有终端动画。
+等待 Prompt 只会暂停 Command 的输入，不会阻塞 Node.js 事件循环，但同步任务仍会阻塞输入、signal 处理与所有终端动画。
 
-## 使用 Ora 清理进度渲染
+## 使用 Ora 渲染进度
 
-[Ora](https://github.com/sindresorhus/ora) 把单个 spinner 渲染到 writable stream。将 stream 绑定到 stderr，并在 `finally` 中停止：
+[Ora](https://github.com/sindresorhus/ora) 把单个 spinner 渲染到 writable stream。
+独立 spinner 通常指代任务执行进度，而不是命令主界面，因此建议将 stream 绑定到 stderr，并在 `finally` 中停止：
 
 <CodeBlock code={oraCode} lang="ts" />
 
-Ora 的 `discardStdin` 会操作进程级 stdin，而不是接收一个自定义 input stream；streams 由 `Context` 管理时应将其关闭。实际任务自身仍应接收 `Context.signal`。参见可复制的 [Ora service](https://github.com/unix/func/blob/main/snippets/ora.service.ts)。
+Ora 的 `discardStdin` 会操作进程级 stdin，而不是接收一个自定义 input stream；streams 由 `Context` 管理时应将其关闭。
+实际任务自身仍应接收 `Context.signal`。参见可复制的 [Ora service](https://github.com/unix/func/blob/main/snippets/ora.service.ts)。
 
-## 使用 Chalk 在输出边界添加样式
+## 使用 Chalk 添加样式
 
-[Chalk](https://github.com/chalk/chalk) 只生成带样式的字符串，并不决定字符串属于哪个应用通道。根据目标 stream 决定颜色能力，将装饰性或诊断性文本写入 stderr，并让结构化 stdout 保持无样式：
+[Chalk](https://github.com/chalk/chalk) 只生成带样式的字符串，
+我们可以根据目标 stream 决定颜色能力，将装饰性或诊断性文本写入 stderr，并让结构化 stdout 保持无样式：
 
 <CodeBlock code={chalkCode} lang="ts" />
 
@@ -166,7 +172,7 @@ Ora 的 `discardStdin` 会操作进程级 stdin，而不是接收一个自定义
 
 ## 代码片段示例
 
-下面只用 `@clack/prompts` 给出一个具体的最小实现，并不表示默认推荐。它应由应用安装，而不是成为 func 的依赖：
+下面只用 `@clack/prompts` 给出一个具体的最小实现，并不表示默认推荐。它应由用户选择自行安装：
 
 <CodeBlock
   code={installCommands.npm}
@@ -176,7 +182,7 @@ Ora 的 `discardStdin` 会操作进程级 stdin，而不是接收一个自定义
 
 <CodeBlock code={serviceCode} filename="src/services/clack.service.ts" lang="ts" />
 
-把 `ClackService` 注册到所属 module 的 `providers`，再注入 command。最终 stdout 结果仍由 command 管理：
+把 `ClackService` 注册到所属 Module 的 `providers`，再注入 Command。最终 stdout 结果仍由 Command 管理：
 
 <CodeBlock code={commandCode} filename="src/commands/create.command.ts" lang="ts" />
 

@@ -1,7 +1,7 @@
 ---
 title: 快速开始
-description: 使用默认 TypeScript 模板创建、开发和打包 func CLI 项目。
-lastModified: '2026-08-16'
+description: 使用默认 TypeScript 模板创建、开发和打包 CLI 项目。
+lastModified: '2026-08-18'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -13,20 +13,40 @@ import DocsLayout from '@/layouts/docs.astro'
 
 export const projectTree = `.
 |-- src
-|   |-- app.module.ts          根模块
-|   |-- config.ts              包信息与运行时设置
+|   |-- app.module.ts              根模块
 |   |-- commands
-|   |   |-- greet.command.ts   具名命令示例
-|   |   |-- major.command.ts   空输入与版本
-|   |   |-- missing.command.ts 未知命令响应
-|   |   +-- index.ts           命令列表
-|   |-- services
-|   |   +-- project.service.ts 可注入服务示例
-|   +-- index.ts               可执行入口
-|-- tests                      可执行行为测试
+|   |   |-- deploy
+|   |   |   |-- deploy.command.ts  部署命令示例
+|   |   |   |-- deploy.module.ts   部署功能模块
+|   |   |   +-- deploy.service.ts  部署业务服务
+|   |   +-- greet
+|   |       |-- greet.command.ts   问候命令示例
+|   |       |-- greet.module.ts    问候功能模块
+|   |       +-- greet.service.ts   问候业务服务
+|   |-- decorators
+|   |   +-- url.decorator.ts       自定义 URL 值装饰器
+|   |-- shared
+|   |   |-- services
+|   |   |   +-- output.service.ts  共享输出服务
+|   |   +-- shared.module.ts       共享功能模块
+|   +-- index.ts                   可执行入口
+|-- tests
+|   |-- cli
+|   |   +-- smoke.test.ts          构建产物冒烟测试
+|   |-- commands
+|   |   |-- catch.test.ts          错误过滤测试
+|   |   |-- deploy.test.ts         部署命令测试
+|   |   |-- greet.test.ts          问候命令测试
+|   |   +-- help.test.ts           帮助输出测试
+|   +-- utils
+|       +-- cli.ts                 CLI 测试工具
+|-- .gitignore                     Git 忽略规则
+|-- LICENSE                        开源许可证
+|-- README.md                      项目说明
 |-- package.json
 |-- tsconfig.json
-+-- README.md`
+|-- vitest.cli.config.mts
++-- vitest.config.mts`
 
 export const createCommands = {
   npm: 'npm init func@latest ship',
@@ -94,20 +114,13 @@ export const commandCode = [
   '}',
 ].join('\n')
 
-export const registerCode = `import { Major } from './major.command'
-import { Missing } from './missing.command'
-import { StatusCommand } from './status.command'
-
-export const commands = [Major, StatusCommand, Missing]`
-
 export const moduleCode = [
   "import { Module } from 'func'",
-  "import { commands } from './commands'",
-  "import { providers } from './services'",
+  "import { DeployModule } from './commands/deploy/deploy.module'",
+  "import { GreetModule } from './commands/greet/greet.module'",
   '',
   '@Module({',
-  '  commands,',
-  '  providers,',
+  '  imports: [GreetModule, DeployModule],',
   '})',
   'export class AppModule {}',
 ].join('\n')
@@ -232,13 +245,11 @@ bun pm pack --dry-run`,
 
 <CodeBlock code={projectTree} filename="项目结构" />
 
-根 module 收集允许 func 使用的 command 和 provider。为了聚焦核心结构，下面省略了模板已经启用的可选能力配置：
+安装依赖后，项目根目录还会出现当前包管理器对应的 lockfile；运行 `build` 后会生成 `dist`。这些生成文件没有列在上面的初始结构中。
+
+根模块 (`app.module.ts`) 会收集并注册 `func` 可调用的命令和选项以及其他依赖。为了聚焦核心结构，下面省略了模板已经启用的可选能力配置：
 
 <CodeBlock code={moduleCode} filename="src/app.module.ts" lang="ts" />
-
-命令描述用户可以如何调用 CLI；可复用且与参数解析、输出无关的逻辑放在 provider 中。测试直接启动生成的可执行文件，因此能够同时验证命令分发、输入解析和输出。
-
-模板默认提供帮助和 Shell 补全。如需了解如何启用、调整或移除它们，请分别阅读[帮助](/zh-cn/capabilities/help)与 [Shell 补全](/zh-cn/capabilities/completion)。
 
 ## 开发时运行命令
 
@@ -264,7 +275,6 @@ npm 标签中的 `npm run dev -- <参数>` 使用的是 npm 参数透传规范�
 
 将它加入命令列表，由 `AppModule` 注册后运行 `npm run dev -- status`。
 
-<CodeBlock code={registerCode} filename="src/commands/index.ts" lang="ts" />
 <TerminalDemo
   command={statusCommands.npm}
   demo="guide-status"
@@ -313,7 +323,7 @@ npm 标签中的 `npm run dev -- <参数>` 使用的是 npm 参数透传规范�
 
 ### 监听文件并持续构建
 
-`funcgo build --watch` 启动时会执行一次构建，之后默认监听 `src/**/*.ts` ，匹配文件变化后自动重新构建。可以在一个终端保持监听，在另一 个终端调用已经全局链接的命令。按 `Ctrl+C` 停止监听。
+`funcgo build --watch` 启动时会执行一次构建，之后默认监听 `src/**/*.ts` ，匹配文件变化后自动重新构建。可以在一个终端保持监听，在另一个终端调用已经全局链接的命令。按 `Ctrl+C` 停止监听。
 
 <CodeBlock
   code={watchCommands.npm}
@@ -334,7 +344,7 @@ npm 标签中的 `npm run dev -- <参数>` 使用的是 npm 参数透传规范�
 </details>
 <details>
 
-<summary>func 提示未知命令</summary>
+<summary>Func 提示未知命令</summary>
 
 请从已注册的命令列表导出命令类。仅创建文件和添加 `@Command()` 并不会自动注册该类。
 

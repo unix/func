@@ -1,7 +1,7 @@
 ---
-title: 使用 Agent 操作 func
-description: 了解如何让 Agent 创建 func 项目、完成日常开发、优化结构或补充测试。
-lastModified: '2026-08-16'
+title: 使用 Agent 操作 Func
+description: 了解如何让 Agent 创建 Func 项目、完成日常开发、优化结构或补充测试。
+lastModified: '2026-08-19'
 ---
 
 import AgentTask from '@/components/content/agent-task.astro'
@@ -10,55 +10,51 @@ import DocsLayout from '@/layouts/docs.astro'
 
 export const createPrompt = `请先阅读 https://func.witt.im/setup.txt 和当前仓库中的项目指引。
 
-在当前仓库创建名为 func-example 的 func CLI 项目。自行确认合适的目录和包管理器，安装依赖，并运行生成项目的默认命令确认可以工作。完成后简要说明改动和验证结果。`
+在当前仓库创建 func-example CLI 项目。选择合适的目录和包管理器，必要时安装环境和项目依赖，并运行默认命令验证。最后说明改动和结果。`
 
-export const structurePrompt = `开始操作前，先阅读 https://func.witt.im/rules.txt，并遵循当前仓库中的所有项目指引。
+export const structurePrompt = `请先阅读 https://func.witt.im/rules.txt 和当前仓库中的项目指引。
 
-请检查当前 func 项目的结构，并在不改变任何用户可见 CLI 行为的前提下进行优化。找出职责混杂的文件：保持可执行入口精简，按业务职责组织命令、模块与服务，将生成产物与源码分开，并保留现有 package manager、scripts 和对外命令。
+在不改变命令、输出和 scripts 的前提下，按 rules.txt 整理当前 Func 项目的入口、模块、命令、服务和生成产物。同步修正 import、模块注册和测试路径，运行相关检查并说明结果。`
 
-移动文件前先检查 import、模块注册和测试路径。完成后运行最小相关检查，并说明结构调整、保持不变的行为以及实际验证结果。`
+export const testPrompt = `请先阅读 https://func.witt.im/rules.txt 和当前仓库中的项目指引。
 
-export const testPrompt = `开始操作前，先阅读 https://func.witt.im/rules.txt，并遵循当前仓库中的所有项目指引。
-
-请检查当前 func CLI 的命令与已有测试，找出用户可见行为中缺少覆盖的部分并补充测试用例。优先使用参数数组启动 package 的可执行文件，从用户视角覆盖标准命令名、已有别名或处理器路径、成功输出、选项约束，以及应用负责的失败行为。
-
-断言应关注退出行为，以及不会随机变化的 stdout 或 stderr 文本，不要重复测试 func 内部实现。运行最小相关测试集，并报告新增覆盖与实际结果。`
+检查当前命令和测试，补齐命令路径、别名、成功输出、选项约束及应用错误的用户行为测试。优先使用 func/testing，断言退出码与稳定输出；运行相关测试并说明结果。`
 
 export const addCommandPrompt = `请先阅读 https://func.witt.im/rules.txt 和当前仓库中的项目指引。
 
-为当前 func CLI 添加 create 命令，调用方式为 ship create --file document.txt。file 是必填的文件路径，命令负责创建指定文件，并在路径无效或文件已存在时给出清晰错误。遵循项目现有的模块和测试结构，补充成功调用及缺少 --file 的测试，最后运行相关检查并说明结果。`
+为当前 Func CLI 添加 ship create --file document.txt。--file 必填；创建文件，并为无效路径或已有文件返回清晰错误。按现有结构实现，测试成功和缺少 --file 两种情况，然后运行相关检查。`
 
 export const addEnsurePrompt = `请先阅读 https://func.witt.im/rules.txt 和当前仓库中的项目指引。
 
-为现有 create 命令添加 --ensure 布尔选项。只有显式传入 --ensure 时才真正创建文件；未传入时只输出将要创建的文件路径，不执行写入。补充两个分支的测试，保持其他命令行为不变，最后运行相关检查并说明结果。`
+为 create 添加 --ensure。传入时创建文件；未传入时只输出目标路径。测试两个分支，保持其他行为不变，并运行相关检查。`
 
 <DocsLayout frontmatter={frontmatter} locale="zh-cn" page="guide/agent-setup">
   <Callout locale="zh-cn" title="按你的项目阶段选择" variant="note">
 
-如果你已经完成[快速起步](/zh-cn/guide)，可以略过第一个章节。其余章节面向已经可以运行的 func 项目。
+如果你已经完成[快速起步](/zh-cn/guide)，可以略过第一个章节。其余章节面向已经可以运行的 `func` 项目。
 
   </Callout>
 
 下面的任务覆盖项目创建、日常功能开发、结构整理和测试。Agent 组件会将完整提示词发送给所选应用，你也可以复制提示词并按项目需求修改。
 
-## 创建一个新的 func 项目
+## 创建一个新的 `func` 项目
 
 ### 适合的场景
 
-这个场景适合第一次使用 func 的开发者，也适合希望在现有 monorepo 中快速建立独立 CLI package 的团队。只需要在编码 Agent 中打开目标仓库，无需手动逐项检查 Node.js、包管理器或 workspace 配置。
+这个场景适合第一次使用 `func` 的开发者，也适合希望在现有 monorepo 中快速建立独立 CLI package 的团队。只需要在编码 Agent 中打开目标仓库，无需手动逐项检查 Node.js、包管理器或 workspace 配置。
 
 <AgentTask
   description="在当前仓库创建并验证固定名为 func-example 的可运行项目。"
   locale="zh-cn"
   prompt={createPrompt}
-  title="让 Agent 创建 func 项目"
+  title="让 Agent 创建 Func 项目"
 />
 
 ## 常见开发场景
 
 ### 适合的场景
 
-这个场景适合已经可以运行的 func 项目。把预期调用方式、必填字段、条件分支和测试要求写清楚，Agent 就可以按现有结构完成标准开发。下面两个任务以 `ship create` 为例，可以直接使用，也可以替换成自己的命令和业务行为。
+这个场景适合已经可以运行的 `func` 项目。把预期调用方式、必填字段、条件分支和测试要求写清楚，Agent 就可以按现有结构完成标准开发。下面两个任务以 `ship create` 为例，可以直接使用，也可以替换成自己的命令和业务行为。
 
 <AgentTask
   description="添加 ship create --file document.txt，并将 file 声明为必填文件路径。"
@@ -74,24 +70,24 @@ export const addEnsurePrompt = `请先阅读 https://func.witt.im/rules.txt 和�
   title="让 Agent 添加 --ensure 选项"
 />
 
-## 优化已有 func 项目结构
+## 优化已有 `func` 项目结构
 
 ### 适合的场景
 
-这个场景面向已经维护 func 项目的开发者。当命令越来越多、处理器中混入大量业务逻辑，或源码与生成产物混在一起时， 可以让 Agent 在不改变 CLI 行为的前提下整理结构。
+这个场景面向已经维护 `func` 项目的开发者。当命令越来越多、处理器中混入大量业务逻辑，或源码与生成产物混在一起时， 可以让 Agent 在不改变 CLI 行为的前提下整理结构。
 
 <AgentTask
   description="保持命令行为和输出不变，重新整理入口、模块、命令与服务的职责。"
   locale="zh-cn"
   prompt={structurePrompt}
-  title="让 Agent 优化 func 项目结构"
+  title="让 Agent 优化 Func 项目结构"
 />
 
 ## 为命令补充测试用例
 
 ### 适合的场景
 
-这个场景适合正在增加命令、准备发布版本或完成结构调整的维护者。它关注你的 CLI 向使用者承诺的行为，而不是重新测试 func 框架内部实现，因此也适合作为团队合并代码前的回归保护。
+这个场景适合正在增加命令、准备发布版本或完成结构调整的维护者。它关注你的 CLI 向使用者承诺的行为，而不是重新测试 `func` 框架内部实现，因此也适合作为团队合并代码前的回归保护。
 
 <AgentTask
   description="从用户视角补齐命令、别名、选项约束与失败行为的验收覆盖。"
