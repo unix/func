@@ -138,7 +138,7 @@ A command is a fixed word that follows the executable name and selects a busines
 | `ship deploy --env prod`        | Command `deploy`         | `--env prod` is a value option for deploy.   |
 | `ship --help`                   | Module action `--help`   | The root Module supplies a global action.    |
 
-[Concepts](/concepts) explains the major and missing command types in detail. See [Shared fields](/shared-fields) for Module-scoped actions and [Help](/capabilities/help) to add `--help`.
+[Concepts](/concepts) explains the major and missing command types in detail. See [Shared fields](/shared-fields) for Module-scoped actions and [Help](/extensions/help) to add `--help`.
 
 You do not need to absorb every concept at once. The simplest mental model is a one-to-one relationship: the `status` command is driven by a class decorated with `@Command('status')`. The next section follows that smallest useful example from source to execution.
 

@@ -36,7 +36,7 @@ export const repeatCode = [
   'console.log(preview.result, deployed.result)',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/invoke">
+<DocsLayout frontmatter={frontmatter} locale="en" page="extensions/invoke">
 
 `func/invoke` exposes command dispatch, option parsing, dependency injection, error handling, and lifecycle management as an ordinary Node.js API. Server processes, desktop applications, scripts, and other adapters can call an existing CLI Module directly without spawning a child process.
 
@@ -81,7 +81,7 @@ The second argument to `invoke(argv, options)` applies to that invocation only:
 
 The host always owns these streams; `func` never closes them. To capture output, pass a custom `Writable`. [Input and output](/input-output) covers stream selection and ownership in more detail.
 
-Programmatic invocation does not install `SIGINT` or `SIGTERM` listeners. The host should create an `AbortSignal` and pass it through `signal`; see [Process signals](/capabilities/signals) for the differences between the two models.
+Programmatic invocation does not install `SIGINT` or `SIGTERM` listeners. The host should create an `AbortSignal` and pass it through `signal`; see [Process signals](/extensions/signals) for the differences between the two models.
 
 ## Handle results and errors
 
@@ -94,7 +94,7 @@ An invocation returns an `InvocationResult` when it completes successfully, when
 
 A non-zero `exitCode` does not throw automatically or update `process.exitCode`; the host interprets it according to its own protocol. If an error escapes the application's error boundary, `invoke()` rejects and the host can handle it with ordinary `try` / `catch`.
 
-When you want captured stdout, stderr, and unhandled exceptions without supplying your own streams or catching rejections, use [`func/testing`](/capabilities/testing).
+When you want captured stdout, stderr, and unhandled exceptions without supplying your own streams or catching rejections, use [`func/testing`](/extensions/testing).
 
 ## How the entry points differ
 

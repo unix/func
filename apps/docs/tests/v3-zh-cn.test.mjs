@@ -76,9 +76,9 @@ test('lists every optional v3 package entry in the Chinese API reference', () =>
   entries.forEach(([entry, page]) => {
     assert.match(
       source,
-      new RegExp(`func/${entry}.*\\(/zh-cn/capabilities/${page}\\)`),
+      new RegExp(`func/${entry}.*\\(/zh-cn/extensions/${page}\\)`),
     )
-    readFileSync(join(chinesePagesRoot, 'capabilities', `${page}.mdx`), 'utf8')
+    readFileSync(join(chinesePagesRoot, 'extensions', `${page}.mdx`), 'utf8')
   })
 })
 

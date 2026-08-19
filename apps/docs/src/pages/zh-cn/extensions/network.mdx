@@ -91,7 +91,7 @@ export const httpTestingCode = [
 <DocsLayout
   frontmatter={frontmatter}
   locale="zh-cn"
-  page="capabilities/network">
+  page="extensions/network">
 
 `func/http` 和 `func/net` 为需要访问外部系统的 Module 提供显式网络依赖。它们不会由 `func` 主入口自动导出；只有导入 `HttpModule` 或 `NetModule` 的 Module 才能注入对应客户端。
 
@@ -157,7 +157,7 @@ export const httpTestingCode = [
 
 即使没有启用 `func/signals`，每次 invocation 也一定拥有 `Context.signal`，所以网络 Module 不需要额外导入 signal feature。单次调用提供的 signal 会和 Context signal 合并，任意来源取消都会停止对应操作。
 
-需要让 `Ctrl+C`、`SIGINT` 或 `SIGTERM` 中止网络操作时，再显式启用 [`withProcessSignals()`](/zh-cn/capabilities/signals)。测试和命令式调用则通过 `invoke(..., { signal })` 提供取消来源。
+需要让 `Ctrl+C`、`SIGINT` 或 `SIGTERM` 中止网络操作时，再显式启用 [`withProcessSignals()`](/zh-cn/extensions/signals)。测试和命令式调用则通过 `invoke(..., { signal })` 提供取消来源。
 
 ## 测试
 

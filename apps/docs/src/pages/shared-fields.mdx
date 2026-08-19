@@ -95,7 +95,7 @@ Options on a feature Module do not propagate through `imports`, nor do they appl
 
 An action registered on the root Module is available at every command node. One registered on a feature Module applies only to Commands that feature owns directly. Choosing the action skips field validation for the current command, so it does not fail simply because a required business field is missing.
 
-Action options resemble field options at the CLI surface, but they have different jobs. `@Flag()` supplies a boolean to the already selected business action; `@OptionCommand()` replaces that business action, and an invocation can select at most one action option. To add `--help`, use the dedicated [Help](/capabilities/help) feature.
+Action options resemble field options at the CLI surface, but they have different jobs. `@Flag()` supplies a boolean to the already selected business action; `@OptionCommand()` replaces that business action, and an invocation can select at most one action option. To add `--help`, use the dedicated [Help](/extensions/help) feature.
 
 ## Override an outer option explicitly
 

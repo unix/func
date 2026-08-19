@@ -139,7 +139,7 @@ export const projectCommandCode = [
 | `ship deploy --env prod`      | Command `deploy`        | --env prod 是 deploy 的值选项。 |
 | `ship --help`                 | Module action `--help`  | 根模块可以提供全局动作选项。    |
 
-主命令和缺失命令在[概念](/zh-cn/concepts)中有更加详细的介绍；关于模块的作用域动作见[共享字段](/zh-cn/shared-fields)。需要 `--help` 时，请参考[帮助](/zh-cn/capabilities/help)。
+主命令和缺失命令在[概念](/zh-cn/concepts)中有更加详细的介绍；关于模块的作用域动作见[共享字段](/zh-cn/shared-fields)。需要 `--help` 时，请参考[帮助](/zh-cn/extensions/help)。
 
 这些概念有些复杂，我们不必一次全部弄懂，作为最简单的入门思维方式，只需要知道 `status` 命令是由一个使用 `@Command('status')` 装饰器的类驱动运行即可，
 这是固定的一对一关系。我们先跟随下方的起步项目看看 `status` 命令的源码和效果。

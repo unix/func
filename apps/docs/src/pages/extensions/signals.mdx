@@ -45,7 +45,7 @@ export const manualCancellationCode = [
   'await app.bootstrap({ signal: deadline })',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/signals">
+<DocsLayout frontmatter={frontmatter} locale="en" page="extensions/signals">
 
 `func/signals` provides optional `SIGINT` and `SIGTERM` handling for process-based CLIs. It turns operating-system signals into the current command's `AbortSignal`, giving long-running work a chance to stop and clean up instead of terminating the entire process immediately.
 

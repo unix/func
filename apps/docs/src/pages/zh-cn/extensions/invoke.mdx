@@ -39,7 +39,7 @@ export const repeatCode = [
 <DocsLayout
   frontmatter={frontmatter}
   locale="zh-cn"
-  page="capabilities/invoke">
+  page="extensions/invoke">
 
 `func/invoke` 可以把 `func` 的命令分发、选项解析、依赖注入、错误处理和生命周期作为普通 Node.js API 暴露。它适合让服务端程序、桌面应用、脚本或其他适配器直接调用已有 CLI Module，而不需要启动子进程。
 
@@ -84,7 +84,7 @@ argv 只包含交给 `func` 解析的参数，不包含 Node.js 路径或可执�
 
 传入的 streams 始终由宿主拥有，`func` 不会关闭它们。需要捕获输出时，可以传入自定义 `Writable`；流的选择和所有权规则见[输入与输出](/zh-cn/input-output)。
 
-命令式调用不会自动监听 `SIGINT` 或 `SIGTERM`。宿主应创建自己的 `AbortSignal` 并通过 `signal` 传入，具体差异见[进程信号](/zh-cn/capabilities/signals)。
+命令式调用不会自动监听 `SIGINT` 或 `SIGTERM`。宿主应创建自己的 `AbortSignal` 并通过 `signal` 传入，具体差异见[进程信号](/zh-cn/extensions/signals)。
 
 ## 处理结果与错误
 
@@ -97,7 +97,7 @@ argv 只包含交给 `func` 解析的参数，不包含 Node.js 路径或可执�
 
 非零 `exitCode` 不会自动抛出异常，也不会写入 `process.exitCode`；宿主应根据自己的协议解释它。没有被应用错误边界处理的异常会让 `invoke()` reject，宿主可以用普通的 `try` / `catch` 处理。
 
-如果需要直接获得捕获后的 stdout、stderr 和未处理异常，而不是自己创建 streams 与捕获 reject，请使用 [`func/testing`](/zh-cn/capabilities/testing)。
+如果需要直接获得捕获后的 stdout、stderr 和未处理异常，而不是自己创建 streams 与捕获 reject，请使用 [`func/testing`](/zh-cn/extensions/testing)。
 
 ## 与其他启动方式的区别
 

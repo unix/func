@@ -22,11 +22,11 @@
 
 ## Capabilities
 
-- [Help](https://func.witt.im/zh-cn/capabilities/help.md): Generated and custom help.
-- [Testing](https://func.witt.im/zh-cn/capabilities/testing.md): Isolated CLI tests.
-- [Config Files](https://func.witt.im/zh-cn/capabilities/config.md): Typed JSON config files.
-- [Logging](https://func.witt.im/zh-cn/capabilities/log.md): Per-invocation logs.
-- [Shell Completion](https://func.witt.im/zh-cn/capabilities/completion.md): Dynamic shell completion.
+- [Help](https://func.witt.im/zh-cn/extensions/help.md): Generated and custom help.
+- [Testing](https://func.witt.im/zh-cn/extensions/testing.md): Isolated CLI tests.
+- [Config Files](https://func.witt.im/zh-cn/extensions/config.md): Typed JSON config files.
+- [Logging](https://func.witt.im/zh-cn/extensions/log.md): Per-invocation logs.
+- [Shell Completion](https://func.witt.im/zh-cn/extensions/completion.md): Dynamic shell completion.
 
 ## Reference
 

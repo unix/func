@@ -172,7 +172,7 @@ Reference documentation:
 - https://func.witt.im/custom-decorators.md
 - https://func.witt.im/input-output.md
 - https://func.witt.im/error-handler.md
-- https://func.witt.im/zh-cn/capabilities/testing.md
+- https://func.witt.im/zh-cn/extensions/testing.md
 - https://func.witt.im/tooling.md
 
 Do not invent func APIs. The installed implementation, generated template, and linked documentation are the source of truth.

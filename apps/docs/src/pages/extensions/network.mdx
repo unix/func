@@ -88,7 +88,7 @@ export const httpTestingCode = [
   'http.verify()',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/network">
+<DocsLayout frontmatter={frontmatter} locale="en" page="extensions/network">
 
 `func/http` and `func/net` give Modules explicit dependencies for reaching external systems. They are not re-exported by the main `func` entry point; a Module can inject their clients only after importing `HttpModule` or `NetModule`.
 
@@ -155,7 +155,7 @@ Constructing `new HttpClient()`, `new TcpClient()`, or a similar client directly
 
 Every invocation has a `Context.signal`, even when `func/signals` is not enabled, so network Modules do not need to import the signals feature. A per-call signal is combined with the Context signal, and cancellation from any source stops the affected operation.
 
-Enable [`withProcessSignals()`](/capabilities/signals) when `Ctrl+C`, `SIGINT`, or `SIGTERM` should cancel network work. Tests and programmatic hosts instead supply cancellation through `invoke(..., { signal })`.
+Enable [`withProcessSignals()`](/extensions/signals) when `Ctrl+C`, `SIGINT`, or `SIGTERM` should cancel network work. Tests and programmatic hosts instead supply cancellation through `invoke(..., { signal })`.
 
 ## Testing
 

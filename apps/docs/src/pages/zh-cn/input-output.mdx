@@ -211,8 +211,8 @@ Command 只需要单个标准流时，使用 `@Stdin()`、`@Stdout()` 或 `@Stde
 
 <CodeBlock code={testingCode} filename="tests/io.test.ts" lang="ts" />
 
-测试时应至少覆盖正常结果、诊断信息和失败退出码。对于 JSON 输出，可以先断言 stderr 为空，再对 `result.stdout` 使用 `JSON.parse()`；这样能同时验证输出格式没有被警告或调试文本污染。组件的作用域、错误响应和 ANSI 处理详见 [JSON 输出](/zh-cn/capabilities/json-output)。
+测试时应至少覆盖正常结果、诊断信息和失败退出码。对于 JSON 输出，可以先断言 stderr 为空，再对 `result.stdout` 使用 `JSON.parse()`；这样能同时验证输出格式没有被警告或调试文本污染。组件的作用域、错误响应和 ANSI 处理详见 [JSON 输出](/zh-cn/extensions/json-output)。
 
-如果测试看到了终端日志，但 `result.stdout` 为空，通常表示代码仍在调用全局 `console.log()`。把 IO 改为 `@Stdin()`、`@Stdout()`、`@Stderr()` 或 `Context.io` 后，生产环境替换和测试捕获才会使用同一条路径。完整测试应用和 Provider override 方式见[测试](/zh-cn/capabilities/testing)。
+如果测试看到了终端日志，但 `result.stdout` 为空，通常表示代码仍在调用全局 `console.log()`。把 IO 改为 `@Stdin()`、`@Stdout()`、`@Stderr()` 或 `Context.io` 后，生产环境替换和测试捕获才会使用同一条路径。完整测试应用和 Provider override 方式见[测试](/zh-cn/extensions/testing)。
 
 </DocsLayout>

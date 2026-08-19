@@ -208,8 +208,8 @@ The caller owns these streams. `func` reads or writes them but never closes them
 
 <CodeBlock code={testingCode} filename="tests/io.test.ts" lang="ts" />
 
-Cover normal results, diagnostics, and failure exit codes. For JSON output, first assert that stderr is empty, then pass `result.stdout` to `JSON.parse()`; this catches warnings or debug text that accidentally polluted the protocol. [JSON output](/capabilities/json-output) covers feature scope, error responses, and ANSI handling.
+Cover normal results, diagnostics, and failure exit codes. For JSON output, first assert that stderr is empty, then pass `result.stdout` to `JSON.parse()`; this catches warnings or debug text that accidentally polluted the protocol. [JSON output](/extensions/json-output) covers feature scope, error responses, and ANSI handling.
 
-If a test displays text in the terminal while `result.stdout` remains empty, the application is probably still calling global `console.log()`. Move IO to `@Stdin()`, `@Stdout()`, `@Stderr()`, or `Context.io` so production replacement and test capture use the same path. See [Testing](/capabilities/testing) for the complete testing application and Provider override model.
+If a test displays text in the terminal while `result.stdout` remains empty, the application is probably still calling global `console.log()`. Move IO to `@Stdin()`, `@Stdout()`, `@Stderr()`, or `Context.io` so production replacement and test capture use the same path. See [Testing](/extensions/testing) for the complete testing application and Provider override model.
 
 </DocsLayout>

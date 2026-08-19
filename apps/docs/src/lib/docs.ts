@@ -16,15 +16,15 @@ export type DocPage =
   | 'ecosystem'
   | 'interactive-apps'
   | 'runtime'
-  | 'capabilities/json-output'
-  | 'capabilities/help'
-  | 'capabilities/invoke'
-  | 'capabilities/testing'
-  | 'capabilities/config'
-  | 'capabilities/log'
-  | 'capabilities/network'
-  | 'capabilities/completion'
-  | 'capabilities/signals'
+  | 'extensions/json-output'
+  | 'extensions/help'
+  | 'extensions/invoke'
+  | 'extensions/testing'
+  | 'extensions/config'
+  | 'extensions/log'
+  | 'extensions/network'
+  | 'extensions/completion'
+  | 'extensions/signals'
   | 'error-handler'
   | 'errors'
   | 'apis'
@@ -68,15 +68,15 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     ecosystem: 'Ecosystem Guide',
     'interactive-apps': 'Interactive Applications',
     runtime: 'Runtime Internals',
-    'capabilities/json-output': 'JSON Output',
-    'capabilities/help': 'Help',
-    'capabilities/invoke': 'Imperative Invocation',
-    'capabilities/testing': 'Testing',
-    'capabilities/config': 'Configuration',
-    'capabilities/log': 'Logging',
-    'capabilities/network': 'Networking',
-    'capabilities/completion': 'Shell Completion',
-    'capabilities/signals': 'Process Signals',
+    'extensions/json-output': 'JSON Output',
+    'extensions/help': 'Help',
+    'extensions/invoke': 'Imperative Invocation',
+    'extensions/testing': 'Testing',
+    'extensions/config': 'Configuration',
+    'extensions/log': 'Logging',
+    'extensions/network': 'Networking',
+    'extensions/completion': 'Shell Completion',
+    'extensions/signals': 'Process Signals',
     'error-handler': 'Error Handling',
     errors: 'Errors',
     apis: 'API Reference',
@@ -101,15 +101,15 @@ const navLabels: Record<Locale, Record<DocPage, string>> = {
     ecosystem: '生态选型',
     'interactive-apps': '交互式应用',
     runtime: '深入了解运行时',
-    'capabilities/json-output': 'JSON 输出',
-    'capabilities/help': '帮助',
-    'capabilities/invoke': '命令式调用',
-    'capabilities/testing': '测试',
-    'capabilities/config': '配置文件',
-    'capabilities/log': '日志',
-    'capabilities/network': '网络',
-    'capabilities/completion': 'Shell 补全',
-    'capabilities/signals': '进程信号',
+    'extensions/json-output': 'JSON 输出',
+    'extensions/help': '帮助',
+    'extensions/invoke': '命令式调用',
+    'extensions/testing': '测试',
+    'extensions/config': '配置文件',
+    'extensions/log': '日志',
+    'extensions/network': '网络',
+    'extensions/completion': 'Shell 补全',
+    'extensions/signals': '进程信号',
     'error-handler': '错误处理',
     errors: '错误索引',
     apis: 'API 参考',
@@ -127,7 +127,14 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     },
     {
       label: 'Quick Start',
-      pages: ['commands', 'options', 'parameters', 'error-handler', 'use-cases'],
+      pages: [
+        'commands',
+        'options',
+        'parameters',
+        'error-handler',
+        'extensions/testing',
+        'use-cases',
+      ],
     },
     {
       label: 'Deep Dive',
@@ -142,8 +149,17 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
       ],
     },
     {
-      label: 'Optional Capabilities',
-      pages: ['capabilities/signals'],
+      label: 'Extensions',
+      pages: [
+        'extensions/json-output',
+        'extensions/help',
+        'extensions/invoke',
+        'extensions/config',
+        'extensions/log',
+        'extensions/network',
+        'extensions/completion',
+        'extensions/signals',
+      ],
     },
     {
       label: 'Reference',
@@ -167,7 +183,7 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
         'options',
         'parameters',
         'error-handler',
-        'capabilities/testing',
+        'extensions/testing',
         'use-cases',
       ],
     },
@@ -184,16 +200,16 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
       ],
     },
     {
-      label: '可选能力',
+      label: '可选扩展',
       pages: [
-        'capabilities/json-output',
-        'capabilities/help',
-        'capabilities/invoke',
-        'capabilities/config',
-        'capabilities/log',
-        'capabilities/network',
-        'capabilities/completion',
-        'capabilities/signals',
+        'extensions/json-output',
+        'extensions/help',
+        'extensions/invoke',
+        'extensions/config',
+        'extensions/log',
+        'extensions/network',
+        'extensions/completion',
+        'extensions/signals',
       ],
     },
     {
@@ -205,19 +221,6 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
       pages: ['micro-apps', 'ecosystem', 'interactive-apps'],
     },
   ],
-}
-
-const languageSwitchFallbacks: Partial<
-  Record<DocPage, Partial<Record<Locale, DocPage>>>
-> = {
-  'capabilities/json-output': { en: 'tooling' },
-  'capabilities/help': { en: 'tooling' },
-  'capabilities/invoke': { en: 'tooling' },
-  'capabilities/testing': { en: 'tooling' },
-  'capabilities/config': { en: 'tooling' },
-  'capabilities/log': { en: 'tooling' },
-  'capabilities/network': { en: 'tooling' },
-  'capabilities/completion': { en: 'tooling' },
 }
 
 export const siteTitle = `${siteName} - ${siteSlogans[defaultLocale]}`
@@ -249,10 +252,9 @@ export const getNavGroups = (locale: Locale = defaultLocale) => {
 
 export const getLanguageSwitch = (page: DocPage, locale: Locale = defaultLocale) => {
   const targetLocale: Locale = locale === defaultLocale ? 'zh-cn' : defaultLocale
-  const targetPage = languageSwitchFallbacks[page]?.[targetLocale] ?? page
 
   return {
-    href: getLocalePath(targetPage, targetLocale),
+    href: getLocalePath(page, targetLocale),
     label: targetLocale === defaultLocale ? 'EN' : '中文',
     locale: targetLocale,
   }

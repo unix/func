@@ -57,7 +57,7 @@ Essential documentation:
 - Field options: https://func.witt.im/options.md
 - Custom decorators: https://func.witt.im/custom-decorators.md
 - Input and output: https://func.witt.im/input-output.md
-- Testing: https://func.witt.im/zh-cn/capabilities/testing.md
+- Testing: https://func.witt.im/zh-cn/extensions/testing.md
 - Tooling: https://func.witt.im/tooling.md
 - Project rules: https://func.witt.im/rules.txt
 
