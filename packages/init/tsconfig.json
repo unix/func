@@ -5,15 +5,14 @@
     "target": "esnext",
     "lib": ["esnext"],
     "types": ["node"],
-    "outDir": "dist",
-    "rootDir": "src",
     "esModuleInterop": true,
     "removeComments": true,
-    "declaration": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["src/**/*.ts"],
+  "files": ["src/index.ts"],
   "exclude": ["node_modules", "dist"]
 }

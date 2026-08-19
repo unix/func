@@ -3,11 +3,15 @@
   "compilerOptions": {
     "noEmit": true,
     "paths": {
-      "func/parser": ["../core/src/subpath/parser/index.ts"]
+      "func": ["../core/src/index.ts"],
+      "func/help": ["../core/src/subpath/help/index.ts"],
+      "func/testing": ["../core/src/subpath/testing/index.ts"],
+      "func/testing/cli": ["../core/src/subpath/testing/cli/index.ts"],
+      "func/testing/fixtures": ["../core/src/subpath/testing/fixtures/index.ts"]
     },
     "rootDir": "..",
     "skipLibCheck": true
   },
   "files": [],
-  "include": ["*.config.mts", "e2e/**/*.ts", "src/**/*.ts", "tests/**/*.ts"]
+  "include": ["*.config.mts", "src/**/*.ts", "tests/**/*.ts"]
 }

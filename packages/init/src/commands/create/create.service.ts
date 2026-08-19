@@ -1,56 +1,62 @@
 import { SCAFFOLD, ScaffoldException } from '@func/contracts/scaffold-errors'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
+import { Injectable } from 'func'
+import type { Context } from 'func'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { rewriteDownloadedTemplate } from './rewrite'
 import { FUNC_TEMPLATE_URL, downloadTemplate } from './template'
 import { Loading, PromptSession, color } from './ui'
 
-export const createProject = async (requestedName?: string): Promise<void> => {
-  const cwd = process.cwd()
-  const prompt = new PromptSession()
-  const loading = new Loading()
-  const name =
-    requestedName === undefined
-      ? await promptProjectName(prompt)
-      : requestedName.trim()
-  assertProjectName(name)
-  const targetDir = path.resolve(cwd, name)
-  let createdTarget = false
-
-  if (fs.existsSync(targetDir)) {
-    throw new ScaffoldException(SCAFFOLD.PROJECT_EXISTS, {
-      details: { name, path: targetDir },
-      message: `Project "${name}" already exists at ${targetDir}.`,
+@Injectable()
+export class CreateService {
+  async create(requestedName: string | undefined, context: Context): Promise<void> {
+    const prompt = new PromptSession({
+      input: context.io.stdin,
+      output: context.io.stdout,
     })
-  }
+    const loading = new Loading(context.io.stderr)
+    const name =
+      requestedName === undefined
+        ? await promptProjectName(prompt)
+        : requestedName.trim()
+    assertProjectName(name)
+    const targetDir = path.resolve(context.cwd, name)
+    let createdTarget = false
 
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-func-'))
-  const extractedDir = path.join(tempDir, 'template')
-
-  try {
-    loading.start(`Downloading ${FUNC_TEMPLATE_URL}`)
-    await downloadTemplate(extractedDir)
-    loading.succeed()
-    fs.mkdirSync(targetDir, { recursive: false })
-    createdTarget = true
-    copyDirectory(extractedDir, targetDir)
-    const packageName = packageNameFromProjectName(name)
-    rewriteDownloadedTemplate(targetDir, packageName)
-    prompt.writeLine('')
-    prompt.writeLine(`${color.green('Done.')} Created ${name}.`)
-    prompt.writeLine('')
-    prompt.writeLine(`  cd ${path.relative(cwd, targetDir) || '.'}`)
-    prompt.writeLine('  npm install')
-  } catch (error) {
-    loading.fail()
-    if (createdTarget && fs.existsSync(targetDir)) {
-      fs.rmSync(targetDir, { force: true, recursive: true })
+    if (fs.existsSync(targetDir)) {
+      throw new ScaffoldException(SCAFFOLD.PROJECT_EXISTS, {
+        details: { name, path: targetDir },
+        message: `Project "${name}" already exists at ${targetDir}.`,
+      })
     }
 
-    throw error
-  } finally {
-    fs.rmSync(tempDir, { force: true, recursive: true })
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-func-'))
+    const extractedDir = path.join(tempDir, 'template')
+
+    try {
+      loading.start(`Downloading ${FUNC_TEMPLATE_URL}`)
+      await downloadTemplate(extractedDir)
+      loading.succeed()
+      fs.mkdirSync(targetDir, { recursive: false })
+      createdTarget = true
+      copyTemplateDirectory(extractedDir, targetDir)
+      rewriteDownloadedTemplate(targetDir, packageNameFromProjectName(name))
+      prompt.writeLine()
+      prompt.writeLine(`${color.green('Done.')} Created ${name}.`)
+      prompt.writeLine()
+      prompt.writeLine(`  cd ${path.relative(context.cwd, targetDir) || '.'}`)
+      prompt.writeLine('  npm install')
+    } catch (error) {
+      loading.fail()
+      if (createdTarget && fs.existsSync(targetDir)) {
+        fs.rmSync(targetDir, { force: true, recursive: true })
+      }
+
+      throw error
+    } finally {
+      fs.rmSync(tempDir, { force: true, recursive: true })
+    }
   }
 }
 
@@ -121,10 +127,19 @@ const invalidProjectName = (
     message,
   })
 
-const copyDirectory = (source: string, destination: string): void => {
+export const copyTemplateDirectory = (source: string, destination: string): void => {
+  copyDirectory(source, destination, true)
+}
+
+const copyDirectory = (
+  source: string,
+  destination: string,
+  skipDist = false,
+): void => {
   const entries = fs.readdirSync(source, { withFileTypes: true })
 
   entries.forEach(entry => {
+    if (skipDist && entry.name === 'dist' && entry.isDirectory()) return
     const sourcePath = path.join(source, entry.name)
     const destinationPath = path.join(destination, entry.name)
 

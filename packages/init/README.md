@@ -12,8 +12,8 @@ Create a project without an interactive prompt:
 npm init func@latest my-app
 ```
 
-Run the real-project end-to-end test:
+Run the built CLI test against a real downloaded template in a temporary project:
 
 ```bash
-pnpm test:e2e
+pnpm test:cli
 ```

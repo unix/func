@@ -1,4 +1,5 @@
-import readline from 'readline'
+import readline from 'node:readline'
+import type { Readable, Writable } from 'node:stream'
 
 const frames = ['-', '\\', '|', '/']
 
@@ -8,13 +9,13 @@ export const color = {
 }
 
 export interface PromptSessionOptions {
-  input?: NodeJS.ReadStream
-  output?: NodeJS.WriteStream
+  input?: Readable
+  output?: Writable
 }
 
 export class PromptSession {
-  private input: NodeJS.ReadStream
-  private output: NodeJS.WriteStream
+  private input: Readable
+  private output: Writable
 
   constructor(options: PromptSessionOptions = {}) {
     this.input = options.input ?? process.stdin
@@ -47,10 +48,10 @@ export class PromptSession {
 export class Loading {
   private currentText = ''
   private frameIndex = 0
-  private stream: NodeJS.WriteStream
+  private stream: Writable
   private timer: ReturnType<typeof setInterval> | undefined
 
-  constructor(stream: NodeJS.WriteStream = process.stderr) {
+  constructor(stream: Writable = process.stderr) {
     this.stream = stream
   }
 
@@ -96,12 +97,13 @@ export class Loading {
   }
 
   private clearCurrentLine(): void {
+    if (!isTerminalStream(this.stream)) return
     this.stream.clearLine(0)
     this.stream.cursorTo(0)
   }
 
   private isInteractive(): boolean {
-    return Boolean(this.stream.isTTY)
+    return isTerminalStream(this.stream)
   }
 
   private render(): void {
@@ -121,3 +123,17 @@ export class Loading {
 const colorText = (code: number, text: string): string => {
   return `\u001b[${code}m${text}\u001b[0m`
 }
+
+interface TerminalStream extends Writable {
+  readonly isTTY: boolean
+  clearLine(direction: -1 | 0 | 1): boolean
+  cursorTo(x: number): boolean
+}
+
+const isTerminalStream = (stream: Writable): stream is TerminalStream =>
+  'isTTY' in stream &&
+  stream.isTTY === true &&
+  'clearLine' in stream &&
+  typeof stream.clearLine === 'function' &&
+  'cursorTo' in stream &&
+  typeof stream.cursorTo === 'function'
