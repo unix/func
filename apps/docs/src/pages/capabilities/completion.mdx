@@ -1,0 +1,134 @@
+---
+title: Shell completion
+description: Add dynamic command completion for Bash, Zsh, Fish, PowerShell, Nushell, and Elvish.
+lastModified: '2026-08-19'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const entryCode = [
+  "import { createApp } from 'func'",
+  "import { withCompletion } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const app = createApp(AppModule, {',
+  "  features: [withCompletion({ bin: 'ship' })],",
+  '})',
+  '',
+  'void app.bootstrap()',
+].join('\n')
+
+export const posixSetupCode = [
+  '# Bash',
+  'eval "$(_SHIP_COMPLETE=bash_source ship)"',
+  '',
+  '# Zsh',
+  'source <(_SHIP_COMPLETE=zsh_source ship)',
+  '',
+  '# Fish',
+  '_SHIP_COMPLETE=fish_source ship | source',
+  '',
+  '# Elvish',
+  'eval (env _SHIP_COMPLETE=elvish_source ship | slurp)',
+].join('\n')
+
+export const nushellSetupCode = [
+  '# Run once to generate the adapter file',
+  "_SHIP_COMPLETE=nushell_source ship | save --force ($nu.default-config-dir | path join 'ship-completion.nu')",
+  '',
+  '# Then add this line to config.nu',
+  "source ($nu.default-config-dir | path join 'ship-completion.nu')",
+].join('\n')
+
+export const powershellSetupCode = [
+  "$env:_SHIP_COMPLETE = 'powershell_source'",
+  'ship | Out-String | Invoke-Expression',
+  'Remove-Item Env:_SHIP_COMPLETE',
+].join('\n')
+
+export const directCode = [
+  "import { complete } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const result = complete(AppModule, {',
+  "  args: ['deploy'],",
+  "  incomplete: '--t',",
+  '})',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/completion">
+
+`func/completion` derives dynamic suggestions from the existing command graph. There are no completion-specific decorators or separate command manifests to maintain. Command paths, aliases, field options, action options, and `@Enum()` values are all supported.
+
+  <Callout locale="en" title="The command name must match" variant="caution">
+
+The `bin` passed to `withCompletion` must be the executable name users actually type—the key declared in `package.json#bin`.
+
+  </Callout>
+
+## Enable the completion runtime
+
+Register `withCompletion` when creating the application:
+
+<CodeBlock code={entryCode} filename="src/index.ts" lang="ts" />
+
+Regular invocations still go through the same `app.bootstrap()` call. Only when the relevant completion environment variable is present does the feature print a shell adapter or candidate list and stop before normal command dispatch.
+
+The environment variable uses an uppercase form of the command name, replaces punctuation with underscores, and adds leading and trailing markers. For example, `ship` maps to `_SHIP_COMPLETE`, while `my-cli` maps to `_MY_CLI_COMPLETE`.
+
+## Load an adapter in your shell
+
+> This is a user setup step, not part of application startup. If you want to automate it, consider a command such as `<bin> completion install` that edits the user's shell profile. Because that has side effects, run it only with the user's consent.
+
+Users add the appropriate adapter command to their shell configuration. Bash, Zsh, Fish, and Elvish can evaluate the command output directly:
+
+<CodeBlock code={posixSetupCode} lang="shell" />
+
+Nushell 0.108 and later use command-level `@complete`. Generate the adapter file once, then add the `source` line to `config.nu`:
+
+<CodeBlock code={nushellSetupCode} lang="shell" />
+
+Because Nushell's `source` is a parse-time keyword, command output cannot be piped directly into it. The generated file is only a bridge; after it is loaded, each completion request still queries the current executable dynamically.
+
+PowerShell requests its adapter through the environment variable, then evaluates the returned script:
+
+<CodeBlock code={powershellSetupCode} lang="powershell" />
+
+Every completion request consults the current executable, so command-graph changes do not require rebuilding a static manifest. If you rename `bin` in the entry point or change the `package.json#bin` key—for example, from `git` to `gis`—update both the profile command and its environment variable.
+
+## Where suggestions come from
+
+The completion engine chooses candidates according to the current cursor position:
+
+| Input position                       | Candidates                                                     |
+| ------------------------------------ | -------------------------------------------------------------- |
+| An unfinished command path           | Subcommands and their aliases.                                 |
+| A token beginning with `-` or `--`   | Visible options at the current node that remain available.     |
+| A value option decorated with `@Enum()` | Enum values matching the current prefix.                     |
+| A positional with no `func` candidates | Fall back to the shell's file completion.                    |
+
+Candidate descriptions come from each Command, Handler, or option's `description`. Already supplied options, mutual-exclusion rules, and the `--` delimiter also take part in filtering.
+
+A completion request only compiles the command graph. It does not instantiate Modules, Commands, or Providers, and it never runs a Handler.
+
+## Query structured candidates directly
+
+Editor integrations and custom shell adapters can call `complete` themselves:
+
+<CodeBlock code={directCode} lang="ts" />
+
+The returned `CompletionResult` contains `items`, an `appendSpace` flag, and either a `file` or `none` fallback strategy.
+
+## API reference
+
+| API                                  | Purpose                                                     |
+| ------------------------------------ | ----------------------------------------------------------- |
+| `withCompletion({ bin })`            | Create a completion feature for `createApp({ features })`.  |
+| `complete(module, request)`          | Produce a structured `CompletionResult` directly.           |
+| `completionEnvironmentVariable(bin)` | Compute the completion environment variable for a command.  |
+| `completionSource(bin, shell)`       | Generate an adapter for any of the six supported shells.    |
+| `CompletionItem`                     | Describe a Command, option, or value candidate.              |
+
+</DocsLayout>

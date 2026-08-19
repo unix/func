@@ -1,10 +1,28 @@
 ---
 code: F_SYSTEM_INVALID_COMPLETION_REQUEST
 title: Invalid completion request
-description: The completion engine received malformed args or incomplete text.
+description: complete() received args that are not a string array, or an incomplete value that is not a string.
 lastModified: '2026-08-17'
 ---
 
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { complete } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'complete(AppModule, {',
+  "  args: 'deploy' as any,",
+  "  incomplete: '--t',",
+  '})',
+].join('\n')
+
+## Reproduction
+
+`args` must be an array of argv tokens that have already been committed:
+
+<CodeBlock code={reproductionCode} filename="src/completion.ts" lang="ts" />
+
 ## How to fix it
 
-Pass an array of strings as `args` and a string as `incomplete`. Integrations should forward committed arguments separately from the word currently being completed.
+Pass `{ args: ['deploy'], incomplete: '--t' }`. Every item in `args` and the `incomplete` value must be a string; do not pass one unsplit command line. The complete request is available in `details.request`.

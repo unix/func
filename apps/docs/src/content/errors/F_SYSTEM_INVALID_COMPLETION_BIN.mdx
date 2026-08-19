@@ -1,10 +1,24 @@
 ---
 code: F_SYSTEM_INVALID_COMPLETION_BIN
-title: Invalid completion binary name
-description: Completion setup received an empty or unsafe executable token.
+title: Invalid completion executable name
+description: The bin passed to func/completion is empty, contains whitespace, or contains a NUL character.
 lastModified: '2026-08-17'
 ---
 
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { withCompletion } from 'func/completion'",
+  '',
+  "withCompletion({ bin: 'my cli' })",
+].join('\n')
+
+## Reproduction
+
+`bin` must be the single command token users type in their shell:
+
+<CodeBlock code={reproductionCode} filename="src/index.ts" lang="ts" />
+
 ## How to fix it
 
-Pass the executable token users type, such as `ship`, to `withCompletion({ bin: 'ship' })`. Do not include whitespace or NUL characters.
+Use the matching key from `package.json#bin`, such as `withCompletion({ bin: 'my-cli' })`. Punctuation is allowed, but the value cannot be empty or contain whitespace or NUL. The invalid value is available in `details.bin`.

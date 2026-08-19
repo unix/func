@@ -1,10 +1,10 @@
 ---
 code: F_SCAFFOLD_PACKAGE_MANIFEST_NOT_FOUND
 title: Package manifest not found
-description: funcgo setup was run outside a project containing package.json.
+description: funcgo could not find package.json in the target project.
 lastModified: '2026-08-17'
 ---
 
 ## How to fix it
 
-Change to the project root containing `package.json`, then run `funcgo setup` again.
+Run the command from the project root or create a valid `package.json` first. In a workspace, make sure the current directory is the actual package directory.

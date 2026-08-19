@@ -1,15 +1,133 @@
 ---
-title: Process Signals
-description: Gracefully cancel func commands in response to SIGINT and SIGTERM.
+title: Process signals
+description: Turn SIGINT and SIGTERM into observable cancellation with controlled graceful shutdown behavior.
 lastModified: '2026-08-16'
 ---
 
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-<DocsLayout frontmatter={frontmatter} page="capabilities/signals">
+export const entryCode = [
+  "import { createApp } from 'func'",
+  "import { withProcessSignals } from 'func/signals'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const app = createApp(AppModule, {',
+  '  features: [withProcessSignals()],',
+  '})',
+  '',
+  'void app.bootstrap()',
+].join('\n')
 
-This English chapter is a placeholder. It will explain the default process signal behavior, when to enable `func/signals`, how `withProcessSignals()` forwards `SIGINT` and `SIGTERM` to `Context.signal`, and how graceful and forced termination interact.
+export const commandCode = [
+  "import { Command, Context, Ctx, Handler } from 'func'",
+  "import { watchProject } from '../watch-project'",
+  '',
+  "@Command('watch')",
+  'export class WatchCommand {',
+  '  @Handler()',
+  '  async run(@Ctx() context: Context) {',
+  '    await watchProject({ signal: context.signal })',
+  '  }',
+  '}',
+].join('\n')
 
-The complete chapter is currently available in [Chinese](/zh-cn/capabilities/signals).
+export const manualCancellationCode = [
+  "import { createApp } from 'func'",
+  "import { withProcessSignals } from 'func/signals'",
+  '',
+  'const deadline = AbortSignal.timeout(30_000)',
+  'const app = createApp(AppModule, {',
+  '  features: [withProcessSignals()],',
+  '})',
+  '',
+  'await app.bootstrap({ signal: deadline })',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/signals">
+
+`func/signals` provides optional `SIGINT` and `SIGTERM` handling for process-based CLIs. It turns operating-system signals into the current command's `AbortSignal`, giving long-running work a chance to stop and clean up instead of terminating the entire process immediately.
+
+  <Callout locale="en" title="Process signals are not intercepted by default" variant="note">
+
+Without `withProcessSignals()`, `func` installs no `SIGINT` or `SIGTERM` listeners. Actions such as pressing `Ctrl+C` remain under the default Node.js and operating-system behavior, which normally terminates the process without aborting `Context.signal` first.
+
+  </Callout>
+
+## Default signal behavior
+
+Every invocation receives a `Context.signal`, but that signal and process signals are separate sources by default:
+
+| Entry point                              | Behavior                                                                                              |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `app.bootstrap()`                        | `func` supplies an AbortSignal but does not listen for process signals; Node.js handles them normally. |
+| `app.bootstrap({ signal })`              | The caller's signal reaches the command, but process signals are still not forwarded automatically.  |
+| `createInvoker()` / `createTestingApp()` | There is no process-signal feature; pass a `signal` explicitly to each `invoke`.                      |
+
+Consequently, reading `Context.signal` in a Handler does not make `Ctrl+C` fire its `abort` event by itself. The process may exit before asynchronous cleanup, `onDispose`, or buffered output has finished.
+
+## When to enable it
+
+`withProcessSignals()` is a good fit for:
+
+- Watchers, development servers, continuous builds, and polling loops.
+- Long downloads, uploads, deployments, and network requests.
+- Commands that must release child processes, connections, lock files, or temporary resources.
+- Workflows where the first `Ctrl+C` should request graceful shutdown while a second may force termination.
+
+Short commands with no cleanup-sensitive resources can rely on the Node.js default when immediate termination is acceptable. The feature lives in the separate `func/signals` entry point, so applications that do not need it pay neither its code nor listener cost.
+
+## Enable process-signal handling
+
+Register `withProcessSignals()` once when creating the process application:
+
+<CodeBlock code={entryCode} filename="src/index.ts" lang="ts" />
+
+The application still starts the same way. Listeners exist only while a command is executing and are removed after success or failure; they do not remain installed for the lifetime of the process. Registering the same feature twice is rejected when the application is created.
+
+## Make commands respond to cancellation
+
+The feature only sends a cancellation request. It cannot stop application work that ignores the signal. Read `Context.signal` and pass it down to APIs that accept an `AbortSignal`:
+
+<CodeBlock code={commandCode} filename="src/commands/watch.command.ts" lang="ts" />
+
+Forward the same signal through `fetch`, timers, file operations, build tools, and child-process wrappers whenever their APIs support it. A custom loop should check `signal.aborted` or install a one-time `abort` listener, then return promptly or throw a cancellation error.
+
+Once the Handler cooperates and ends, `func` continues through the invocation's error boundary and `onDispose` lifecycle. Database connections, temporary files, child processes, and similar resources should therefore remain in the normal lifecycle cleanup path.
+
+  <Callout locale="en" title="Cancellation is cooperative" variant="caution">
+
+If a Handler ignores `Context.signal`, runs non-interruptible synchronous work, or never finishes cleanup, the first signal does not kill the process immediately. A second `SIGINT` or `SIGTERM` restores native forced termination, which cannot guarantee that cleanup code runs.
+
+  </Callout>
+
+## Signals and exit behavior
+
+| Input                         | Result                                                                                          |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| First `SIGINT`                | Abort `Context.signal` with `SIGINT` as the reason; set exit code `130` after the call finishes. |
+| First `SIGTERM`               | Abort `Context.signal` with `SIGTERM` as the reason; set exit code `143` after the call finishes. |
+| Second signal during cleanup  | Remove the `func` listeners and hand the signal back to native process behavior immediately.    |
+| Command success or failure    | Remove both listeners without affecting later work in the same process.                         |
+
+If cancellation makes the Handler throw, the process-signal exit semantics take precedence over the normal unhandled-error exit code of `1`.
+
+## Combine with a caller signal
+
+An application may accept both business-level cancellation and process signals:
+
+<CodeBlock code={manualCancellationCode} filename="src/index.ts" lang="ts" />
+
+With `withProcessSignals()` registered, `func` combines the signal passed to `bootstrap({ signal })` with process signals. Aborting either source aborts the `Context.signal` observed by the command. Exit code `130` or `143` is used only when the corresponding operating-system signal actually arrives.
+
+Programmatic invocation and tests never listen to the host process automatically. Continue to use `invoke(argv, { signal })` with `createInvoker()` and `createTestingApp()` so library code and test runners do not unexpectedly take ownership of global exit signals.
+
+## API reference
+
+| API                    | Purpose                                                                    |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `withProcessSignals()` | Create the process-signal feature for `createApp({ features })`; no options are currently required. |
+| `Context.signal`       | The AbortSignal commands observe and forward for cooperative cancellation. |
 
 </DocsLayout>

@@ -1,20 +1,20 @@
 ---
-title: Errors
-description: Look up func system error codes, understand why they happen, and apply the smallest reliable fix.
+title: Error index
+description: Look up Func system error codes, understand their causes, and find the corresponding fix.
 lastModified: '2026-08-08'
 ---
 
 import SystemErrorIndex from '@/components/content/system-error-index.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-<DocsLayout frontmatter={frontmatter} page="errors">
+<DocsLayout frontmatter={frontmatter} locale="en" page="errors">
 
-`F_SYSTEM_*` errors identify invalid command definitions or application registration. They are developer-facing failures: func stops immediately instead of sending them through command-local or global error handlers.
+`F_SYSTEM_*` errors identify invalid command definitions or application registration. They are developer-facing failures: `func` stops immediately instead of sending them through command-local or global error handlers.
 
 `F_SCAFFOLD_*` errors identify failures in funcgo, create-func, and related ecosystem tooling. Their pages explain which project or environment input to correct before retrying the command.
 
 When `funcgo` recognizes one of these errors during development or a build check, it keeps the original error output and adds a link to the matching page below. Use the code to find the relevant invariant, minimal reproduction, and fix.
 
-<SystemErrorIndex />
+<SystemErrorIndex locale="en" />
 
 </DocsLayout>

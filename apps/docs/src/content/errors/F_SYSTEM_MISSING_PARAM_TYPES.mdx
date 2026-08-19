@@ -1,16 +1,16 @@
 ---
 code: F_SYSTEM_MISSING_PARAM_TYPES
 title: Missing parameter type metadata
-description: An older func runtime could not inspect constructor parameter types required for injection.
-legacy: true
-lastModified: '2026-08-08'
+description: The runtime cannot infer the Provider token requested by a constructor or Handler parameter.
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { Command, Module, Handler, createApp } from 'func'",
+  "import { Command, Handler, Injectable, Module, createApp } from 'func'",
   '',
+  '@Injectable()',
   'class ProjectService {}',
   '',
   "@Command('inspect')",
@@ -21,7 +21,10 @@ export const reproductionCode = [
   '  run() {}',
   '}',
   '',
-  '@Module({ commands: [InspectCommand] })',
+  '@Module({',
+  '  commands: [InspectCommand],',
+  '  providers: [ProjectService],',
+  '})',
   'class AppModule {}',
   '',
   'createApp(AppModule)',
@@ -36,20 +39,42 @@ export const tsconfigCode = [
   '}',
 ].join('\n')
 
+export const explicitCode = [
+  "import { Inject, createToken } from 'func'",
+  '',
+  'interface Project {',
+  '  name: string',
+  '}',
+  '',
+  "const PROJECT = createToken<Project>('PROJECT')",
+  '',
+  'class InspectCommand {',
+  '  constructor(@Inject(PROJECT) private project: Project) {}',
+  '}',
+].join('\n')
+
 ## Reproduction
 
-Older func runtimes emitted this code when a constructor had parameters but TypeScript did not emit decorator metadata:
+A constructor or Handler has parameters, but the compiled output contains neither design-time parameter metadata nor an explicit `@Inject()` token:
 
 <CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
 
 ## What this error means
 
-Dependency injection relies on runtime parameter metadata. The JavaScript output did not contain enough information to identify the requested service. Current func versions keep this code for compatibility with older releases.
+`func` knows the parameter position but cannot determine which token to request from the DI container. `details.target` identifies the class or method, and `details.index` gives the parameter position.
 
 ## How to fix it
 
-Enable both decorator options in the TypeScript configuration used by the build:
+For class-type injection, enable decorators and parameter metadata in the TypeScript configuration used by the actual build:
 
 <CodeBlock code={tsconfigCode} filename="tsconfig.json" lang="json" />
 
-Ensure the class has a func decorator, register injected services in `Module.providers`, and confirm that `funcgo` is reading the intended `tsconfig.json`.
+Use an explicit token for interfaces, type-only dependencies, or parameters that should not depend on reflection metadata:
+
+<CodeBlock
+  code={explicitCode}
+  filename="src/commands/inspect.command.ts"
+  lang="ts"
+/>
+
+Whichever approach you use, register the corresponding Provider in the current Module and ensure imported Providers are exported explicitly.

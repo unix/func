@@ -1,9 +1,10 @@
 ---
 title: Commands
-description: Define user-facing commands, aliases, and several actions inside one func command scope.
-lastModified: '2026-08-14'
+description: Define user-facing command paths, aliases, and multiple actions within one Func command class.
+lastModified: '2026-08-16'
 ---
 
+import Callout from '@/components/content/callout.astro'
 import CodeBlock from '@/components/content/code-block.astro'
 import DecisionTable from '@/components/content/decision-table.astro'
 import TerminalDemo from '@/components/demos/terminal-demo.astro'
@@ -12,13 +13,13 @@ import DocsLayout from '@/layouts/docs.astro'
 export const modelingChoices = [
   {
     choice: '@Command',
-    when: 'A stable top-level word selects a business area or action.',
-    example: 'ship deploy',
+    when: 'One or more fixed words form a reusable command path.',
+    example: 'ship deploy / ship config profile',
   },
   {
     choice: '@Handler(path)',
-    when: 'Fixed nested words select one action inside the chosen command.',
-    example: 'ship config profile get',
+    when: 'Fixed trailing words select one action inside the current command class.',
+    example: 'ship project member add',
   },
   {
     choice: '@Flag / @Value',
@@ -27,7 +28,7 @@ export const modelingChoices = [
   },
   {
     choice: '@Args().inputs',
-    when: 'Remaining positional tokens are variable user data rather than fixed grammar.',
+    when: 'The remaining path is variable data rather than fixed grammar.',
     example: 'ship search alice team-a',
   },
 ]
@@ -36,7 +37,7 @@ export const simpleCommandCode = [
   "import { Command, Handler } from 'func'",
   '',
   '@Command({',
-  "  name: 'status',",
+  "  path: 'status',",
   "  description: 'Print service status',",
   '})',
   'export class StatusCommand {',
@@ -47,12 +48,14 @@ export const simpleCommandCode = [
   '}',
 ].join('\n')
 
-export const registerCode = `import { ErrorHandler } from './error.command'
-import { Major } from './major.command'
-import { Missing } from './missing.command'
-import { StatusCommand } from './status.command'
-
-export const commands = [Major, StatusCommand, Missing, ErrorHandler]`
+export const registerCode = [
+  "import { StatusCommand } from './status.command'",
+  '',
+  '@Module({',
+  '  commands: [StatusCommand],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
 
 export const statusCommands = {
   npm: 'npm run dev -- status',
@@ -62,17 +65,38 @@ export const statusCommands = {
 }
 
 export const aliasCode = `@Command({
-  name: 'status',
+  path: 'status',
   aliases: ['s', 'stat'],
   description: 'Print service status',
 })
 export class StatusCommand {}`
 
+export const nestedCommandCode = [
+  "import { Command, Handler } from 'func'",
+  '',
+  '@Command({',
+  "  path: ['config', 'profile'],",
+  "  aliases: ['p'],",
+  "  description: 'Manage saved profiles',",
+  '})',
+  'export class ProfileCommand {',
+  '  @Handler()',
+  '  list() {',
+  "    console.log('List profiles')",
+  '  }',
+  '',
+  "  @Handler('set')",
+  '  set() {',
+  "    console.log('Set profile')",
+  '  }',
+  '}',
+].join('\n')
+
 export const projectCommandCode = [
   "import { Command, Handler } from 'func'",
   '',
   '@Command({',
-  "  name: 'project',",
+  "  path: 'project',",
   "  aliases: ['p', 'proj'],",
   "  description: 'Manage projects and members',",
   '})',
@@ -92,98 +116,112 @@ export const projectCommandCode = [
   "    console.log('Add project member')",
   '  }',
   '',
-  "  @Handler({ flag: 'help', aliases: ['h', '?'], description: 'Print project help' })",
-  '  help() {',
-  "    console.log('Project usage')",
+  "  @Handler({ flag: 'version', alias: 'v', description: 'Print version' })",
+  '  version() {',
+  "    console.log('1.0.0')",
   '  }',
   '}',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} page="commands">
+<DocsLayout frontmatter={frontmatter} locale="en" page="commands">
 
-A command is a stable word a user types after the executable name to choose a business area or action. In `git commit`, `git` is the executable and `commit` is the command. In func, that command is modeled by a class decorated with `@Command('commit')`.
+A command is a fixed word that follows the executable name and selects a business area or action. In `git commit`, `git` is the executable and `commit` is the command. In `func`, a class decorated with `@Command('commit')` models that command.
 
-func reads only the first input token when choosing a named command. If it matches a name or alias, that command owns the invocation; if it begins with a hyphen, the major scope owns it. After the scope is selected, the command's handlers and fields decide how to interpret the remaining tokens.
+`path` accepts either one string or an array of strings. Several Commands may share a prefix. `func` compiles every Command path and Handler path into one command graph, then selects the unique entry with the longest matching path.
 
-## Recognize each part of an invocation
+## Common invocation shapes
 
-| User input               | Command scope   | Remaining meaning                                 |
-| ------------------------ | --------------- | ------------------------------------------------- |
-| `ship status`            | `status`        | No additional input; the default handler runs.    |
-| `ship config get`        | `config`        | get is a handler path inside the config command.  |
-| `ship deploy --env prod` | `deploy`        | --env prod is a value option owned by deploy.     |
-| `ship --help`            | `Major command` | --help can select a handler on the major command. |
+| User input                      | Matched path             | Meaning of the remainder                     |
+| ------------------------------- | ------------------------ | -------------------------------------------- |
+| `ship status`                   | Command `status`         | No extra input; run the default Handler.     |
+| `ship config profile set dev`   | Command + Handler `set`  | `dev` is positional input for the Handler.   |
+| `ship deploy --env prod`        | Command `deploy`         | `--env prod` is a value option for deploy.   |
+| `ship --help`                   | Module action `--help`   | The root Module supplies a global action.    |
 
-The major command is a func-specific scope for invocation without a named command. It is explained with missing-command behavior in [Core Concepts](/concepts).
+[Concepts](/concepts) explains the major and missing command types in detail. See [Shared fields](/shared-fields) for Module-scoped actions and [Help](/capabilities/help) to add `--help`.
 
-## Choose the public shape before the decorator
-
-Write the invocation a user should remember first. The stable and variable parts of that input determine which func concept should own them:
-
-<DecisionTable items={modelingChoices} />
+You do not need to absorb every concept at once. The simplest mental model is a one-to-one relationship: the `status` command is driven by a class decorated with `@Command('status')`. The next section follows that smallest useful example from source to execution.
 
 ## Add the smallest useful command
 
-Start with one class and one default handler. The `name` is the public word users type; `description` is metadata that your help handler can read through `@Regs()`.
+A minimal command needs one class and one default Handler. `path` is the command path users type; `description` is command metadata that explains its purpose.
 
-<CodeBlock
-  code={simpleCommandCode}
-  filename="src/commands/status.command.ts"
-  lang="ts"
-/>
+<CodeBlock code={simpleCommandCode} filename="src/status.command.ts" lang="ts" />
 
-A decorated class does not become reachable merely because its file exists. Add it to the command list registered by your root module:
+Creating the file and adding decorators does not register it. Add the class to a Module's command list:
 
-<CodeBlock code={registerCode} filename="src/commands/index.ts" lang="ts" />
+<CodeBlock code={registerCode} filename="src/app.module.ts" lang="ts" />
 <TerminalDemo
   command={statusCommands.npm}
   demo="guide-status"
+  locale="en"
   packageManagerCommands={statusCommands}
   rows={2}
   sourceUrl="/demos/guide-status.ts"
 />
 
-func selects `StatusCommand`, creates an instance, and invokes `run()` because it is the default `@Handler()`. Each command must have at least one handler, and a command can have at most one default handler.
+After matching `StatusCommand`, `func` creates the instance, finds the method marked with `@Handler()`, and runs `StatusCommand.run()`. In other words, `@Handler()` marks the command's default execution entry. Every command needs at least one Handler, and a class may add more Handlers for related actions.
 
-## Add aliases when they save real typing
+## Command aliases
 
-An alias is another token that selects the same command. It does not create another command and does not run a different handler:
+An alias is another way to reach the same command. It creates neither a new graph node nor a different Handler; it is simply a convenient entry point.
 
 <CodeBlock code={aliasCode} lang="ts" />
 
-`ship status`, `ship s`, and `ship stat` now select `StatusCommand`. Use `aliases` for several alternatives. The singular `alias` remains supported, and when both properties are present func merges them in declaration order and removes duplicates. Prefer recognizable abbreviations for frequent commands, such as `g` for `greet`. Avoid aliases for rarely used commands or abbreviations that could plausibly belong to another command. Names and aliases must be unique across all registered named commands.
+`ship s` and `ship stat` are now equivalent to `ship status` because both are aliases for the `status` command.
 
-Command aliases may contain more than one character, while option aliases such as `-h` must be a single character. Neither form should include a leading hyphen in the decorator value; func adds the hyphen for options.
+Use `aliases` for several alternatives. The singular `alias` is merged with that list and duplicates are removed. A command alias may contain more than one character and only needs to be unique under the same parent path. Option aliases such as `-h`, by contrast, must be exactly one non-numeric character.
 
-## Deprecate commands and action flags
+## Command paths
 
-Set `deprecated: true` on `@Command` to mark the whole command, or provide a string to include migration guidance. Deprecated commands remain executable, appear as deprecated in structured help, and print a non-fatal notice to stderr when dispatched.
+When several commands share a fixed prefix, include that prefix in the Command path. The class becomes active only when its complete path matches. If `config profile` always belongs together, for example, model both words as the path.
 
-Use `@Deprecated()` on a method decorated with `@Handler({ flag })` to deprecate only that action option. Default and path handlers cannot use `@Deprecated()`; deprecate their owning command instead.
+An alias replaces only the final path segment, so `ship config profile` and `ship config p` are equivalent here:
 
-## Put related actions in one command
+<CodeBlock code={nestedCommandCode} filename="src/profile.command.ts" lang="ts" />
 
-Use a command for a stable top-level verb or resource. When several actions belong to the same resource, keep one command scope and select methods with handler paths. This produces a predictable family such as `project`, `project create`, and `project member add`:
+This class also extends the path with `@Handler('set')`, using separate Handlers for two related forms:
 
-<CodeBlock
-  code={projectCommandCode}
-  filename="src/commands/project.command.ts"
-  lang="ts"
-/>
+- Default Handler `@Handler()`: `ship config profile`
+- Path Handler `@Handler('set')`: `ship config profile set`
 
-- `ship project` runs the default `list()` handler.
-- `ship project create` runs the `create()` path handler.
-- `ship p member add` uses one command alias, then runs the longest matching path.
-- `ship project -?` runs the help handler through one of its short aliases.
+Path Handlers and Command paths both describe fixed grammar, but at different levels. Prefer distinct Commands when the business areas or dependencies are substantial. Use a path Handler for a small branch at the end of one cohesive command.
 
-A handler flag chooses one mutually exclusive action. This is different from a field `@Flag()`, which supplies boolean data to whichever handler was selected. Handler flags accept `alias` and `aliases`, but every option-style alias must contain exactly one character. Path handlers are checked first, then handler flags, then the default handler. A path cannot declare aliases or be combined with a handler flag.
+<Callout locale="en" title="Duplicate declarations" variant="note">
 
-## Organize several commands
+A Command path and one of its child Handler paths cannot declare the exact same route. Such a graph would activate both a default Handler and a child Handler, so `func` rejects it as a conflict.
 
-An application can register as many named commands as it needs, normally one class per top-level business area. Group larger areas in feature `@Module` classes and import those modules from the root instead of putting unrelated operations into one large command class.
+</Callout>
 
-One CLI invocation selects only one top-level command. Do not expect `ship build deploy` to run the `build` command and then the `deploy` command: `build` owns the scope and `deploy` is remaining input. For a fixed nested action, use a handler path. For a workflow that intentionally performs several operations, create one orchestration command and call shared services from its handler.
+### Multiple Handlers
 
-Next, use [Field Options](/options) for flags and values, or see [Examples](/use-cases) to choose a command shape from user behavior.
+Closely related actions for one resource can share a Command class and use Handler paths to distinguish actions such as `project`, `project create`, and `project member add`:
+
+<CodeBlock code={projectCommandCode} filename="src/project.command.ts" lang="ts" />
+
+- `ship project` runs the default `list()` Handler.
+- `ship project create` runs the `create()` path Handler.
+- `ship p member add` uses the Command alias and longest-path matching to run `addMember()`.
+- `ship project -v` selects the version method through its short alias.
+
+A Handler flag selects one mutually exclusive action. A field `@Flag()` merely supplies a boolean to the Handler already selected. Handler flags accept both `alias` and `aliases`, but every alias must be one non-numeric character. A path Handler cannot declare aliases or also act as a Handler flag.
+
+## Deprecate commands
+
+Set `deprecated: true` on `@Command` to mark the whole command, or provide a string with migration guidance. The command remains executable, appears as deprecated in structured help, and prints a non-fatal notice to stderr when dispatched.
+
+Use `@Deprecated()` on a method with `@Handler({ flag })` to deprecate only that action option. Default and path Handlers cannot use `@Deprecated()`; deprecate their owning Command instead.
+
+## Organize multiple commands
+
+Write the complete invocation first, then distinguish fixed syntax from variable data. That tells you which `func` construct owns each part:
+
+<DecisionTable items={modelingChoices} locale="en" />
+
+An application may register many Commands, usually one class per business area. A larger area can live in its own `@Module`, imported by the root Module. Sharing a path prefix does not require putting every action in one class; split Commands when they need different dependency graphs or team ownership.
+
+One CLI invocation executes exactly one Command or action entry. To perform several business operations in sequence, define an orchestration command and call shared Providers from its Handler.
+
+Continue with [Field options](/options) for named flags and values, or browse [Examples](/use-cases) for common command shapes.
 
 </DocsLayout>

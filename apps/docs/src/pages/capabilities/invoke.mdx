@@ -1,0 +1,119 @@
+---
+title: Programmatic invocation
+description: Embed a Func application in another Node.js program.
+lastModified: '2026-08-17'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const invokeCode = [
+  "import { createInvoker } from 'func/invoke'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const invoker = createInvoker(AppModule, {',
+  "  appName: 'ship',",
+  '})',
+  '',
+  "const invocation = await invoker.invoke(['deploy', '--env', 'production'], {",
+  "  cwd: '/workspace/project',",
+  "  env: { ...process.env, CI: 'true' },",
+  '  signal: AbortSignal.timeout(30_000),',
+  '})',
+  '',
+  'if (invocation.exitCode !== 0) {',
+  '  throw new Error(`deploy exited with ${invocation.exitCode}`)',
+  '}',
+  '',
+  'console.log(invocation.result)',
+].join('\n')
+
+export const repeatCode = [
+  "const preview = await invoker.invoke(['deploy', '--dry-run'])",
+  "const deployed = await invoker.invoke(['deploy'])",
+  '',
+  'console.log(preview.result, deployed.result)',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/invoke">
+
+`func/invoke` exposes command dispatch, option parsing, dependency injection, error handling, and lifecycle management as an ordinary Node.js API. Server processes, desktop applications, scripts, and other adapters can call an existing CLI Module directly without spawning a child process.
+
+  <Callout locale="en" title="This is not a process entry point" variant="note">
+
+`createInvoker` does not read `process.argv`, expose `bootstrap()`, or modify `process.exitCode`. The host supplies argv, interprets the result, and decides its own exit behavior.
+
+  </Callout>
+
+## Create an Invoker
+
+Import `createInvoker` from `func/invoke` and pass it the same root Module you would give to `createApp`:
+
+<CodeBlock code={invokeCode} filename="src/deploy.ts" lang="ts" />
+
+The argv array contains only arguments for `func` to parse—not the Node.js path or executable name. The example is equivalent to running `ship deploy --env production` through a process-based CLI.
+
+`appName` is an optional application identity. It is required only by features such as Config and Log that use an application-specific directory, and it never becomes part of argv.
+
+## Repeated calls and isolation
+
+`createInvoker` compiles the Module and command graph once. The resulting invoker can then be called repeatedly:
+
+<CodeBlock code={repeatCode} filename="src/deploy.ts" lang="ts" />
+
+Every `invoke` creates a fresh runtime container, along with new Command, Module, Provider, invocation-context, and lifecycle state. Its `onDispose` hooks run when that call finishes. Instances and option values from one call are never reused by the next; only the compiled Module definition is shared.
+
+Invocations may run concurrently, but injected Providers should keep mutable state on the per-invocation instance. Your application remains responsible for the concurrency safety of globals, singleton clients outside the Module graph, and streams supplied by the host.
+
+## Configure the invocation environment
+
+The second argument to `invoke(argv, options)` applies to that invocation only:
+
+| Option   | Default          | Purpose                                                           |
+| -------- | ---------------- | ----------------------------------------------------------------- |
+| `cwd`    | `process.cwd()`  | Set `Context.cwd` without changing the host process directory.    |
+| `env`    | `process.env`    | Set a frozen `Context.env` snapshot without mutating host env.     |
+| `signal` | A new AbortSignal | Forward cancellation to `Context.signal`.                         |
+| `stdin`  | `process.stdin`  | Replace the Readable used by `Context.io.stdin` and `@Stdin()`.   |
+| `stdout` | `process.stdout` | Replace the Writable used by `Context.io.stdout` and `@Stdout()`. |
+| `stderr` | `process.stderr` | Replace the Writable used by `Context.io.stderr` and `@Stderr()`. |
+
+The host always owns these streams; `func` never closes them. To capture output, pass a custom `Writable`. [Input and output](/input-output) covers stream selection and ownership in more detail.
+
+Programmatic invocation does not install `SIGINT` or `SIGTERM` listeners. The host should create an `AbortSignal` and pass it through `signal`; see [Process signals](/capabilities/signals) for the differences between the two models.
+
+## Handle results and errors
+
+An invocation returns an `InvocationResult` when it completes successfully, when `onError` handles an error, or when the default `func` error boundary turns an error into a diagnostic:
+
+| Field      | Meaning                                                       |
+| ---------- | ------------------------------------------------------------- |
+| `exitCode` | Final exit code for this invocation; defaults to `0`.         |
+| `result`   | Value returned by the Handler, or `undefined` after an error. |
+
+A non-zero `exitCode` does not throw automatically or update `process.exitCode`; the host interprets it according to its own protocol. If an error escapes the application's error boundary, `invoke()` rejects and the host can handle it with ordinary `try` / `catch`.
+
+When you want captured stdout, stderr, and unhandled exceptions without supplying your own streams or catching rejections, use [`func/testing`](/capabilities/testing).
+
+## How the entry points differ
+
+| Entry point         | Primary use              | Calls    | Process behavior                                                |
+| ------------------- | ------------------------ | -------- | --------------------------------------------------------------- |
+| `createApp`         | Executable CLI entry     | Once     | Reads default argv, supports application features, sets exit code. |
+| `createInvoker`     | Embedded Node.js host    | Repeated | Host supplies argv and IO; process exit code is unchanged.      |
+| `createTestingApp`  | Automated tests          | Repeated | Isolates env, captures IO and errors, supports Provider overrides. |
+
+`createInvoker` does not accept `features`. Process-level capabilities built around `createApp({ features })` belong in the real CLI entry point. Embedded hosts provide equivalent controls through per-call options or their own lifecycle.
+
+## API reference
+
+| API                               | Purpose                                                        |
+| --------------------------------- | -------------------------------------------------------------- |
+| `createInvoker(module, options?)` | Compile a root Module and create a reusable `Invoker`.         |
+| `InvokerOptions`                  | Creation options; currently an optional `appName`.             |
+| `Invoker.invoke(argv?, options?)` | Run once in a new invocation context; returns `Promise<InvocationResult>`. |
+| `InvocationOptions`               | Describe cwd, env, signal, stdin, stdout, and stderr.           |
+| `InvocationResult`                | Describe the invocation's exitCode and Handler result.          |
+
+</DocsLayout>

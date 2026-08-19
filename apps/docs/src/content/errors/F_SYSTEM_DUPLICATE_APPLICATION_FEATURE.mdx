@@ -1,10 +1,35 @@
 ---
 code: F_SYSTEM_DUPLICATE_APPLICATION_FEATURE
 title: Duplicate application feature
-description: The same application feature is registered more than once.
+description: createApp received more than one application feature with the same key.
 lastModified: '2026-08-17'
 ---
 
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { createApp } from 'func'",
+  "import { withCompletion } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'createApp(AppModule, {',
+  '  features: [',
+  "    withCompletion({ bin: 'ship' }),",
+  "    withCompletion({ bin: 'ship' }),",
+  '  ],',
+  '})',
+].join('\n')
+
+## Reproduction
+
+The same application feature is registered more than once:
+
+<CodeBlock code={reproductionCode} filename="src/index.ts" lang="ts" />
+
+## What this error means
+
+Every application feature has a unique key: completion uses `completion`, for example, while process signals use `process-signals`. A `createApp()` call may include each key only once. `details.key` contains the conflicting feature key.
+
 ## How to fix it
 
-Keep only one feature with the reported key in `createApp({ features })`. Shared setup should return one feature instance instead of registering the same feature in multiple places.
+Keep one call to the relevant feature factory. If its behavior needs to change, combine the settings into one configuration instead of registering the same feature twice. Features with different keys may still be used together.

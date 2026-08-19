@@ -1,14 +1,14 @@
 ---
 code: F_SYSTEM_DUPLICATE_COMMAND_TOKEN
 title: Duplicate command token
-description: Two registered commands use the same name or alias.
-lastModified: '2026-08-08'
+description: Two registered commands use the same path token or alias under one parent path.
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { Command, Handler, createApp } from 'func'",
+  "import { Command, Handler, Module, createApp } from 'func'",
   '',
   "@Command('build')",
   'class BuildCommand {',
@@ -22,7 +22,10 @@ export const reproductionCode = [
   '  run() {}',
   '}',
   '',
-  'createApp({ commands: [BuildCommand, RebuildCommand] })',
+  '@Module({ commands: [BuildCommand, RebuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 export const fixCode = [
@@ -38,17 +41,20 @@ export const fixCode = [
   '  run() {}',
   '}',
   '',
-  'createApp({ commands: [BuildCommand, RebuildCommand] })',
+  '@Module({ commands: [BuildCommand, RebuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 ## Reproduction
 
-Command names and aliases share one application-wide namespace:
+Canonical path tokens and aliases share one namespace under the same parent path:
 
 <CodeBlock code={reproductionCode} filename="src/commands.ts" lang="ts" />
 
 ## How to fix it
 
-Give every command name and alias a unique token:
+Keep every token unique under its parent path, or move one Command to a different path:
 
 <CodeBlock code={fixCode} filename="src/commands.ts" lang="ts" />

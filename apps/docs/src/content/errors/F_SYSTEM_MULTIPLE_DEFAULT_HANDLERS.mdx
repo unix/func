@@ -2,13 +2,13 @@
 code: F_SYSTEM_MULTIPLE_DEFAULT_HANDLERS
 title: Multiple default handlers
 description: One command declares more than one @Handler without a flag or path.
-lastModified: '2026-08-08'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { CommandMajor, Handler, createApp } from 'func'",
+  "import { CommandMajor, Handler, Module, createApp } from 'func'",
   '',
   '@CommandMajor()',
   'class BuildCommand {',
@@ -19,7 +19,10 @@ export const reproductionCode = [
   '  rebuild() {}',
   '}',
   '',
-  'createApp({ commands: [BuildCommand] })',
+  '@Module({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 export const fixCode = [
@@ -32,7 +35,10 @@ export const fixCode = [
   '  rebuild() {}',
   '}',
   '',
-  'createApp({ commands: [BuildCommand] })',
+  '@Module({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 ## Reproduction

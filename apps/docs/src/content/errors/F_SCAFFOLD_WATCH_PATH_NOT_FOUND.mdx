@@ -1,10 +1,10 @@
 ---
 code: F_SCAFFOLD_WATCH_PATH_NOT_FOUND
 title: Watch path not found
-description: A literal path passed to funcgo watch mode does not exist.
+description: A watch file or directory passed to funcgo does not exist in the project.
 lastModified: '2026-08-17'
 ---
 
 ## How to fix it
 
-Correct the path, create it before starting watch mode, or remove the corresponding `--watch-path` option.
+Check the spelling and current working directory, create the missing path, or pass an existing file, directory, or valid glob through `--watch`.

@@ -2,7 +2,7 @@
 code: F_SYSTEM_NO_MATCHING_HANDLER
 title: No matching handler
 description: A command has handlers, but the current invocation matches no path or flag and no default handler exists.
-lastModified: '2026-08-08'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -30,6 +30,9 @@ export const fixCode = [
   '  @Handler()',
   '  run() {}',
   '}',
+  '',
+  '@Module({ commands: [RootCommand] })',
+  'class AppModule {}',
   '',
   'await createApp(AppModule).bootstrap({ argv: [] })',
 ].join('\n')

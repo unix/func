@@ -2,28 +2,43 @@
 code: F_SYSTEM_MULTIPLE_MISSING_COMMANDS
 title: Multiple missing commands
 description: The application registers more than one fallback for unknown command names.
-lastModified: '2026-08-08'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { CommandMissing, createApp } from 'func'",
+  "import { CommandMissing, Handler, Module, createApp } from 'func'",
   '',
   '@CommandMissing()',
-  'class FirstMissing {}',
+  'class FirstMissing {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
   '',
   '@CommandMissing()',
-  'class SecondMissing {}',
+  'class SecondMissing {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
   '',
-  'createApp({ commands: [FirstMissing, SecondMissing] })',
+  '@Module({ commands: [FirstMissing, SecondMissing] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 export const fixCode = [
   '@CommandMissing()',
-  'class MissingCommand {}',
+  'class MissingCommand {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
   '',
-  'createApp({ commands: [MissingCommand] })',
+  '@Module({ commands: [MissingCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 ## Reproduction

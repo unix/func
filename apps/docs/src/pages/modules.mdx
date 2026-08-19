@@ -1,13 +1,453 @@
 ---
 title: Modules
-description: Learn how modules organize commands, providers, and application boundaries.
-lastModified: '2026-08-16'
+description: Learn how Modules organize a Func application and how to define your own.
+lastModified: '2026-08-18'
 ---
 
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-<DocsLayout frontmatter={frontmatter} page="modules">
+export const projectServiceCode = [
+  "import { Injectable } from 'func'",
+  '',
+  '@Injectable()',
+  'export class ProjectService {',
+  '  list() {',
+  "    return ['func']",
+  '  }',
+  '}',
+].join('\n')
 
-This English page is a placeholder. The Modules guide will be translated in a future update.
+export const projectCommandCode = [
+  "import { Command, Handler } from 'func'",
+  "import { ProjectService } from '../services/project.service'",
+  '',
+  "@Command('project')",
+  'export class ProjectCommand {',
+  '  constructor(private readonly projects: ProjectService) {}',
+  '',
+  '  @Handler()',
+  '  list() {',
+  '    console.log(this.projects.list())',
+  '  }',
+  '}',
+].join('\n')
+
+export const projectModuleCode = [
+  "import { Module } from 'func'",
+  "import { ProjectCommand } from './commands/project.command'",
+  "import { ProjectService } from './services/project.service'",
+  '',
+  '@Module({',
+  '  commands: [ProjectCommand],',
+  '  providers: [ProjectService],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const valueProviderCode = [
+  "import { createToken } from 'func'",
+  '',
+  "export const API_URL = createToken<string>('API_URL')",
+  '',
+  'export const apiUrlProvider = {',
+  '  provide: API_URL,',
+  "  useValue: 'https://api.example.com',",
+  '}',
+].join('\n')
+
+export const tokenInjectionCode = [
+  "import { Inject, Injectable } from 'func'",
+  "import { API_URL } from '../providers/api-url.provider'",
+  '',
+  '@Injectable()',
+  'export class ProjectClient {',
+  '  constructor(@Inject(API_URL) readonly apiUrl: string) {}',
+  '}',
+].join('\n')
+
+export const classProviderCode = [
+  "import { Injectable, Module, createToken } from 'func'",
+  '',
+  'interface ProjectStorage {',
+  '  findAll(): string[]',
+  '}',
+  '',
+  'export const PROJECT_STORAGE =',
+  "  createToken<ProjectStorage>('PROJECT_STORAGE')",
+  '',
+  '@Injectable()',
+  'class FileProjectStorage implements ProjectStorage {',
+  '  findAll() {',
+  "    return ['func']",
+  '  }',
+  '}',
+  '',
+  'export const projectStorageProvider = {',
+  '  provide: PROJECT_STORAGE,',
+  '  useClass: FileProjectStorage,',
+  '}',
+  '',
+  '@Module({',
+  '  providers: [projectStorageProvider],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const factoryProviderCode = [
+  "import { Module } from 'func'",
+  "import { API_URL, apiUrlProvider } from './providers/api-url.provider'",
+  '',
+  'class ProjectClient {',
+  '  constructor(readonly apiUrl: string) {}',
+  '}',
+  '',
+  'export const projectClientProvider = {',
+  '  provide: ProjectClient,',
+  '  inject: [API_URL],',
+  '  useFactory: (apiUrl: string) => new ProjectClient(apiUrl),',
+  '}',
+  '',
+  '@Module({',
+  '  providers: [apiUrlProvider, projectClientProvider],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const sharedProviderCode = [
+  "import { Module } from 'func'",
+  '',
+  "import { ProjectCommand } from './commands/project.command'",
+  "import { ProjectService } from './services/project.service'",
+  '',
+  '@Module({',
+  '  commands: [ProjectCommand],',
+  '  providers: [ProjectService],',
+  '  exports: [ProjectService],',
+  '})',
+  'export class ProjectModule {}',
+].join('\n')
+
+export const consumerModuleCode = [
+  "import { Injectable, Module } from 'func'",
+  '',
+  "import { ReleaseCommand } from './commands/release.command'",
+  "import { ProjectModule } from '../projects/project.module'",
+  "import { ProjectService } from '../projects/services/project.service'",
+  '',
+  '@Injectable()',
+  'class ReleaseService {',
+  '  constructor(private readonly projects: ProjectService) {}',
+  '}',
+  '',
+  '@Module({',
+  '  imports: [ProjectModule],',
+  '  commands: [ReleaseCommand],',
+  '  providers: [ReleaseService],',
+  '})',
+  'export class ReleaseModule {}',
+].join('\n')
+
+export const appModuleCode = [
+  "import { Module } from 'func'",
+  "import { HelpOption } from 'func/help'",
+  "import { ProjectModule } from './projects/project.module'",
+  "import { ReleaseModule } from './releases/release.module'",
+  '',
+  '@Module({',
+  '  imports: [ProjectModule, ReleaseModule],',
+  '  options: [HelpOption],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const configurableModuleCode = [
+  "import { Module } from 'func'",
+  "import { LogModule } from 'func/log'",
+  "import { ReleaseCommand } from './commands/release.command'",
+  "import { ReleaseService } from './services/release.service'",
+  '',
+  '@Module({',
+  '  imports: [LogModule.register()],',
+  '  commands: [ReleaseCommand],',
+  '  providers: [ReleaseService],',
+  '})',
+  'export class ReleaseModule {}',
+].join('\n')
+
+export const projectStructure = [
+  'src/',
+  '├─ app.module.ts',
+  '├─ index.ts',
+  '├─ projects/',
+  '│  ├─ project.module.ts',
+  '│  ├─ commands/',
+  '│  ├─ services/',
+  '│  └─ repositories/',
+  '├─ releases/',
+  '│  ├─ release.module.ts',
+  '│  ├─ commands/',
+  '│  └─ services/',
+  '└─ infrastructure/',
+  '   └─ storage/',
+  '      ├─ storage.module.ts',
+  '      └─ storage.service.ts',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="modules">
+
+A complete `func` application usually contains many collaborating objects: Commands accept user input, services implement business rules, repositories access data, and clients connect to external systems. Whenever one object needs another to do its work, there is a dependency. As an application grows, letting every object construct and organize its own dependencies quickly tangles business behavior with concrete implementations and initialization details.
+
+Dependency injection ([DI](https://en.wikipedia.org/wiki/Dependency_injection)) separates using a dependency from creating it. In `func`, a Command or service declares what it needs. The framework finds the corresponding Provider, creates an instance, and passes it in. Modules register the Commands and Providers owned by a feature and define the relationships between them. Business objects can focus on using capabilities without knowing how the entire dependency graph is assembled.
+
+## DI fundamentals
+
+The following small project command illustrates how DI works.
+
+### 1. Define a Provider
+
+Suppose `ProjectService` contains our business logic. `@Injectable()` marks the class as manageable by `func`:
+
+<CodeBlock
+  code={projectServiceCode}
+  filename="src/projects/services/project.service.ts"
+  lang="ts"
+/>
+
+Services are the most common kind of Provider. Repositories, clients, and other reusable capabilities can be Providers too.
+
+### 2. Declare a dependency
+
+`ProjectCommand` needs that business logic, so it declares the dependency in its constructor:
+
+<CodeBlock
+  code={projectCommandCode}
+  filename="src/projects/commands/project.command.ts"
+  lang="ts"
+/>
+
+The Command does not construct the service. Its constructor parameter is enough to state that a `ProjectService` is required to run it.
+
+### 3. Register the Provider
+
+Finally, register both the Command and Provider in a Module:
+
+<CodeBlock
+  code={projectModuleCode}
+  filename="src/projects/project.module.ts"
+  lang="ts"
+/>
+
+`commands` lists the Commands supplied by this Module, while `providers` lists the dependencies that may be injected within it. `func` now knows how to satisfy `ProjectCommand` with a `ProjectService`.
+
+The flow has three essential parts:
+
+1. `@Injectable()` makes `ProjectService` a manageable class.
+2. `ProjectCommand` requests `ProjectService` through its constructor.
+3. `ProjectModule` registers `ProjectService` in `providers`.
+
+When constructing `ProjectCommand`, `func` looks up a Provider by the `ProjectService` token, creates the instance, and passes it to the constructor. If the service has dependencies of its own, they are resolved recursively. This automatic graph resolution becomes particularly valuable in larger applications.
+
+## Standard Providers
+
+The most common registration is the class shorthand:
+
+```ts
+providers: [ProjectService]
+```
+
+It expands to:
+
+```ts
+providers: [
+  {
+    provide: ProjectService,
+    useClass: ProjectService,
+  },
+]
+```
+
+`provide` is the token used during lookup; `useClass` names the class to instantiate for that token. In the shorthand form, the class serves as both token and implementation.
+
+<Callout locale="en" title="Providers are created on demand">
+
+A class Provider is created at most once per invocation and then reused. Providers that the selected command never needs are not instantiated, and the next invocation receives fresh instances.
+
+</Callout>
+
+The standard form covers most services. Use a custom Provider when supplying configuration values, substituting an implementation, or constructing an object dynamically.
+
+## Custom Providers
+
+Every custom Provider still has a `provide` token, along with exactly one creation strategy:
+
+- `useValue` supplies an existing value directly.
+- `useClass` chooses a class implementation.
+- `useFactory` creates the value with a function.
+
+### Value Provider: useValue
+
+`useValue` works well for configuration, constants, existing objects, and test doubles:
+
+<CodeBlock
+  code={valueProviderCode}
+  filename="src/projects/providers/api-url.provider.ts"
+  lang="ts"
+/>
+
+After adding `apiUrlProvider` to a Module, injecting `API_URL` returns `'https://api.example.com'`:
+
+```ts
+@Module({
+  providers: [apiUrlProvider],
+})
+export class ProjectModule {}
+```
+
+`useValue` returns the exact value supplied at registration time and does not call a constructor. If that value is an object, the same object is reused across invocations.
+
+### Non-class tokens
+
+A class can act as its own runtime token, but TypeScript interfaces and string configuration values have no runtime class. `createToken<T>()` represents such dependencies:
+
+```ts
+export const API_URL = createToken<string>('API_URL')
+```
+
+Select a non-class token explicitly with `@Inject()`:
+
+<CodeBlock
+  code={tokenInjectionCode}
+  filename="src/projects/clients/project.client.ts"
+  lang="ts"
+/>
+
+Define tokens as constants and import the same object at both registration and injection sites. Two `createToken()` calls do not become equal merely because they use the same description.
+
+### Class Provider: useClass
+
+`useClass` maps one token to a concrete class implementation:
+
+<CodeBlock
+  code={classProviderCode}
+  filename="src/projects/project.module.ts"
+  lang="ts"
+/>
+
+Business code can depend on `PROJECT_STORAGE` without knowing that the current implementation is `FileProjectStorage`. Switching to an in-memory or remote store later changes only the Provider registration.
+
+The class referenced by `useClass` must have `@Injectable()`.
+
+### Factory Provider: useFactory
+
+Use a factory when a value must be created from configuration or other Providers:
+
+<CodeBlock
+  code={factoryProviderCode}
+  filename="src/projects/project.module.ts"
+  lang="ts"
+/>
+
+Tokens in `inject` are resolved in order and passed as arguments to `useFactory`. The factory may return a value directly or return a Promise.
+
+Providers are not limited to services. A factory may return a client, configuration object, function, or any other value the application needs.
+
+<Callout locale="en" title="Provider forms supported by Func">
+
+`func` supports class shorthand, `useClass`, `useValue`, and `useFactory`. Use `createToken()` for dependencies without a runtime class.
+
+</Callout>
+
+## How Modules organize dependencies
+
+A Module is a class decorated with `@Module()`. It groups Commands and Providers into one feature and decides which capabilities other Modules may use.
+
+| Field       | Purpose                                             |
+| ----------- | --------------------------------------------------- |
+| `commands`  | Commands owned by this Module.                      |
+| `providers` | Providers injectable within this Module.            |
+| `imports`   | Other Modules used by this Module.                  |
+| `exports`   | Provider tokens made available to other Modules.    |
+| `options`   | Fields or actions shared by multiple Commands.      |
+
+The Module class itself is usually empty. A small feature may need only `commands` and `providers`; omit fields that it does not use.
+
+## Share Providers between Modules
+
+A Provider is private to its declaring Module by default. If another feature needs `ProjectService`, `ProjectModule` must export it:
+
+<CodeBlock
+  code={sharedProviderCode}
+  filename="src/projects/project.module.ts"
+  lang="ts"
+/>
+
+The consumer then imports `ProjectModule`:
+
+<CodeBlock
+  code={consumerModuleCode}
+  filename="src/releases/release.module.ts"
+  lang="ts"
+/>
+
+`ReleaseService` may now inject `ProjectService`.
+
+`exports` is the public capability surface of a Module. Repositories, clients, and configuration used only inside a feature should remain private. Writing `export class` makes a symbol available to TypeScript imports; listing its token in `Module.exports` is what makes it injectable through another Module.
+
+Export a custom Provider by its token:
+
+```ts
+@Module({
+  providers: [apiUrlProvider],
+  exports: [API_URL],
+})
+export class ProjectModule {}
+```
+
+## Compose an application
+
+Every application has at least one root Module. That root commonly does little more than compose features:
+
+<CodeBlock code={appModuleCode} filename="src/app.module.ts" lang="ts" />
+
+Importing `ProjectModule` and `ReleaseModule` adds their Commands to the application. The root does not need to register those Commands or Providers again.
+
+<Callout locale="en" title="Modules do not create command paths">
+
+Modules organize code only. Paths still come from `@Command()` and `@Handler()`; a `ProjectModule` does not add a `project` prefix automatically.
+
+</Callout>
+
+Some reusable features accept configuration when imported. They commonly expose a `register()` method:
+
+<CodeBlock
+  code={configurableModuleCode}
+  filename="src/releases/release.module.ts"
+  lang="ts"
+/>
+
+`LogModule.register()` returns a configured Module. Consumers use its exported logging capability without needing to know how its internal Providers are constructed.
+
+## Organize Modules by business feature
+
+A Module should represent a complete business feature, not merely a file type:
+
+- `ProjectModule` owns project Commands, project services, and its internal repositories.
+- `ReleaseModule` owns release Commands and the release workflow.
+- `StorageModule` supplies storage shared by several business features.
+- `AppModule` composes those features.
+
+A feature-oriented directory layout keeps those boundaries visible:
+
+<CodeBlock code={projectStructure} filename="src/" />
+
+Changes to project behavior then remain mostly inside `projects/`, rather than requiring jumps among global `commands/`, `services/`, and `repositories/` directories.
+
+## Next steps
+
+- [Shared fields](/shared-fields) explains fields and actions shared by Commands in one Module.
+- [Runtime execution model](/runtime) shows when Providers are created and disposed.
+- [API reference](/apis) lists the complete Module and Provider types.
 
 </DocsLayout>

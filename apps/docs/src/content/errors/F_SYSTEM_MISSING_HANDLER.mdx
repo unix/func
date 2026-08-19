@@ -2,7 +2,7 @@
 code: F_SYSTEM_MISSING_HANDLER
 title: Missing command handler
 description: A command does not define any @Handler method.
-lastModified: '2026-08-08'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -34,7 +34,7 @@ A registered command must define at least one `@Handler()` method:
 
 ## What this error means
 
-func found no handler metadata on the selected command. A command that has handlers but cannot select one for the current invocation uses `F_SYSTEM_NO_MATCHING_HANDLER` instead.
+`func` found no Handler metadata on the selected Command. A Command that has Handlers but cannot select one for the current invocation uses `F_SYSTEM_NO_MATCHING_HANDLER` instead.
 
 ## How to fix it
 

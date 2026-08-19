@@ -1,0 +1,32 @@
+---
+code: F_SYSTEM_CIRCULAR_MODULE_IMPORT
+title: Circular Module import
+description: A dependency path in Module.imports leads back to a Module that is already being compiled.
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Module, createApp } from 'func'",
+  "import type { ModuleMetadata } from 'func'",
+  '',
+  'const first: ModuleMetadata = {}',
+  'const second: ModuleMetadata = { imports: [first] }',
+  'first.imports = [second]',
+  '',
+  '@Module({ imports: [first] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## Reproduction
+
+The Module import graph contains a cycle:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## How to fix it
+
+Follow `details.dependencyPath` to the import that returns to an earlier Module. Extract shared Providers into a third Module and let the original Modules import it in one direction instead of importing each other. When only a TypeScript type is needed, use a type-only import and do not add it to `Module.imports`.

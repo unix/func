@@ -1,15 +1,110 @@
 ---
-title: Shared Fields
-description: Share fields and actions across commands through modules.
+title: Shared fields
+description: Share fields and actions through Modules, with clear scope and explicit override rules.
 lastModified: '2026-08-16'
 ---
 
+import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-<DocsLayout frontmatter={frontmatter} page="shared-fields">
+export const moduleOptionsCode = [
+  "import { Flag, Module, Option, Value } from 'func'",
+  "import { DeployCommand, StatusCommand } from './commands'",
+  '',
+  '@Option()',
+  'export class DeployOptions {',
+  '  @Flag()',
+  '  json = false',
+  '',
+  '  @Value()',
+  "  profile: string = 'default'",
+  '}',
+  '',
+  '@Module({',
+  '  commands: [DeployCommand, StatusCommand],',
+  '  options: [DeployOptions],',
+  '})',
+  'export class DeployModule {}',
+].join('\n')
 
-This English chapter is a placeholder. It will cover module-scoped field options, action options, scope boundaries, and explicit overrides after the Chinese documentation is finalized.
+export const moduleActionCode = [
+  "import { Handler, Module, OptionCommand, Stdout } from 'func'",
+  "import type { Writable } from 'node:stream'",
+  '',
+  "@OptionCommand({ name: 'version', alias: 'v', description: 'Print version' })",
+  'class VersionOption {',
+  '  @Handler()',
+  '  run(@Stdout() stdout: Writable) {',
+  "    stdout.write('1.0.0\\n')",
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  options: [VersionOption],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
 
-The complete draft is currently available in [Chinese](/zh-cn/shared-fields).
+export const overrideCode = [
+  "import { Flag, Override } from 'func'",
+  '',
+  'export class BuildCommand {',
+  '  @Override()',
+  '  @Flag()',
+  '  verbose = false',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="shared-fields">
+
+Flags and values needed by only one command belong directly on that Command. Promote them to a Module only when several commands genuinely share the same options or when the application needs an action available across commands. Start with [Field options](/options), then use the scope and override rules here as needed.
+
+A Module's `options` array accepts two kinds of classes:
+
+| Requirement                                      | Declaration        | Runtime effect                                      |
+| ------------------------------------------------ | ------------------ | --------------------------------------------------- |
+| Share the same fields and values across commands | `@Option()`        | Participate in parsing, binding, and validation.    |
+| Add an independent action such as `--version`    | `@OptionCommand()` | Select its own Handler instead of the business action. |
+
+## Share options through a Module
+
+When several Commands declared directly by one feature need the same CLI options, move those fields into an `@Option()` class and register it in the Module's `options`:
+
+<CodeBlock
+  code={moduleOptionsCode}
+  filename="src/deploy/deploy.module.ts"
+  lang="ts"
+/>
+
+An option class is an ordinary DI-managed dependency. Its declaring Module and directly owned Commands may inject `DeployOptions`, and it may implement `onInit` and `onDispose` like any other Provider. Fields are bound before `onInit`, so both hooks and Handlers can read the current invocation's values.
+
+Scope depends on where the class is registered:
+
+| Registration       | Fields apply to                         | Injectable from                         |
+| ------------------ | --------------------------------------- | --------------------------------------- |
+| Root `AppModule`   | Every command node in the application.  | Any visible location in the application. |
+| Feature Module     | Commands declared directly by it.       | That Module and its direct Commands.    |
+
+Options on a feature Module do not propagate through `imports`, nor do they apply to Commands owned only by a child Module. Put truly global options on the root Module and keep feature-specific options beside the Commands that consume them.
+
+## Provide action options through a Module
+
+`@OptionCommand()` binds an option to an independent Handler. It is intended for mutually exclusive actions such as `--version` or diagnostics. Register the class through a Module's `options`; the class must contain exactly one default `@Handler()`:
+
+<CodeBlock code={moduleActionCode} filename="src/app.module.ts" lang="ts" />
+
+An action registered on the root Module is available at every command node. One registered on a feature Module applies only to Commands that feature owns directly. Choosing the action skips field validation for the current command, so it does not fail simply because a required business field is missing.
+
+Action options resemble field options at the CLI surface, but they have different jobs. `@Flag()` supplies a boolean to the already selected business action; `@OptionCommand()` replaces that business action, and an invocation can select at most one action option. To add `--help`, use the dedicated [Help](/capabilities/help) feature.
+
+## Override an outer option explicitly
+
+Within one Command scope, root options, owner-Module options, Command options, and Handler flags cannot use the same public name or alias by default. A collision raises `F_SYSTEM_OPTION_OVERRIDE_REQUIRED`, preventing an inner field from silently hiding an outer one.
+
+If a Command field or feature `@Option()` field is intentionally replacing an outer field, add `@Override()` beside its one field-option decorator:
+
+<CodeBlock code={overrideCode} filename="src/commands/build.command.ts" lang="ts" />
+
+After the override, the public token binds only to the inner field; the same-named field on the outer option Provider retains its default. A feature `@OptionCommand()` that replaces a root action uses its `overrideAll: true` option. Reserve overrides for genuine scope-specific replacements; rename ordinary duplicate declarations.
 
 </DocsLayout>

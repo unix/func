@@ -1,0 +1,31 @@
+---
+code: F_SYSTEM_INVALID_PROVIDER
+title: Invalid Provider definition
+description: A class or explicit Provider object in Module.providers does not satisfy the DI registration rules.
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Module, createApp } from 'func'",
+  '',
+  'class ProjectService {}',
+  '',
+  '@Module({ providers: [ProjectService] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## Reproduction
+
+A class registered directly must have its own `@Injectable()` metadata:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## How to fix it
+
+Add `@Injectable()` to the class. A subclass of an injectable base class still needs its own decorator. A Provider object must contain a valid `provide` token and exactly one of `useClass`, `useValue`, or `useFactory`. `useClass` also requires an injectable class, and `useFactory.inject` may contain valid tokens only.
+
+`Context` and `Args` are system values and cannot be replaced through a Module Provider or test override. Supply their invocation environment through `BootstrapOptions`, `Invoker.invoke`, or `TestingApp.invoke`.

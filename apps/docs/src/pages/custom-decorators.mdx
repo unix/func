@@ -1,5 +1,5 @@
 ---
-title: Custom Decorators
+title: Custom decorators
 description: Use createValueDecorator to turn one string input into a URL or another domain value.
 lastModified: '2026-08-17'
 ---
@@ -39,13 +39,13 @@ export const commandCode = [
   '}',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} page="custom-decorators">
+<DocsLayout frontmatter={frontmatter} locale="en" page="custom-decorators">
 
-`@Value()` handles built-in string and finite-number inputs. When an application needs a `URL`, `Date`, or domain value, use `createValueDecorator()` to keep conversion at the input boundary instead of repeating it in every handler.
+`@Value()` is the common extractor for built-in strings and finite numbers. Applications often have domain-specific input rules of their own. `createValueDecorator()` moves those rules to a reusable option boundary, avoiding repetitive conversion code in every Command.
 
 ## Create a URL decorator
 
-`createValueDecorator()` accepts a synchronous transform. func always passes it one raw string and assigns its return value to the decorated field:
+`createValueDecorator()` accepts a synchronous transform. `func` always passes it one raw string and assigns its return value to the decorated field:
 
 <CodeBlock
   code={decoratorCode}
@@ -53,7 +53,8 @@ export const commandCode = [
   lang="ts"
 />
 
-This `@Url()` both declares a single-value CLI option and converts a valid HTTP(S) string into a standard `URL` object. If the transform throws, func creates an `F_RUNTIME_VALIDATION` error, preserves the original error as its cause, and does not invoke the handler.
+- It declares a single-value CLI option and converts a valid HTTP(S) string into a standard `URL` object.
+- If the transform throws, `func` creates an `F_RUNTIME_VALIDATION` error, preserves the original error as its `cause`, and does not invoke the Handler.
 
 ## Use it in a command
 
@@ -72,14 +73,14 @@ Do not add `@Value()` to the same field. `@Url()` already declares the single-va
 
 ## Transform timing and defaults
 
-The transform runs once only when the user explicitly supplies the option. When it is omitted, func preserves the field initializer or `undefined`, so a default must already use the output type:
+The transform runs once only when the user explicitly supplies the option. When it is omitted, `func` preserves the field initializer or `undefined`, so a default must already use the output type:
 
 ```ts
 @Url()
 endpoint = new URL('https://api.example.com')
 ```
 
-Do not use a raw string as the default because func does not transform defaults. `@Required()` and field validators run after transformation, so `@ValueValidate()` receives the `URL`, not the raw string.
+Do not use a raw string as the default because `func` does not transform defaults. `@Required()` and field validators run after transformation, so `@ValueValidate()` receives the `URL`, not the raw string.
 
 Transforms must be synchronous and should be pure. Put network access, filesystem work, and other side effects in a service or handler. Returning a Promise creates a validation error.
 

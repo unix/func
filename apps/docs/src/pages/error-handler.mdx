@@ -1,65 +1,61 @@
 ---
-title: Errors and Lifecycle
-description: Route failures with exception filters and release resources with lifecycle hooks.
-lastModified: '2026-08-17'
+title: Errors and lifecycle
+description: Understand Func's built-in error pipeline and resource lifecycle.
+lastModified: '2026-08-18'
 ---
 
+import Callout from '@/components/content/callout.astro'
 import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-export const commandFilterCode = [
-  "import { Catch, Command, Handler, UseFilters } from 'func'",
-  "import type { Exception, ExceptionFilter } from 'func'",
+export const commandOnErrorCode = [
+  "import { Command, Handler } from 'func'",
+  "import type { Context, Exception, OnError } from 'func'",
   '',
-  '@Catch()',
-  'class PublishFilter implements ExceptionFilter {',
-  '  catch(exception: Exception) {',
-  '    console.error(`Publish failed: ${exception.message}`)',
-  '  }',
-  '}',
-  '',
-  '@UseFilters(PublishFilter)',
   "@Command('publish')",
-  'export class PublishCommand {',
+  'export class PublishCommand implements OnError {',
   '  @Handler()',
   '  run() {',
   "    throw new Error('Registry is unavailable')",
   '  }',
+  '',
+  '  onError(exception: Exception, context: Context) {',
+  '    context.io.stderr.write(`Publish failed: ${exception.message}\\n`)',
+  '  }',
   '}',
 ].join('\n')
 
-export const moduleFilterCode = [
-  "import { APP_FILTER, Catch, Module } from 'func'",
-  "import type { Exception, ExceptionFilter } from 'func'",
+export const moduleOnErrorCode = [
+  "import { Module } from 'func'",
+  "import type { Context, Exception, OnError } from 'func'",
   "import { PublishCommand } from './commands/publish.command'",
-  '',
-  '@Catch()',
-  'class AppFilter implements ExceptionFilter {',
-  '  catch(exception: Exception) {',
-  '    console.error(exception.message)',
-  '  }',
-  '}',
   '',
   '@Module({',
   '  commands: [PublishCommand],',
-  '  providers: [{ provide: APP_FILTER, useClass: AppFilter }],',
   '})',
-  'export class AppModule {}',
+  'export class AppModule implements OnError {',
+  '  onError(exception: Exception, context: Context) {',
+  '    context.io.stderr.write(`${exception.message}\\n`)',
+  '  }',
+  '}',
 ].join('\n')
 
 export const jsonErrorCode = [
-  "import { Catch } from 'func'",
-  "import type { Exception, ExceptionFilter } from 'func'",
+  "import { Module } from 'func'",
+  "import type { Exception, OnError } from 'func'",
+  "import { JsonOutput, JsonOutputModule } from 'func/json-output'",
   '',
-  '@Catch()',
-  'export class JsonErrorFilter implements ExceptionFilter {',
-  '  catch(exception: Exception) {',
-  '    return {',
+  '@Module({ imports: [JsonOutputModule] })',
+  'export class AppModule implements OnError {',
+  '  constructor(private readonly output: JsonOutput) {}',
+  '',
+  '  onError(exception: Exception) {',
+  '    this.output.json({',
   '      error: {',
   '        code: exception.code,',
   '        message: exception.message,',
   '      },',
-  '    }',
+  '    })',
   '  }',
   '}',
 ].join('\n')
@@ -80,60 +76,68 @@ export const lifecycleCode = [
   '}',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} page="error-handler">
+<DocsLayout frontmatter={frontmatter} locale="en" page="error-handler">
 
-func uses exception filters for cross-cutting failure handling and keeps `onInit` and `onDispose` focused on resource lifecycle. Command and module `onError` methods are no longer part of the runtime model.
+Without any additional handling, `func` applies its built-in Exception behavior. Applications may redirect those failures to the appropriate stream or suppress them when their protocol requires it.
 
 ## Exceptions and defaults
 
-Application code may throw native errors or the public `Exception` class. `Exception` exposes stable `code`, `scope`, `details`, `message`, and `cause` fields, but it does not define a JSON wire format.
+The built-in `Exception` exposes stable `code`, `scope`, `details`, `message`, and `cause` fields without defining a JSON wire format. Application code may follow that structure or throw an ordinary native `Error`.
 
-Correctable CLI input failures and ordinary handler errors set exit code `1` and use a minimal one-line stderr route by default. The fallback does not add color, tables, or other UI. Definition failures and provider initialization failures continue to escape unless an application filter explicitly handles them.
+Correctable CLI input failures and ordinary Handler errors set exit code `1` and use a minimal one-line stderr route by default. The fallback adds no color, border, or table. Framework failures such as system-definition errors and Provider initialization errors (`F_SYSTEM`) continue to throw unless an application filter handles them explicitly.
 
-Error scopes are `F_SYSTEM` and `F_RUNTIME`; the former `F_RUNTIME_PRINT` scope is now part of `F_RUNTIME`.
+## Catch and handle errors
 
-## Command filters
-
-`@Catch()` matches every exception. It can also receive an `ErrorScope`, a complete error code, or an Error class. Bind a filter statically with `@UseFilters()`:
+A Command or Module implements `OnError` to handle failures in its own scope. `onError` has a fixed signature rather than being a lifecycle method, and parameter decorators are not used: the framework always passes the `Exception` and current invocation `Context`.
 
 <CodeBlock
-  code={commandFilterCode}
+  code={commandOnErrorCode}
   filename="src/commands/publish.command.ts"
   lang="ts"
 />
 
-Returning handles the failure. Throwing continues with the next outer filter. A filter may write directly to stdout or stderr as an escape hatch for custom UI, but its normal role is matching, routing, and producing structured results.
+Returning handles the failure; the return value is ignored. Throwing continues with the next outer `onError`, without re-entering the current instance.
 
-## Module and application scope
+### Error propagation order
 
-Register DI-managed filters through multi-provider tokens:
+For a selected Command, failures propagate in this order:
 
-- `MODULE_FILTER` applies to the direct owner module.
-- `APP_FILTER` is application-wide wherever its provider is declared, including parse failures with no selected command.
-- Order is command, owner module, application, then the func fallback.
+- The current Command, including an Option Command or Missing Command.
+- The Module that directly owns the Command.
+- The root Module.
 
-<CodeBlock code={moduleFilterCode} filename="src/app.module.ts" lang="ts" />
+A Module's own `onInit` or `onDispose` failure starts at that Module and travels toward the root. A business error thrown by a Service follows the Command or Module that called it, while a Service lifecycle failure begins at the Service's owner Module. Parse failures that occur before command selection reach the root Module only.
 
-Filter classes are created by DI and can inject visible providers, `Context`, and managed streams.
+<CodeBlock code={moduleOnErrorCode} filename="src/app.module.ts" lang="ts" />
 
-## Returning JSON error data
+During an early parse failure, `Context` may not contain a resolved command. Check `context.invocation.resolved` first. When it is `false`, do not read command arguments; when `true`, parsed information is available from `context.invocation.args`, `context.command`, and `context.options`.
 
-func does not define an error JSON schema or serialize `Exception` automatically. Return an ordinary value from a filter. An imported `JsonOutputModule` handles it through the same result chain as a handler return:
+### Put errors in a JSON response
+
+func does not define an error JSON schema or serialize `Exception` automatically. A module that imports `JsonOutputModule` can inject `JsonOutput` and explicitly send the fields the application permits from `onError`:
 
 <CodeBlock
   code={jsonErrorCode}
-  filename="src/filters/json-error.filter.ts"
+  filename="src/app.module.ts"
   lang="ts"
 />
 
-The application decides whether to expose details, causes, or stacks.
+The application decides whether to expose `details`, `cause`, or a stack, and it remains free to design its own error code schema. This avoids locking the application into a framework protocol or disclosing internal information unexpectedly.
+
+See [JSON output](/capabilities/json-output) for feature setup, stdout behavior, and serialization boundaries.
 
 ## Lifecycle
 
-`onInit` and `onDispose` remain resource lifecycle hooks:
+`onInit` and `onDispose` are the resource lifecycle for `func` applications. Commands, Modules, and Services may use them to initialize resources, release them, or record performance data:
 
 <CodeBlock code={lifecycleCode} filename="src/app.module.ts" lang="ts" />
 
-`onDispose()` receives no invocation result and its return value is ignored. Activated commands, modules, and providers are released in reverse order. If a hook throws or rejects, Runtime reports the lifecycle fault, continues the remaining hooks, and preserves the settled result, exit code, and output. Lifecycle faults do not enter exception filters.
+Lifecycle methods do not receive the invocation result, and their return values are ignored.
+
+<Callout title="onDispose failures also enter onError" locale="en" variant="tip">
+
+The framework completes cleanup for the remaining instances before sending each `onDispose` failure through its matching `onError` chain. Output streams are committed only after these steps, so `onError` can still control error output through `JsonOutput`, stdout, or stderr.
+
+</Callout>
 
 </DocsLayout>

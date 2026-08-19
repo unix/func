@@ -1,10 +1,20 @@
 ---
 code: F_SYSTEM_INTERNAL_INVARIANT
-title: Internal framework invariant failed
-description: Validated framework metadata reached an impossible internal state.
+title: Inconsistent internal runtime state
+description: The Func compiler or argument parser reached a state that the public API contract should make impossible.
 lastModified: '2026-08-17'
 ---
 
+## What this error means
+
+External declaration validation succeeded, but a later command-graph, field-option, or argv-parser phase could not find data it expects. This is not an ordinary user-input failure and should not be converted into a business error through `onError`.
+
+Depending on where it occurs, details may contain:
+
+- `path`: a registered path missing from the command graph.
+- `property`: a field missing internal array type information.
+- `option`: a mismatch between the parser plan and the option value being assigned.
+
 ## How to fix it
 
-Upgrade func to the latest compatible version and retry. If the error remains, report it with the error message, stack trace, func version, and a minimal reproduction.
+First ensure that all `func` subpath packages come from the same version, then reinstall dependencies. If the failure remains reproducible, report it with the full stack, error details, `func` version, and the smallest Module/Command declaration that triggers it. Do not depend on this error's message or try to repair internal state from application code.

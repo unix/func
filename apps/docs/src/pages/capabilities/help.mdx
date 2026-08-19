@@ -1,0 +1,140 @@
+---
+title: Help
+description: Generate structured help from command metadata, with hooks for custom content and formatting.
+lastModified: '2026-08-19'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import TerminalDemo from '@/components/demos/terminal-demo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const setupCode = [
+  "import { Module } from 'func'",
+  "import { HelpOption } from 'func/help'",
+  "import { commands } from './commands'",
+  '',
+  '@Module({',
+  '  commands,',
+  '  options: [HelpOption],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const customHelpCode = [
+  "import { Module } from 'func'",
+  "import { HelpOption } from 'func/help'",
+  "import type { HelpMeta } from 'func/help'",
+  '',
+  'class AppHelp extends HelpOption {',
+  '  override transform(meta: HelpMeta): HelpMeta {',
+  '    return {',
+  '      ...meta,',
+  "      title: meta.title ? `ship ${meta.title}` : 'ship',",
+  '    }',
+  '  }',
+  '}',
+  '',
+  '@Module({ options: [AppHelp] })',
+  'export class AppModule {}',
+].join('\n')
+
+export const commandOverrideCode = [
+  "import { Command, Flag, Handler, Override, Stdout } from 'func'",
+  "import type { Writable } from 'node:stream'",
+  '',
+  "@Command('deploy')",
+  'class DeployCommand {',
+  '  @Override()',
+  "  @Flag({ alias: 'h', description: 'show deploy help' })",
+  '  help = false',
+  '',
+  '  @Handler()',
+  '  run(@Stdout() stdout: Writable) {',
+  '    if (this.help) {',
+  "      stdout.write('🚀 ship deploy\\n\\nUsage: ship deploy [--help]\\n')",
+  '      return',
+  '    }',
+  '',
+  "    stdout.write('Deploying...\\n')",
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/help">
+
+`func/help` adds a `--help` action generated from the current command graph. It assembles the metadata already declared by Commands, Handlers, and field options, so registering it is normally all the setup you need.
+
+  <Callout locale="en" title="Import it only when needed" variant="note">
+
+The help feature is exported from `func/help`, not the main `func` entry point. Register it only in applications that need help output.
+
+  </Callout>
+
+## Enable `--help`
+
+Register `HelpOption` in the root Module's `options`:
+
+<CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
+
+<TerminalDemo
+  command="ship --help"
+  demo="guide-help"
+  locale="en"
+  rows={8}
+  sourceUrl="/demos/guide-help.ts"
+/>
+
+A root-level option action is visible at every command node, so `ship --help`, `ship deploy --help`, and similar invocations show help for the selected node. Choosing the help action also bypasses required-field validation for the business command at that node.
+
+## Complete your command metadata
+
+The default output is assembled from existing declarations:
+
+| Content                    | Source                                                   |
+| -------------------------- | -------------------------------------------------------- |
+| Command paths and aliases  | `@Command()` and `@Handler(path)`                        |
+| Command descriptions       | The Command or Handler `description`                     |
+| Option names and aliases   | `@Flag()`, `@Value()`, and the other field decorators    |
+| Requirements and constraints | `@Required()`, `@Enum()`, `@DependsOn()`, `@Exclusive()` |
+| Deprecation notices        | Command `deprecated` metadata or `@Deprecated()`         |
+
+If a description is missing from the help screen, add it to the declaration that owns the item. Help, completion, and runtime metadata will then share the same source of truth.
+
+## Customize the help content
+
+Extend `HelpOption` and override `transform(meta, context)` to change the structured `HelpMeta` before it is formatted:
+
+<CodeBlock code={customHelpCode} filename="src/app.module.ts" lang="ts" />
+
+`transform` may return either immediately or as a Promise. `meta` and its collections are read-only; return a new object to adjust the title, ordering, descriptions, commands, or options. `context` exposes the current `Args`, runtime `Context`, and remaining positional input.
+
+`HelpFormatter` aligns output by visible character width, so ANSI colors can safely remain in titles and option names.
+
+## Override help for one command
+
+A root-level `HelpOption` applies to every command by default. When one Command needs completely different help, declare a field `@Flag()` with the same name and let its default Handler print the custom text:
+
+<CodeBlock
+  code={commandOverrideCode}
+  filename="src/commands/deploy.command.ts"
+  lang="ts"
+/>
+
+`@Override()` explicitly replaces the inherited global help option with `DeployCommand.help`. As a result, `ship deploy --help` enters the default `DeployCommand` Handler and prints the custom content, while commands such as `ship status --help` continue to use the root `HelpOption`.
+
+This example injects stdout for the current invocation with `@Stdout()` and writes a user-defined string directly; it does not depend on the help context or formatter. `help` is an ordinary field flag rather than a separate action, so the default Handler should check it first and return immediately. Other fields on the Command are still bound and validated as usual. If no root `HelpOption` is registered, there is no token conflict and `@Override()` is unnecessary.
+
+The override remains local to this Command and does not require another `@OptionCommand()`.
+
+## API reference
+
+| API                                   | Purpose                                                       |
+| ------------------------------------- | ------------------------------------------------------------- |
+| `HelpOption`                          | A ready-to-register `--help` Module action.                   |
+| `HelpOption.transform(meta, context)` | Transform structured help before default formatting.          |
+| `HelpContext.createMeta()`            | Collect `HelpMeta` for the current command node.              |
+| `HelpFormatter.format(meta)`          | Format `HelpMeta` as plain text.                              |
+| `HelpMeta`                            | Read-only title, path, usage, Command, and option metadata.   |
+
+</DocsLayout>

@@ -1,10 +1,14 @@
 ---
 code: F_SYSTEM_INVALID_APPLICATION_FEATURE
 title: Invalid application feature
-description: A feature was not created by a func feature factory.
+description: A value in createApp.features was not created by a Func feature factory.
 lastModified: '2026-08-17'
 ---
 
+## What this error means
+
+`createApp({ features })` accepts only `ApplicationFeature` objects recognized by `func`. A plain object, Module, Provider, or value forced to `ApplicationFeature` through a type assertion has no internal feature definition and cannot participate in bootstrap. The invalid value is available in `details.feature`.
+
 ## How to fix it
 
-Use the feature object returned by APIs such as `withCompletion()` or `withProcessSignals()`. Do not construct or imitate feature objects manually.
+Use a factory exported by the relevant optional entry, such as `withCompletion({ bin: 'ship' })` or `withProcessSignals()`. Put Modules in `Module.imports` and Providers in `Module.providers`; do not hand-write or copy feature objects.

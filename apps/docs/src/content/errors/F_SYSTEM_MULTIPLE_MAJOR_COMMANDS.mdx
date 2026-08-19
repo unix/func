@@ -2,13 +2,13 @@
 code: F_SYSTEM_MULTIPLE_MAJOR_COMMANDS
 title: Multiple major commands
 description: The application registers more than one command as its root command.
-lastModified: '2026-08-08'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { CommandMajor, Handler, createApp } from 'func'",
+  "import { CommandMajor, Handler, Module, createApp } from 'func'",
   '',
   '@CommandMajor()',
   'class FirstMajor {',
@@ -22,11 +22,14 @@ export const reproductionCode = [
   '  run() {}',
   '}',
   '',
-  'createApp({ commands: [FirstMajor, SecondMajor] })',
+  '@Module({ commands: [FirstMajor, SecondMajor] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 export const fixCode = [
-  "import { Command, CommandMajor, Handler, createApp } from 'func'",
+  "import { Command, CommandMajor, Handler, Module, createApp } from 'func'",
   '',
   '@CommandMajor()',
   'class FirstMajor {',
@@ -40,7 +43,10 @@ export const fixCode = [
   '  run() {}',
   '}',
   '',
-  'createApp({ commands: [FirstMajor, SecondCommand] })',
+  '@Module({ commands: [FirstMajor, SecondCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 ## Reproduction

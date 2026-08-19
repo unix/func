@@ -1,10 +1,14 @@
 ---
 code: F_SYSTEM_INVALID_COMPLETION_SHELL
 title: Invalid completion shell
-description: Completion source generation received an unsupported shell.
-lastModified: '2026-08-17'
+description: completionSource() received an unsupported shell name.
+lastModified: '2026-08-19'
 ---
+
+## What this error means
+
+`completionSource(bin, shell)` can generate adapters only for `bash`, `elvish`, `fish`, `nushell`, `powershell`, and `zsh`. Passing another value from JavaScript, configuration, or a type assertion raises this error. The original value is stored in `details.shell`.
 
 ## How to fix it
 
-Use one of the supported shell identifiers: `bash`, `fish`, `powershell`, or `zsh`.
+Normalize the shell name to a supported lowercase value and reject unknown input in custom integrations. On Windows, the valid value is `powershell`, not `pwsh` or `cmd`. For the standard installation flow, use the commands in [Shell completion](/capabilities/completion) directly.

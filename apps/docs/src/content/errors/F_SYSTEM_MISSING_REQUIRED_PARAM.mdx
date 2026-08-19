@@ -2,7 +2,7 @@
 code: F_SYSTEM_MISSING_REQUIRED_PARAM
 title: Missing required decorator parameter
 description: A command or option declaration omits a required name or another standalone value.
-lastModified: '2026-08-08'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -14,19 +14,17 @@ export const reproductionCode = [
   'class HelpCommand {}',
 ].join('\n')
 
-export const fixCode = ["@Command('help')", 'class HelpCommand {}'].join(
-  '\n',
-)
+export const fixCode = ["@Command('help')", 'class HelpCommand {}'].join('\n')
 
 ## Reproduction
 
-A required command name is empty:
+A required command path is empty:
 
 <CodeBlock code={reproductionCode} filename="src/help.command.ts" lang="ts" />
 
 ## What this error means
 
-A decorator cannot produce complete command metadata from the supplied parameters. The error `details.key` identifies the missing standalone value; for the example above it is `name`.
+A decorator cannot produce complete command metadata from the supplied parameters. `details.key` identifies the missing value; in the example above it is `path`.
 
 ## How to fix it
 

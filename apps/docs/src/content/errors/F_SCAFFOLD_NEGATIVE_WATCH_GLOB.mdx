@@ -1,10 +1,10 @@
 ---
 code: F_SCAFFOLD_NEGATIVE_WATCH_GLOB
 title: Negative watch glob is unsupported
-description: funcgo watch mode received a glob beginning with a negation.
+description: A funcgo watch entry uses an exclusion glob beginning with !.
 lastModified: '2026-08-17'
 ---
 
 ## How to fix it
 
-Pass positive watch paths or globs with `--watch-path`. Remove leading `!` patterns and narrow the positive pattern instead.
+Pass a positive file or glob to `--watch`. If files must be excluded, handle that in project configuration rather than using a negative pattern as the watch entry.

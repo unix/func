@@ -1,0 +1,260 @@
+---
+title: Testing
+description: Choose the right Func test utility for Commands, CLI processes, and terminal interactions.
+lastModified: '2026-08-18'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const runTestCommands = {
+  npm: 'npm test',
+  yarn: 'yarn test',
+  pnpm: 'pnpm test',
+  bun: 'bun run test',
+}
+
+export const basicTestingCode = [
+  "import { createTestingApp } from 'func/testing'",
+  "import { expect, test } from 'vitest'",
+  "import { AppModule } from '../../src/app.module'",
+  '',
+  'const app = createTestingApp(AppModule)',
+  '',
+  "test('greet should support a name', async () => {",
+  "  const result = await app.invoke(['greet', '--name', 'Ada'])",
+  '',
+  '  expect(result.exitCode).toBe(0)',
+  "  expect(result.stdout).toContain('Hello, Ada!')",
+  "  expect(result.stderr).toBe('')",
+  '})',
+].join('\n')
+
+export const processEnvCode = [
+  "const result = await app.invoke(['deploy'], {",
+  '  env: {',
+  '    ...process.env,',
+  "    NODE_ENV: 'test',",
+  '  },',
+  '})',
+].join('\n')
+
+export const testingCode = [
+  "import { createTestingApp } from 'func/testing'",
+  "import { AppModule } from '../src/app.module'",
+  '',
+  'const app = createTestingApp(AppModule)',
+  "const result = await app.invoke(['deploy', '--env', 'test'], {",
+  "  cwd: '/workspace',",
+  "  env: { ...process.env, NODE_ENV: 'test' },",
+  "  stdin: 'yes',",
+  '})',
+  '',
+  'expect(result.exitCode).toBe(0)',
+  "expect(result.stdout).toContain('deployed')",
+  "expect(result.stderr).toBe('')",
+  'expect(result.error).toBeUndefined()',
+].join('\n')
+
+export const overrideCode = [
+  "import { createTestingApp } from 'func/testing'",
+  "import { AppModule } from '../src/app.module'",
+  "import { FakeRegistryService, RegistryService } from './registry.fixture'",
+  '',
+  'const app = createTestingApp(AppModule, {',
+  "  appName: 'ship',",
+  '  overrides: [',
+  '    {',
+  '      provide: RegistryService,',
+  '      useClass: FakeRegistryService,',
+  '    },',
+  '  ],',
+  '})',
+].join('\n')
+
+export const scopedOverrideCode = [
+  'const app = createTestingApp(AppModule, {',
+  '  overrides: [',
+  '    {',
+  '      module: DeployModule,',
+  '      provider: {',
+  '        provide: RegistryService,',
+  '        useClass: FakeRegistryService,',
+  '      },',
+  '    },',
+  '  ],',
+  '})',
+].join('\n')
+
+export const fixtureCode = [
+  "import { withProjectFixture } from 'func/testing/fixtures'",
+  '',
+  'await withProjectFixture(',
+  '  {',
+  '    files: {',
+  "      'package.json': JSON.stringify({ name: 'demo' }),",
+  "      'src/config.json': JSON.stringify({ region: 'test' }),",
+  '    },',
+  '  },',
+  '  async project => {',
+  "    expect(await project.read('src/config.json')).toContain('test')",
+  "    await project.write('generated/result.txt', 'ok')",
+  '  },',
+  ')',
+].join('\n')
+
+export const cliCode = [
+  "import { resolve } from 'node:path'",
+  "import { createCliRunner } from 'func/testing/cli'",
+  '',
+  "const packageRoot = resolve(import.meta.dirname, '..')",
+  'const cli = createCliRunner({ packageRoot })',
+  "const result = await cli.run(['deploy'], {",
+  '  cwd: packageRoot,',
+  "  env: { ...process.env, NODE_ENV: 'test' },",
+  "  stdin: 'yes',",
+  '})',
+  '',
+  'expect(result.exitCode).toBe(0)',
+  "expect(result.stdout).toContain('deployed')",
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/testing">
+
+Testing is a core part of a command-line project. Good automation can reproduce interaction environments, argument parsing, and process behavior so the distributed CLI continues to behave as intended.
+
+`func/testing` supplies the common test entry points and fixtures without requiring an extra application interface or environment shim. Tests can import the real `app.module` directly.
+
+## Choose a test type
+
+- **Command behavior tests:** Use `func/testing` to invoke the full command inside the test process. This covers dispatch, parsing, Providers, output, and error handling without a prior build, and should be the default for everyday command behavior.
+- **CLI process tests:** Use `func/testing/cli` to launch the built package bin. This covers the real process boundary, startup environment, working directory, exit codes, and signals—usually for validating built artifacts or child-process behavior.
+- **Terminal interaction tests:** Connect `func/testing/pty` to the project's PTY tool when testing prompts, TTY detection, terminal size, resize events, or other interactive behavior. A PTY is unnecessary when ordinary stdout and stderr pipes are sufficient.
+
+`func/testing/fixtures` is a composable project-fixture utility rather than another test type. Both command tests and CLI process tests can use it when they need real file operations, code generation, or an isolated working directory. Provider overrides likewise isolate dependencies within another test type.
+
+Pure functions, individual Services, validators, and formatters that do not depend on `func` can remain ordinary Vitest unit tests. They do not need a framework wrapper when no command entry point is involved.
+
+## Add your first command test
+
+Create a test under `tests/commands`, build a testing application from the root Module, pass the arguments a user would type after the executable name, and assert the exit code and output:
+
+<CodeBlock
+  code={basicTestingCode}
+  filename="tests/commands/greet-name.test.ts"
+  lang="ts"
+/>
+
+Run the template's `test` script:
+
+<CodeBlock
+  code={runTestCommands.npm}
+  lang="shell"
+  packageManagerCommands={runTestCommands}
+/>
+
+No build or child process is involved, so this style is fast enough for most command behavior. Every `app.invoke()` creates an isolated invocation context; add as many argument combinations, invalid inputs, and output assertions as the command requires.
+
+<Callout locale="en" title="app.invoke is isolated" variant="caution">
+`func/testing` supports concurrent invocations and isolates each one automatically. Every call creates its own runtime container, IO, and dependency graph. There is no child process, serial queue, or shared global runtime container, so tests may run several commands with `Promise.all`.
+</Callout>
+
+## Write command behavior tests
+
+Although each `invoke` receives a fresh runtime container, `createTestingApp` compiles the Module only once. A large test suite can therefore reuse the compiled definition without paying the compilation cost for every case.
+
+<CodeBlock code={testingCode} filename="tests/deploy.test.ts" lang="ts" />
+
+The first argument to `invoke` is argv without the executable name. The second configures that call:
+
+| Option   | Purpose                                                         |
+| -------- | --------------------------------------------------------------- |
+| `cwd`    | Set `Context.cwd` without calling `process.chdir`.              |
+| `env`    | Set the complete `Context.env`; `process.env` is not inherited. |
+| `stdin`  | Supply standard input for this invocation.                      |
+| `signal` | Pass an `AbortSignal` to the command.                            |
+
+### Process-environment safety
+
+Tests do not capture or inherit ambient process state by default. Both the testing Invoker and CLI runner start from safe values:
+
+- env: an empty object `{}`, with no automatic `process.env` inheritance.
+- argv: an empty array `[]`, without reading `process.argv`.
+- cwd: `process.cwd()` at invocation time, without calling `process.chdir()`.
+- stdin: an empty string.
+- stdout / stderr: captured separately on the result.
+- signal: a fresh, non-aborted signal for that invocation.
+- process.exitCode: neither read nor modified; the code is returned as `result.exitCode`.
+
+When a test genuinely needs `PATH`, `HOME`, CI variables, or credentials, pass the smallest required environment explicitly:
+
+<CodeBlock code={processEnvCode} filename="tests/deploy.test.ts" lang="ts" />
+
+The supplied environment is normalized and frozen at invocation start, so later changes to `process.env` cannot affect a running test. Global `console.log` and `console.error` are not captured either. Only output written through `Context.io`, `@Stdout()`, or `@Stderr()` appears in the test result.
+
+`invoke` always returns `{ exitCode, result, stdout, stderr, error }`. Exceptions handled by `onError` do not appear in `error`, and the call never changes the test process's `process.exitCode`.
+
+  <Callout locale="en" title="Output must go through Context.io" variant="note">
+
+The testing application captures only `@Stdout()`, `@Stderr()`, and `Context.io`. The global console still writes to the test process and cannot be asserted through `result.stdout` or `result.stderr`.
+
+  </Callout>
+
+## Test doubles
+
+### Override dependencies
+
+When a dependency performs side effects, reads business-critical data, or depends on server authentication, replace it with an isolated fake, stub, or test value.
+
+Use `overrides` to substitute the real Provider:
+
+<CodeBlock code={overrideCode} filename="tests/deploy.test.ts" lang="ts" />
+
+`appName` carries the same application identity used by `createApp` and is required when testing features such as Config and Log that use an application directory. `useClass` and `useFactory` create values for each invocation.
+
+`useValue`, by contrast, always reuses the object supplied by the caller. Prefer `useFactory` when mutable test state must be isolated between invocations.
+
+If the same token is registered in more than one Module, identify the exact target with `{ module, provider }`:
+
+<CodeBlock code={scopedOverrideCode} filename="tests/deploy.test.ts" lang="ts" />
+
+### Use a project fixture
+
+`func/testing/fixtures` creates an isolated temporary directory, writes initial files at relative paths, and cleans up after the callback:
+
+<CodeBlock code={fixtureCode} filename="tests/project.test.ts" lang="ts" />
+
+A fixture exposes `path`, `resolve`, `read`, `write`, `exists`, and idempotent `cleanup`. Every path is constrained to the fixture root.
+
+- `withProjectFixture` is the convenient choice for one test or callback. It removes the temporary directory automatically when the callback ends.
+- `createProjectFixture` fits cases that create a fixture in `beforeEach` and share it across hooks or phases. It cannot know when the test is finished, so call `cleanup()` in `afterEach`.
+
+## CLI process tests
+
+`func/testing/cli` resolves the built entry point from `package.json#bin`, launches it with the current Node executable, and captures stdout, stderr, the exit code, and the terminating signal:
+
+<CodeBlock code={cliCode} filename="tests/cli.test.ts" lang="ts" />
+
+The runner does not build the project. Compile it before running process tests.
+
+A dedicated CLI test script can build first, then cover the package bin, process exit behavior, startup environment, and real filesystem integration. Select an entry in a multi-bin package with `binName`, or pass `bin` directly.
+
+## Terminal interaction tests
+
+PTY (pseudo-terminal) tests exercise behavior inside a real terminal environment rather than comparing plain stdout text. They are useful for prompts, keyboard input, terminal layouts, cursor movement, and similar interactive behavior.
+
+Most CLIs do not need PTY coverage. Add it only for prompts, TTY checks, dynamic interfaces, or keyboard interaction. `func` does not download or launch a PTY implementation—those dependencies can be substantial—and instead provides adapter contracts for the project's chosen tool, such as Python `pty`, `node-pty`, or ConPTY.
+
+`func/testing/pty` exports only the `PtyAdapter`, `PtyProcess`, `PtySpawnOptions`, `PtyExitEvent`, and `PtyDisposable` interfaces. The project's test utilities own process lifecycle, output aggregation, prompt waits, and cleanup.
+
+## API reference
+
+| Entry                    | Use case             | Main APIs                                             |
+| ------------------------ | -------------------- | ----------------------------------------------------- |
+| `func/testing`           | Command behavior     | `createTestingApp`, `TestingApp.invoke`, overrides.   |
+| `func/testing/fixtures`  | Project fixtures     | `createProjectFixture`, `withProjectFixture`.         |
+| `func/testing/cli`       | CLI process tests    | `createCliRunner`, `CliRunner.run`.                    |
+| `func/testing/pty`       | Terminal interaction | Backend-neutral PTY adapter data interfaces only.     |
+
+</DocsLayout>

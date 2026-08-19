@@ -1,10 +1,10 @@
 ---
 code: F_SCAFFOLD_TEMPLATE_DOWNLOAD_FAILED
 title: Template download failed
-description: create-func could not download the project template from the registry.
+description: create-func could not download project files from the template source.
 lastModified: '2026-08-17'
 ---
 
 ## How to fix it
 
-Check registry access, proxy and TLS settings, then retry. If an HTTP status is reported, verify npm registry availability before changing the local project.
+Check the network connection, proxy, and template URL, then retry. The error `cause` preserves the underlying network failure so you can distinguish connection, permission, and remote-response problems.

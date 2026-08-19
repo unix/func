@@ -1,10 +1,29 @@
 ---
 code: F_SYSTEM_MISSING_APP_NAME
 title: Missing application name
-description: A filesystem-backed capability requires an application name.
+description: Config, Log, or another feature that requires an application directory did not receive appName.
 lastModified: '2026-08-17'
 ---
 
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const fixCode = [
+  "import { createApp } from 'func'",
+  "import { AppModule } from './app.module'",
+  '',
+  'const app = createApp(AppModule, {',
+  "  appName: 'ship',",
+  '})',
+].join('\n')
+
+## What this error means
+
+Features such as Config and Log create a `~/.<appName>` directory from the application identity. Without `appName`, they cannot determine a safe storage location. The error usually appears when the relevant Provider initializes rather than when its Module is imported. At that point, `details.appName` is `undefined`.
+
 ## How to fix it
 
-Provide a stable name when creating the app, for example `createApp(AppModule, { appName: 'ship' })`. Config and Log use it to select the application directory.
+Declare a stable name at the application entry:
+
+<CodeBlock code={fixCode} filename="src/index.ts" lang="ts" />
+
+When testing these features through `createInvoker` or `createTestingApp`, supply the same `appName` in those options as well. The name must also satisfy the safe path-segment rules; otherwise `F_SYSTEM_INVALID_APP_NAME` is raised instead.

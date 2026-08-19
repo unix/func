@@ -1,14 +1,14 @@
 ---
 code: F_SYSTEM_DUPLICATE_OPTION_TOKEN
 title: Duplicate option token
-description: Multiple fields, sub-options, handler flags, or handler paths claim the same token in one command.
-lastModified: '2026-08-08'
+description: A field, Module option, or action option claims the same token at one command node.
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { CommandMajor, Flag, Handler, Value, createApp } from 'func'",
+  "import { CommandMajor, Flag, Handler, Module, Value, createApp } from 'func'",
   '',
   '@CommandMajor()',
   'class BuildCommand {',
@@ -22,7 +22,10 @@ export const reproductionCode = [
   '  run() {}',
   '}',
   '',
-  'createApp({ commands: [BuildCommand] })',
+  '@Module({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 export const fixCode = [
@@ -38,12 +41,15 @@ export const fixCode = [
   '  run() {}',
   '}',
   '',
-  'createApp({ commands: [BuildCommand] })',
+  '@Module({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
 ].join('\n')
 
 ## Reproduction
 
-All option names, aliases, handler flags, and handler paths must be unique within a command:
+Long option names and short aliases must be unique at a command node. The generated `--no-<name>` form of a negatable flag also participates in collision checks:
 
 <CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
 

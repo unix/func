@@ -1,10 +1,44 @@
 ---
 code: F_SYSTEM_INVALID_ARGS_DECORATOR_TARGET
-title: Invalid Args decorator target
-description: The Args decorator was used outside a command handler parameter.
+title: Invalid @Args target
+description: '@Args was placed on a constructor parameter rather than a Command Handler parameter.'
 lastModified: '2026-08-17'
 ---
 
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Args, Command, Handler } from 'func'",
+  "import type { Args as CommandArgs } from 'func'",
+  '',
+  "@Command('deploy')",
+  'class DeployCommand {',
+  '  constructor(@Args() args: CommandArgs) {}',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+].join('\n')
+
+export const fixCode = [
+  'class DeployCommand {',
+  '  @Handler()',
+  '  run(@Args() args: CommandArgs) {',
+  '    console.log(args.inputs)',
+  '  }',
+  '}',
+].join('\n')
+
+## Reproduction
+
+`@Args()` depends on the selected Command invocation and therefore cannot be injected into a constructor:
+
+<CodeBlock code={reproductionCode} filename="src/deploy.command.ts" lang="ts" />
+
 ## How to fix it
 
-Apply `@Args()` to a parameter of a method decorated with `@Handler()`. Use constructor injection only for providers and built-in context values intended for constructors.
+Move the parameter to an `@Handler()` method:
+
+<CodeBlock code={fixCode} filename="src/deploy.command.ts" lang="ts" />
+
+When a constructor needs invocation context, inject `Context` instead. `details.target` and `details.index` identify the invalid class and parameter position.

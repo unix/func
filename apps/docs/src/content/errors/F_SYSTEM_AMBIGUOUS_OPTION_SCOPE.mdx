@@ -1,0 +1,16 @@
+---
+code: F_SYSTEM_AMBIGUOUS_OPTION_SCOPE
+title: Ambiguous option scope
+description: A shared Command path belongs to multiple features with Module options, so no single rule set can be selected.
+lastModified: '2026-08-15'
+---
+
+## What this error means
+
+Several Command classes may share a path prefix, but each command node must have one unambiguous feature-option scope. If a shared node contains branches but no executable endpoint, comes from more than one owner Module, and at least one of those Modules declares `options`, `func` cannot decide which options to expose at that node.
+
+`details.path` identifies the ambiguous shared path. `details.modules` lists the owner Modules contributing to it.
+
+## How to fix it
+
+Move the Commands sharing that path into one feature Module, or move options that should apply to every branch into the root Module. If the branches should not share a scope, change their Command paths so each feature has a distinct prefix before the ambiguity occurs.

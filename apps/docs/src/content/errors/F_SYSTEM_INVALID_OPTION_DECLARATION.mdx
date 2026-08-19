@@ -1,0 +1,20 @@
+---
+code: F_SYSTEM_INVALID_OPTION_DECLARATION
+title: Invalid Module option declaration
+description: A value in Module.options is not a valid @Option or @OptionCommand class.
+lastModified: '2026-08-15'
+---
+
+## What this error means
+
+`Module.options` accepts classes only, and each class must have exactly one role: `@Option()` or `@OptionCommand()`.
+
+- An `@Option` must declare at least one field option and cannot contain `@Handler` methods.
+- An `@OptionCommand` must declare exactly one default `@Handler()` and cannot contain field options, path Handlers, or flag Handlers.
+- Provider objects and classes decorated only with `@Injectable()` belong in `Module.providers`.
+
+`details.reason` distinguishes a missing option decorator from a class that declares multiple roles. Other details list invalid fields or Handlers.
+
+## How to fix it
+
+Decide whether the class represents shared fields, a mutually exclusive action, or an ordinary dependency. Use `@Option`, `@OptionCommand`, or `@Injectable` accordingly, and place the class in the correct Module array. Do not make one class serve more than one of those roles.

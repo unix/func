@@ -1,10 +1,23 @@
 ---
 code: F_SYSTEM_INVALID_COMPLETION_MODE
 title: Invalid completion mode
-description: The completion protocol environment variable contains an unsupported mode.
-lastModified: '2026-08-17'
+description: The completion environment variable contains a source or complete mode unsupported by func/completion.
+lastModified: '2026-08-19'
 ---
+
+## What this error means
+
+The completion feature selects an operation through the environment variable associated with `bin`. For example, `ship` uses `_SHIP_COMPLETE`. Supported values are:
+
+- `bash_source` and `bash_complete`.
+- `elvish_source` and `elvish_complete`.
+- `zsh_source` and `zsh_complete`.
+- `fish_source` and `fish_complete`.
+- `nushell_source` and `nushell_complete`.
+- `powershell_source` and `powershell_complete`.
+
+The received value is stored in `details.mode`. It normally comes from a hand-written shell profile, an outdated adapter, or a caller that set the completion environment variable itself.
 
 ## How to fix it
 
-Regenerate the shell completion source with the current func version and remove manually configured completion protocol environment variables.
+Generate and install the current adapter again by following [Shell completion](/capabilities/completion), and remove old environment-variable assignments from the profile. Ordinary CLI invocations should not persistently set the completion variable.

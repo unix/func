@@ -2,7 +2,7 @@
 code: F_SYSTEM_INVALID_TOKEN
 title: Invalid command or option token
 description: A command, option, alias, flag, or path token is empty, starts with a hyphen, or contains whitespace.
-lastModified: '2026-08-08'
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -14,9 +14,7 @@ export const reproductionCode = [
   'class BuildCommand {}',
 ].join('\n')
 
-export const fixCode = ["@Command('build')", 'class BuildCommand {}'].join(
-  '\n',
-)
+export const fixCode = ["@Command('build')", 'class BuildCommand {}'].join('\n')
 
 ## Reproduction
 

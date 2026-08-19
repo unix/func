@@ -1,7 +1,7 @@
 ---
-title: Core Concepts
-description: Understand how the framework organizes commands and services through func's design model.
-lastModified: '2026-08-04'
+title: Core concepts
+description: Understand how Func organizes commands, Modules, and Providers.
+lastModified: '2026-08-16'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -11,18 +11,12 @@ import DocsLayout from '@/layouts/docs.astro'
 export const conceptModel = [
   'Application definition',
   '@Module()',
-  '├─ registers command scopes',
-  '│  ├─ @CommandMajor()       entry without a named command',
-  "│  ├─ @Command('<name>')   matches a top-level command",
-  '│  └─ @CommandMissing()     optional fallback for no match',
-  '└─ registers @Service()     reusable business capabilities',
-  '',
-  'One CLI invocation that enters execution',
-  '└─ selects one command scope',
-  '   └─ selects one @Handler()',
-  '      ├─ reads field options from the command instance',
-  '      ├─ reads positional input through @Args()',
-  '      └─ calls injected services to perform the work',
+  '├─ registers command graph',
+  '│  ├─ @CommandMajor()       entry when no named path is selected',
+  "│  ├─ @Command('<name>')    matches one or more command segments",
+  '│  └─ @CommandMissing()     optional fallback when nothing matches',
+  '├─ registers options        fields and actions shared by commands',
+  '└─ registers providers      reusable business capabilities',
 ].join('\n')
 
 export const commandAnatomy = [
@@ -37,10 +31,10 @@ export const commandAnatomy = [
 ].join('\n')
 
 export const mappedApplicationCode = [
-  "import { Args, Command, Flag, Module, Handler, Service, Value } from 'func'",
-  "import type { Args } from 'func'",
+  "import { Args, Command, Flag, Handler, Injectable, Module, Value } from 'func'",
+  "import type { Args as CommandArgs } from 'func'",
   '',
-  '@Service()',
+  '@Injectable()',
   'class ProjectService {',
   "  addMember(username: string, role = 'member', force = false) {",
   '    return { force, role, username }',
@@ -58,7 +52,7 @@ export const mappedApplicationCode = [
   '  constructor(private project: ProjectService) {}',
   '',
   "  @Handler(['member', 'add'])",
-  '  addMember(@Args() args: Args) {',
+  '  addMember(@Args() args: CommandArgs) {',
   "    const [username = ''] = args.inputs",
   '    console.log(this.project.addMember(username, this.role, this.force))',
   '  }',
@@ -66,85 +60,185 @@ export const mappedApplicationCode = [
   '',
   '@Module({',
   '  commands: [ProjectCommand],',
-  '  services: [ProjectService],',
+  '  providers: [ProjectService],',
   '})',
   'export class AppModule {}',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} page="concepts">
+<DocsLayout frontmatter={frontmatter} locale="en" page="concepts">
 
-When working with the `func` framework, users generally do not need to care about the details of what each invocation does. They can follow the application architecture and define concrete command scopes and services.
-Once you understand the design model, there is almost no need to debug or dive into the internals. In that sense, it is much like developing a typical web application.
+`func` takes strong inspiration from Angular and NestJS. Its goal is to give command-driven applications a consistent, loosely coupled, maintainable, and dependable architecture.
 
-After developers declare their commands, the framework collects all metadata through reflection and stores it in registries. Whenever a user invokes the script, `func` selects a matching command and handler from these static registries,
-then passes the user-provided context data to the handler. Before that data reaches the handler, declared validation and rules filter it automatically. At runtime, everything follows the declared types.
+Most applications do not need to know how each invocation is wired internally. Declare a uniform application structure, the commands it supports, and the services those commands need; the framework organizes and connects the pieces.
+
+Building a command-driven application with `func` is therefore much like building a conventional web application. Once the design model is familiar, most work stays at the application layer and developers can focus on business behavior instead of framework mechanics.
+
+## Architecture overview
+
+A `func` application centers on four ideas:
+
+1. **Application:** the composition root for every participating command and Provider.
+2. **Command:** a user-facing entry that describes a concrete capability of the application.
+3. **Provider:** reusable business or infrastructure functionality such as data access, external services, and domain logic.
+4. **Dependencies:** Commands declare the capabilities they require rather than constructing or connecting them. `func` resolves those declarations and assembles them at runtime.
 
 ## Definitions and invocations
 
-A command is the most basic unit. A project usually contains multiple command-derived classes, which are the entry points ultimately used to execute commands.
+Commands are the basic unit for organizing CLI capabilities. One Command class may contain field options, one or more Handlers, and Provider dependencies needed by the business operation.
 
-`@Module()` defines the application's root routing and registers command scopes and services. Command scopes interpret CLI input and select actions; services provide reusable business capabilities. Each invocation selects only one execution path from the registered commands rather than running multiple command classes in sequence.
+For each invocation, `func` matches the complete input to one command node and selects exactly one Handler. Multiple Handlers on a Command class are alternative entry points—not steps that execute in sequence.
 
-<CodeBlock code={conceptModel} filename="The func mental model" />
+A Command may expose a default action, path actions, and flag actions, but only the action selected by the current input runs. That Handler sees already parsed and validated input and can call injected Providers to perform its work.
 
-## Command types
+<CodeBlock code={conceptModel} filename="Func mental model" />
 
-A command scope is the decorated class that ultimately owns an invocation. It owns the field options for that invocation and selects a handler inside the class. func has three mutually exclusive command scopes. If the corresponding major or missing command has not been registered, func does not manufacture a default scope:
+The Module first registers the Commands and dependencies that define the application. When an invocation arrives, `func` chooses the matching Command and Handler, then supplies the target method with input and the capabilities it needs.
 
-| Command scope   | Selection rule                                           | func API                       |
-| --------------- | -------------------------------------------------------- | ------------------------------ |
-| Major command   | There is no input token, or the first token is an option | `@CommandMajor()`              |
-| Named command   | The first bare token matches a name or alias             | `@Command('<name>')`           |
-| Missing command | The first bare token matches no named command            | `@CommandMissing() (optional)` |
+For a quick working model:
 
-<Callout title="A command represents only the top-level scope" variant="decision">
+- A Command organizes CLI capabilities.
+- A Handler performs one action, using the supplied input.
+- Providers implement the business behavior.
 
-func uses only the first bare token to match a named command. In `ship project member add`, `project` selects `ProjectCommand`. `member add` still belongs to that command scope and does not select more command classes.
+[Modules](/modules) explains composition, Provider visibility, and dependency injection in detail.
 
-</Callout>
+## Trace an invocation
 
-## One command scope executes only one handler
+Consider a command that expresses this intent: add `alice` to a project with the `owner` role, allowing a forced operation.
 
-A handler is the method that performs a concrete action inside a command class. It is declared with `@Handler()`. One command scope can expose three kinds of action entry points:
+<CodeBlock code={commandAnatomy} filename="Input segments and Func concepts" />
 
-- A **default handler** has no path or flag and runs when no other entry point matches.
-- A **path handler** uses a fixed sequence of positional tokens, such as `member add`, to select an action.
-- A **flag handler** uses an option such as `--help` or `--version` to switch to a mutually exclusive action.
+| Input segment | Concept          | Declaration                           | Responsibility                                      |
+| ------------- | ---------------- | ------------------------------------- | --------------------------------------------------- |
+| `ship`        | Executable       | `package.json#bin`                    | Starts the application; not part of a Command path. |
+| `project`     | Command path     | `@Command('project')`                 | Selects the Command for the project domain.         |
+| `member add`  | Handler path     | `@Handler(['member', 'add'])`         | Selects the add-member action within that Command.  |
+| `alice`       | Positional input | `@Args().inputs`                      | Supplies variable data that is not fixed grammar.   |
+| `--role`      | Value option     | `@Value()`                            | Accepts one named string or number.                  |
+| `--force`     | Flag option      | `@Flag()`                             | Accepts a named boolean state.                       |
+| No segment    | Provider         | `@Injectable()` and `Module.providers` | Supplies a reusable internal application capability. |
 
-Regardless of how many handlers a class declares, one invocation ultimately runs only one. See [Runtime](/runtime) for the exact priority between longest path matching, flag handlers, and the default handler.
+These concepts fall into two groups. Commands, Handlers, positional input, and field options describe the application's **invocation interface**. Modules and Providers describe its **internal organization and dependencies**.
 
-<Callout
-  title="The same surface syntax can have different responsibilities"
-  variant="decision">
-
-A `--force` declared with `@Flag()` supplies boolean data to the action already selected. A `--help` declared with `@Handler({ flag: 'help' })` selects another action. Both start with a hyphen, but one is data and the other selects a handler.
-
-</Callout>
-
-## Map a command to func concepts
-
-The following example uses one invocation to connect all of the concepts, so it matches only `@Command('project')`. It first selects the `project` command scope, then the `member add` handler. The remaining parts provide positional and named data:
-
-<CodeBlock code={commandAnatomy} filename="Input parts and func APIs" />
-
-The other methods and properties in this command are instantiated only after the `project` command is matched. Which method executes depends on the remaining input.
-Here, the input matches the `['member', 'add']` decorator on `addMember`, so that method runs:
+Here is the complete application definition for that invocation:
 
 <CodeBlock code={mappedApplicationCode} filename="src/app.module.ts" lang="ts" />
-<Callout title="Not every concept corresponds to an input token">
 
-`@Module()` and `@Service()` organize application code and have no corresponding CLI token. Commands, handlers, and inputs describe how a user invokes the application; modules and services describe how the application organizes its capabilities internally.
+## Application: the complete program
+
+An Application is a set of commands and internal capabilities that can run together; it does not correspond to one CLI path. The root Module (`app.module.ts`) is its definition entry. From there, `func` discovers the Commands, Providers, and shared features and compiles them into an invokable application.
+
+The same Application definition may start as a CLI process or be invoked programmatically by another process. Both entry modes share Commands, input rules, and Providers; only the source of the invocation differs.
+
+## Command: the invocation entry
+
+A Command is the main user-facing unit of organization in `func`, represented by a class with a Command decorator. It commonly corresponds to one business domain or a group of closely related tasks, such as `project`, `config profile`, or `deploy`.
+
+A Command path is fixed syntax that users must enter. It may contain one or several segments, and multiple Commands may share path prefixes. `func` compiles Command and Handler paths into a command graph, then selects the unique executable node with the most complete match.
+
+### Command variants
+
+Most business operations use named commands. Major and missing commands are optional special entries for invocations that do not select a named command:
+
+| Entry         | Selection condition                                                   | `func` API             |
+| ------------- | --------------------------------------------------------------------- | ---------------------- |
+| Major command | No named path matched; its default or path Handler can execute.       | `@CommandMajor()`      |
+| Named command | Positional tokens longest-match a Command path plus a Handler path.   | `@Command('<name>')`   |
+| Missing command | No named path matched and positional input remains unconsumed.      | `@CommandMissing()` (optional) |
+
+<Callout locale="en" title="Command paths may share prefixes" variant="decision">
+
+`ship project member add` can be modeled as `@Command('project')` plus `@Handler(['member', 'add'])`, or by another class declaring `@Command(['project', 'member'])`. `func` builds one graph and chooses the unique longest executable match.
 
 </Callout>
+
+## Handler: the executable action
+
+A Handler is the method on a Command class that actually performs an action. It is declared with `@Handler()`, and one Command may provide several.
+
+There are three ways to select one:
+
+- **Default Handler:** has no path or flag and runs when no other action is selected at the current command node.
+- **Path Handler:** extends the command path with fixed positional tokens such as `member add`.
+- **Flag Handler:** switches to a mutually exclusive action through an option such as `--version`.
+
+An invocation ultimately runs one Handler only. Declaring several methods in a Command class never makes them execute sequentially. A Module-level `@OptionCommand()` may also provide a cross-command action such as `--help`; it likewise replaces the current business action instead of running alongside it.
+
+<Callout locale="en" title="Similar terminal syntax can have different roles" variant="decision">
+
+A `--force` declared with `@Flag()` supplies boolean data to the selected action. `@Handler({ flag: 'version' })` and `@OptionCommand({ name: 'help' })` select a different action. All begin with hyphens at the CLI, but they model different responsibilities.
+
+</Callout>
+
+The key distinction between a Handler path and positional data is whether the token belongs to fixed grammar. `member add` is an action path declared by the developer; `alice` is business data that varies with each invocation.
+
+## Input: data for the action
+
+Field options and positional input answer the question, “What data should the current action use?”
+
+### Field options
+
+Field options are named inputs declared on a Command or option Provider property. `func` recognizes names and aliases, converts types, assigns properties, and runs validation. The Handler reads the final values directly.
+
+| User data                            | Example                           | `func` API                         |
+| ------------------------------------ | --------------------------------- | ---------------------------------- |
+| Boolean state                        | `--force`                         | `@Flag()`                          |
+| One string or number                 | `--role owner`, `--port 3000`     | `@Value()`                         |
+| Repeated strings or numbers          | `--include src --include tests`   | `@ArrayString()`, `@ArrayNumber()` |
+
+Field options suit data with a stable name, type, default, or validation rule. See [Field options](/options) for the declaration syntax.
+
+### Positional input
+
+Positional input has no option name; its meaning comes from its position. Once Command and Handler paths have matched, remaining positional tokens are available from `@Args().inputs`. `alice` in the example is not fixed grammar, so `addMember()` receives it as positional input.
+
+This form works well for file paths, search terms, usernames, and other dynamic values. `@Args()` also exposes canonical paths, the path actually invoked, and a normalized option snapshot. See [Parameters and context](/parameters) for those runtime values.
+
+## Provider: reusable capabilities
+
+Providers typically encapsulate domain logic or infrastructure such as services, repositories, configuration, and external API clients. They let Handlers orchestrate an invocation without constructing dependencies or implementing every detail themselves.
+
+In the example, `ProjectCommand` understands `project member add` and its input, while `ProjectService` owns the actual member-management capability. A constructor dependency connects the two: the Command declares that it needs `ProjectService`, and `func` creates and injects the instance at runtime.
+
+This separation has practical benefits:
+
+- Different Commands and Providers can reuse the same service.
+- Commands focus on input and orchestration while business logic remains independent.
+- Dependencies can be replaced for tests or as infrastructure evolves.
+- The framework coordinates lifecycle and resource cleanup consistently.
+
+Classes decorated with `@Injectable()` are the most common Providers, though fixed values and factories can provide tokens as well. At this stage, think of a Provider as a capability supplied by the application and managed by the framework.
+
+<Callout locale="en" title="Not every concept corresponds to an input token">
+
+`@Module()` and `@Injectable()` organize application code without representing CLI tokens. Commands, Handlers, and input describe how users call the application; Modules and Providers describe how its capabilities are assembled internally.
+
+</Callout>
+
+## Put the concepts together
+
+For `ship project member add alice --role owner --force`, `func` performs these responsibilities:
+
+1. `project` selects `ProjectCommand`.
+2. `member add` selects the `addMember()` Handler within it.
+3. `--role owner` and `--force` are parsed, converted, and bound to Command fields.
+4. `alice` appears in `@Args().inputs` as remaining positional input.
+5. `ProjectService` is constructed and injected according to the Command's dependency declaration.
+6. After validation, only the selected `addMember()` entry runs.
+
+That is the central collaboration model in `func`: **Commands divide user-facing capabilities, Handlers represent concrete actions, field options and positional input supply data, Providers carry reusable capabilities, and Modules compose those declarations into an application.**
+
+This page focuses on the relationships between those responsibilities. [Runtime execution model](/runtime) goes deeper into longest-path selection, instance creation, validation order, and lifecycle.
 
 ## What to read next
 
-- [Commands](/commands): define names, aliases, default handlers, and handler paths.
-- [Field Options](/options): receive flags, values, repeated values, and validate them.
-- [Parameters](/parameters): read positional input, the selected handler, and other runtime context.
-- [Shared Fields](/shared-fields): share fields and actions across commands.
-- [Input and Output](/input-output): use invocation-scoped standard streams.
-- [Runtime](/runtime): follow module resolution, matching priority, instance creation, and the complete execution order.
-- [Glossary](/glossary): look up precise definitions of the concepts introduced here.
+- [Commands](/commands): start with a minimal Command, then add paths, aliases, and Handlers.
+- [Field options](/options): accept flags, scalar values, and repeated values with validation.
+- [Parameters and context](/parameters): read positional input, canonical paths, IO, and invocation context.
+- [Modules](/modules): learn application composition, Provider registration, visibility, and DI.
+- [Shared fields](/shared-fields): share fields and actions across Commands.
+- [Input and output](/input-output): use stdin, stdout, stderr, and pipelines correctly.
+- [Runtime execution model](/runtime): follow graph matching, instance creation, and execution order.
+- [Glossary](/glossary): look up precise definitions for these terms.
 
 </DocsLayout>

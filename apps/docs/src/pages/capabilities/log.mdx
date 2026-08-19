@@ -1,0 +1,102 @@
+---
+title: Logging
+description: Write per-invocation diagnostic logs for CLI applications.
+lastModified: '2026-08-16'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const setupCode = [
+  "import { Command, Handler, Module, createApp } from 'func'",
+  "import { Logger, LogModule } from 'func/log'",
+  '',
+  "@Command('deploy')",
+  'export class DeployCommand {',
+  '  constructor(private readonly logger: Logger) {}',
+  '',
+  '  @Handler()',
+  '  run() {',
+  "    this.logger.push('deploy started')",
+  "    this.logger.push({ target: 'production' })",
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  commands: [DeployCommand],',
+  '  imports: [LogModule.register()],',
+  '})',
+  'export class AppModule {}',
+  '',
+  "const app = createApp(AppModule, { appName: 'ship' })",
+  '',
+  'void app.bootstrap()',
+].join('\n')
+
+export const limitsCode = [
+  'LogModule.register({',
+  '  maxBytes: 2 * 1024 * 1024,',
+  '  maxFiles: 20,',
+  '})',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/log">
+
+`func/log` creates a separate diagnostic log for each CLI invocation. It preserves troubleshooting details without mixing internal output into the command's normal stdout.
+
+  <Callout locale="en" title="Do not use logs as user output" variant="note">
+
+Results that users need to see should still go to a stream injected with `@Stdout()` or `@Stderr()`, or to the matching `Context.io` stream. Invocation logs are intended for diagnostics and post-failure investigation.
+
+  </Callout>
+
+## Register and write a log
+
+Register `Logger` through `LogModule.register()`, then inject it wherever diagnostics are produced:
+
+<CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
+
+This application writes under `~/.ship/logs`. The application name comes from `createApp({ appName })`; `func` forwards it to Log, which validates it when the `Logger` Provider initializes. Every invocation uses a different filename containing a timestamp, process ID, and random identifier.
+
+`Logger.push(...data)` combines its arguments with Node.js console-formatting semantics and writes a timestamped line. ANSI control sequences are removed so the file always contains plain text.
+
+## Understand the file lifecycle
+
+Constructing `Logger` does not immediately create a directory or file. The file is opened only after the first successful `push`, and it closes during invocation disposal.
+
+Successful calls do not print the log location. If a call fails after writing at least one record, disposal reports the path on stderr:
+
+```text
+Logs were written to "/Users/ada/.ship/logs/func-....log".
+```
+
+`Logger.path` exposes the resolved path for the current invocation even before the first `push` creates the file.
+
+## Limit size and retention
+
+By default, one invocation may write up to 10 MiB and the directory retains the 10 most recent `func` log files. Both limits are configurable:
+
+<CodeBlock code={limitsCode} lang="ts" />
+
+| Setting       | Behavior                                                      |
+| ------------- | ------------------------------------------------------------- |
+| `maxBytes`    | Maximum bytes written by one invocation; must be positive.    |
+| `maxFiles`    | Number of `func` log files retained; must be non-negative.    |
+| `maxFiles: 0` | Disable file logging entirely.                                |
+
+After the size limit is reached, later records from that invocation are ignored and at most one warning is emitted. Failures while creating, writing, closing, or pruning log files never replace the original command result.
+
+Retention cleanup only touches files matching the `func` log naming scheme; unrelated files in the same directory are left alone.
+
+## API reference
+
+| API                            | Purpose                                           |
+| ------------------------------ | ------------------------------------------------- |
+| `LogModule.register(options?)` | Register the per-invocation `Logger` Provider.    |
+| `Logger.push(...data)`         | Append a timestamped diagnostic record.           |
+| `Logger.path`                  | Read the resolved log path for this invocation.   |
+| `LogModuleOptions`             | Configure `maxBytes` and `maxFiles`.               |
+| `LOG_SYSTEM` / `LOG_RUNTIME`   | Stable error-code enums for the logging feature.  |
+
+</DocsLayout>

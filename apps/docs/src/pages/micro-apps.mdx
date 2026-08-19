@@ -1,6 +1,6 @@
 ---
-title: Micro Applications
-description: Build small CLIs with func/parser and recognize when to migrate to a full func application.
+title: Micro applications
+description: Use func/parser to prototype small CLIs.
 lastModified: '2026-08-16'
 ---
 
@@ -106,21 +106,17 @@ export const migrationCode = [
   'void app.bootstrap()',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} page="micro-apps">
+<DocsLayout frontmatter={frontmatter} locale="en" page="micro-apps">
 
-A micro application has a small, fixed command-line surface that remains clearer as a short piece of imperative code. Package initializers, repository scripts, and thin wrappers around another program often need only a few options followed by one business function call.
+The full `func` application runtime is already compact enough for most projects. `func/parser` is a better fit when you are prototyping in a Node.js-compatible environment with the smallest practical footprint, or when the program is simple enough that learning the application model would be premature.
+
+It works especially well when a short block of imperative code can express the entire CLI. Package initializers, repository-maintenance scripts, and thin wrappers around another program often need only a few options followed by one business function call.
 
 `func/parser` is a separate typed argument-parsing entry for these applications. It reuses func's core argv compilation and parsing capabilities, but does not load the full decorator-based application model or run a command. After `parse()` returns data, the application still owns branching, help, output, exit codes, and business execution.
 
-<Callout title="Still part of the func ecosystem" variant="note">
+<Callout locale="en" title="Still part of the Func ecosystem" variant="note">
 
-`func/parser` still references func's core capabilities. It is not an independent parser package, but a lightweight entry for micro applications within the func ecosystem.
-
-</Callout>
-
-<Callout title="The default artifact is about 3.1 KB gzipped" variant="tip">
-
-The default `func/parser` artifact is about 3.1 KB after gzip. This tiny baseline makes it particularly well suited to starting a micro CLI application; a final CLI also includes its option definitions and business code.
+`func/parser` still uses core `func` capabilities. It is a lightweight entry for micro applications within the Func ecosystem, not a separate parser package. The default artifact is approximately `3 KB` after gzip.
 
 </Callout>
 
@@ -129,11 +125,10 @@ The default `func/parser` artifact is about 3.1 KB after gzip. This tiny baselin
 `func/parser` is usually the direct choice when most of these statements are true:
 
 - The CLI has root options or a small number of one-level commands.
-- Options need only Boolean, String, finite Number, or repeated String / Number values.
-- Positional inputs can be passed to business code as a string array.
+- Options need only Boolean, String, and a very small argument surface.
+- Positional inputs can be passed to business code as a string array without declarative validation.
 - Help is short enough to maintain manually without drift.
 - Business dependencies can be imported directly without injection or resource lifecycle management.
-- A wrapper must preserve arguments for another program.
 
 Typical examples include `create-*` initializers, single-purpose generators, CI helpers, Git hook entry points, and process wrappers that add a thin layer of defaults.
 
@@ -141,7 +136,7 @@ If the project already needs nested commands, shared services, structured help, 
 
 ## Define and call a parser
 
-Import `createParser` from `func/parser` and provide root options and an optional command map. The result type is inferred from the definition. Narrowing `command` also narrows command-specific options.
+Import `createParser` from `func/parser` and provide root options and an optional command map. The parser infers the result type from that definition.
 
 <CodeBlock code={parserCode} filename="src/index.ts" lang="ts" />
 
@@ -189,7 +184,7 @@ Use the object form to change the public name or parsing behavior:
 | `multiple`  | String / Number only; collects repeated values into a readonly array.       |
 | `negatable` | Boolean only; also accepts `--no-<name>`.                                   |
 
-Unknown commands, unknown options, and invalid values throw `ParserError` with `unknown-command`, `unknown-option`, or `invalid-argument`. An invalid definition fails during `createParser()` with `invalid-definition`. The application must still decide where to write the error, whether to show help, and which exit code to set.
+Unknown commands, unknown options, and invalid values throw `ParserError`. Its `code` is `unknown-command`, `unknown-option`, or `invalid-argument`, respectively. An invalid definition fails during `createParser()` with `invalid-definition`.
 
 ## Wrap another program
 
@@ -226,7 +221,7 @@ A full application model usually becomes simpler when any of these signals appea
 - The application needs consistent IO, errors, exit codes, cancellation, logging, configuration, or completion.
 - Tests need to execute a complete command while replacing providers and capturing stdout / stderr.
 
-Migration does not require rewriting business logic. First make each parser branch call a function or service that does not depend on the parser result, then move the command-line model into `func`:
+Migration does not require rewriting business logic. Move the command layer to its matching `func` construct while leaving the business functions intact:
 
 | `func/parser`                               | `func`                                                               |
 | ------------------------------------------- | -------------------------------------------------------------------- |
@@ -237,19 +232,11 @@ Migration does not require rewriting business logic. First make each parser bran
 | `inputs`                                    | `args.inputs` from `@Args()`                                         |
 | `if (command === ...)`                      | `@Handler()` or a path handler                                       |
 | Root options                                | A root `@Option()`; action options use `@OptionCommand()` or features |
-| Manual catches and cleanup                  | Command/module `onError`, `onInit`, and `onDispose`                   |
+| Manual `try/catch` and cleanup              | Command/module `onError`, `onInit`, and `onDispose`                   |
 
-This is an equivalent starting point for the earlier `build` command. The business `build()` function stays unchanged, while func owns command selection, field binding, and the help action:
+This is an equivalent starting point for the earlier `build` command. The business `build()` function stays unchanged, while `func` owns command selection, field binding, and the help action:
 
 <CodeBlock code={migrationCode} filename="src/index.ts" lang="ts" />
-
-A practical migration sequence is:
-
-1. Preserve representative argv, output, and exit codes in tests around the current parser.
-2. Extract each branch's business work into a function or provider independent of parser results.
-3. Map commands and options to decorators, then call the same business work from handlers.
-4. Move global help, error handling, and shared resources to the root module; add `func/help`, [testing and tooling](/tooling), and other capabilities as needed.
-5. Run the compatibility cases and remove the parser definition and manual dispatcher once behavior matches.
 
 See [Quick Start](/guide) for the full project structure, then [Commands](/commands) and [Field Options](/options) for modeling details. If you are still choosing surrounding tools, continue to the [Ecosystem Guide](/ecosystem).
 

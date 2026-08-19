@@ -1,134 +1,123 @@
 ---
-title: API Reference
-description: Reference the current func decorators, runtime types, module APIs, and funcgo commands.
-lastModified: '2026-08-16'
+title: API reference
+description: Look up core decorators, Modules, runtime types, and funcgo commands.
+lastModified: '2026-08-17'
 ---
 
-import Callout from '@/components/content/callout.astro'
-import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-export const apiExampleCode = [
-  "import { Command, Handler, Required, Value } from 'func'",
-  '',
-  "@Command('deploy')",
-  'export class DeployCommand {',
-  '  @Required()',
-  '  @Value()',
-  '  env?: string',
-  '',
-  '  @Handler()',
-  '  run() {',
-  '    console.log(`Deploying to ${this.env}`)',
-  '  }',
-  '}',
-].join('\n')
+<DocsLayout frontmatter={frontmatter} locale="en" page="apis">
 
-<DocsLayout frontmatter={frontmatter} page="apis">
-  <Callout title="Use this page for exact contracts" variant="note">
+The main `func` entry point contains the core runtime only. Optional capabilities use separate entry points and are covered in their own guides.
 
-Start with [Commands](/commands) or [Core Concepts](/concepts) when choosing a model. Return here for decorator parameters, runtime types, configuration keys, and supported tool flags.
+## Commands and actions
 
-  </Callout>
-  <CodeBlock code={apiExampleCode} filename="src/commands/deploy.command.ts" lang="ts" />
+| Signature                | Parameters or shape                                                                     | Description                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `@Command(input)`        | `string \| readonly string[] \| { path, alias?, aliases?, deprecated?, description? }` | Register a named Command path; an alias replaces its final segment.       |
+| `@CommandMajor()`        | `-`                                                                                     | Register the major command with default, path, or flag Handlers.          |
+| `@CommandMissing()`      | `-`                                                                                     | Register a fallback Command when no named path matches.                   |
+| `@Handler(input?)`       | `'' \| string \| readonly string[] \| { path?, flag?, alias?, aliases?, description? }` | Register a default, path, or flag Handler; path excludes flag and aliases. |
+| `@OptionCommand(params)` | `{ name, alias?, aliases?, deprecated?, description?, overrideAll? }`                   | Register a Module-scoped action option; the class has one default Handler. |
+| `@Deprecated(message?)`  | `message?: string`                                                                      | Deprecate a field option or flag Handler; Commands use `deprecated`.      |
 
-| API family                        | Returns              | Failure contract                                                     |
-| --------------------------------- | -------------------- | -------------------------------------------------------------------- |
-| Command and module decorators     | `ClassDecorator`     | Invalid definitions are F_SYSTEM errors and stop dispatch.           |
-| Handler decorators                | `MethodDecorator`    | Invalid targets or incompatible parameters are F_SYSTEM errors.      |
-| Filter and interceptor decorators | `ClassDecorator`     | Invalid providers or scopes are F_SYSTEM errors.                     |
-| Field option decorators           | `PropertyDecorator`  | Invalid definitions are F_SYSTEM; invalid user values are F_RUNTIME. |
-| Runtime injection decorators      | `ParameterDecorator` | Unsupported injection positions are F_SYSTEM errors.                 |
-| createApp(input, options?)        | `App`                | Compiles the module and validates application features.              |
-| app.bootstrap(options?)           | `Promise<void>`      | Runs the process entry once and sets `process.exitCode`.             |
+Command path and alias tokens cannot be empty, contain whitespace, or begin with `-`. An option alias must be one non-numeric character other than `=`.
 
-Use this page when you already know which func concept you need and want its exact signature. For behavior and design guidance, see [Core Concepts](/concepts), [Field Options](/options), [Parameters](/parameters), and [Error Handling](/error-handler) for behavior details.
+## Field options and validators
 
-## Commands
+| Signature                         | Parameters                                                        | Description                                                    |
+| --------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| `@Option()`                       | `-`                                                               | Register a class as an injectable Module option Provider.      |
+| `@Flag(input?)`                   | `string \| { name?, alias?, aliases?, description?, negatable? }` | Declare a boolean option; `negatable` adds `--no-<name>`.       |
+| `@Value(input?)`                  | `string \| { name?, alias?, aliases?, description? }`             | Declare a `string` or finite `number` inferred from metadata.  |
+| `createValueDecorator(transform)` | `(input: string) => Output`                                       | Create a decorator that synchronously transforms one string.   |
+| `@ArrayString(input?)`            | `string \| { name?, alias?, aliases?, description? }`             | Collect a repeated string option.                              |
+| `@ArrayNumber(input?)`            | `string \| { name?, alias?, aliases?, description? }`             | Collect a repeated finite-number option.                       |
+| `@Override()`                     | `-`                                                               | Explicitly replace a same-named outer Module option field.     |
+| `@Required()`                     | `-`                                                               | Require a value other than `undefined`; an initializer counts. |
+| `@Enum(values)`                   | `Array<boolean \| string \| number>`                              | Validate a scalar or every item in an array.                   |
+| `@DependsOn(names)`               | `string[]`                                                        | When explicit, require the listed long option names as well.   |
+| `@Exclusive(names)`               | `string[]`                                                        | Reject an explicit combination with any listed long name.     |
+| `@ValueValidate(fn)`              | `(value, options) => boolean \| string \| void`                   | `false` or a string fails validation; no return value passes.  |
 
-| Signature                         | Structure                                                                                                                                               | Description                                                                                                                                          |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@Command(params: CommandParams)` | `CommandParams = { path: string \| readonly string[], deprecated?: true \| string, description?: string, alias?: string, aliases?: readonly string[] }` | Register a named command. Its path or any alias is matched against input tokens.                                                                     |
-| `@Handler(input?)`                | `'' \| string \| readonly string[] \| { path?, flag?, alias?, aliases?, description? }`                                                                 | Register a default, flag, or path handler. A path cannot be combined with a flag or aliases. Option-style aliases must be one character.             |
-| `@CommandMissing()`               | `-`                                                                                                                                                     | Register a fallback command for bare input whose first token is not a known command. It can define handlers and field options like a normal command. |
-| `@CommandMajor()`                 | `-`                                                                                                                                                     | Register the major command for empty invocation and top-level options.                                                                               |
-| `@UseFilters(...types)`           | `Type<ExceptionFilter>[]`                                                                                                                               | Bind DI-created exception filters to a command. Returning handles the failure; throwing continues propagation.                                       |
-| `@UseInterceptors(...types)`      | `Type<Interceptor>[]`                                                                                                                                   | Bind around interceptors to a command.                                                                                                               |
-| `onInit()`                        | `-`                                                                                                                                                     | Initialize an activated command, module, option provider, or provider.                                                                               |
-| `onDispose()`                     | `void \| Promise<void>`                                                                                                                                 | Release resources owned by an activated managed instance. Failures are absorbed and reported by Runtime.                                             |
+## Modules and dependency injection
 
-## Field Options and Validators
+| Signature                      | Parameters or shape                                                                            | Description                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `@Module(metadata)`            | `{ name?, commands?, imports?, options?, providers?, exports? }`                               | Define the application or a feature Module; the root must be decorated.   |
+| `@Injectable()`                | `-`                                                                                            | Mark a class for class/useClass Providers; subclasses need their own.     |
+| `createToken<T>(description)`  | `string`                                                                                       | Create a typed, referentially compared `InjectionToken<T>`.               |
+| `@Inject(token)`               | `Type \| InjectionToken`                                                                       | Select an explicit token on a constructor or Handler parameter.           |
+| `Provider`                     | `Type \| { provide, useClass } \| { provide, useValue } \| { provide, useFactory, inject? }` | Define a Module Provider; factories may return asynchronously.            |
+| `Module.exports`               | `ProviderToken[]`                                                                              | Export visible tokens; exports do not pass through intermediate Modules.  |
 
-| Signature                         | Structure                                                                                                                                          | Description                                                                                     |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `@OptionCommand(params)`          | `params = { name: string, alias?: string, aliases?: readonly string[], deprecated?: true \| string, description?: string, overrideAll?: boolean }` | Declare a module-scoped action option. Every alias must contain exactly one character.          |
-| `@Flag(input?)`                   | `string \| { name?: string, alias?: string, aliases?: readonly string[], description?: string, negatable?: boolean }`                              | Declare a boolean option. Every alias is positive; `negatable` also registers `--no-<name>`.    |
-| `@Value(input?)`                  | `string \| { name?: string, alias?: string, aliases?: readonly string[], description?: string }`                                                   | Declare a scalar `string` or `number` option inferred from design metadata.                     |
-| `createValueDecorator(transform)` | `(input: string) => Output`                                                                                                                        | Create a custom value decorator that synchronously transforms one string input.                 |
-| `@ArrayString(input?)`            | `string \| { name?: string, alias?: string, aliases?: readonly string[], description?: string }`                                                   | Declare a repeated string option.                                                               |
-| `@ArrayNumber(input?)`            | `string \| { name?: string, alias?: string, aliases?: readonly string[], description?: string }`                                                   | Declare a repeated number option.                                                               |
-| `@Deprecated(message?)`           | `message?: string`                                                                                                                                 | Mark a field option or `@Handler({ flag })` action as deprecated. Ordinary members are ignored. |
-| `@Required()`                     | `-`                                                                                                                                                | Require the option to be provided explicitly or have a defined value.                           |
-| `@Enum(values)`                   | `values = Array<boolean \| string \| number>`                                                                                                      | Validate that a scalar value, or every array item, is one of the allowed values.                |
-| `@DependsOn(options)`             | `options = string[]`                                                                                                                               | Require other options when this option is explicitly provided.                                  |
-| `@Exclusive(options)`             | `options = string[]`                                                                                                                               | Reject combinations where this option and one of the listed options are both explicit.          |
-| `@ValueValidate(fn)`              | `fn(value, options) => boolean \| string \| void`                                                                                                  | Run a custom validator. Return false or a string to create a validation error.                  |
+`imports` accepts a Module class or a `ModuleMetadata` object returned by a dynamic Module. `options` accepts only classes decorated with `@Option()` or `@OptionCommand()`, never Provider objects.
 
-## Runtime Injection
+## Application and context
 
-| Signature   | Description                                                                                               |
-| ----------- | --------------------------------------------------------------------------------------------------------- |
-| `@Args()`   | Inject the immutable arguments for the selected handler.                                                  |
-| `@Ctx()`    | Inject the current runtime `Context`.                                                                     |
-| `@Stdin()`  | Inject configured stdin, or `process.stdin` by default, as a Node.js `Readable`.                          |
-| `@Stdout()` | Inject configured stdout, or `process.stdout` by default, as a Node.js `Writable`.                        |
-| `@Stderr()` | Inject configured stderr, or `process.stderr` by default, as a Node.js `Writable`.                        |
-| `@Inject()` | Resolve a class or explicit `InjectionToken` through the current module's dependency-injection container. |
+| Signature                          | Parameters or shape                                                               | Description                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `createApp(module, options?)`      | `{ appName?: string, features?: ApplicationFeature[] }`                           | Compile a one-shot process application; disk features require `appName`.  |
+| `app.bootstrap(options?)`          | `{ argv?, cwd?, env?, stdin?, stdout?, stderr?, signal? }`                        | Start once, set `process.exitCode`, and return `Promise<void>`.            |
+| `createInvoker(module, options?)`  | `{ appName?: string }`, imported from `func/invoke`                               | Create a reusable `invoke(argv, options?)` host without `bootstrap`.       |
+| `InvocationResult`                 | `{ exitCode: number, result: unknown }`, exported by `func/invoke`                | The Handler result and exit code for one programmatic invocation.         |
+| `@Args()` / `Args`                 | `{ raw, invokedPath, path, inputs, options }`                                     | Inject a frozen invocation snapshot into a Handler parameter only.        |
+| `@Ctx()`                           | `Context`                                                                         | Inject the complete runtime context for the current invocation.           |
+| `@Stdin()`                         | Node.js `Readable`                                                                | Inject configured stdin, defaulting to `process.stdin`.                    |
+| `@Stdout()`                        | Node.js `Writable`                                                                | Inject configured stdout, defaulting to `process.stdout`.                  |
+| `@Stderr()`                        | Node.js `Writable`                                                                | Inject configured stderr, defaulting to `process.stderr`.                  |
+| `Context`                          | `appName?, argv, command?, commands, options, io, cwd, env, signal, exitCode`     | Built-in DI context; raw argv is preserved and exit codes range 0–255.    |
+| `CommandInfo`                      | `{ path, aliases, description?, deprecated?, fieldOptions? }`                    | Deep-readonly metadata in `Context.command` and `Context.commands`.        |
 
-## Application
+`Args.path` uses the canonical Command and Handler path. `invokedPath` preserves aliases typed by the user, `inputs` contains positional tokens left after path matching, and `options` uses public long names as keys.
 
-| Signature                         | Structure                                                                                                           | Description                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `@Module(params)`                 | `params = { commands?: Type[], imports?: Array<Type \| ModuleMetadata>, options?: Type[], providers?: Provider[] }` | Create an application or feature module. The root passed to `createApp` must be a decorated class. |
-| `@Injectable()`                   | `-`                                                                                                                 | Mark an injectable class provider.                                                                 |
-| `createApp(module, options?)`     | `options = { appName?: string, features?: ApplicationFeature[] }`                                                   | Compile a one-shot process application; filesystem capabilities require `appName`.                 |
-| `app.bootstrap(options?)`         | `options = { argv?, cwd?, env?, stdin?, stdout?, stderr?, signal? }`                                                | Run the application once; completion features participate in the same startup lifecycle.           |
-| `createInvoker(module, options?)` | `options = { appName?: string }`, imported from `func/invoke`                                                       | Compile a reusable imperative invoker without exposing `bootstrap()`.                              |
+## Lifecycle and exceptions
 
-## Runtime Types
+| Signature or type                       | Shape                                  | Description                                                               |
+| --------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------- |
+| `OnInit.onInit()`                       | `void \| Promise<void>`                | Run after a managed instance has been prepared.                           |
+| `OnDispose.onDispose()`                 | `void \| Promise<void>`                | Release owned resources; failures enter `onError` after cleanup continues. |
+| `OnError.onError(exception, context)`   | `void \| Promise<void>`                | Handle a Command or Module error; throw to continue outward.              |
+| `Exception`                             | `code, scope, details, message, cause` | Stable structured subclass of `Error`.                                    |
+| `ErrorScope`                            | `SYSTEM \| RUNTIME`                    | Distinguish definition defects from invocation failures.                  |
+| `formatExceptionCode()`                 | `(scope, code) => ExceptionCode`       | Build a complete error code with the `F_*_` prefix.                        |
+| `isException()`                         | `(value) => value is Exception`        | Test whether a value is a structured `func` exception.                    |
 
-| Signature         | Structure                                                                              | Description                                                |
-| ----------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `Args`            | `{ command?, handler?, inputs: string[], native, option: UserOption, path: string[] }` | Normalized runtime context injected by Args.               |
-| `Exception`       | `code, details, message, scope, cause`                                                 | Structured `Error` subclass passed to exception filters.   |
-| `ExceptionFilter` | `catch(exception, context)`                                                            | Routes, handles, or returns structured data for a failure. |
-| `Interceptor`     | `intercept(context, next)`                                                             | Wraps execution and transforms handler or filter results.  |
-| `CommandRegistry` | `{ commands: RegisterCommandParams[] }`                                                | Read-only registry context injected by Regs.               |
-| `Deprecation`     | `true \| string`                                                                       | A deprecation marker with an optional migration message.   |
+## Optional capabilities
 
-## Support
+Optional capabilities are not re-exported by the main entry point. Their dedicated guides cover setup and customization:
 
-`funcgo` provides the standard development and build commands for `func` projects. The full workflow is documented in [Tooling](/tooling).
+| Entry                    | Guide                                      |
+| ------------------------ | ------------------------------------------ |
+| `func/help`              | [Help](/capabilities/help)                 |
+| `func/testing`           | [Testing](/capabilities/testing)           |
+| `func/testing/cli`       | [Testing](/capabilities/testing)           |
+| `func/testing/fixtures`  | [Testing](/capabilities/testing)           |
+| `func/testing/pty`       | [Testing](/capabilities/testing)           |
+| `func/invoke`            | [Programmatic invocation](/capabilities/invoke) |
+| `func/config`            | [Configuration files](/capabilities/config) |
+| `func/log`               | [Logging](/capabilities/log)               |
+| `func/http`              | [Networking](/capabilities/network)        |
+| `func/http/testing`      | [Networking](/capabilities/network)        |
+| `func/net`               | [Networking](/capabilities/network)        |
+| `func/net/testing`       | [Networking](/capabilities/network)        |
+| `func/json-output`       | [JSON output](/capabilities/json-output)   |
+| `func/completion`        | [Shell completion](/capabilities/completion) |
+| `func/signals`           | [Process signals](/capabilities/signals)   |
 
-| Signature                   | Structure                                                                                           | Description                                                                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `funcgo setup`              | `--fix?`                                                                                            | Inspect package.json and suggest missing func.entry, func.outDir, bin, dev script, and build script configuration.            |
-| `funcgo dev`                | `-f, --file <entry>; -- <args>`                                                                     | Run the project entry with a local TypeScript runtime and pass arguments through to the command.                              |
-| `funcgo build`              | `-f, --file <entry>; -o, --out <dir>; -e, --external <package>; -w, --watch; --watch-path <target>` | Bundle the project entry, create executable bin.js, and optionally rebuild when files, directories, or positive globs change. |
-| `funcgo --help / --version` | `-h; -v`                                                                                            | Print funcgo command discovery or the installed funcgo version.                                                               |
+## funcgo and package configuration
 
-## Configuration
+| Signature                    | Shape                                                                                               | Description                                                                |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `funcgo setup`               | `--fix?`                                                                                            | Inspect package.json; read-only by default, writes recommendations with `--fix`. |
+| `funcgo dev`                 | `-f, --file <entry>; -- <args>`                                                                     | Run an entry with the local TypeScript runtime and forward trailing args.  |
+| `funcgo build`               | `-f, --file <entry>; -o, --out <dir>; -e, --external <package>; -w, --watch; --watch-path <target>` | Bundle the entry, create bin.js, and optionally rebuild for watched inputs. |
+| `funcgo --help / --version`  | `-h; -v`                                                                                            | Print command help or the installed version.                               |
 
-  <Callout title="setup --fix changes package.json" variant="caution">
-
-Review the read-only `funcgo setup` output first in existing projects, especially when generic `dev` or `build` scripts already exist.
-
-  </Callout>
-
-| Signature                  | Description                                                                                    |
-| -------------------------- | ---------------------------------------------------------------------------------------------- |
-| `package.json#func.entry`  | Default TypeScript entry file used by funcgo dev and funcgo build when --file is not provided. |
-| `package.json#func.outDir` | Default build output directory used by funcgo build when --out is not provided.                |
-| `package.json#bin`         | Map the installed executable name to the generated bin.js inside func.outDir.                  |
+| package.json field | Description                                                                  |
+| ------------------ | ---------------------------------------------------------------------------- |
+| `func.entry`       | TypeScript entry used by dev and build when `--file` is omitted.             |
+| `func.outDir`      | Build output directory when `--out` is omitted; defaults to `dist`.          |
+| `bin`              | Map the executable name users type to the generated `bin.js`.                |
 
 </DocsLayout>

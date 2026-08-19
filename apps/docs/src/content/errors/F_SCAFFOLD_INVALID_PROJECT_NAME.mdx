@@ -1,10 +1,10 @@
 ---
 code: F_SCAFFOLD_INVALID_PROJECT_NAME
 title: Invalid project name
-description: create-func received an empty, absolute, or unsafe project directory name.
+description: create-func received a project name that is unsafe as either a package name or directory name.
 lastModified: '2026-08-17'
 ---
 
 ## How to fix it
 
-Use one relative directory token such as `my-cli`. Do not start it with `-`, use `.` or `..`, or include path separators.
+Use a non-empty name that does not begin with `-`, and avoid whitespace, path separators, and filesystem-reserved characters. Pass the corrected name as the positional project argument.

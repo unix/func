@@ -1,16 +1,16 @@
 ---
 title: Changelog
-description: Changes across the func 2.x releases and the foundation established by 1.0.0.
-lastModified: '2026-08-08'
+description: Track features, fixes, and maintenance changes across Func releases.
+lastModified: '2026-08-19'
 ---
 
 import Changelog from '@/components/content/changelog.astro'
 import { Content as ChangelogContent } from '@/content/changelog/en.mdx'
 import DocsLayout from '@/layouts/docs.astro'
 
-<DocsLayout frontmatter={frontmatter} page="changelog">
+<DocsLayout frontmatter={frontmatter} locale="en" page="changelog">
 
-<Changelog>
+<Changelog locale="en">
   <ChangelogContent />
 </Changelog>
 

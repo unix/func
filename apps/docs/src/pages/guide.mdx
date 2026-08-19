@@ -1,7 +1,7 @@
 ---
-title: Quick Start
+title: Quick start
 description: Create, develop, and bundle a func CLI project with the default TypeScript template.
-lastModified: '2026-08-07'
+lastModified: '2026-08-18'
 ---
 
 import Callout from '@/components/content/callout.astro'
@@ -13,21 +13,40 @@ import DocsLayout from '@/layouts/docs.astro'
 
 export const projectTree = `.
 |-- src
-|   |-- app.module.ts          root module
-|   |-- config.ts              package and runtime settings
+|   |-- app.module.ts              root module
 |   |-- commands
-|   |   |-- error.command.ts   global input-error output
-|   |   |-- greet.command.ts   named command example
-|   |   |-- major.command.ts   empty input, help, and version
-|   |   |-- missing.command.ts unknown-command response
-|   |   +-- index.ts           command list
-|   |-- services
-|   |   +-- project.service.ts injectable service example
-|   +-- index.ts               executable entry
-|-- tests                      executable behavior tests
+|   |   |-- deploy
+|   |   |   |-- deploy.command.ts  deploy command example
+|   |   |   |-- deploy.module.ts   deploy feature module
+|   |   |   +-- deploy.service.ts  deploy business service
+|   |   +-- greet
+|   |       |-- greet.command.ts   greeting command example
+|   |       |-- greet.module.ts    greeting feature module
+|   |       +-- greet.service.ts   greeting business service
+|   |-- decorators
+|   |   +-- url.decorator.ts       custom URL value decorator
+|   |-- shared
+|   |   |-- services
+|   |   |   +-- output.service.ts  shared output service
+|   |   +-- shared.module.ts       shared feature module
+|   +-- index.ts                   executable entry
+|-- tests
+|   |-- cli
+|   |   +-- smoke.test.ts          built-artifact smoke test
+|   |-- commands
+|   |   |-- catch.test.ts          error-filter test
+|   |   |-- deploy.test.ts         deploy command test
+|   |   |-- greet.test.ts          greeting command test
+|   |   +-- help.test.ts           help output test
+|   +-- utils
+|       +-- cli.ts                 CLI test utility
+|-- .gitignore                     Git ignore rules
+|-- LICENSE                        open-source license
+|-- README.md                      project documentation
 |-- package.json
 |-- tsconfig.json
-+-- README.md`
+|-- vitest.cli.config.mts
++-- vitest.config.mts`
 
 export const createCommands = {
   npm: 'npm init func@latest ship',
@@ -84,7 +103,7 @@ export const commandCode = [
   "import { Command, Handler } from 'func'",
   '',
   '@Command({',
-  "  name: 'status',",
+  "  path: 'status',",
   "  description: 'Print service status',",
   '})',
   'export class StatusCommand {',
@@ -95,21 +114,13 @@ export const commandCode = [
   '}',
 ].join('\n')
 
-export const registerCode = `import { ErrorHandler } from './error.command'
-import { Major } from './major.command'
-import { Missing } from './missing.command'
-import { StatusCommand } from './status.command'
-
-export const commands = [Major, StatusCommand, Missing, ErrorHandler]`
-
 export const moduleCode = [
   "import { Module } from 'func'",
-  "import { commands } from './commands'",
-  "import { services } from './services'",
+  "import { DeployModule } from './commands/deploy/deploy.module'",
+  "import { GreetModule } from './commands/greet/greet.module'",
   '',
   '@Module({',
-  '  commands,',
-  '  services,',
+  '  imports: [GreetModule, DeployModule],',
   '})',
   'export class AppModule {}',
 ].join('\n')
@@ -186,8 +197,8 @@ pnpm pack --dry-run`,
 bun pm pack --dry-run`,
 }
 
-<DocsLayout frontmatter={frontmatter} page="guide">
-  <Callout title="What you will finish" variant="note">
+<DocsLayout frontmatter={frontmatter} locale="en" page="guide">
+  <Callout locale="en" title="What you will finish" variant="note">
 
 You will create a TypeScript project, run its generated CLI, add a `status` command, and inspect the files that would be published.
 
@@ -221,7 +232,7 @@ The command passes `ship` as the project name. The creator makes a new directory
   </Step>
 </Steps>
 
-<Callout variant="tip">
+<Callout locale="en" variant="tip">
 
 In CLI terminology, `greet` in `ship greet --name Ada` is a command, while `--name` is an option. If those terms are new, read [Commands](/commands) before changing the template.
 
@@ -234,11 +245,11 @@ In most cases, only the contents of `dist` are ultimately published.
 
 <CodeBlock code={projectTree} filename="Project structure" />
 
-The executable entry creates the application with `createApp(AppModule)` and calls `app.bootstrap()`. The root module gathers the command and service classes that func is allowed to use:
+Installing dependencies also creates the lockfile for the selected package manager. Running `build` later creates `dist`. Neither generated artifact appears in the initial tree above.
+
+The root Module (`app.module.ts`) gathers and registers the Commands, options, and dependencies that `func` may call. The following excerpt omits optional feature configuration already enabled by the template so the core structure stays visible:
 
 <CodeBlock code={moduleCode} filename="src/app.module.ts" lang="ts" />
-
-Commands describe the user-facing CLI. Services hold reusable work that should not be tied to parsing or printing. Tests spawn the generated executable so dispatch, input parsing, and output are checked together.
 
 ## Run commands during development
 
@@ -258,16 +269,15 @@ Each invocation executes the TypeScript entry once. This is the fastest way to t
 
 ### Add your first command
 
-Create a class with a stable command name and one default handler. The class name is only for TypeScript; users type the `name` from `@Command` .
+Create a class with a stable command path and one default Handler. The class name exists only in TypeScript; users type the `path` declared by `@Command`.
 
 <CodeBlock code={commandCode} filename="src/commands/status.command.ts" lang="ts" />
 
-Export it from the command list so `AppModule` can register it, then run `npm run dev -- status`.
-
-<CodeBlock code={registerCode} filename="src/commands/index.ts" lang="ts" />
+Add it to the command list registered by `AppModule`, then run `npm run dev -- status`.
 <TerminalDemo
   command={statusCommands.npm}
   demo="guide-status"
+  locale="en"
   packageManagerCommands={statusCommands}
   rows={2}
   sourceUrl="/demos/guide-status.ts"
@@ -279,7 +289,7 @@ See [Commands](/commands) before adding aliases or several actions, and [Field O
 
 This step is not required to use funcgo. Create a global link only if you want to type the final command name directly during development, such as `ship`; otherwise, keep using `npm run dev -- <command>`.
 
-<Callout variant="caution">
+<Callout locale="en" variant="caution">
 
 Global mapping reads the generated `dist/bin.js`. Build successfully before running the selected package manager's global mapping command, and use the exact key from `package.json#bin` as the command name. This example assumes that the command name in `bin` is `ship`.
 
@@ -295,6 +305,7 @@ During development, your package manager can map the current package into its gl
 <TerminalDemo
   command="ship --help"
   demo="guide-help"
+  locale="en"
   rows={8}
   sourceUrl="/demos/guide-help.ts"
 />

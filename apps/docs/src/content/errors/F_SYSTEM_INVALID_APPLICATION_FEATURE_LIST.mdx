@@ -1,10 +1,28 @@
 ---
 code: F_SYSTEM_INVALID_APPLICATION_FEATURE_LIST
 title: Invalid application feature list
-description: createApp received a features value that is not an array.
+description: createApp.features is not an array of ApplicationFeature objects.
 lastModified: '2026-08-17'
 ---
 
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { createApp } from 'func'",
+  "import { withCompletion } from 'func/completion'",
+  "import { AppModule } from './app.module'",
+  '',
+  'createApp(AppModule, {',
+  "  features: withCompletion({ bin: 'ship' }) as any,",
+  '})',
+].join('\n')
+
+## Reproduction
+
+`features` must be an array even when only one feature is enabled:
+
+<CodeBlock code={reproductionCode} filename="src/index.ts" lang="ts" />
+
 ## How to fix it
 
-Pass feature objects in an array: `createApp(AppModule, { features: [withCompletion(...)] })`. Omit `features` when no feature is required.
+Put every feature-factory result in an array, for example `features: [withCompletion({ bin: 'ship' })]`. If the application needs no features, omit `features` or pass an empty array. The received value is available in `details.features`.

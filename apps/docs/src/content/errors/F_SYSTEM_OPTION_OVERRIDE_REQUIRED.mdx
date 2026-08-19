@@ -1,0 +1,44 @@
+---
+code: F_SYSTEM_OPTION_OVERRIDE_REQUIRED
+title: Explicit option override required
+description: An inner scope declares a field or action with the same name as an outer Module option without confirming the override.
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Flag, Handler, Module, Option, createApp } from 'func'",
+  '',
+  '@Option()',
+  'class AppOptions {',
+  '  @Flag()',
+  '  verbose = false',
+  '}',
+  '',
+  "@Command('build')",
+  'class BuildCommand {',
+  '  @Flag()',
+  '  verbose = false',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({ commands: [BuildCommand], options: [AppOptions] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## Reproduction
+
+The Command field would hide a same-named field on an outer option Provider without an explicit declaration of intent:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## How to fix it
+
+Rename or remove an accidental duplicate. If a Command or feature `@Option()` field intentionally replaces an outer field, add `@Override()` to that field as well. A feature action that replaces a root `@OptionCommand` uses `overrideAll: true`.
+
+An override changes which field owns the public token. It does not copy the user's value into the hidden outer field.

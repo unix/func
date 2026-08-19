@@ -1,10 +1,10 @@
 ---
 code: F_SCAFFOLD_TEMPLATE_METADATA_INVALID
 title: Invalid template metadata
-description: The template registry response does not contain a usable tarball URL.
+description: The downloaded template manifest cannot be parsed or is missing required information.
 lastModified: '2026-08-17'
 ---
 
 ## How to fix it
 
-Retry after confirming the npm registry is healthy. Upgrade create-func if the published template metadata format has changed.
+Confirm that the template source returns valid JSON metadata compatible with the current create-func version. For the official template, upgrade and retry; if it still fails, report the version associated with the returned content.

@@ -1,7 +1,7 @@
 ---
-title: Interactive Applications
-description: Connect terminal UI libraries without blocking automation or contaminating command output.
-lastModified: '2026-08-16'
+title: Interactive applications
+description: Integrate popular open-source terminal UI libraries with Func.
+lastModified: '2026-08-19'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -17,10 +17,12 @@ export const installCommands = {
 export const inkCode = [
   "import { render } from 'ink'",
   '',
+  'const { stdin, stdout, stderr } = context.io',
+  '',
   'const application = render(view, {',
-  '  stdin: context.io.stdin,',
-  '  stdout: context.io.stderr,',
-  '  stderr: context.io.stderr,',
+  '  stdin,',
+  '  stdout,',
+  '  stderr,',
   '  exitOnCtrlC: false,',
   '  patchConsole: false,',
   '})',
@@ -39,7 +41,7 @@ export const inquirerCode = [
   "  { message: 'Project name' },",
   '  {',
   '    input: context.io.stdin,',
-  '    output: context.io.stderr,',
+  '    output: context.io.stdout,',
   '    signal: context.signal,',
   '  },',
   ')',
@@ -88,15 +90,15 @@ export const serviceCode = [
   '  constructor(private readonly context: Context) {}',
   '',
   '  projectName() {',
-  '    const { stdin, stderr } = this.context.io',
-  '    if (!ClackService.IsTTY(stdin) || !ClackService.IsTTY(stderr)) {',
+  '    const { stdin, stdout } = this.context.io',
+  '    if (!ClackService.IsTTY(stdin) || !ClackService.IsTTY(stdout)) {',
   "      throw new TypeError('Interactive input requires a terminal.')",
   '    }',
   '',
   '    return text({',
   "      message: 'Project name',",
   '      input: stdin,',
-  '      output: stderr,',
+  '      output: stdout,',
   '      signal: this.context.signal,',
   '    })',
   '  }',
@@ -124,15 +126,15 @@ export const commandCode = [
   '}',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} page="interactive-apps">
+<DocsLayout frontmatter={frontmatter} locale="en" page="interactive-apps">
 
 func does not select or wrap a terminal UI library. Install the library that fits the application and bind it to the current `Context`. This page uses several open-source libraries to demonstrate different integration boundaries; `@clack/prompts` is one example, not a default recommendation.
 
-A terminal UI library treats `output` like a UI render target. Prompts, spinners, cursor movement, and other frames belong on stderr; stdout remains the data channel for final text, JSON, and shell pipelines. Rendering UI to stdout is equivalent to writing a debug overlay into an API response.
+Bind a terminal application's primary UI and prompts to the invocation-scoped stdout. Keep warnings, errors, and independent progress displays on stderr. Using `Context.io` rather than process-global streams preserves the invocation host's output policy, stream replacement, and test isolation. Keep every renderer in one interactive session on the same output stream so cursor updates do not compete.
 
 ## Render a terminal application with Ink
 
-[Ink](https://github.com/vadimdemedes/ink) is a React renderer. Give it invocation-scoped streams, but use stderr as its render target so stdout stays machine-readable. Disable `exitOnCtrlC` and `patchConsole` because func owns signal handling and application output:
+[Ink](https://github.com/vadimdemedes/ink) is a React renderer. Bind its main render target to the invocation-scoped stdout and keep its stderr channel separate. Disable `exitOnCtrlC` and `patchConsole` because func owns signal handling and application output:
 
 <CodeBlock code={inkCode} lang="ts" />
 
@@ -150,7 +152,7 @@ Awaiting a prompt suspends the command until input arrives; it does not block th
 
 ## Clean up progress rendering with Ora
 
-[Ora](https://github.com/sindresorhus/ora) renders a single spinner to a writable stream. Bind that stream to stderr and stop it in `finally`:
+[Ora](https://github.com/sindresorhus/ora) renders a single spinner to a writable stream. A standalone spinner describes work in progress rather than the command's primary interface, so bind it to stderr and stop it in `finally`:
 
 <CodeBlock code={oraCode} lang="ts" />
 
@@ -180,6 +182,6 @@ Register `ClackService` in the owning module's `providers`, then inject it into 
 
 <CodeBlock code={commandCode} filename="src/commands/create.command.ts" lang="ts" />
 
-The repository provides a copyable [complete Clack service](https://github.com/unix/func/blob/main/snippets/clack.service.ts) with prompt binding, cancellation helpers, TTY checks, and spinner cleanup. For the underlying contracts, see [Input and Output](/input-output), [Process Signals](/capabilities/signals), and the [Ecosystem Guide](/ecosystem).
+The repository provides a copyable [complete Clack service](https://github.com/unix/func/blob/main/snippets/clack.service.ts) with prompt binding, cancellation helpers, TTY checks, and spinner cleanup. For the underlying contracts, see [Input and output](/input-output), [Process signals](/capabilities/signals), [Testing](/capabilities/testing), and the [Ecosystem guide](/ecosystem).
 
 </DocsLayout>

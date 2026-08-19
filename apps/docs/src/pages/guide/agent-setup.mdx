@@ -1,7 +1,7 @@
 ---
-title: Work with func using an Agent
-description: Learn how to ask an agent to create a func project, handle routine development, improve its structure, or add tests.
-lastModified: '2026-08-16'
+title: Work with Func using an agent
+description: Ask an agent to create a Func project, handle routine development, improve its structure, or add tests.
+lastModified: '2026-08-19'
 ---
 
 import AgentTask from '@/components/content/agent-task.astro'
@@ -10,30 +10,26 @@ import DocsLayout from '@/layouts/docs.astro'
 
 export const createPrompt = `Read https://func.witt.im/setup.txt and the project instructions in the current repository first.
 
-Create a func CLI project named func-example in this repository. Choose the appropriate directory and package manager, install dependencies, and run the generated project's default command to verify it works. Finish with a brief summary of the changes and verification result.`
+Create a func CLI project named func-example in this repository. Choose the directory and package manager, install environment or project dependencies when needed, and run the default command. Summarize the changes and result.`
 
-export const structurePrompt = `Before making changes, read https://func.witt.im/rules.txt and follow every project instruction in the current repository.
+export const structurePrompt = `Read https://func.witt.im/rules.txt and the project instructions in the current repository first.
 
-Inspect the current func project and improve its structure without changing any user-visible CLI behavior. Identify mixed responsibilities or unclear boundaries yourself. Keep the executable entry small, organize commands, modules, and services by business responsibility, isolate generated output, and preserve the existing package manager, scripts, and public commands.
+Organize the current func project's entry, modules, commands, services, and generated output according to rules.txt without changing commands, output, or scripts. Update imports, module registration, and test paths, then run the relevant checks and report the result.`
 
-Check imports, module registration, and test paths before moving files. Run the smallest relevant checks when finished, then report the structural changes, the behavior you preserved, and the verification result.`
+export const testPrompt = `Read https://func.witt.im/rules.txt and the project instructions in the current repository first.
 
-export const testPrompt = `Before making changes, read https://func.witt.im/rules.txt and follow every project instruction in the current repository.
-
-Inspect the current func CLI commands and tests, identify gaps in user-visible behavior, and add the missing test cases. Prefer spawning the package executable with argument arrays. Cover canonical command names, existing aliases or handler paths, successful output, option constraints, and failure behavior owned by the application.
-
-Keep assertions focused on exit behavior and stable stdout or stderr text. Do not duplicate tests for func internals. Run the smallest relevant test set and report the new coverage and actual result.`
+Review the current commands and tests, then add missing user-visible coverage for command paths, aliases, successful output, option constraints, and application errors. Prefer func/testing and assert exit codes plus stable output. Run the relevant tests and report the result.`
 
 export const addCommandPrompt = `Read https://func.witt.im/rules.txt and the project instructions in the current repository first.
 
-Add a create command to the current func CLI, invoked as ship create --file document.txt. file is a required file path. The command creates the specified file and reports clear errors for an invalid path or an existing file. Follow the project's module and test structure, add tests for a successful call and a missing --file, then run the relevant checks and report the result.`
+Add ship create --file document.txt to the current func CLI. Require --file, create the file, and report clear errors for invalid or existing paths. Follow the current structure, test success and a missing --file, then run the relevant checks.`
 
 export const addEnsurePrompt = `Read https://func.witt.im/rules.txt and the project instructions in the current repository first.
 
-Add an --ensure boolean option to the existing create command. Only create the file when --ensure is explicitly provided; otherwise print the path that would be created without writing it. Test both branches, preserve all other command behavior, then run the relevant checks and report the result.`
+Add --ensure to create. Write the file when it is present; otherwise only print the target path. Test both branches, preserve other behavior, and run the relevant checks.`
 
-<DocsLayout frontmatter={frontmatter} page="guide/agent-setup">
-  <Callout title="Choose for your project stage" variant="note">
+<DocsLayout frontmatter={frontmatter} locale="en" page="guide/agent-setup">
+  <Callout locale="en" title="Choose for your project stage" variant="note">
 
 If you have completed [Quick Start](/guide), skip the first section. The other workflows are for func projects that already run.
 
@@ -49,6 +45,7 @@ This workflow is for developers using func for the first time and teams that wan
 
 <AgentTask
   description="Create and verify a runnable project named func-example in the current repository."
+  locale="en"
   prompt={createPrompt}
   title="Ask an agent to create a func project"
 />
@@ -61,12 +58,14 @@ Use this workflow once the func project runs. Give the agent the expected invoca
 
 <AgentTask
   description="Add ship create --file document.txt with file as a required path."
+  locale="en"
   prompt={addCommandPrompt}
   title="Ask an agent to add the create command"
 />
 
 <AgentTask
   description="Add --ensure so the create command writes the file only when explicitly enabled."
+  locale="en"
   prompt={addEnsurePrompt}
   title="Ask an agent to add the --ensure option"
 />
@@ -75,10 +74,11 @@ Use this workflow once the func project runs. Give the agent the expected invoca
 
 ### Suitable scenarios
 
-This workflow is for maintainers of a working func project. Use it when commands keep accumulating, handlers have started to own business logic, or the boundaries between modules, services, and generated output are no longer clear.
+This workflow is for maintainers of a working func project. Use it when commands keep accumulating, handlers have started to own business logic, or source files and generated output are mixed together. The agent should improve the structure without changing CLI behavior.
 
 <AgentTask
   description="Reorganize entry, module, command, and service boundaries without changing CLI behavior."
+  locale="en"
   prompt={structurePrompt}
   title="Ask an agent to improve the project structure"
 />
@@ -91,6 +91,7 @@ This workflow is for maintainers adding commands, preparing a release, or finish
 
 <AgentTask
   description="Add acceptance coverage for commands, aliases, option constraints, and owned failures."
+  locale="en"
   prompt={testPrompt}
   title="Ask an agent to add CLI tests"
 />

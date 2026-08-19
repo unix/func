@@ -1,10 +1,10 @@
 ---
 code: F_SCAFFOLD_WATCH_GLOB_BASE_NOT_FOUND
 title: Watch glob base not found
-description: The non-glob base directory of a watch pattern does not exist.
+description: funcgo cannot find the directory before the first wildcard in a watch glob.
 lastModified: '2026-08-17'
 ---
 
 ## How to fix it
 
-Create the base directory or change `--watch-path` so the path before the first glob token resolves from the project root.
+Create the base directory or change the `--watch` pattern to start from an existing directory. Resolve relative paths from the current project directory.

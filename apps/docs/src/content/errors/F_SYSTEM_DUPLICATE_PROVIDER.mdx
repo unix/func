@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_DUPLICATE_PROVIDER
+title: Duplicate or ambiguous Provider token
+description: A Module registered the same token more than once, or a consumer can see multiple imported Providers for it.
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Module, createApp, createToken } from 'func'",
+  '',
+  "const PROJECT = createToken<string>('PROJECT')",
+  '',
+  '@Module({',
+  '  providers: [',
+  "    { provide: PROJECT, useValue: 'first' },",
+  "    { provide: PROJECT, useValue: 'second' },",
+  '  ],',
+  '})',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## Reproduction
+
+A token must be unique within one Module:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## How to fix it
+
+Keep one definition per token in each Module. Different Modules may own same-named private tokens, but injection is still ambiguous if they both export those tokens to the same consumer. Reduce the exports, register one explicit local Provider in the consumer, or use different tokens for different responsibilities.
+
+Test overrides can raise the same error. When a token is registered by several Modules, identify the one override target with `{ module, provider }`.

@@ -1,7 +1,7 @@
 ---
-title: Parameters and Context
-description: Read immutable handler arguments and inject runtime context or registered providers.
-lastModified: '2026-08-16'
+title: Parameters and context
+description: Read runtime arguments and invocation context.
+lastModified: '2026-08-18'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
@@ -38,35 +38,40 @@ export const contextCode = [
   '}',
 ].join('\n')
 
-export const providerCode = [
-  "import { Args, Command, Handler, Injectable } from 'func'",
-  "import type { Args as CommandArgs } from 'func'",
+export const customParameterCode = [
+  "import { Command, Handler, Injectable, Module } from 'func'",
   '',
   '@Injectable()',
-  'export class ProjectService {',
-  '  find(name: string) {',
-  '    return { name }',
-  '  }',
+  'class Greeter {',
+  "  message = 'Hello'",
   '}',
   '',
-  "@Command('inspect')",
-  'export class InspectCommand {',
-  '  constructor(private readonly project: ProjectService) {}',
+  "@Command('hello')",
+  'class HelloCommand {',
+  '  constructor(private readonly greeter: Greeter) {}',
   '',
   '  @Handler()',
-  '  run(@Args() args: CommandArgs) {',
-  '    console.log(this.project.find(args.inputs[0]))',
+  '  run() {',
+  '    console.log(this.greeter.message)',
   '  }',
   '}',
+  '',
+  '@Module({',
+  '  commands: [HelloCommand],',
+  '  providers: [Greeter],',
+  '})',
+  'export class AppModule {}',
 ].join('\n')
 
-<DocsLayout frontmatter={frontmatter} page="parameters">
+<DocsLayout frontmatter={frontmatter} locale="en" page="parameters">
 
-func has two intentionally different parameter paths: `@Args()` supplies invocation data to a selected handler, while constructor and handler dependencies are resolved through DI.
+`func` provides static command and option parsing while still allowing application code to inspect the current invocation when dynamic behavior is genuinely necessary.
 
 ## Read the selected invocation with Args
 
-`@Args()` is valid only on a command handler parameter. The runtime creates it after command selection and option binding, which avoids partially initialized argument objects during application bootstrap.
+`@Args()` is valid only on a Command Handler parameter. The runtime creates it after Command selection and parsing.
+
+These values are available for business logic, but they are an escape hatch rather than the primary modeling tool. Heavy dependence on dynamic parsing—especially `raw` argv—gives up much of the type safety and static analysis that declared fields provide.
 
 <CodeBlock code={argsCode} filename="src/commands/config.command.ts" lang="ts" />
 
@@ -78,30 +83,24 @@ func has two intentionally different parameter paths: `@Args()` supplies invocat
 | `inputs`      | Remaining positional tokens after command and handler selection.                 |
 | `options`     | A frozen long-name map containing root, owner-module, and command option values. |
 
-The object and its nested arrays/maps are frozen. Read declared CLI options from command or option-provider fields when possible; use `args.options` when code needs a combined view.
+The object, its nested arrays, and its `options` snapshot are all frozen.
 
 ## Inject runtime Context
 
-`Context` is a built-in DI value. Inject it by type into commands, modules, and providers to access command metadata, IO streams, cwd, cancellation signal, and the invocation exit code.
+`Context` is a built-in DI value that can be injected into Commands, Services, and Modules. It provides application settings, full metadata, IO streams, cwd, the cancellation signal, and the current invocation exit code.
 
 <CodeBlock code={contextCode} filename="src/commands/major.command.ts" lang="ts" />
 
 Set `context.exitCode` to an integer from 0 through 255 when application behavior needs a specific process result. func defaults it to 1 after an execution error unless user code has already selected a value.
 
-`Context.io` contains stdin, stdout, and stderr for the current invocation. See [Input and Output](/input-output) for the English chapter placeholder; the complete chapter is currently available in [Chinese](/zh-cn/input-output).
+`Context.io` contains stdin, stdout, and stderr for the current invocation. See [Input and output](/input-output) for stream conventions and testing.
 
-## Inject registered providers
+## Inject custom parameters
 
-Class providers use `@Injectable()` and must be visible through the command's owner module. Register them in `providers`; register CLI-bearing injectable classes in `options`.
+In addition to built-in values such as `@Args()`, a Command constructor may receive Providers registered by its Module. `func` creates and supplies the `greeter` below automatically:
 
-<CodeBlock
-  code={providerCode}
-  filename="src/commands/inspect.command.ts"
-  lang="ts"
-/>
+<CodeBlock code={customParameterCode} filename="src/app.module.ts" lang="ts" />
 
-Use `@Inject(token)` for interface-like or non-class tokens. Missing or invisible dependencies are definition errors; they do not resolve as `undefined`.
-
-Exception filters receive `Exception` and the active `Context` through `catch(exception, context)`. Filter constructors remain DI-managed and may inject ordinary providers. See [Errors and Lifecycle](/error-handler).
+This is the minimal form of dependency injection. [Modules](/modules) covers Provider registration and sharing, explicit tokens, and dependency visibility in full.
 
 </DocsLayout>

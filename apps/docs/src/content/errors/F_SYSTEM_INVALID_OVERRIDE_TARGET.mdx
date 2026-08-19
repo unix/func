@@ -1,0 +1,36 @@
+---
+code: F_SYSTEM_INVALID_OVERRIDE_TARGET
+title: Invalid option override target
+description: '@Override does not decorate exactly one instance field option, or it is used on an unsupported target.'
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Command, Handler, Module, Override, createApp } from 'func'",
+  '',
+  "@Command('build')",
+  'class BuildCommand {',
+  '  @Override()',
+  '  verbose = false',
+  '',
+  '  @Handler()',
+  '  run() {}',
+  '}',
+  '',
+  '@Module({ commands: [BuildCommand] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## Reproduction
+
+`@Override()` does not declare an option on its own:
+
+<CodeBlock code={reproductionCode} filename="src/build.command.ts" lang="ts" />
+
+## How to fix it
+
+Place it beside exactly one `@Flag()`, `@Value()`, `@ArrayString()`, or `@ArrayNumber()` on an instance property of a Command or `@Option()` class. If there is no outer option to replace, remove `@Override()`. `@OptionCommand` uses `overrideAll: true` instead of a field decorator.

@@ -1,0 +1,30 @@
+---
+code: F_SYSTEM_INVALID_MODULE_EXPORT
+title: Invalid Module export
+description: Module.exports contains a Provider token that is unregistered, unimported, or invisible to the Module.
+lastModified: '2026-08-15'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+
+export const reproductionCode = [
+  "import { Injectable, Module, createApp } from 'func'",
+  '',
+  '@Injectable()',
+  'class ProjectService {}',
+  '',
+  '@Module({ exports: [ProjectService] })',
+  'class AppModule {}',
+  '',
+  'createApp(AppModule)',
+].join('\n')
+
+## Reproduction
+
+Only Providers visible to the current Module can be exported:
+
+<CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
+
+## How to fix it
+
+If the current Module provides the token, add it to `providers` first. If it comes from an imported Module, make sure the source Module exports it, then import that Module before re-exporting the token. A Command class is not a Provider and cannot appear in `exports`.

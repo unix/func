@@ -1,0 +1,149 @@
+---
+title: JSON output
+description: Provide a machine-readable JSON representation alongside regular command output.
+lastModified: '2026-08-19'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import TerminalDemo from '@/components/demos/terminal-demo.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const setupCode = [
+  "import { Command, Handler, Module, Stdout } from 'func'",
+  "import { JsonOutput, JsonOutputModule } from 'func/json-output'",
+  "import type { Writable } from 'node:stream'",
+  '',
+  "@Command('status')",
+  'class StatusCommand {',
+  '  constructor(private readonly output: JsonOutput) {}',
+  '',
+  '  @Handler()',
+  '  run(@Stdout() stdout: Writable) {',
+  "    stdout.write('Checking service status...\\n')",
+  "    this.output.json({ status: 'ready' })",
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  commands: [StatusCommand],',
+  '  imports: [JsonOutputModule],',
+  '})',
+  'export class AppModule {}',
+].join('\n')
+
+export const errorCode = [
+  "import { Module, Stderr } from 'func'",
+  "import type { Exception, OnError } from 'func'",
+  "import { JsonOutput, JsonOutputModule } from 'func/json-output'",
+  "import type { Writable } from 'node:stream'",
+  '',
+  '@Module({ imports: [JsonOutputModule] })',
+  'export class AppModule implements OnError {',
+  '  constructor(',
+  '    private readonly output: JsonOutput,',
+  '    @Stderr() private readonly stderr: Writable,',
+  '  ) {}',
+  '',
+  '  onError(exception: Exception) {',
+  '    this.output.json({',
+  '      error: {',
+  '        code: exception.code,',
+  '        message: exception.message,',
+  '      },',
+  '    })',
+  '',
+  '    this.stderr.write(`${exception.message}\\n`)',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/json-output">
+
+`func/json-output` adds a `--json` capability to a Module and provides an explicit channel for structured output. Machine-readable responses are especially useful when an agent or another program drives the CLI and needs reliable data for its next action.
+
+Application code remains in control of when to write human-readable text and when to publish structured data. The feature does not implicitly render Handler results, and it does not require any particular layout, color library, or output helper.
+
+  <Callout locale="en" title="Complete example" variant="note">
+
+JSON output is exported only from `func/json-output`; importing the main `func` entry point does not enable it. The [`examples/json-output`](https://github.com/unix/func/tree/main/examples/json-output) project on GitHub combines a basic command, structured errors, and automated tests in one working example.
+
+  </Callout>
+
+## Enable `--json`
+
+Import `JsonOutputModule` into each Module that needs JSON output, then inject `JsonOutput`. Continue writing ordinary output to a Node.js `Writable`; send the machine-readable result explicitly with `output.json()`:
+
+<CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
+
+With `--json`, regular stdout is suppressed and only the structured result is committed. Remove `--json` from the terminal command below to compare the normal output:
+
+<TerminalDemo
+  command="ship status --json"
+  demo="json-output"
+  locale="en"
+  rows={5}
+  sourceUrl="/demos/json-output.ts"
+/>
+
+The two invocations behave differently:
+
+| Invocation           | stdout                                                      |
+| -------------------- | ----------------------------------------------------------- |
+| `ship status`        | Prints `Checking service status...`; discards `output.json()`. |
+| `ship status --json` | Suppresses injected stdout and prints indented JSON only.   |
+
+These are independent channels. `@Stdout()` and `Context.io.stdout` carry human-facing output; `output.json(value)` carries the machine response. Return values from Handlers and `onError` are not rendered automatically, and there is no need to return `undefined` merely to hide JSON.
+
+## Choose the scope
+
+Where you import the Module determines where `--json` and `JsonOutput` are visible:
+
+- Import it in the root AppModule to cover the whole application, including parse failures before a Command is selected.
+- Import it in a feature Module to cover only Commands owned directly by that Module.
+- There is no Command decorator that enables it implicitly for one class.
+
+A scope without `JsonOutputModule` neither declares `--json` nor permits `JsonOutput` injection.
+
+## Output consumption rules
+
+In normal mode, `output.json(value)` is a no-op: it neither serializes the value nor writes to a stream. JSON mode stages a value and commits it when the invocation finishes:
+
+- You may call `output.json()` more than once; the last successfully accepted value replaces the previous one.
+- `output.used` starts as `false` and becomes `true` after JSON mode consumes a `json()` call successfully.
+- In normal mode, `output.used` remains `false`. It records whether output was consumed; it is not a `requested` flag for predicting whether `--json` was supplied.
+
+JSON mode follows the data constraints of `JSON.stringify(value, null, 2)`. `undefined`, circular references, and BigInt cause runtime serialization errors. Normal mode does not serialize its input, so passing the same values to `json()` there does not fail by itself.
+
+## stdout, stderr, and ANSI
+
+JSON mode suppresses anything written by Handlers, Providers, or `onError` through `@Stdout()` or `Context.io.stdout`. Final stdout therefore remains one complete JSON document. stderr is unaffected and remains available for warnings and diagnostics.
+
+Direct calls to global `console.log()` or writes to `process.stdout` bypass the injected stream and cannot be suppressed by the feature. For a stable JSON protocol, use the stdout supplied by `func` and send progress or warnings to stderr.
+
+`output.json()` does not recursively strip ANSI control sequences from string values. The output object is protocol data, so callers should provide unstyled values.
+
+## Return structured errors
+
+Neither `func` core nor the JSON output feature dictates an error schema or exposes an `Exception` automatically. A Module implementing `OnError` can inject the same output object, publish only the fields intended for clients, and then use `used` when deciding whether to emit a normal error message:
+
+<CodeBlock code={errorCode} filename="src/app.module.ts" lang="ts" />
+
+An `onError` on the root AppModule can also handle command-parsing failures. In JSON mode, its `json()` call replaces any previously staged success value while preserving the failure exit code. Unhandled default errors continue to go to stderr. See [Error handling](/error-handler) for the complete propagation model.
+
+## Help and lifecycle
+
+`HelpOption` only writes regular help to the injected stdout. The JSON output feature does not interpret its `HelpMeta` result, so it does not create JSON help automatically. A custom help action can call `output.json(meta)` explicitly when that protocol is required.
+
+The final JSON document is committed only after resource disposal and all `onError` processing finish. An `onDispose` error enters the matching `onError` chain and may still replace the staged JSON; a final unhandled error rolls it back.
+
+## API reference
+
+| API                  | Purpose                                                          |
+| -------------------- | ---------------------------------------------------------------- |
+| `JsonOutputModule`   | Declare `--json` and provide an output object in a Module scope. |
+| `JsonOutput`         | Injectable object for explicit JSON output.                      |
+| `output.json(value)` | Stage output in JSON mode; discard it in normal mode; last wins. |
+| `output.used`        | Whether this invocation has successfully consumed JSON output.  |
+
+</DocsLayout>

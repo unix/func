@@ -1,18 +1,22 @@
 ---
 code: F_SYSTEM_UNKNOWN_HANDLER
-title: Unknown registered handler
-description: A class registered with the application does not carry func command metadata.
-lastModified: '2026-08-08'
+title: Unknown registered Handler
+description: A registered Command lacks role metadata, or a Provider declares an @Handler method.
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { Module, createApp } from 'func'",
+  "import { Handler, Injectable, Module, createApp } from 'func'",
   '',
-  'class PlainClass {}',
+  '@Injectable()',
+  'class ProjectService {',
+  '  @Handler()',
+  '  run() {}',
+  '}',
   '',
-  '@Module({ commands: [PlainClass] })',
+  '@Module({ providers: [ProjectService] })',
   'class AppModule {}',
   '',
   'createApp(AppModule)',
@@ -20,14 +24,16 @@ export const reproductionCode = [
 
 ## Reproduction
 
-Plain classes cannot be placed directly in `Module.commands`:
+An ordinary Provider cannot declare `@Handler` methods:
 
 <CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
 
 ## What this error means
 
-The registration list contains a class that func cannot classify as a named, major, or missing command. The `details.handlers` array contains the class names that failed validation.
+Only a Command or `@OptionCommand` class may own `@Handler` methods. When a Handler is found on an ordinary Provider, `details.host` identifies the class and `details.handlers` lists its method names.
+
+Putting a class with no `func` role decorator in `Module.commands` raises the same error; in that case, `details.handlers` lists the unclassified Command classes. A subclass does not inherit the Command role. Even if it inherits a decorated Handler method, it must declare its own Command decorator.
 
 ## How to fix it
 
-Add `@Command()`, `@CommandMajor()`, or `@CommandMissing()` to every registered command class. If the class is a reusable dependency, mark it with `@Injectable()` and move it to `Module.providers`.
+Add `@Command()`, `@CommandMajor()`, or `@CommandMissing()` to every registered Command class. If the class is a reusable dependency, decorate it with `@Injectable()`, move it to `Module.providers`, and remove `@Handler`. Inject the Provider through a constructor or Handler parameter when an action needs its capability.

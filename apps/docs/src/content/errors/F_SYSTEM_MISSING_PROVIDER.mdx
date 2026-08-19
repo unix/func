@@ -1,16 +1,16 @@
 ---
 code: F_SYSTEM_MISSING_PROVIDER
-title: Missing injection provider
-description: An older func runtime could not find a provider for a constructor parameter.
-legacy: true
-lastModified: '2026-08-08'
+title: Missing injection Provider
+description: The current Module cannot see a Provider token requested by a constructor, Handler, or factory.
+lastModified: '2026-08-15'
 ---
 
 import CodeBlock from '@/components/content/code-block.astro'
 
 export const reproductionCode = [
-  "import { Command, Module, Handler, createApp } from 'func'",
+  "import { Command, Handler, Injectable, Module, createApp } from 'func'",
   '',
+  '@Injectable()',
   'class RegistryClient {}',
   '',
   "@Command('publish')",
@@ -28,32 +28,29 @@ export const reproductionCode = [
 ].join('\n')
 
 export const fixCode = [
-  "import { Module, Service } from 'func'",
-  '',
-  '@Service()',
-  'class RegistryClient {}',
-  '',
   '@Module({',
   '  commands: [PublishCommand],',
-  '  services: [RegistryClient],',
+  '  providers: [RegistryClient],',
   '})',
   'class AppModule {}',
 ].join('\n')
 
 ## Reproduction
 
-This code was emitted by older func runtimes when a constructor requested an unregistered provider:
+The constructor requests a class decorated with `@Injectable()`, but the owner Module neither registers nor imports a matching Provider:
 
 <CodeBlock code={reproductionCode} filename="src/app.module.ts" lang="ts" />
 
 ## What this error means
 
-The runtime metadata named a constructor dependency, but that provider was not available to the application. Current func versions resolve unregistered service parameters as `undefined`; the code remains public for compatibility with older versions.
+The runtime has resolved the dependency token, but no corresponding Provider is visible from the requesting Module. `details.token` is the missing token and `details.requester` is the requesting Module. Nested dependencies also include `dependencyPath`.
+
+Providers are private to their Module by default. An imported Module must list a token in `exports` before its consumer can resolve it, and every intermediate Module must re-export the token for it to travel farther. A feature option Provider that is inactive for the current command is not exposed as an ordinary dependency either.
 
 ## How to fix it
 
-Mark the dependency as a service and register it in the resolved module:
+Register the Provider in the requesting Module:
 
 <CodeBlock code={fixCode} filename="src/app.module.ts" lang="ts" />
 
-If the error comes from an old func release, update func after confirming its injection behavior is compatible with your application.
+If the Provider belongs to another Module, add both `providers: [RegistryClient]` and `exports: [RegistryClient]` there, then import that Module from the requester. For interfaces and other non-class dependencies, use `createToken()` with `@Inject(token)` and register that same token.

@@ -1,15 +1,215 @@
 ---
-title: Input and Output
-description: Understand stdin, stdout, stderr, shell pipelines, exit codes, and output testing.
-lastModified: '2026-08-17'
+title: Input and output
+description: Use stdin, stdout, and stderr correctly across pipelines, diagnostics, exit codes, and automated tests.
+lastModified: '2026-08-18'
 ---
 
+import CodeBlock from '@/components/content/code-block.astro'
 import DocsLayout from '@/layouts/docs.astro'
 
-<DocsLayout frontmatter={frontmatter} page="input-output">
+export const outputCode = [
+  "import { Command, Handler, Stderr, Stdout } from 'func'",
+  "import type { Writable } from 'node:stream'",
+  '',
+  "@Command('status')",
+  'export class StatusCommand {',
+  '  @Handler()',
+  '  run(',
+  '    @Stdout() stdout: Writable,',
+  '    @Stderr() stderr: Writable,',
+  '  ) {',
+  '    stdout.write(\'{"status":"ready"}\\n\')',
+  "    stderr.write('Cache is warming up.\\n')",
+  '  }',
+  '}',
+].join('\n')
 
-This English chapter is a placeholder. It will explain how to separate command results from diagnostics, why application code should use invocation-scoped streams instead of the global console, and how to inject stdin with `@Stdin()`. For prompt renderers and non-interactive environments, see [Interactive Applications](/interactive-apps).
+export const inputCode = [
+  "import { Command, Handler, Stdin, Stdout } from 'func'",
+  "import type { Readable, Writable } from 'node:stream'",
+  '',
+  "@Command('import')",
+  'export class ImportCommand {',
+  '  @Handler()',
+  '  async run(',
+  '    @Stdin() stdin: Readable,',
+  '    @Stdout() stdout: Writable,',
+  '  ) {',
+  '    const chunks: Buffer[] = []',
+  '    for await (const chunk of stdin) {',
+  '      chunks.push(Buffer.from(chunk))',
+  '    }',
+  '',
+  "    const payload = Buffer.concat(chunks).toString('utf8')",
+  '    stdout.write(`Imported ${payload.length} bytes.\\n`)',
+  '  }',
+  '}',
+].join('\n')
 
-The complete draft is currently available in [Chinese](/zh-cn/input-output).
+export const backpressureCode = [
+  "import { once } from 'node:events'",
+  "import type { Writable } from 'node:stream'",
+  '',
+  'const writeRows = async (',
+  '  stdout: Writable,',
+  '  rows: AsyncIterable<unknown>,',
+  ') => {',
+  '  for await (const row of rows) {',
+  '    const chunk = `${JSON.stringify(row)}\\n`',
+  '',
+  "    if (!stdout.write(chunk)) await once(stdout, 'drain')",
+  '  }',
+  '}',
+].join('\n')
+
+export const pipelineCode = [
+  "import { createReadStream } from 'node:fs'",
+  "import { Writable, type Readable } from 'node:stream'",
+  "import { pipeline } from 'node:stream/promises'",
+  "import { Command, Handler, Stdout } from 'func'",
+  '',
+  'const createWriteOnlyTarget = (destination: Writable) =>',
+  '  new Writable({',
+  '    write(chunk, encoding, callback) {',
+  '      destination.write(chunk, encoding, callback)',
+  '    },',
+  '  })',
+  '',
+  'const pipeToStdout = async (source: Readable, stdout: Writable) => {',
+  '  await pipeline(source, createWriteOnlyTarget(stdout))',
+  '}',
+  '',
+  "@Command('download')",
+  'export class DownloadCommand {',
+  '  @Handler()',
+  '  async run(@Stdout() stdout: Writable) {',
+  "    const source = createReadStream('large-result.ndjson')",
+  '    await pipeToStdout(source, stdout)',
+  '  }',
+  '}',
+].join('\n')
+
+export const testingCode = [
+  "import { CommandMajor, Context, Handler, Module } from 'func'",
+  "import { createTestingApp } from 'func/testing'",
+  '',
+  '@CommandMajor()',
+  'class EchoCommand {',
+  '  constructor(private readonly context: Context) {}',
+  '',
+  '  @Handler()',
+  '  async run() {',
+  "    let input = ''",
+  '    for await (const chunk of this.context.io.stdin) {',
+  '      input += chunk.toString()',
+  '    }',
+  '',
+  '    this.context.io.stdout.write(input.toUpperCase())',
+  '  }',
+  '}',
+  '',
+  '@Module({ commands: [EchoCommand] })',
+  'class AppModule {}',
+  '',
+  "const result = await createTestingApp(AppModule).invoke([], { stdin: 'hello' })",
+  '',
+  "expect(result.stdout).toBe('HELLO')",
+  "expect(result.stderr).toBe('')",
+  'expect(result.exitCode).toBe(0)',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="input-output">
+
+A CLI does more than print text in a terminal. It often sits in a shell pipeline: another program may supply its input, and its result may be redirected to a file, passed to the next process, or captured by a test. stdin, stdout, and stderr are the three standard streams that make this possible.
+
+| Stream | Direction      | `func` default   | Primary responsibility                                      |
+| ------ | -------------- | ---------------- | ----------------------------------------------------------- |
+| stdin  | External → CLI | `process.stdin`  | Piped data, redirected files, or interactive input.         |
+| stdout | CLI → External | `process.stdout` | Normal results and data intended for another consumer.      |
+| stderr | CLI → External | `process.stderr` | Errors, warnings, progress, and other diagnostics.          |
+
+Positional arguments and stdin are different kinds of input. In `ship show alice`, `alice` is a short value in the command syntax and is available through `@Args().inputs`. In `cat users.json | ship import`, the JSON is a content stream read from `Context.io.stdin`.
+
+## Separate stdout from stderr
+
+Write data that belongs in the final result to stdout. Write information that explains the process but is not itself part of the result to stderr. This is a convention rather than an enforced framework rule, but following it keeps commands composable.
+
+| Content                              | Recommended stream | Why                                                       |
+| ------------------------------------ | ------------------ | --------------------------------------------------------- |
+| Text results, tables, JSON, generated content | stdout    | Safe to redirect to a file or pipe into another program. |
+| Error details, warnings, deprecations | stderr           | Does not contaminate the machine-readable result.         |
+| Spinners, download progress, debug diagnostics | stderr   | Describes execution rather than the result.               |
+| Prompts and interactive feedback     | stderr             | Leaves stdout available for results; some libraries differ. |
+
+With this split, warnings and progress cannot corrupt a JSON response:
+
+- `ship inspect --json > result.json` redirects stdout while stderr remains visible in the terminal.
+- `ship inspect --json 2> diagnostic.log` captures diagnostics separately.
+- `ship inspect --json | jq '.status'` pipes only stdout into `jq`.
+
+**Writing to stderr does not make an invocation fail, and writing to stdout does not guarantee success.** Success is represented by `Context.exitCode` and error handling. The default exit code is `0`; an unhandled exception normally sets `1`; applications may explicitly set an integer from `0` through `255`.
+
+## Why not use console.log directly?
+
+In a normal process, `console.log()` usually ends up on `process.stdout`, so a manual run may look identical. The difference is that the global console bypasses the IO configured for the current `func` invocation:
+
+- **Side effects:** `app.bootstrap()` and `invoker.invoke()` can replace stdout and stderr for one call, but `console.log()` continues to use the global console.
+- **Test compatibility:** `func/testing` captures invocation streams. A direct `console.log()` writes to the test process instead of `result.stdout`.
+- **Stable output:** `console.log()` formats multiple arguments and appends a newline. `Writable.write()` is explicit, which helps keep CLI text and JSON protocols stable.
+- **Portability:** Injected IO keeps business code independent from a singleton process, making the application easier to embed in another Node.js program or invoke repeatedly in memory.
+
+For the same reasons, business commands should use injected stderr instead of global `console.error()`. Lower-level libraries are usually easier to reuse and test when they return data or throw errors and leave final output to the Command.
+
+## Inject a standard stream directly
+
+When a Command needs one standard stream, inject the Node.js stream for this invocation with `@Stdin()`, `@Stdout()`, or `@Stderr()`:
+
+<CodeBlock code={outputCode} filename="src/commands/status.command.ts" lang="ts" />
+
+These decorators work on DI-managed constructors and Handler parameters. `func` normally provides the configured invocation stream directly. A mode such as JSON output may instead supply a write-managing stdout that can suppress ordinary output. `func` never closes the underlying stream or adds newlines automatically: write `\n` explicitly when needed, and do not call `end()` on an injected stream. Small CLI results can use `write()` directly; sustained output should respect Node.js backpressure or use a stream pipeline.
+
+### Stream large amounts of data
+
+When `Writable.write()` returns `true`, writing may continue. `false` means the internal buffer has reached its threshold; pause production and wait for `drain`. Ignoring the return value allows pending output to accumulate in memory.
+
+<CodeBlock code={backpressureCode} filename="src/shared/write-rows.ts" lang="ts" />
+
+Use this sequential pattern for incrementally generated output instead of starting every write through `Promise.all()`. It both limits memory usage and preserves ordering. Return after the loop; do not call `stdout.end()`.
+
+If the data is already a `Readable`, or if compression and encoding transforms need to be chained, prefer `pipeline()` so Node.js coordinates backpressure and errors. However, `pipeline()` owns the lifecycle of the streams passed to it: normal completion ends the destination, and failure may destroy participants. Never pass injected stdout or stderr directly as the final destination. Add a write-only forwarding adapter that does not forward `end()` or `destroy()`:
+
+<CodeBlock
+  code={pipelineCode}
+  filename="src/commands/download.command.ts"
+  lang="ts"
+/>
+
+`pipeline()` may safely end or destroy the temporary `Writable`, while the invocation host retains ownership of the injected stream. The adapter advances upstream work through the underlying `write()` callback, preserving backpressure and forwarding asynchronous write errors to `pipeline()`.
+
+When a Command, Module, or Provider needs input, output, and other runtime details together, inject `Context` and use `context.io.stdout` and `context.io.stderr`.
+
+## Read from stdin
+
+`@Stdin()` and `Context.io.stdin` expose the same invocation-scoped Node.js `Readable`. Async iteration reads it chunk by chunk:
+
+<CodeBlock code={inputCode} filename="src/commands/import.command.ts" lang="ts" />
+
+This implementation reads until end-of-input, which suits `cat data.json | ship import` and `ship import < data.json`. Do not concatenate very large files in memory; parse incrementally or connect stdin to a streaming parser. See [Interactive applications](/interactive-apps) for prompt render targets and avoiding indefinite waits in non-TTY environments.
+
+## Replace IO at the application boundary
+
+Both `app.bootstrap(options)` and `invoker.invoke(argv, options)` accept `stdin`, `stdout`, and `stderr`. They default to the current process streams, while embedded applications, adapters, and tests may provide different `Readable` and `Writable` instances.
+
+The caller owns these streams. `func` reads or writes them but never closes them. Within one invocation, `Context.io`, `@Stdin()`, `@Stdout()`, and `@Stderr()` always refer to the same set of objects, giving Commands and Providers one consistent IO boundary.
+
+## Test input and output
+
+`func/testing` creates isolated IO for each `invoke()`. Supply a string through `stdin`, then assert `stdout` and `stderr` on the result:
+
+<CodeBlock code={testingCode} filename="tests/io.test.ts" lang="ts" />
+
+Cover normal results, diagnostics, and failure exit codes. For JSON output, first assert that stderr is empty, then pass `result.stdout` to `JSON.parse()`; this catches warnings or debug text that accidentally polluted the protocol. [JSON output](/capabilities/json-output) covers feature scope, error responses, and ANSI handling.
+
+If a test displays text in the terminal while `result.stdout` remains empty, the application is probably still calling global `console.log()`. Move IO to `@Stdin()`, `@Stdout()`, `@Stderr()`, or `Context.io` so production replacement and test capture use the same path. See [Testing](/capabilities/testing) for the complete testing application and Provider override model.
 
 </DocsLayout>

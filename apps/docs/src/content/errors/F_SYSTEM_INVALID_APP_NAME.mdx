@@ -1,10 +1,20 @@
 ---
 code: F_SYSTEM_INVALID_APP_NAME
 title: Invalid application name
-description: A filesystem-backed capability received an unsafe appName.
+description: An appName passed to Config, Log, or another disk-backed feature is not a safe single path segment.
 lastModified: '2026-08-17'
 ---
 
+## What this error means
+
+Features that use an application directory place `appName` under the user's home directory. For example, `appName: 'ship'` maps to `~/.ship`. To prevent path traversal, the name must be a non-empty string that:
+
+- Has no leading or trailing whitespace.
+- Is neither `.` nor `..`.
+- Contains no `/`, `\`, or NUL character.
+
+The invalid value is stored in `details.appName`. When the application uses in-memory capabilities only, `createApp` can carry any name through unchanged; this error appears when Config, Log, or another feature actually resolves an application directory.
+
 ## How to fix it
 
-Pass a non-empty single path segment such as `ship` to `createApp(AppModule, { appName: 'ship' })`. Do not use slashes, `.` or `..`.
+Use a stable, safe application identifier such as `createApp(AppModule, { appName: 'ship' })`. Do not pass a path, user input, or a scoped package name containing directory separators. A feature that supports custom storage locations should expose that through a dedicated path option instead.

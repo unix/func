@@ -1,0 +1,134 @@
+---
+title: Configuration files
+description: Generate typed JSON configuration files for persistent user settings.
+lastModified: '2026-08-16'
+---
+
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const setupCode = [
+  "import { Module, createApp } from 'func'",
+  "import { Config, ConfigFile, ConfigModule } from 'func/config'",
+  '',
+  '@ConfigFile({ maxBytes: 64 * 1024 })',
+  'export class ProfileConfig extends Config({',
+  "  username: '',",
+  "  email: '',",
+  '}) {}',
+  '',
+  '@Module({',
+  '  imports: [',
+  '    ConfigModule.register({',
+  '      configs: [ProfileConfig],',
+  '    }),',
+  '  ],',
+  '})',
+  'export class AppModule {}',
+  '',
+  'const app = createApp(AppModule, {',
+  "  appName: 'ship',",
+  '})',
+  '',
+  'void app.bootstrap()',
+].join('\n')
+
+export const usageCode = [
+  "import { Command, Handler, Value } from 'func'",
+  "import { ProfileConfig } from '../profile.config'",
+  '',
+  "@Command('login')",
+  'export class LoginCommand {',
+  '  @Value()',
+  '  username?: string',
+  '',
+  '  @Value()',
+  '  email?: string',
+  '',
+  '  constructor(private readonly config: ProfileConfig) {}',
+  '',
+  '  @Handler()',
+  '  login() {',
+  "    const username = this.username ?? this.config.get('username')",
+  "    const email = this.email ?? this.config.get('email')",
+  "    this.config.set('username', username)",
+  "    this.config.set('email', email)",
+  '    console.log(this.config.getAll())',
+  '  }',
+  '}',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/config">
+
+`func/config` gives a `func` application a managed configuration file without exposing callers to file permissions, serialization, or atomic writes. It is a good fit for user profiles, application defaults, and similar persistent settings. The following example stores a username and email address for `ship login`.
+
+## Define and register a configuration
+
+Create a configuration class by extending `Config(defaults)`, then register it with `ConfigModule.register()`:
+
+<CodeBlock code={setupCode} filename="src/app.module.ts" lang="ts" />
+
+This creates `~/.ship/config.json` when the configuration is first used and exposes the standard configuration API. The default filename is `config.json`, but you can override it or register multiple configuration files when needed.
+
+`func` resolves the home directory reported by Node.js; it does not use the current working directory. For the example above, the usual locations are:
+
+| Platform | Default path                           |
+| -------- | -------------------------------------- |
+| macOS    | `/Users/<username>/.ship/config.json`  |
+| Linux    | `/home/<username>/.ship/config.json`   |
+| Windows  | `C:\Users\<username>\.ship\config.json` |
+
+The actual home directory depends on the account and runtime environment. On Linux, for example, the root account would normally use `/root/.ship/config.json`.
+
+The application name comes from `createApp({ appName })`. `func` carries it through to features such as Config and Log, which validate it when their providers initialize. Both application names and filenames must be safe, single path segments: they cannot contain slashes, backslashes, leading or trailing whitespace, or the special names `.` and `..`.
+
+## Read and update settings
+
+Once registered, the configuration class can be injected into a Command, Module, or another Provider:
+
+<CodeBlock code={usageCode} filename="src/commands/login.command.ts" lang="ts" />
+
+Running `ship login --username alice --email alice@example.com` updates both values. If either option is omitted, the command reuses its stored value. This example intentionally stores non-sensitive profile data; passwords and access tokens should not be written directly to the configuration file.
+
+Defaults made from strings, numbers, booleans, nulls, arrays, and nested objects retain their corresponding types. The public operations are:
+
+| Method            | Behavior                                             |
+| ----------------- | ---------------------------------------------------- |
+| `get(key)`        | Read one top-level setting.                          |
+| `getAll()`        | Read the complete configuration.                     |
+| `set(key, value)` | Update one top-level setting and persist the change. |
+| `reset(key)`      | Restore one top-level setting to its default.        |
+| `resetAll()`      | Restore the entire configuration to its defaults.    |
+
+Reads return copies. Mutating a returned object does not change the in-memory configuration; call `set`, `reset`, or `resetAll` to persist an update.
+
+## File creation and validation
+
+The file is created lazily, on the first call to `get`, `getAll`, `set`, `reset`, or `resetAll`. Writes go to a temporary file before replacing the original, so an interrupted write does not leave partially written JSON behind.
+
+On read, only keys declared in the defaults are accepted, and every known value is checked against the expected JSON shape:
+
+- Missing values are filled from the defaults.
+- Stored keys that were not declared are ignored.
+- Type mismatches, invalid JSON, and non-object root values raise runtime errors.
+- A failed read never overwrites the existing file automatically.
+
+`maxBytes` limits both the file being read and the serialized JSON prepared for a write. A Module may register several configuration classes, but two registrations cannot resolve to the same file path.
+
+### Read and write failures
+
+Read failures most often happen after a user edits the file by hand and leaves invalid JSON or an incompatible value. You can let the final error reach the user, offer a recovery command such as `ship config reset`, or use `try...catch` or the global error pipeline when the application needs more tailored guidance.
+
+Write failures normally indicate insufficient permissions and prevent the CLI workflow from completing. They are unusual unless the file permissions were changed manually, so adding a separate fallback is rarely useful.
+
+## API reference
+
+| API                                  | Purpose                                                 |
+| ------------------------------------ | ------------------------------------------------------- |
+| `Config(defaults)`                   | Create a typed configuration base class from defaults.  |
+| `@ConfigFile({ name, maxBytes? })`   | Set the filename and an optional size limit.             |
+| `ConfigModule.register({ configs })` | Register and export one or more configuration Providers. |
+| `ConfigInstance`                     | Describe `get`, `getAll`, `set`, `reset`, and `resetAll`. |
+| `CONFIG_SYSTEM` / `CONFIG_RUNTIME`   | Stable error-code enums for the configuration feature.  |
+
+</DocsLayout>

@@ -1,0 +1,180 @@
+---
+title: Networking
+description: Manage HTTP, TCP, TLS, and UDP access through explicit dependencies.
+lastModified: '2026-08-17'
+---
+
+import Callout from '@/components/content/callout.astro'
+import CodeBlock from '@/components/content/code-block.astro'
+import DocsLayout from '@/layouts/docs.astro'
+
+export const httpApiCode = [
+  "import { Injectable, Module } from 'func'",
+  "import { HttpClient, HttpModule } from 'func/http'",
+  '',
+  '@Injectable()',
+  'export class GitHubApi {',
+  '  constructor(private readonly http: HttpClient) {}',
+  '',
+  '  async repository(owner: string, name: string) {',
+  '    const response = await this.http.request(',
+  '      `https://api.github.com/repos/${owner}/${name}`,',
+  '      { timeoutMs: 10_000 },',
+  '    )',
+  '',
+  '    if (!response.ok) {',
+  '      throw new Error(`GitHub returned ${response.status}`)',
+  '    }',
+  '',
+  '    return response.json()',
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  imports: [HttpModule],',
+  '  providers: [GitHubApi],',
+  '  exports: [GitHubApi],',
+  '})',
+  'export class GitHubModule {}',
+].join('\n')
+
+export const tcpProtocolCode = [
+  "import { once } from 'node:events'",
+  "import { Injectable, Module } from 'func'",
+  "import { NetModule, TcpClient } from 'func/net'",
+  '',
+  '@Injectable()',
+  'export class EchoProtocol {',
+  '  constructor(private readonly tcp: TcpClient) {}',
+  '',
+  '  async exchange(message: string) {',
+  '    const socket = await this.tcp.connect({',
+  "      host: '127.0.0.1',",
+  '      port: 7000,',
+  '      timeoutMs: 3_000,',
+  '    })',
+  '',
+  "    const received = once(socket, 'data')",
+  '    socket.end(message)',
+  '    const [data] = await received',
+  '    return data.toString()',
+  '  }',
+  '}',
+  '',
+  '@Module({',
+  '  imports: [NetModule],',
+  '  providers: [EchoProtocol],',
+  '  exports: [EchoProtocol],',
+  '})',
+  'export class EchoModule {}',
+].join('\n')
+
+export const httpTestingCode = [
+  "import { createHttpMock } from 'func/http/testing'",
+  "import { createTestingApp } from 'func/testing'",
+  '',
+  'const http = createHttpMock()',
+  'http',
+  "  .expect('GET', 'https://api.github.com/repos/unix/func')",
+  '  .reply(JSON.stringify({ stars: 42 }), {',
+  "    headers: { 'content-type': 'application/json' },",
+  '  })',
+  '',
+  'const app = createTestingApp(AppModule, {',
+  '  overrides: [http.override()],',
+  '})',
+  '',
+  'await app.invoke()',
+  'http.verify()',
+].join('\n')
+
+<DocsLayout frontmatter={frontmatter} locale="en" page="capabilities/network">
+
+`func/http` and `func/net` give Modules explicit dependencies for reaching external systems. They are not re-exported by the main `func` entry point; a Module can inject their clients only after importing `HttpModule` or `NetModule`.
+
+<Callout locale="en" title="Conventions" variant="note">
+
+- Commands should not assemble URLs, implement authentication, or parse custom protocols.
+- Keep HTTP integrations in `*.api.ts` classes and TCP, TLS, or UDP protocols in `*.protocol.ts` classes, then inject those business-facing classes into Commands.
+- `HttpClient` and the socket clients should usually remain transport-only dependencies.
+
+</Callout>
+
+## HTTP APIs
+
+Import `HttpModule` into the Module that owns the remote integration, then inject `HttpClient` into a class-first API:
+
+<CodeBlock code={httpApiCode} filename="src/github/github.api.ts" lang="ts" />
+
+`HttpClient.request()` accepts a `Request`, `URL`, or string plus options compatible with `RequestInit`, and returns the native `Response`. Response bodies therefore retain `json()`, `text()`, `arrayBuffer()`, and the `body` stream.
+
+The client deliberately keeps fetch response semantics: each API boundary should check `response.ok` or the relevant status codes for its own protocol. `func` converts only invalid arguments, network failures, timeouts, and cancellation into `HttpException`.
+
+Compared with calling global `fetch` directly, `HttpClient` adds:
+
+- Composition of the current `Context.signal`, the input `Request` signal, and the per-request signal.
+- A `timeoutMs` request deadline.
+- Cancellation of unfinished requests and response streams when the invocation ends.
+- Provider overrides for tests without modifying global `fetch`.
+- Stable error codes through `HTTP_RUNTIME`.
+
+`HttpModule` does not define a base URL, authentication, default headers, or a business retry policy. Keep those concerns at external-system boundaries such as `GitHubApi`, rather than sharing implicit global configuration across unrelated APIs.
+
+## TCP, TLS, and UDP
+
+`NetModule` exports three focused Providers:
+
+| Provider           | Runtime      | Returns         | Use case                              |
+| ------------------ | ------------ | --------------- | ------------------------------------- |
+| `TcpClient`        | `node:net`   | `net.Socket`    | TCP or Unix domain socket connections. |
+| `TlsClient`        | `node:tls`   | `tls.TLSSocket` | TLS client connections and handshakes. |
+| `UdpSocketFactory` | `node:dgram` | `dgram.Socket`  | UDP4 or UDP6 datagram sockets.        |
+
+For Redis, SMTP, device control, or a private binary protocol, inject the appropriate client into a `*.protocol.ts` class. That protocol class owns framing, encoding, and response parsing:
+
+<CodeBlock code={tcpProtocolCode} filename="src/echo/echo.protocol.ts" lang="ts" />
+
+- `TcpClient.connect()` accepts Node.js TCP or IPC connection options.
+- `TlsClient.connect()` accepts Node.js TLS connection options.
+- `UdpSocketFactory.open()` creates a `udp4` socket by default; pass `{ type: 'udp6' }` or other `dgram.SocketOptions` when needed.
+
+The returned values are native Node.js sockets. Backpressure, streams, half-closes, TLS certificates, and UDP bind/connect behavior continue to follow the Node.js APIs. `func` does not impose a generic `request()` method or a protocol registry.
+
+## Scope and cleanup
+
+Network Providers are created per invocation and bound to the current `Context`:
+
+- A Module must import `HttpModule` or `NetModule` directly to inject its Providers.
+- Exporting an API service or protocol does not leak its low-level network client to consumers.
+- Requests and sockets are tracked; Provider disposal aborts requests, destroys TCP/TLS connections, and closes UDP sockets.
+- Do not retain or use a returned `Response`, stream, or socket after its invocation ends.
+
+Constructing `new HttpClient()`, `new TcpClient()`, or a similar client directly does not bypass Module registration. The first operation fails with `NOT_REGISTERED`.
+
+## Cancellation and process signals
+
+Every invocation has a `Context.signal`, even when `func/signals` is not enabled, so network Modules do not need to import the signals feature. A per-call signal is combined with the Context signal, and cancellation from any source stops the affected operation.
+
+Enable [`withProcessSignals()`](/capabilities/signals) when `Ctrl+C`, `SIGINT`, or `SIGTERM` should cancel network work. Tests and programmatic hosts instead supply cancellation through `invoke(..., { signal })`.
+
+## Testing
+
+`func/http/testing` provides strict HTTP expectations and a standard Provider override:
+
+<CodeBlock code={httpTestingCode} filename="tests/github.test.ts" lang="ts" />
+
+`func/net/testing` provides `createNetMock()`. Declare operations with `expectTcp()`, `expectTls()`, or `expectUdp()`, replace all three NetModule Providers with `overrides()`, and call `verify()` at the end of the test to detect any expected operations that never happened.
+
+Both mock systems consume expectations in call order. An undeclared network operation, mismatched arguments, or a missing reply/rejection fails immediately.
+
+## API reference
+
+| Entry                | API                                                         | Purpose                                         |
+| -------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
+| `func/http`          | `HttpModule`, `HttpClient`, `HttpException`, `HTTP_RUNTIME` | HTTP requests, lifecycle, and error contracts.  |
+| `func/http/testing`  | `createHttpMock()`                                          | Strict HTTP expectations and Provider override. |
+| `func/net`           | `NetModule`, `TcpClient`, `TlsClient`, `UdpSocketFactory`   | TCP, TLS, UDP, and custom protocol transport.   |
+| `func/net`           | `NetException`, `NET_RUNTIME`                               | Stable network and socket error contracts.      |
+| `func/net/testing`   | `createNetMock()`                                           | Strict socket expectations and overrides.       |
+
+</DocsLayout>

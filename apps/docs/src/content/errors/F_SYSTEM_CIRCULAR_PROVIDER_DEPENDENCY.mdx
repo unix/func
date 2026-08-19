@@ -1,0 +1,14 @@
+---
+code: F_SYSTEM_CIRCULAR_PROVIDER_DEPENDENCY
+title: Circular Provider dependency
+description: The same token reappeared in an unfinished dependency path while resolving a Provider.
+lastModified: '2026-08-15'
+---
+
+## What this error means
+
+Class constructors or factory `inject` lists form a cycle—for example, A depends on B and B depends on A. `func` does not construct partially initialized instances, so resolution stops and the complete cycle is recorded in `details.dependencyPath`.
+
+## How to fix it
+
+Prefer redesigning responsibilities so each Provider depends only on lower-level interfaces. You can also extract shared state into a third Provider or replace one synchronous construction dependency with data passed explicitly by a Handler. Do not hide the cycle with globals or by manually filling in instances after construction.
