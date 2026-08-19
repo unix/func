@@ -1,13 +1,6 @@
 # mini example
 
-This is the smallest runnable func example. It uses `func/parser` to run a
-single TypeScript command directly through npm-installed tooling and does not
-use the workspace package manager.
+The smallest runnable func project, with a single TypeScript command powered by `func/parser`.
 
-## Usage
-
-1. Install dependencies with `npm install`.
-
-2. Run locally with `npm run dev -- ping`.
-
-3. Optionally link it with `npm run link`, then run `mini ping`.
+- Documentation: [func.witt.im](https://func.witt.im)
+- GitHub: [unix/func/examples/mini](https://github.com/unix/func/tree/main/examples/mini)

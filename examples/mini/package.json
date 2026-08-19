@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "ts-node index.ts --",
-    "link": "npm link"
+    "link": "npm link",
+    "test": "vitest run"
   },
   "bin": {
     "mini": "./bin.js"
@@ -17,6 +18,7 @@
   "devDependencies": {
     "@types/node": "^26.1.2",
     "ts-node": "^10.9.2",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vitest": "^4.1.10"
   }
 }

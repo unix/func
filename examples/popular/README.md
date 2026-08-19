@@ -1,25 +1,6 @@
 # popular example
 
-This example shows the conventional func application structure with a major
-command, local development, tests, and production builds.
+A conventional func project with a command, local development, tests, and production builds.
 
-[Documentation](https://func.witt.im) ·
-[Quick Start](https://func.witt.im/guide) ·
-[中文文档](https://func.witt.im/zh-cn)
-
-The bundled-size reference for the current example output lives at
-[`archived.tar.gz`](./archived.tar.gz).
-
-## Usage
-
-1. Install dependencies with `npm install`.
-
-2. Run locally with `npm run dev`.
-
-3. Run `npm test` to execute its tests.
-
-## Build
-
-Run `npm run build` to generate the production CLI in `dist`.
-
-Run `npm run format` to format the project files.
+- Documentation: [func.witt.im](https://func.witt.im)
+- GitHub: [unix/func/examples/popular](https://github.com/unix/func/tree/main/examples/popular)

@@ -1,0 +1,39 @@
+{
+  "name": "json-output",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "dev": "funcgo dev --",
+    "build": "funcgo build",
+    "test": "vitest run",
+    "format": "prettier --write ."
+  },
+  "files": [
+    "src",
+    "README.md",
+    "tsconfig.json",
+    ".gitignore"
+  ],
+  "func": {
+    "entry": "src/index.ts",
+    "outDir": "dist"
+  },
+  "bin": {
+    "json-output": "./dist/bin.js"
+  },
+  "dependencies": {
+    "func": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "funcgo": "workspace:*",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  }
+}

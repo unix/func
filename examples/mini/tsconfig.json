@@ -8,6 +8,6 @@
     "esModuleInterop": true,
     "removeComments": true
   },
-  "files": ["index.ts"],
+  "include": ["index.ts", "tests/**/*.ts", "vitest.config.mts"],
   "exclude": ["node_modules"]
 }

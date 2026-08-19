@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
+    "target": "esnext",
+    "lib": ["es2015", "es2017"],
+    "types": ["node"],
+    "esModuleInterop": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "files": ["src/index.ts"],
+  "exclude": ["node_modules", "dist"]
+}
