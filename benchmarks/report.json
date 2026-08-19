@@ -1,6 +1,6 @@
 {
   "schemaVersion": 5,
-  "generatedAt": "2026-08-17T16:37:33.359Z",
+  "generatedAt": "2026-08-19T06:25:51.261Z",
   "environment": {
     "node": "v24.15.0",
     "platform": "darwin",
@@ -9,16 +9,16 @@
     "cpu": "Apple M1 Max",
     "logicalCores": 10,
     "totalMemoryBytes": 68719476736,
-    "freeMemoryBytesAtStart": 15523135488
+    "freeMemoryBytesAtStart": 7673708544
   },
   "frameworks": {
     "func": {
       "package": "func",
-      "version": "3.0.0-canary.2"
+      "version": "3.0.0-canary.6"
     },
     "func-parser": {
       "package": "func",
-      "version": "3.0.0-canary.2"
+      "version": "3.0.0-canary.6"
     },
     "commander": {
       "package": "commander",
@@ -40,7 +40,7 @@
   "toolchain": {
     "func": {
       "package": "funcgo",
-      "version": "1.2.0-canary.3"
+      "version": "1.2.0-canary.6"
     }
   },
   "methodology": {
@@ -130,7 +130,7 @@
         "repeatedValues": "@ArrayString",
         "exclusivity": "@Exclusive",
         "override": "@Override",
-        "errorBoundary": "MODULE_FILTER + APP_FILTER",
+        "errorBoundary": "module onError chain",
         "output": "Output provider + @Stdout"
       },
       "func-parser": {
@@ -281,7 +281,7 @@
               "level": 4
             },
             "boundary-authoring": {
-              "evidence": "An injected @Stdout output service is shared through a module; APP_FILTER and MODULE_FILTER define application and project failure policy.",
+              "evidence": "An injected @Stdout output service is shared through a module; module onError hooks define application and project failure policy.",
               "level": 3
             },
             "scope-composition": {
@@ -616,18 +616,13 @@
   },
   "bundle": {
     "func": {
-      "artifacts": [
-        "dist/func/bin.js.gz",
-        "dist/func/index.js.gz"
-      ],
+      "artifacts": ["dist/func/bin.js.gz", "dist/func/index.js.gz"],
       "fileCount": 2,
-      "gzipBytes": 19170,
+      "gzipBytes": 18592,
       "source": {
-        "files": [
-          "src/adapters/func.ts"
-        ],
-        "bytes": 7216,
-        "nonBlankLines": 278,
+        "files": ["src/adapters/func.ts"],
+        "bytes": 7021,
+        "nonBlankLines": 270,
         "relativeToFunc": {
           "byteDelta": 0,
           "byteRatio": 1,
@@ -642,78 +637,66 @@
       }
     },
     "func-parser": {
-      "artifacts": [
-        "dist/func-parser/bin.mjs.gz"
-      ],
+      "artifacts": ["dist/func-parser/bin.mjs.gz"],
       "fileCount": 1,
       "gzipBytes": 4611,
       "source": {
-        "files": [
-          "src/adapters/func-parser.ts"
-        ],
+        "files": ["src/adapters/func-parser.ts"],
         "bytes": 7231,
         "nonBlankLines": 250,
         "relativeToFunc": {
-          "byteDelta": 15,
-          "byteRatio": 1.002,
-          "nonBlankLineDelta": -28,
-          "nonBlankLineRatio": 0.899
+          "byteDelta": 210,
+          "byteRatio": 1.03,
+          "nonBlankLineDelta": -20,
+          "nonBlankLineRatio": 0.926
         }
       },
       "relativeToFunc": {
-        "gzipDeltaBytes": -14559,
-        "gzipDeltaPercent": -75.947,
-        "gzipRatio": 0.241
+        "gzipDeltaBytes": -13981,
+        "gzipDeltaPercent": -75.199,
+        "gzipRatio": 0.248
       }
     },
     "commander": {
-      "artifacts": [
-        "dist/commander/bin.mjs.gz"
-      ],
+      "artifacts": ["dist/commander/bin.mjs.gz"],
       "fileCount": 1,
       "gzipBytes": 12466,
       "source": {
-        "files": [
-          "src/adapters/commander.ts"
-        ],
+        "files": ["src/adapters/commander.ts"],
         "bytes": 7225,
         "nonBlankLines": 228,
         "relativeToFunc": {
-          "byteDelta": 9,
-          "byteRatio": 1.001,
-          "nonBlankLineDelta": -50,
-          "nonBlankLineRatio": 0.82
+          "byteDelta": 204,
+          "byteRatio": 1.029,
+          "nonBlankLineDelta": -42,
+          "nonBlankLineRatio": 0.844
         }
       },
       "relativeToFunc": {
-        "gzipDeltaBytes": -6704,
-        "gzipDeltaPercent": -34.971,
-        "gzipRatio": 0.65
+        "gzipDeltaBytes": -6126,
+        "gzipDeltaPercent": -32.95,
+        "gzipRatio": 0.671
       }
     },
     "yargs": {
-      "artifacts": [
-        "dist/yargs/bin.mjs.gz"
-      ],
+      "artifacts": ["dist/yargs/bin.mjs.gz"],
       "fileCount": 1,
       "gzipBytes": 35667,
       "source": {
-        "files": [
-          "src/adapters/yargs.ts"
-        ],
+        "files": ["src/adapters/yargs.ts"],
         "bytes": 7666,
         "nonBlankLines": 283,
         "relativeToFunc": {
-          "byteDelta": 450,
-          "byteRatio": 1.062,
-          "nonBlankLineDelta": 5,
-          "nonBlankLineRatio": 1.018
+          "byteDelta": 645,
+          "byteRatio": 1.092,
+          "nonBlankLineDelta": 13,
+          "nonBlankLineRatio": 1.048
         }
       },
       "relativeToFunc": {
-        "gzipDeltaBytes": 16497,
-        "gzipDeltaPercent": 86.056,
-        "gzipRatio": 1.861
+        "gzipDeltaBytes": 17075,
+        "gzipDeltaPercent": 91.841,
+        "gzipRatio": 1.918
       }
     },
     "oclif": {
@@ -725,70 +708,58 @@
       "fileCount": 3,
       "gzipBytes": 104367,
       "source": {
-        "files": [
-          "src/adapters/oclif.ts",
-          "src/adapters/oclif-commands.ts"
-        ],
+        "files": ["src/adapters/oclif.ts", "src/adapters/oclif-commands.ts"],
         "bytes": 6953,
         "nonBlankLines": 236,
         "relativeToFunc": {
-          "byteDelta": -263,
-          "byteRatio": 0.964,
-          "nonBlankLineDelta": -42,
-          "nonBlankLineRatio": 0.849
+          "byteDelta": -68,
+          "byteRatio": 0.99,
+          "nonBlankLineDelta": -34,
+          "nonBlankLineRatio": 0.874
         }
       },
       "relativeToFunc": {
-        "gzipDeltaBytes": 85197,
-        "gzipDeltaPercent": 444.429,
-        "gzipRatio": 5.444
+        "gzipDeltaBytes": 85775,
+        "gzipDeltaPercent": 461.354,
+        "gzipRatio": 5.614
       }
     },
     "cac": {
-      "artifacts": [
-        "dist/cac/bin.mjs.gz"
-      ],
+      "artifacts": ["dist/cac/bin.mjs.gz"],
       "fileCount": 1,
       "gzipBytes": 5174,
       "source": {
-        "files": [
-          "src/adapters/cac.ts"
-        ],
+        "files": ["src/adapters/cac.ts"],
         "bytes": 6388,
         "nonBlankLines": 195,
         "relativeToFunc": {
-          "byteDelta": -828,
-          "byteRatio": 0.885,
-          "nonBlankLineDelta": -83,
-          "nonBlankLineRatio": 0.701
+          "byteDelta": -633,
+          "byteRatio": 0.91,
+          "nonBlankLineDelta": -75,
+          "nonBlankLineRatio": 0.722
         }
       },
       "relativeToFunc": {
-        "gzipDeltaBytes": -13996,
-        "gzipDeltaPercent": -73.01,
-        "gzipRatio": 0.27
+        "gzipDeltaBytes": -13418,
+        "gzipDeltaPercent": -72.171,
+        "gzipRatio": 0.278
       }
     }
   },
   "runtime": {
     "scenarios": {
       "simple-routing": {
-        "args": [
-          "status",
-          "--profile",
-          "staging",
-          "--json"
-        ],
+        "args": ["status", "--profile", "staging", "--json"],
         "expectSuccess": true,
         "results": {
           "func": {
             "samples": 20,
-            "minMs": 34.298,
-            "medianMs": 38.601,
-            "meanMs": 38.334,
-            "p95Ms": 40.774,
-            "maxMs": 42.62,
-            "standardDeviationMs": 2.013,
+            "minMs": 39.093,
+            "medianMs": 40.002,
+            "meanMs": 40.579,
+            "p95Ms": 41.714,
+            "maxMs": 48.342,
+            "standardDeviationMs": 1.921,
             "relativeToFunc": {
               "meanDeltaMs": 0,
               "meanDeltaPercent": 0,
@@ -797,72 +768,72 @@
           },
           "func-parser": {
             "samples": 20,
-            "minMs": 30.419,
-            "medianMs": 34.08,
-            "meanMs": 34.678,
-            "p95Ms": 40.708,
-            "maxMs": 40.81,
-            "standardDeviationMs": 2.601,
+            "minMs": 34.231,
+            "medianMs": 35.314,
+            "meanMs": 35.783,
+            "p95Ms": 37.099,
+            "maxMs": 41.525,
+            "standardDeviationMs": 1.588,
             "relativeToFunc": {
-              "meanDeltaMs": -3.656,
-              "meanDeltaPercent": -9.537,
-              "meanRatio": 0.905
+              "meanDeltaMs": -4.796,
+              "meanDeltaPercent": -11.819,
+              "meanRatio": 0.882
             }
           },
           "commander": {
             "samples": 20,
-            "minMs": 34.36,
-            "medianMs": 37.771,
-            "meanMs": 38.156,
-            "p95Ms": 41.873,
-            "maxMs": 42.815,
-            "standardDeviationMs": 2.056,
+            "minMs": 38.783,
+            "medianMs": 39.803,
+            "meanMs": 39.912,
+            "p95Ms": 41.353,
+            "maxMs": 41.888,
+            "standardDeviationMs": 0.744,
             "relativeToFunc": {
-              "meanDeltaMs": -0.178,
-              "meanDeltaPercent": -0.464,
-              "meanRatio": 0.995
+              "meanDeltaMs": -0.667,
+              "meanDeltaPercent": -1.644,
+              "meanRatio": 0.984
             }
           },
           "yargs": {
             "samples": 20,
-            "minMs": 62.488,
-            "medianMs": 68.333,
-            "meanMs": 68.61,
-            "p95Ms": 72.366,
-            "maxMs": 76.789,
-            "standardDeviationMs": 3,
+            "minMs": 69.745,
+            "medianMs": 71.436,
+            "meanMs": 72.027,
+            "p95Ms": 74.945,
+            "maxMs": 78.481,
+            "standardDeviationMs": 2.065,
             "relativeToFunc": {
-              "meanDeltaMs": 30.276,
-              "meanDeltaPercent": 78.979,
-              "meanRatio": 1.79
+              "meanDeltaMs": 31.448,
+              "meanDeltaPercent": 77.498,
+              "meanRatio": 1.775
             }
           },
           "oclif": {
             "samples": 20,
-            "minMs": 61.803,
-            "medianMs": 67.888,
-            "meanMs": 68.557,
-            "p95Ms": 75.793,
-            "maxMs": 80.057,
-            "standardDeviationMs": 4.334,
+            "minMs": 68.747,
+            "medianMs": 70.222,
+            "meanMs": 70.918,
+            "p95Ms": 73.01,
+            "maxMs": 82.139,
+            "standardDeviationMs": 2.753,
             "relativeToFunc": {
-              "meanDeltaMs": 30.223,
-              "meanDeltaPercent": 78.841,
-              "meanRatio": 1.788
+              "meanDeltaMs": 30.339,
+              "meanDeltaPercent": 74.765,
+              "meanRatio": 1.748
             }
           },
           "cac": {
             "samples": 20,
-            "minMs": 30.716,
-            "medianMs": 33.944,
-            "meanMs": 34.08,
-            "p95Ms": 36.506,
-            "maxMs": 38.412,
-            "standardDeviationMs": 2.027,
+            "minMs": 33.839,
+            "medianMs": 35.059,
+            "meanMs": 35.413,
+            "p95Ms": 37.11,
+            "maxMs": 37.515,
+            "standardDeviationMs": 1.051,
             "relativeToFunc": {
-              "meanDeltaMs": -4.254,
-              "meanDeltaPercent": -11.097,
-              "meanRatio": 0.889
+              "meanDeltaMs": -5.166,
+              "meanDeltaPercent": -12.731,
+              "meanRatio": 0.873
             }
           }
         }
@@ -887,12 +858,12 @@
         "results": {
           "func": {
             "samples": 20,
-            "minMs": 34.951,
-            "medianMs": 38.191,
-            "meanMs": 38.308,
-            "p95Ms": 40.462,
-            "maxMs": 41.403,
-            "standardDeviationMs": 1.634,
+            "minMs": 34.867,
+            "medianMs": 39.889,
+            "meanMs": 39.593,
+            "p95Ms": 42.643,
+            "maxMs": 44.009,
+            "standardDeviationMs": 2.186,
             "relativeToFunc": {
               "meanDeltaMs": 0,
               "meanDeltaPercent": 0,
@@ -901,72 +872,72 @@
           },
           "func-parser": {
             "samples": 20,
-            "minMs": 30.193,
-            "medianMs": 33.026,
-            "meanMs": 33.181,
-            "p95Ms": 35.581,
-            "maxMs": 36.646,
-            "standardDeviationMs": 1.781,
+            "minMs": 30.533,
+            "medianMs": 34.714,
+            "meanMs": 34.279,
+            "p95Ms": 35.874,
+            "maxMs": 36.891,
+            "standardDeviationMs": 1.723,
             "relativeToFunc": {
-              "meanDeltaMs": -5.127,
-              "meanDeltaPercent": -13.384,
+              "meanDeltaMs": -5.314,
+              "meanDeltaPercent": -13.422,
               "meanRatio": 0.866
             }
           },
           "commander": {
             "samples": 20,
-            "minMs": 33.658,
-            "medianMs": 37.204,
-            "meanMs": 36.723,
-            "p95Ms": 39.553,
-            "maxMs": 40.253,
-            "standardDeviationMs": 1.958,
+            "minMs": 33.531,
+            "medianMs": 38.936,
+            "meanMs": 38.148,
+            "p95Ms": 40.64,
+            "maxMs": 40.961,
+            "standardDeviationMs": 2.064,
             "relativeToFunc": {
-              "meanDeltaMs": -1.585,
-              "meanDeltaPercent": -4.138,
-              "meanRatio": 0.959
+              "meanDeltaMs": -1.445,
+              "meanDeltaPercent": -3.65,
+              "meanRatio": 0.964
             }
           },
           "yargs": {
             "samples": 20,
-            "minMs": 64.469,
-            "medianMs": 70.726,
-            "meanMs": 69.423,
-            "p95Ms": 73.76,
-            "maxMs": 75.642,
-            "standardDeviationMs": 3.433,
+            "minMs": 65.766,
+            "medianMs": 72.741,
+            "meanMs": 74.773,
+            "p95Ms": 90.836,
+            "maxMs": 112.349,
+            "standardDeviationMs": 9.803,
             "relativeToFunc": {
-              "meanDeltaMs": 31.115,
-              "meanDeltaPercent": 81.223,
-              "meanRatio": 1.812
+              "meanDeltaMs": 35.18,
+              "meanDeltaPercent": 88.854,
+              "meanRatio": 1.889
             }
           },
           "oclif": {
             "samples": 20,
-            "minMs": 60.54,
-            "medianMs": 68.415,
-            "meanMs": 67.081,
-            "p95Ms": 70.993,
-            "maxMs": 71.036,
-            "standardDeviationMs": 3.101,
+            "minMs": 63.444,
+            "medianMs": 69.726,
+            "meanMs": 69.522,
+            "p95Ms": 72.625,
+            "maxMs": 73.61,
+            "standardDeviationMs": 2.639,
             "relativeToFunc": {
-              "meanDeltaMs": 28.773,
-              "meanDeltaPercent": 75.11,
-              "meanRatio": 1.751
+              "meanDeltaMs": 29.929,
+              "meanDeltaPercent": 75.592,
+              "meanRatio": 1.756
             }
           },
           "cac": {
             "samples": 20,
-            "minMs": 30.5,
-            "medianMs": 33.415,
-            "meanMs": 33.729,
-            "p95Ms": 36.285,
-            "maxMs": 38.302,
-            "standardDeviationMs": 2.043,
+            "minMs": 32.049,
+            "medianMs": 35.02,
+            "meanMs": 35.088,
+            "p95Ms": 37.197,
+            "maxMs": 38.561,
+            "standardDeviationMs": 1.708,
             "relativeToFunc": {
-              "meanDeltaMs": -4.579,
-              "meanDeltaPercent": -11.953,
-              "meanRatio": 0.88
+              "meanDeltaMs": -4.505,
+              "meanDeltaPercent": -11.378,
+              "meanRatio": 0.886
             }
           }
         }
@@ -985,12 +956,12 @@
         "results": {
           "func": {
             "samples": 20,
-            "minMs": 34.557,
-            "medianMs": 37.851,
-            "meanMs": 37.944,
-            "p95Ms": 40.654,
-            "maxMs": 40.715,
-            "standardDeviationMs": 1.961,
+            "minMs": 34.391,
+            "medianMs": 38.723,
+            "meanMs": 38.839,
+            "p95Ms": 42,
+            "maxMs": 42.074,
+            "standardDeviationMs": 2.143,
             "relativeToFunc": {
               "meanDeltaMs": 0,
               "meanDeltaPercent": 0,
@@ -999,94 +970,88 @@
           },
           "func-parser": {
             "samples": 20,
-            "minMs": 30.94,
-            "medianMs": 33.763,
-            "meanMs": 34.073,
-            "p95Ms": 35.417,
-            "maxMs": 49.457,
-            "standardDeviationMs": 3.77,
+            "minMs": 30.681,
+            "medianMs": 34.084,
+            "meanMs": 34.039,
+            "p95Ms": 36.251,
+            "maxMs": 36.98,
+            "standardDeviationMs": 1.629,
             "relativeToFunc": {
-              "meanDeltaMs": -3.871,
-              "meanDeltaPercent": -10.202,
-              "meanRatio": 0.898
+              "meanDeltaMs": -4.8,
+              "meanDeltaPercent": -12.359,
+              "meanRatio": 0.876
             }
           },
           "commander": {
             "samples": 20,
-            "minMs": 33.621,
-            "medianMs": 38.334,
-            "meanMs": 37.949,
-            "p95Ms": 41.157,
-            "maxMs": 43.141,
-            "standardDeviationMs": 2.301,
+            "minMs": 33.758,
+            "medianMs": 38.709,
+            "meanMs": 38.129,
+            "p95Ms": 40.845,
+            "maxMs": 41.788,
+            "standardDeviationMs": 2.223,
             "relativeToFunc": {
-              "meanDeltaMs": 0.005,
-              "meanDeltaPercent": 0.013,
-              "meanRatio": 1
+              "meanDeltaMs": -0.71,
+              "meanDeltaPercent": -1.828,
+              "meanRatio": 0.982
             }
           },
           "yargs": {
             "samples": 20,
-            "minMs": 65.382,
-            "medianMs": 69.334,
-            "meanMs": 71.087,
-            "p95Ms": 77.22,
-            "maxMs": 84.985,
-            "standardDeviationMs": 4.439,
+            "minMs": 64.667,
+            "medianMs": 70.722,
+            "meanMs": 70.84,
+            "p95Ms": 73.51,
+            "maxMs": 73.582,
+            "standardDeviationMs": 2.133,
             "relativeToFunc": {
-              "meanDeltaMs": 33.143,
-              "meanDeltaPercent": 87.347,
-              "meanRatio": 1.873
+              "meanDeltaMs": 32.001,
+              "meanDeltaPercent": 82.394,
+              "meanRatio": 1.824
             }
           },
           "oclif": {
             "samples": 20,
-            "minMs": 61.458,
-            "medianMs": 65.215,
-            "meanMs": 66.967,
-            "p95Ms": 72.355,
-            "maxMs": 76.82,
-            "standardDeviationMs": 4.134,
+            "minMs": 61.686,
+            "medianMs": 69.361,
+            "meanMs": 72.979,
+            "p95Ms": 83.197,
+            "maxMs": 149.18,
+            "standardDeviationMs": 17.993,
             "relativeToFunc": {
-              "meanDeltaMs": 29.023,
-              "meanDeltaPercent": 76.489,
-              "meanRatio": 1.765
+              "meanDeltaMs": 34.14,
+              "meanDeltaPercent": 87.901,
+              "meanRatio": 1.879
             }
           },
           "cac": {
             "samples": 20,
-            "minMs": 30.051,
-            "medianMs": 33.173,
-            "meanMs": 33.446,
-            "p95Ms": 35.83,
-            "maxMs": 36.851,
-            "standardDeviationMs": 1.664,
+            "minMs": 30.704,
+            "medianMs": 34.296,
+            "meanMs": 34.539,
+            "p95Ms": 38.585,
+            "maxMs": 39.277,
+            "standardDeviationMs": 2.036,
             "relativeToFunc": {
-              "meanDeltaMs": -4.498,
-              "meanDeltaPercent": -11.854,
-              "meanRatio": 0.881
+              "meanDeltaMs": -4.3,
+              "meanDeltaPercent": -11.071,
+              "meanRatio": 0.889
             }
           }
         }
       },
       "scoped-error-boundary": {
-        "args": [
-          "project",
-          "sync",
-          "--project",
-          "payments",
-          "--conflict"
-        ],
+        "args": ["project", "sync", "--project", "payments", "--conflict"],
         "expectSuccess": false,
         "results": {
           "func": {
             "samples": 20,
-            "minMs": 34.577,
-            "medianMs": 36.474,
-            "meanMs": 37.069,
-            "p95Ms": 40.693,
-            "maxMs": 41.338,
-            "standardDeviationMs": 1.981,
+            "minMs": 38.144,
+            "medianMs": 39.51,
+            "meanMs": 39.698,
+            "p95Ms": 41.268,
+            "maxMs": 41.794,
+            "standardDeviationMs": 0.954,
             "relativeToFunc": {
               "meanDeltaMs": 0,
               "meanDeltaPercent": 0,
@@ -1095,72 +1060,72 @@
           },
           "func-parser": {
             "samples": 20,
-            "minMs": 30.166,
-            "medianMs": 31.42,
-            "meanMs": 32.185,
-            "p95Ms": 34.5,
-            "maxMs": 35.611,
-            "standardDeviationMs": 1.546,
+            "minMs": 33.195,
+            "medianMs": 34.466,
+            "meanMs": 34.89,
+            "p95Ms": 37.366,
+            "maxMs": 37.372,
+            "standardDeviationMs": 1.235,
             "relativeToFunc": {
-              "meanDeltaMs": -4.884,
-              "meanDeltaPercent": -13.175,
-              "meanRatio": 0.868
+              "meanDeltaMs": -4.808,
+              "meanDeltaPercent": -12.111,
+              "meanRatio": 0.879
             }
           },
           "commander": {
             "samples": 20,
-            "minMs": 33.285,
-            "medianMs": 34.964,
-            "meanMs": 36.303,
-            "p95Ms": 41.482,
-            "maxMs": 42.351,
-            "standardDeviationMs": 2.559,
+            "minMs": 37.041,
+            "medianMs": 39.268,
+            "meanMs": 39.57,
+            "p95Ms": 42.012,
+            "maxMs": 42.085,
+            "standardDeviationMs": 1.288,
             "relativeToFunc": {
-              "meanDeltaMs": -0.766,
-              "meanDeltaPercent": -2.066,
-              "meanRatio": 0.979
+              "meanDeltaMs": -0.128,
+              "meanDeltaPercent": -0.322,
+              "meanRatio": 0.997
             }
           },
           "yargs": {
             "samples": 20,
-            "minMs": 59.722,
-            "medianMs": 61.006,
-            "meanMs": 62.024,
-            "p95Ms": 65.588,
-            "maxMs": 66.938,
-            "standardDeviationMs": 2.072,
+            "minMs": 65.109,
+            "medianMs": 66.647,
+            "meanMs": 67.062,
+            "p95Ms": 69.913,
+            "maxMs": 70.908,
+            "standardDeviationMs": 1.509,
             "relativeToFunc": {
-              "meanDeltaMs": 24.955,
-              "meanDeltaPercent": 67.32,
-              "meanRatio": 1.673
+              "meanDeltaMs": 27.364,
+              "meanDeltaPercent": 68.93,
+              "meanRatio": 1.689
             }
           },
           "oclif": {
             "samples": 20,
-            "minMs": 60.864,
-            "medianMs": 63,
-            "meanMs": 64.452,
-            "p95Ms": 69.977,
-            "maxMs": 71.243,
-            "standardDeviationMs": 2.963,
+            "minMs": 67.533,
+            "medianMs": 69.184,
+            "meanMs": 72.08,
+            "p95Ms": 77.246,
+            "maxMs": 109.636,
+            "standardDeviationMs": 8.941,
             "relativeToFunc": {
-              "meanDeltaMs": 27.383,
-              "meanDeltaPercent": 73.87,
-              "meanRatio": 1.739
+              "meanDeltaMs": 32.382,
+              "meanDeltaPercent": 81.571,
+              "meanRatio": 1.816
             }
           },
           "cac": {
             "samples": 20,
-            "minMs": 30.19,
-            "medianMs": 32.041,
-            "meanMs": 32.737,
-            "p95Ms": 35.583,
-            "maxMs": 35.945,
-            "standardDeviationMs": 1.942,
+            "minMs": 33.128,
+            "medianMs": 34.403,
+            "meanMs": 35.434,
+            "p95Ms": 35.888,
+            "maxMs": 52.393,
+            "standardDeviationMs": 3.971,
             "relativeToFunc": {
-              "meanDeltaMs": -4.332,
-              "meanDeltaPercent": -11.686,
-              "meanRatio": 0.883
+              "meanDeltaMs": -4.264,
+              "meanDeltaPercent": -10.741,
+              "meanRatio": 0.893
             }
           }
         }
@@ -1168,7 +1133,7 @@
     },
     "overall": {
       "func": {
-        "meanMs": 37.914,
+        "meanMs": 39.677,
         "relativeToFunc": {
           "meanDeltaMs": 0,
           "meanDeltaPercent": 0,
@@ -1176,43 +1141,43 @@
         }
       },
       "func-parser": {
-        "meanMs": 33.529,
+        "meanMs": 34.748,
         "relativeToFunc": {
-          "meanDeltaMs": -4.385,
-          "meanDeltaPercent": -11.566,
-          "meanRatio": 0.884
+          "meanDeltaMs": -4.929,
+          "meanDeltaPercent": -12.423,
+          "meanRatio": 0.876
         }
       },
       "commander": {
-        "meanMs": 37.283,
+        "meanMs": 38.94,
         "relativeToFunc": {
-          "meanDeltaMs": -0.631,
-          "meanDeltaPercent": -1.664,
-          "meanRatio": 0.983
+          "meanDeltaMs": -0.737,
+          "meanDeltaPercent": -1.857,
+          "meanRatio": 0.981
         }
       },
       "yargs": {
-        "meanMs": 67.786,
+        "meanMs": 71.176,
         "relativeToFunc": {
-          "meanDeltaMs": 29.872,
-          "meanDeltaPercent": 78.789,
-          "meanRatio": 1.788
+          "meanDeltaMs": 31.499,
+          "meanDeltaPercent": 79.389,
+          "meanRatio": 1.794
         }
       },
       "oclif": {
-        "meanMs": 66.764,
+        "meanMs": 71.375,
         "relativeToFunc": {
-          "meanDeltaMs": 28.85,
-          "meanDeltaPercent": 76.093,
-          "meanRatio": 1.761
+          "meanDeltaMs": 31.698,
+          "meanDeltaPercent": 79.89,
+          "meanRatio": 1.799
         }
       },
       "cac": {
-        "meanMs": 33.498,
+        "meanMs": 35.119,
         "relativeToFunc": {
-          "meanDeltaMs": -4.416,
-          "meanDeltaPercent": -11.647,
-          "meanRatio": 0.884
+          "meanDeltaMs": -4.558,
+          "meanDeltaPercent": -11.488,
+          "meanRatio": 0.885
         }
       }
     }
@@ -1246,11 +1211,11 @@
     ],
     "runtimeMeanMs": [
       {
-        "framework": "cac",
+        "framework": "func-parser",
         "rank": 1
       },
       {
-        "framework": "func-parser",
+        "framework": "cac",
         "rank": 2
       },
       {
@@ -1262,11 +1227,11 @@
         "rank": 4
       },
       {
-        "framework": "oclif",
+        "framework": "yargs",
         "rank": 5
       },
       {
-        "framework": "yargs",
+        "framework": "oclif",
         "rank": 6
       }
     ]

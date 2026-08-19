@@ -141,7 +141,7 @@ const authoringEvidence: Record<Framework, FrameworkAuthoringEvaluation> = {
       },
       'boundary-authoring': {
         evidence:
-          'An injected @Stdout output service is shared through a module; APP_FILTER and MODULE_FILTER define application and project failure policy.',
+          'An injected @Stdout output service is shared through a module; module onError hooks define application and project failure policy.',
         level: 3,
       },
       'scope-composition': {

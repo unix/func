@@ -80,7 +80,7 @@ const capabilityMechanisms = {
     repeatedValues: '@ArrayString',
     exclusivity: '@Exclusive',
     override: '@Override',
-    errorBoundary: 'MODULE_FILTER + APP_FILTER',
+    errorBoundary: 'module onError chain',
     output: 'Output provider + @Stdout',
   },
   'func-parser': {

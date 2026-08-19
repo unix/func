@@ -1,8 +1,6 @@
 import {
-  APP_FILTER,
   Args,
   ArrayString,
-  Catch,
   Command,
   Context,
   Enum,
@@ -10,7 +8,6 @@ import {
   Flag,
   Handler,
   Injectable,
-  MODULE_FILTER,
   Module,
   Option,
   OptionCommand,
@@ -20,7 +17,7 @@ import {
   Value,
   createApp,
 } from 'func'
-import type { Args as CommandArgs, Exception, ExceptionFilter } from 'func'
+import type { Args as CommandArgs, Exception, OnError } from 'func'
 import type { Writable } from 'node:stream'
 
 const profiles = ['local', 'staging', 'production']
@@ -181,21 +178,18 @@ class ProjectCommand {
   }
 }
 
-@Catch(ProjectConflict)
-class ProjectFilter implements ExceptionFilter {
-  catch(exception: Exception, context: Context) {
-    context.io.stderr.write(`error[project]: ${exception.message}\n`)
-    context.exitCode = 3
-  }
-}
-
 @Module({
   commands: [ProjectCommand],
   imports: [OutputModule],
   options: [ProjectOptions],
-  providers: [{ provide: MODULE_FILTER, useClass: ProjectFilter }],
 })
-class ProjectModule {}
+class ProjectModule implements OnError {
+  onError(exception: Exception, context: Context) {
+    if (!(exception.cause instanceof ProjectConflict)) throw exception
+    context.io.stderr.write(`error[project]: ${exception.message}\n`)
+    context.exitCode = 3
+  }
+}
 
 @Option()
 class AuditOptions {
@@ -298,20 +292,16 @@ class AuditExportCommand {
 })
 class AuditModule {}
 
-@Catch()
-class AppFilter implements ExceptionFilter {
-  catch(exception: Exception, context: Context) {
-    context.io.stderr.write(`error[benchmark]: ${exception.message}\n`)
-    context.exitCode = 2
-  }
-}
-
 @Module({
   commands: [StatusCommand],
   imports: [OutputModule, ProjectModule, AuditModule],
   options: [AppOptions, ContextOption],
-  providers: [{ provide: APP_FILTER, useClass: AppFilter }],
 })
-class AppModule {}
+class AppModule implements OnError {
+  onError(exception: Exception, context: Context) {
+    context.io.stderr.write(`error[benchmark]: ${exception.message}\n`)
+    context.exitCode = 2
+  }
+}
 
 void createApp(AppModule, { appName: 'benchmark-func' }).bootstrap()
