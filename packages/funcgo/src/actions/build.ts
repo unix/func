@@ -4,16 +4,24 @@ import path from 'path'
 import { funcgoParser } from '../parser'
 import { applicationPrecompilePlugin } from '../plugins/application-precompile'
 import { valueTypeValidationPlugin } from '../plugins/value-type-validation'
+import {
+  buildTargets,
+  buildTargetWarnings,
+  defaultBuildTarget,
+  resolveBuildTarget,
+  type BuildTarget,
+} from '../utils/build-target'
 import { resolveWatchTargets, watchBuild } from '../utils/build-watch'
 import { withErrorTrackingUrl } from '../utils/error-tracking'
-import * as spinner from '../utils/spinner'
 import { cwd, readPackage, resolveEntry } from '../utils/paths'
+import * as spinner from '../utils/spinner'
 import { formatSystemError, isSystemError } from '../utils/system-error-format'
 
 export interface BuildArgs {
   file?: string
   out?: string
   external: string[]
+  target?: string
   watch: boolean
   watchPaths: string[]
 }
@@ -31,6 +39,7 @@ export interface ProjectBuildOptions {
   precompile?: 'auto' | 'required' | false
   report?: boolean
   sourcemap?: 'inline'
+  target?: BuildTarget
 }
 
 export interface ProjectBuildResult {
@@ -39,6 +48,8 @@ export interface ProjectBuildResult {
 
 const runBuild = async (args: BuildArgs): Promise<void> => {
   const pkg = readPackage()
+  const target = resolveBuildTarget(args.target)
+  buildTargetWarnings(target, packageNodeEngine(pkg)).forEach(spinner.warning)
   const entry = resolveEntry(args.file)
   if (!entry) {
     throw new ScaffoldException(SCAFFOLD.ENTRY_NOT_FOUND, {
@@ -53,6 +64,7 @@ const runBuild = async (args: BuildArgs): Promise<void> => {
     external: args.external,
     output,
     precompile: pkg.func?.precompile,
+    target,
   }
   if (!args.watch) {
     await buildWithRolldown(buildOptions)
@@ -109,7 +121,7 @@ export const buildWithRolldown = async (
       ],
       tsconfig,
       transform: {
-        target: 'node24.15',
+        target: buildTargets[options.target ?? defaultBuildTarget].rolldown,
       },
       output: {
         codeSplitting: false,
@@ -156,9 +168,11 @@ export const parseBuildArgs = (argv: string[]): BuildArgs => {
     external: parsed.options.external.slice(),
     file: parsed.options.file,
     out: parsed.options.out,
+    target: parsed.options.target,
     watch: parsed.options.watch,
     watchPaths: parsed.options.watchPaths.slice(),
   }
+  resolveBuildTarget(result.target)
   if (result.watchPaths.length && !result.watch) {
     throw new ScaffoldException(SCAFFOLD.WATCH_REQUIRES_WATCH, {
       details: { watchPaths: result.watchPaths },
@@ -167,6 +181,11 @@ export const parseBuildArgs = (argv: string[]): BuildArgs => {
   }
 
   return result
+}
+
+const packageNodeEngine = (pkg: ReturnType<typeof readPackage>): unknown => {
+  if (!pkg.engines || typeof pkg.engines !== 'object') return undefined
+  return Reflect.get(pkg.engines, 'node')
 }
 
 const resolveTsconfig = (entry: string): string | true => {

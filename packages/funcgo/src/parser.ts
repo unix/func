@@ -11,6 +11,7 @@ export const funcgoParser = createParser({
         external: { alias: 'e', multiple: true, type: String },
         file: { alias: 'f', type: String },
         out: { alias: 'o', type: String },
+        target: { type: String },
         watch: { alias: 'w', type: Boolean },
         watchPaths: {
           multiple: true,

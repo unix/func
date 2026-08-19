@@ -16,6 +16,7 @@ export interface ProjectPackage {
   [key: string]: unknown
   name?: string
   bin?: string | Record<string, string>
+  engines?: unknown
   scripts?: Record<string, string>
   packageManager?: string
   func?: FuncConfig

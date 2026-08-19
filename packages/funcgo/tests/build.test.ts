@@ -22,9 +22,20 @@ describe('parseBuildArgs', () => {
       file: 'src/index.ts',
       out: 'build',
       external: ['react', 'chalk'],
+      target: undefined,
       watch: false,
       watchPaths: [],
     })
+  })
+
+  test('parses a build target', () => {
+    expect(parseBuildArgs(['--target', 'n22']).target).toBe('n22')
+  })
+
+  test('rejects an unsupported build target', () => {
+    expect(() => parseBuildArgs(['--target', 'n18'])).toThrow(
+      'Unsupported build target "n18". Expected one of: n20, n22, n24.',
+    )
   })
 
   test('parses watch and repeated watch paths', () => {

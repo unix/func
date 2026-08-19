@@ -79,6 +79,7 @@ export const main = async (argv: string[] = process.argv): Promise<void> => {
       external: args.options.external.slice(),
       file: args.options.file,
       out: args.options.out,
+      target: args.options.target,
       watch: args.options.watch,
       watchPaths: args.options.watchPaths.slice(),
     })

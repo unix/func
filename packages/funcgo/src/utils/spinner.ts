@@ -40,6 +40,13 @@ export const info = (text: string, detail?: string): void => {
   writeLine(`    ${style.dim(detail)}`)
 }
 
+export const warning = (text: string): void => {
+  writeLine(
+    `  ${style.warning('▲', errorOutput)} ${style.warning(text, errorOutput)}`,
+    errorOutput,
+  )
+}
+
 export const error = (text: string, detail?: string): void => {
   writeLine(
     `  ${style.danger('✗', errorOutput)} ${style.error(text, errorOutput)}`,
