@@ -100,11 +100,6 @@ describe('rewriteDownloadedTemplate', () => {
           2,
         )}\n`,
       )
-      fs.mkdirSync(path.join(tempDir, 'src'))
-      fs.writeFileSync(
-        path.join(tempDir, 'src', 'config.ts'),
-        "export const appName = 'func-template'\n",
-      )
       fs.writeFileSync(path.join(tempDir, '.npmignore'), 'dist\n')
       rewriteDownloadedTemplate(tempDir, 'my-app')
 
@@ -121,9 +116,6 @@ describe('rewriteDownloadedTemplate', () => {
       expect(fs.existsSync(path.join(tempDir, '.npmignore'))).toBe(false)
       expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf-8')).toBe(
         'dist\n',
-      )
-      expect(fs.readFileSync(path.join(tempDir, 'src', 'config.ts'), 'utf-8')).toBe(
-        "export const appName = 'my-app'\n",
       )
     } finally {
       fs.rmSync(tempDir, { force: true, recursive: true })

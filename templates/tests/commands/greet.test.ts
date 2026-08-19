@@ -1,5 +1,8 @@
+import { createTestingApp } from 'func/testing'
 import { expect, test } from 'vitest'
-import { app } from '../utils/testing'
+import { AppModule } from '../../src/app.module'
+
+const app = createTestingApp(AppModule)
 
 test('greet command should print the default greeting', async () => {
   const result = await app.invoke(['greet'])
