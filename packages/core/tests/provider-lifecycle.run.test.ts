@@ -1,6 +1,4 @@
 import {
-  APP_FILTER,
-  Catch,
   CommandMajor,
   Module,
   Handler,
@@ -8,7 +6,7 @@ import {
   Injectable,
   createToken,
 } from '../src'
-import type { ExceptionFilter, OnDispose, OnInit } from '../src'
+import type { OnDispose, OnError, OnInit } from '../src'
 import { createTestingApp } from '../src/subpath/testing'
 import { RUNTIME, expect, run, runtimeErrorCode, test, testModule } from './_test'
 
@@ -229,7 +227,7 @@ test.sequential(
 )
 
 test.sequential(
-  'should dispose providers created by commands and global error handlers',
+  'should dispose providers created by commands and the root module',
   async () => {
     expect.assertions(1)
     const events: string[] = []
@@ -258,22 +256,15 @@ test.sequential(
       }
     }
 
-    @Catch()
-    class AppFilter implements ExceptionFilter {
-      constructor(_resource: ErrorResource) {}
-
-      catch() {}
-    }
-
     @Module({
       commands: [Major],
-      providers: [
-        CommandResource,
-        ErrorResource,
-        { provide: APP_FILTER, useClass: AppFilter },
-      ],
+      providers: [CommandResource, ErrorResource],
     })
-    class AppModule {}
+    class AppModule implements OnError {
+      constructor(_resource: ErrorResource) {}
+
+      onError() {}
+    }
 
     await run(AppModule, { argv: [] })
     expect(events).toEqual(['command:dispose', 'error:dispose'])
@@ -281,7 +272,7 @@ test.sequential(
 )
 
 test.sequential(
-  'should absorb provider disposal failures outside the filter chain',
+  'should route provider disposal failures through the owner module',
   async () => {
     let caught = 0
 
@@ -302,27 +293,21 @@ test.sequential(
       }
     }
 
-    @Catch()
-    class AppFilter implements ExceptionFilter {
-      catch() {
+    @Module({ commands: [Major], providers: [ProjectService] })
+    class AppModule implements OnError {
+      onError() {
         caught += 1
       }
     }
 
-    const result = await createTestingApp(
-      testModule({
-        commands: [Major],
-        providers: [ProjectService, { provide: APP_FILTER, useClass: AppFilter }],
-      }),
-    ).invoke()
+    const result = await createTestingApp(AppModule).invoke()
     expect(result).toMatchObject({
       error: undefined,
-      exitCode: 0,
+      exitCode: 1,
       result: 'ready',
-      stderr:
-        'Lifecycle hook provider "ProjectService".onDispose() failed: dispose failed\n',
+      stderr: '',
     })
-    expect(caught).toBe(0)
+    expect(caught).toBe(1)
   },
 )
 
@@ -356,8 +341,6 @@ test.sequential('should aggregate every provider disposal failure', async () => 
     }),
   ).invoke()
   expect(result.error).toBeUndefined()
-  expect(result.stderr).toBe(
-    'Lifecycle hook provider "SecondService".onDispose() failed: second dispose failed\n' +
-      'Lifecycle hook provider "FirstService".onDispose() failed: first dispose failed\n',
-  )
+  expect(result.exitCode).toBe(1)
+  expect(result.stderr).toBe('second dispose failed\nfirst dispose failed\n')
 })

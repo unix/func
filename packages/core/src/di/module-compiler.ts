@@ -2,8 +2,8 @@ import { SYSTEM } from '@func/contracts/core-errors'
 import { hasModuleMetadata, moduleMetadata } from '../application/definition'
 import type { ModuleInput } from '../application/definition'
 import { InternalException, isException } from '../shared/errors'
-import { isMultiProviderToken } from '../runtime/enhancers'
-import type { Provider } from './types'
+import { isMultiProviderToken } from '../options/module-option'
+import type { NormalizedProvider, Provider, ProviderToken } from './types'
 import type { CompiledGraph, CompiledModule, ProviderRecord } from './module-graph'
 import { providerRecord, providerRecords } from './module-graph'
 import {
@@ -63,23 +63,28 @@ const compileModule = (input: ModuleInput, state: CompilerState): CompiledModule
     compiled.imports = (metadata.imports ?? []).map(imported =>
       compileModule(imported, state),
     )
-    const providers = metadata.providers ?? []
-    registerProviders(
-      compiled,
-      providers.filter(provider => !isMultiProvider(provider)),
-    )
-    registerMultiProviders(compiled, providers.filter(isMultiProvider))
+    const providers: Provider[] = []
+    const multiProviders: Provider[] = []
+    ;(metadata.providers ?? []).forEach(provider => {
+      if (isMultiProvider(provider)) {
+        multiProviders.push(provider)
+        return
+      }
+      providers.push(provider)
+    })
+    registerProviders(compiled, providers)
+    registerMultiProviders(compiled, multiProviders)
 
     ;(metadata.exports ?? []).forEach(token => {
-      const multi = isProviderToken(token) && isMultiProviderToken(token)
-      const records = multi ? providerRecords(compiled, token) : []
-      const exported = multi
-        ? records.length
-          ? records
-          : undefined
-        : isProviderToken(token)
-          ? providerRecord(compiled, token)
-          : undefined
+      let exported: ProviderRecord | readonly ProviderRecord[] | undefined
+      if (isProviderToken(token)) {
+        if (isMultiProviderToken(token)) {
+          const records = providerRecords(compiled, token)
+          exported = records.length ? records : undefined
+        } else {
+          exported = providerRecord(compiled, token)
+        }
+      }
       if (!exported) {
         throw new InternalException(SYSTEM.INVALID_MODULE_EXPORT, {
           details: {
@@ -112,32 +117,9 @@ export const registerProviders = (
   kind: ProviderRecord['kind'] = 'provider',
 ): ProviderRecord[] =>
   providers.map(provider => {
-    let normalized
-    try {
-      normalized = normalizeProvider(provider)
-    } catch (error) {
-      if (isException(error)) error.details.module = owner.name
-      throw error
-    }
-
-    if (
-      owner.providers.has(normalized.token) ||
-      owner.multiProviders.has(normalized.token)
-    ) {
-      throw new InternalException(SYSTEM.DUPLICATE_PROVIDER, {
-        details: {
-          module: owner.name,
-          token: providerTokenName(normalized.token),
-        },
-      })
-    }
-
-    const record: ProviderRecord = {
-      definition: normalized.definition,
-      kind,
-      owner,
-      token: normalized.token,
-    }
+    const normalized = normalizeOwnedProvider(owner, provider)
+    assertProviderAvailable(owner, normalized.token, false)
+    const record = createProviderRecord(owner, normalized, kind)
     owner.providers.set(normalized.token, record)
     if (kind === 'option') owner.options.push(record)
     return record
@@ -148,34 +130,52 @@ export const registerMultiProviders = (
   providers: readonly Provider[],
 ): ProviderRecord[] =>
   providers.map(provider => {
-    let normalized
-    try {
-      normalized = normalizeProvider(provider)
-    } catch (error) {
-      if (isException(error)) error.details.module = owner.name
-      throw error
-    }
-
-    if (owner.providers.has(normalized.token)) {
-      throw new InternalException(SYSTEM.DUPLICATE_PROVIDER, {
-        details: {
-          module: owner.name,
-          token: providerTokenName(normalized.token),
-        },
-      })
-    }
-
-    const record: ProviderRecord = {
-      definition: normalized.definition,
-      kind: 'provider',
-      owner,
-      token: normalized.token,
-    }
+    const normalized = normalizeOwnedProvider(owner, provider)
+    assertProviderAvailable(owner, normalized.token, true)
+    const record = createProviderRecord(owner, normalized, 'provider')
     const records = owner.multiProviders.get(normalized.token) ?? []
     records.push(record)
     owner.multiProviders.set(normalized.token, records)
     return record
   })
+
+const normalizeOwnedProvider = (
+  owner: CompiledModule,
+  provider: Provider,
+): NormalizedProvider => {
+  try {
+    return normalizeProvider(provider)
+  } catch (error) {
+    if (isException(error)) error.details.module = owner.name
+    throw error
+  }
+}
+
+const assertProviderAvailable = (
+  owner: CompiledModule,
+  token: ProviderToken,
+  multiple: boolean,
+) => {
+  if (!owner.providers.has(token) && (multiple || !owner.multiProviders.has(token)))
+    return
+  throw new InternalException(SYSTEM.DUPLICATE_PROVIDER, {
+    details: {
+      module: owner.name,
+      token: providerTokenName(token),
+    },
+  })
+}
+
+const createProviderRecord = (
+  owner: CompiledModule,
+  provider: NormalizedProvider,
+  kind: ProviderRecord['kind'],
+): ProviderRecord => ({
+  definition: provider.definition,
+  kind,
+  owner,
+  token: provider.token,
+})
 
 const moduleName = (input: ModuleInput): string => {
   const metadata = moduleMetadata(input)

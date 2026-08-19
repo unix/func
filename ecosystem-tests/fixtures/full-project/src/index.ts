@@ -1,11 +1,9 @@
 import {
-  APP_FILTER,
   Args,
   ArrayString,
   Command,
   CommandMajor,
   CommandMissing,
-  Catch,
   Context,
   DependsOn,
   Enum,
@@ -17,10 +15,9 @@ import {
   Required,
   Value,
   ValueValidate,
-  UseFilters,
   createApp,
 } from 'func'
-import type { Args as CommandArgs, Exception, ExceptionFilter } from 'func'
+import type { Args as CommandArgs, Exception, OnError } from 'func'
 import { projectName } from './config'
 
 @Injectable()
@@ -109,16 +106,8 @@ class AsyncCommand {
   }
 }
 
-@Catch()
-class DeployFilter implements ExceptionFilter {
-  catch(exception: Exception) {
-    console.error(`local:${exception.code}:${exception.message}`)
-  }
-}
-
-@UseFilters(DeployFilter)
 @Command('deploy')
-class DeployCommand {
+class DeployCommand implements OnError {
   @Required()
   @ValueValidate(value => typeof value === 'string' && value.length >= 3)
   @Value()
@@ -149,6 +138,10 @@ class DeployCommand {
       }),
     )
   }
+
+  onError(exception: Exception) {
+    console.error(`local:${exception.code}:${exception.message}`)
+  }
 }
 
 @CommandMissing()
@@ -166,19 +159,15 @@ class MissingCommand {
 })
 class FeatureModule {}
 
-@Catch()
-class AppFilter implements ExceptionFilter {
-  catch(exception: Exception) {
-    console.error(`global:${exception.code}:${exception.message}`)
-  }
-}
-
 @Module({
   commands: [MajorCommand, MissingCommand],
   imports: [FeatureModule],
-  providers: [{ provide: APP_FILTER, useClass: AppFilter }],
 })
-class AppModule {}
+class AppModule implements OnError {
+  onError(exception: Exception) {
+    console.error(`global:${exception.code}:${exception.message}`)
+  }
+}
 
 const app = createApp(AppModule)
 

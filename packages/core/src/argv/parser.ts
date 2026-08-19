@@ -210,7 +210,7 @@ const failure = (
 const isOptionInput = (value: string): boolean =>
   value.length > 1 && value.startsWith('-')
 
-const isSeparatedNumber = (option: ArgOption, value: string): boolean => {
+export const isSeparatedNumber = (option: ArgOption, value: string): boolean => {
   if (option.type !== 'number' || !value.trim().length) return false
   return Number.isFinite(Number(value)) || /^-(?:Infinity|NaN)$/.test(value)
 }

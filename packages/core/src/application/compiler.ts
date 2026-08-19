@@ -13,9 +13,10 @@ import { compileModuleOptions } from '../options/compiler'
 import { isOptionCommand } from '../options/compiler'
 import { compileFieldOptions } from '../options/field-metadata'
 import { InternalException } from '../shared/errors'
-import { handlers, metadata } from '../commands/metadata'
+import { ownMetadataValue } from '../shared/metadata-value'
+import { metadata } from '../commands/metadata'
+import type { handlers } from '../commands/metadata'
 import { isBuiltInToken } from '../runtime/injection'
-import { filtersFor, interceptorsFor } from '../runtime/enhancers'
 import { moduleMetadata } from './definition'
 import type { ModuleInput } from './definition'
 import type { CompiledApplication } from './model'
@@ -76,9 +77,7 @@ const compileHandler = (handler: Type, owner: CompiledModule): RegisteredHandler
   return {
     command: commandMetadata(handler),
     fieldOptions: compileFieldOptions(handler),
-    filters: filtersFor(handler),
     handler,
-    interceptors: interceptorsFor(handler),
     kind: handlerKindMetadata(handler),
     methodHandlers: compileMethodHandlers(handler),
     owner,
@@ -86,31 +85,12 @@ const compileHandler = (handler: Type, owner: CompiledModule): RegisteredHandler
 }
 
 const commandMetadata = (target: Type): CommandParams | undefined => {
-  const value: unknown = Reflect.getOwnMetadata(metadata.COMMAND_IDENTIFIER, target)
-  return isCommandParams(value) ? value : undefined
+  return ownMetadataValue<CommandParams>(metadata.COMMAND_IDENTIFIER, target)
 }
 
 const handlerKindMetadata = (target: Type): handlers | undefined => {
-  const value: unknown = Reflect.getOwnMetadata(metadata.HANDLER_IDENTIFIER, target)
-  return value === handlers.COMMAND ||
-    value === handlers.MAJOR ||
-    value === handlers.MISSING
-    ? value
-    : undefined
+  return ownMetadataValue<handlers>(metadata.HANDLER_IDENTIFIER, target)
 }
-
-const isCommandParams = (value: unknown): value is CommandParams => {
-  if (!isUnknownRecord(value)) return false
-  return isStringList(value.aliases) && isStringList(value.path)
-}
-
-const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
-
-const isStringList = (value: unknown): value is string[] =>
-  isUnknownArray(value) && value.every(item => typeof item === 'string')
-
-const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
 
 const commandsFor = (input: ModuleInput): Type[] =>
   moduleMetadata(input).commands ?? []

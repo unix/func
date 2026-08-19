@@ -18,7 +18,6 @@ export interface CompiledParserOption {
 
 export interface CompiledParserOptions {
   readonly definitions: readonly CompiledParserOption[]
-  readonly optionsByName: ReadonlyMap<string, CompiledParserOption>
   readonly plan: ArgvPlan
 }
 
@@ -87,10 +86,9 @@ export const applyParsedOptions = (
   compiled: CompiledParserOptions,
   parsed: ParsedArgv,
 ) => {
-  parsed.supplied.forEach(name => {
-    const definition = compiled.optionsByName.get(name)
-    if (!definition) return
-    const value = parsed.options[name]
+  compiled.definitions.forEach(definition => {
+    if (!parsed.supplied.has(definition.name)) return
+    const value = parsed.options[definition.name]
     if (definition.multiple && Array.isArray(value)) {
       const current = values[definition.key]
       values[definition.key] = Array.isArray(current)
@@ -139,7 +137,6 @@ const compileOptions = (sources: readonly OptionSource[]): CompiledParserOptions
     const plan = compileArgvPlan(planDefinitions)
     return {
       definitions,
-      optionsByName: new Map(definitions.map(option => [option.name, option])),
       plan,
     }
   } catch (error) {
@@ -184,20 +181,21 @@ const normalizeOption = (
   const multiple = params.multiple === true
   if (params.multiple !== undefined && typeof params.multiple !== 'boolean')
     return invalidDefinition(`Parser option "${key}" multiple must be a boolean.`)
-  if (type === Boolean && multiple)
-    return invalidDefinition(`Boolean parser option "${key}" cannot be multiple.`)
   if (params.negatable !== undefined && typeof params.negatable !== 'boolean')
     return invalidDefinition(`Parser option "${key}" negatable must be a boolean.`)
   if (type !== Boolean && params.negatable !== undefined)
     return invalidDefinition(`Only boolean parser option "${key}" can be negatable.`)
   const valueType = optionType(type)
-  const planType:
+  let planType:
     | BooleanConstructor
     | NumberConstructor
     | StringConstructor
-    | [NumberConstructor | StringConstructor] = multiple
-    ? [multipleOptionType(type, key)]
-    : type
+    | [NumberConstructor | StringConstructor] = type
+  if (multiple) {
+    if (type === Boolean)
+      return invalidDefinition(`Boolean parser option "${key}" cannot be multiple.`)
+    planType = [type === Number ? Number : String]
+  }
   return {
     compiled: { key, multiple, name, type: valueType },
     plan: {
@@ -253,14 +251,6 @@ const optionType = (type: ParserOptionType): ArgValueType => {
   if (type === Boolean) return 'boolean'
   if (type === Number) return 'number'
   return 'string'
-}
-
-const multipleOptionType = (
-  type: ParserOptionType,
-  key: string,
-): NumberConstructor | StringConstructor => {
-  if (type === Number || type === String) return type
-  return invalidDefinition(`Boolean parser option "${key}" cannot be multiple.`)
 }
 
 const validateOptionName: (

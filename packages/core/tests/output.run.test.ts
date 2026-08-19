@@ -1,6 +1,4 @@
 import {
-  APP_FILTER,
-  Catch,
   CommandMajor,
   Context,
   Ctx,
@@ -14,7 +12,7 @@ import {
   Value,
   createApp,
 } from '../src'
-import type { ExceptionFilter } from '../src'
+import type { OnError } from '../src'
 import { Readable, Writable } from 'node:stream'
 import { createTestingApp } from '../src/subpath/testing'
 import { SYSTEM, expect, run, systemErrorCode, test, testModule } from './_test'
@@ -154,16 +152,10 @@ test.sequential('should allow error handlers to prevent output', async () => {
     run() {}
   }
 
-  @Catch()
-  class SilentFilter implements ExceptionFilter {
-    catch() {}
+  @Module({ commands: [Major] })
+  class AppModule implements OnError {
+    onError() {}
   }
-
-  @Module({
-    commands: [Major],
-    providers: [{ provide: APP_FILTER, useClass: SilentFilter }],
-  })
-  class AppModule {}
 
   const result = await run(AppModule, {
     argv: [],
@@ -184,20 +176,14 @@ test.sequential(
       }
     }
 
-    @Catch()
-    class RecoverFilter implements ExceptionFilter {
+    @Module({ commands: [Major] })
+    class AppModule implements OnError {
       constructor(private readonly context: Context) {}
 
-      catch() {
+      onError() {
         this.context.exitCode = 0
       }
     }
-
-    @Module({
-      commands: [Major],
-      providers: [{ provide: APP_FILTER, useClass: RecoverFilter }],
-    })
-    class AppModule {}
 
     const result = await run(AppModule, { argv: [] })
     expect(result.exitCode).toBe(0)

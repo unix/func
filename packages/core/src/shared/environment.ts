@@ -5,8 +5,11 @@ export interface Environment {
   readonly [name: string]: string | undefined
 }
 
+const normalizedEnvironments = new WeakSet<Environment>()
+
 export const environment = {
   normalize(input: Environment): Environment {
+    if (normalizedEnvironments.has(input)) return input
     const entries = new Map<string, readonly [name: string, value: string]>()
 
     Object.entries(input).forEach(([name, value]) => {
@@ -28,6 +31,8 @@ export const environment = {
 
     const normalized = Object.fromEntries(entries.values())
     Object.setPrototypeOf(normalized, null)
-    return Object.freeze(normalized)
+    Object.freeze(normalized)
+    normalizedEnvironments.add(normalized)
+    return normalized
   },
 }

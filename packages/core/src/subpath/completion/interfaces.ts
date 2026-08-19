@@ -2,7 +2,8 @@ export type CompletionFallback = 'file' | 'none'
 
 export type CompletionItemKind = 'command' | 'option' | 'value'
 
-export type CompletionShell = 'bash' | 'fish' | 'powershell' | 'zsh'
+export type CompletionShell =
+  'bash' | 'elvish' | 'fish' | 'nushell' | 'powershell' | 'zsh'
 
 export interface CompletionItem {
   readonly description?: string

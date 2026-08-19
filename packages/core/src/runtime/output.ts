@@ -2,10 +2,6 @@ import { Writable } from 'node:stream'
 
 export type OutputChannel = 'stderr' | 'stdout'
 
-export interface OutputScope {
-  close(): void
-}
-
 interface DeferredOutput {
   channel: OutputChannel
   chunk: string | Uint8Array
@@ -22,14 +18,14 @@ export class OutputHost {
   readonly stderr: Writable
   readonly stdout: Writable
   private deferred: DeferredOutput[] = []
+  private deferredStages = new Map<symbol, number>()
   private destinations: Record<OutputChannel, Writable>
   private settled = false
-  private stdoutSuppression = 0
 
-  constructor(stdout: Writable, stderr: Writable, manageStdout = false) {
+  constructor(stdout: Writable, stderr: Writable, suppressStdout = false) {
     this.destinations = { stderr, stdout }
     this.stderr = stderr
-    this.stdout = manageStdout ? this.managedStdout() : stdout
+    this.stdout = suppressStdout ? this.suppressedStdout() : stdout
   }
 
   defer(channel: OutputChannel, chunk: string | Uint8Array): void {
@@ -44,7 +40,21 @@ export class OutputHost {
 
   rollback(): void {
     if (this.settled) return
-    this.deferred = []
+    this.clearDeferred()
+  }
+
+  stage(key: symbol, channel: OutputChannel, chunk: string | Uint8Array): boolean {
+    if (this.settled) return false
+    const staged = { channel, chunk }
+    const index = this.deferredStages.get(key)
+    if (index !== undefined) {
+      this.deferred[index] = staged
+      return true
+    }
+
+    this.deferredStages.set(key, this.deferred.length)
+    this.deferred.push(staged)
+    return true
   }
 
   [settleOutputKey](): OutputSettlement {
@@ -60,48 +70,36 @@ export class OutputHost {
       rollback: () => {
         if (!active) return
         active = false
-        this.deferred = []
+        this.clearDeferred()
       },
     })
   }
 
-  suppress(): OutputScope {
-    if (this.settled) return Object.freeze({ close: () => {} })
-    this.stdoutSuppression += 1
-    let active = true
-
-    return Object.freeze({
-      close: () => {
-        if (!active) return
-        active = false
-        this.stdoutSuppression -= 1
-      },
-    })
-  }
-
-  private managedStdout(): Writable {
+  private suppressedStdout(): Writable {
     return new Writable({
       write: (
         chunk: string | Uint8Array,
         encoding: BufferEncoding,
         callback: (error?: Error | null) => void,
       ) => {
-        if (this.settled || this.stdoutSuppression > 0) {
-          callback()
-          return
-        }
-
-        this.destinations.stdout.write(chunk, encoding, callback)
+        void chunk
+        void encoding
+        callback()
       },
     })
   }
 
   private commitDeferred(): void {
     const deferred = this.deferred
-    this.deferred = []
+    this.clearDeferred()
     deferred.forEach(({ channel, chunk }) => {
       this.destinations[channel].write(chunk)
     })
+  }
+
+  private clearDeferred(): void {
+    this.deferred = []
+    this.deferredStages.clear()
   }
 }
 

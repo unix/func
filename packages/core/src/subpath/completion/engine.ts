@@ -6,6 +6,7 @@ import type {
   CommandNode,
   OptionPlan,
 } from '../../commands/graph/model'
+import { matchCommandFrom } from '../../commands/graph/runtime'
 import type { CommandGraph } from '../../commands/graph/runtime'
 import type { Type } from '../../di/types'
 import type { Deprecation } from '../../deprecation'
@@ -109,7 +110,7 @@ const contextsFrom = (
 ): CompletionContext[] =>
   nodes.flatMap(node => {
     const parsed = parseCompletionArgs(node.optionPlan.argvPlan, argv)
-    const match = matchFrom(root, parsed.positionals)
+    const match = matchCommandFrom(root, parsed.positionals)
     if (match.node !== node) return []
     return [
       {
@@ -121,23 +122,6 @@ const contextsFrom = (
       },
     ]
   })
-
-const matchFrom = (
-  root: CommandNode,
-  argv: readonly string[],
-): { consumed: number; node: CommandNode } => {
-  let consumed = 0
-  let node = root
-  while (consumed < argv.length) {
-    const token = argv[consumed]
-    if (!token || token.startsWith('-')) break
-    const child = node.transitions.get(token)
-    if (!child) break
-    node = child
-    consumed += 1
-  }
-  return { consumed, node }
-}
 
 const valueTarget = (
   context: CompletionContext,
@@ -235,8 +219,11 @@ const optionItems = (
   if (context.parsed.endOfOptions || (incomplete && !incomplete.startsWith('-')))
     return []
   const options = effectiveOptions(context)
+  const actionNames = new Set(
+    context.node.optionPlan.actions.map(action => action.option.name),
+  )
   return options.flatMap(option => {
-    if (hiddenOption(option, context, options)) return []
+    if (hiddenOption(option, context, options, actionNames)) return []
     const tokens = optionTokens(option, incomplete)
     const description = withDeprecation(option.description, option.deprecated)
     return tokens.map(value => item(value, 'option', description))
@@ -272,12 +259,10 @@ const hiddenOption = (
   option: CompletionOption,
   context: CompletionContext,
   options: readonly CompletionOption[],
+  actionNames: ReadonlySet<string>,
 ): boolean => {
   const { supplied } = context.parsed
   if (supplied.has(option.name) && !Array.isArray(option.type)) return true
-  const actionNames = new Set(
-    context.node.optionPlan.actions.map(action => action.option.name),
-  )
   if (
     actionNames.has(option.name) &&
     Array.from(actionNames).some(name => name !== option.name && supplied.has(name))

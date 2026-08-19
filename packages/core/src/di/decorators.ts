@@ -1,6 +1,7 @@
 import 'reflect-metadata/lite'
 import { SYSTEM } from '@func/contracts/core-errors'
 import { InternalException } from '../shared/errors'
+import { metadataValue } from '../shared/metadata-value'
 import { metadata } from './metadata'
 import type { ProviderToken } from './types'
 import { isProviderToken } from './provider-utils'
@@ -36,20 +37,9 @@ export const Inject = (token: ProviderToken): ParameterDecorator => {
 export const parameterTokens = (
   target: object,
   propertyKey?: string | symbol,
-): Partial<Record<number, ProviderToken>> => {
-  const value: unknown = propertyKey
-    ? Reflect.getMetadata(metadata.PARAMETER_TOKENS_IDENTIFIER, target, propertyKey)
-    : Reflect.getMetadata(metadata.PARAMETER_TOKENS_IDENTIFIER, target)
-  return isParameterTokenMap(value) ? value : {}
-}
-
-const isParameterTokenMap = (
-  value: unknown,
-): value is Partial<Record<number, ProviderToken>> =>
-  isUnknownRecord(value) &&
-  Object.entries(value).every(
-    ([index, token]) => Number.isInteger(Number(index)) && isProviderToken(token),
-  )
-
-const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
+): Partial<Record<number, ProviderToken>> =>
+  metadataValue<Partial<Record<number, ProviderToken>>>(
+    metadata.PARAMETER_TOKENS_IDENTIFIER,
+    target,
+    propertyKey,
+  ) ?? {}

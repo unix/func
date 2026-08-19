@@ -1,81 +1,99 @@
 {
   "name": "func",
-  "version": "3.0.0-canary.2",
+  "version": "3.0.0-canary.6",
   "type": "commonjs",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.mjs"
     },
-    "./_internal/precompiled-v1": {
+    "./_internal/precompiled-v2": {
       "types": "./dist/types/subpath/precompiled/index.d.ts",
-      "import": "./dist/precompiled.mjs"
+      "import": "./dist/precompiled.mjs",
+      "require": "./dist/precompiled.mjs"
     },
-    "./_internal/precompiler-v1": {
+    "./_internal/precompiler-v2": {
       "types": "./dist/types/subpath/precompiler/index.d.ts",
-      "import": "./dist/precompiler.mjs"
+      "import": "./dist/precompiler.mjs",
+      "require": "./dist/precompiler.mjs"
     },
     "./testing": {
       "types": "./dist/types/subpath/testing/index.d.ts",
-      "import": "./dist/testing.mjs"
+      "import": "./dist/testing.mjs",
+      "require": "./dist/testing.mjs"
     },
     "./testing/cli": {
       "types": "./dist/types/subpath/testing/cli/index.d.ts",
-      "import": "./dist/testing-cli.mjs"
+      "import": "./dist/testing-cli.mjs",
+      "require": "./dist/testing-cli.mjs"
     },
     "./testing/fixtures": {
       "types": "./dist/types/subpath/testing/fixtures/index.d.ts",
-      "import": "./dist/testing-fixtures.mjs"
+      "import": "./dist/testing-fixtures.mjs",
+      "require": "./dist/testing-fixtures.mjs"
     },
     "./testing/pty": {
       "types": "./dist/types/subpath/testing/pty/index.d.ts",
-      "import": "./dist/testing-pty.mjs"
+      "import": "./dist/testing-pty.mjs",
+      "require": "./dist/testing-pty.mjs"
     },
     "./invoke": {
       "types": "./dist/types/subpath/invoke/index.d.ts",
-      "import": "./dist/invoke.mjs"
+      "import": "./dist/invoke.mjs",
+      "require": "./dist/invoke.mjs"
     },
     "./config": {
       "types": "./dist/types/subpath/config/index.d.ts",
-      "import": "./dist/config.mjs"
+      "import": "./dist/config.mjs",
+      "require": "./dist/config.mjs"
     },
     "./completion": {
       "types": "./dist/types/subpath/completion/index.d.ts",
-      "import": "./dist/completion.mjs"
+      "import": "./dist/completion.mjs",
+      "require": "./dist/completion.mjs"
     },
     "./log": {
       "types": "./dist/types/subpath/log/index.d.ts",
-      "import": "./dist/log.mjs"
+      "import": "./dist/log.mjs",
+      "require": "./dist/log.mjs"
     },
     "./signals": {
       "types": "./dist/types/subpath/signals/index.d.ts",
-      "import": "./dist/signals.mjs"
+      "import": "./dist/signals.mjs",
+      "require": "./dist/signals.mjs"
     },
     "./help": {
       "types": "./dist/types/subpath/help/index.d.ts",
-      "import": "./dist/help.mjs"
+      "import": "./dist/help.mjs",
+      "require": "./dist/help.mjs"
     },
     "./json-output": {
       "types": "./dist/types/subpath/json-output/index.d.ts",
-      "import": "./dist/json-output.mjs"
+      "import": "./dist/json-output.mjs",
+      "require": "./dist/json-output.mjs"
     },
     "./http": {
       "types": "./dist/types/subpath/http/index.d.ts",
-      "import": "./dist/http.mjs"
+      "import": "./dist/http.mjs",
+      "require": "./dist/http.mjs"
     },
     "./http/testing": {
       "types": "./dist/types/subpath/http/testing/index.d.ts",
-      "import": "./dist/http-testing.mjs"
+      "import": "./dist/http-testing.mjs",
+      "require": "./dist/http-testing.mjs"
     },
     "./net": {
       "types": "./dist/types/subpath/net/index.d.ts",
-      "import": "./dist/net.mjs"
+      "import": "./dist/net.mjs",
+      "require": "./dist/net.mjs"
     },
     "./net/testing": {
       "types": "./dist/types/subpath/net/testing/index.d.ts",
-      "import": "./dist/net-testing.mjs"
+      "import": "./dist/net-testing.mjs",
+      "require": "./dist/net-testing.mjs"
     },
     "./parser": {
       "types": "./dist/types/subpath/parser/index.d.ts",
@@ -84,11 +102,13 @@
     },
     "./process": {
       "types": "./dist/types/subpath/process/index.d.ts",
-      "import": "./dist/process.mjs"
+      "import": "./dist/process.mjs",
+      "require": "./dist/process.mjs"
     },
     "./process/testing": {
       "types": "./dist/types/subpath/process/testing/index.d.ts",
-      "import": "./dist/process-testing.mjs"
+      "import": "./dist/process-testing.mjs",
+      "require": "./dist/process-testing.mjs"
     }
   },
   "engines": {

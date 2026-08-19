@@ -10,6 +10,7 @@ import { registerProviders } from '../di/module-compiler'
 import type { Type } from '../di/types'
 import type { HandlerParams } from '../commands/types'
 import { InternalException } from '../shared/errors'
+import { metadataValue } from '../shared/metadata-value'
 import { metadata } from './metadata'
 import { compileFieldOptions } from './field-metadata'
 import type { CompiledFieldOption } from './field-metadata'
@@ -163,26 +164,11 @@ const compileModuleOption = (
 }
 
 const optionCommandMetadata = (target: Type): OptionCommandParams | undefined => {
-  const value: unknown = Reflect.getMetadata(
+  return metadataValue<OptionCommandParams>(
     metadata.OPTION_COMMAND_IDENTIFIER,
     target,
   )
-  return isOptionCommandParams(value) ? value : undefined
 }
-
-const isOptionCommandParams = (value: unknown): value is OptionCommandParams =>
-  isUnknownRecord(value) &&
-  isStringList(value.aliases) &&
-  typeof value.name === 'string' &&
-  value.type === Boolean
-
-const isStringList = (value: unknown): value is string[] =>
-  isUnknownArray(value) && value.every(item => typeof item === 'string')
-
-const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
-
-const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
 
 const validateOptionCommand = (
   target: Type,

@@ -67,9 +67,7 @@ export const applicationPlan = (
     handlers: handlerRecords.map(record => ({
       ...(record.command ? { command: record.command } : {}),
       fieldOptions: record.fieldOptions,
-      filters: record.filters,
       handler: record.handler,
-      interceptors: record.interceptors,
       ...(record.kind ? { kind: record.kind } : {}),
       methodHandlers: record.methodHandlers,
       owner: requiredIndex(moduleIndices, record.owner, 'handler owner'),
@@ -209,41 +207,40 @@ const moduleOptionPlan = (
 const optionPlan = (
   plan: OptionPlan,
   lookup: PlanIndices,
-): PrecompiledOptionPlan => ({
-  actions: plan.actions.map(action => actionPlan(action, lookup)),
-  argvPlan: {
-    options: plan.argvPlan.options,
-    tokens: Array.from(plan.argvPlan.tokens, ([token, value]) => ({
-      ...(value.booleanValue === undefined
-        ? {}
-        : { booleanValue: value.booleanValue }),
-      option: requiredIndex(
-        indices(plan.argvPlan.options),
-        value.option,
-        'argv option',
-      ),
-      token,
+): PrecompiledOptionPlan => {
+  const argvOptionIndices = indices(plan.argvPlan.options)
+  return {
+    actions: plan.actions.map(action => actionPlan(action, lookup)),
+    argvPlan: {
+      options: plan.argvPlan.options,
+      tokens: Array.from(plan.argvPlan.tokens, ([token, value]) => ({
+        ...(value.booleanValue === undefined
+          ? {}
+          : { booleanValue: value.booleanValue }),
+        option: requiredIndex(argvOptionIndices, value.option, 'argv option'),
+        token,
+      })),
+    },
+    commandBindings: Array.from(plan.commandBindings, ([record, fields]) => ({
+      fields: fieldIndices(record.fieldOptions, fields),
+      target: requiredIndex(lookup.handlers, record, 'command binding'),
     })),
-  },
-  commandBindings: Array.from(plan.commandBindings, ([record, fields]) => ({
-    fields: fieldIndices(record.fieldOptions, fields),
-    target: requiredIndex(lookup.handlers, record, 'command binding'),
-  })),
-  commandOptionNames: Array.from(plan.commandOptionNames, ([record, names]) => ({
-    names: Array.from(names),
-    target: requiredIndex(lookup.handlers, record, 'command option names'),
-  })),
-  commonOptionNames: Array.from(plan.commonOptionNames),
-  commonOptions: plan.commonOptions,
-  owner: requiredIndex(lookup.modules, plan.owner, 'option plan owner'),
-  providerBindings: plan.providerBindings.map(binding => ({
-    fields: fieldIndices(binding.provider.fieldOptions, binding.fieldOptions),
-    target: requiredIndex(lookup.options, binding.provider, 'provider binding'),
-  })),
-  providers: plan.providers.map(option =>
-    requiredIndex(lookup.options, option, 'option plan provider'),
-  ),
-})
+    commandOptionNames: Array.from(plan.commandOptionNames, ([record, names]) => ({
+      names: Array.from(names),
+      target: requiredIndex(lookup.handlers, record, 'command option names'),
+    })),
+    commonOptionNames: Array.from(plan.commonOptionNames),
+    commonOptions: plan.commonOptions,
+    owner: requiredIndex(lookup.modules, plan.owner, 'option plan owner'),
+    providerBindings: plan.providerBindings.map(binding => ({
+      fields: fieldIndices(binding.provider.fieldOptions, binding.fieldOptions),
+      target: requiredIndex(lookup.options, binding.provider, 'provider binding'),
+    })),
+    providers: plan.providers.map(option =>
+      requiredIndex(lookup.options, option, 'option plan provider'),
+    ),
+  }
+}
 
 const actionPlan = (
   action: ActionEndpoint,

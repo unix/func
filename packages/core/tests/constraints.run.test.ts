@@ -1,38 +1,32 @@
 import {
   ArrayNumber,
   ArrayString,
-  Catch,
   CommandMajor,
   DependsOn,
   Enum,
   Exclusive,
   Flag,
   Handler,
-  UseFilters,
   Value,
 } from '../src'
-import type { Exception, ExceptionFilter } from '../src'
+import type { Exception, OnError } from '../src'
 import { RUNTIME, expect, runtimeErrorCode, test } from './_test'
 
 test.sequential('should validate enum constraints', async ({ runContainer }) => {
   expect.assertions(1)
 
-  @Catch()
-  class ValidationFilter implements ExceptionFilter {
-    catch(error: Exception) {
-      expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
-    }
-  }
-
-  @UseFilters(ValidationFilter)
   @CommandMajor()
-  class Major {
+  class Major implements OnError {
     @Enum(['dev', 'prod'])
     @Value()
     mode: string = 'dev'
 
     @Handler()
     run() {}
+
+    onError(error: Exception) {
+      expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+    }
   }
 
   await runContainer(['', '', '--mode', 'test'], [Major])
@@ -43,23 +37,19 @@ test.sequential(
   async ({ runContainer }) => {
     expect.assertions(2)
 
-    @Catch()
-    class ValidationFilter implements ExceptionFilter {
-      catch(error: Exception) {
-        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
-        expect(error.details.invalid).toEqual(['css'])
-      }
-    }
-
-    @UseFilters(ValidationFilter)
     @CommandMajor()
-    class Major {
+    class Major implements OnError {
       @ArrayString()
       @Enum(['js', 'ts'])
       ext: string[] = []
 
       @Handler()
       run() {}
+
+      onError(error: Exception) {
+        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+        expect(error.details.invalid).toEqual(['css'])
+      }
     }
 
     await runContainer(['', '', '--ext', 'js', '--ext', 'css'], [Major])
@@ -71,23 +61,19 @@ test.sequential(
   async ({ runContainer }) => {
     expect.assertions(2)
 
-    @Catch()
-    class ValidationFilter implements ExceptionFilter {
-      catch(error: Exception) {
-        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
-        expect(error.details.invalid).toEqual([3])
-      }
-    }
-
-    @UseFilters(ValidationFilter)
     @CommandMajor()
-    class Major {
+    class Major implements OnError {
       @ArrayNumber()
       @Enum([1, 2])
       level: number[] = []
 
       @Handler()
       run() {}
+
+      onError(error: Exception) {
+        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+        expect(error.details.invalid).toEqual([3])
+      }
     }
 
     await runContainer(['', '', '--level', '1', '--level', '3'], [Major])
@@ -99,16 +85,8 @@ test.sequential(
   async ({ runContainer }) => {
     expect.assertions(2)
 
-    @Catch()
-    class ValidationFilter implements ExceptionFilter {
-      catch(error: Exception) {
-        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
-      }
-    }
-
-    @UseFilters(ValidationFilter)
     @CommandMajor()
-    class Major {
+    class Major implements OnError {
       @DependsOn(['token'])
       @Value()
       registry?: string
@@ -125,6 +103,10 @@ test.sequential(
 
       @Handler()
       run() {}
+
+      onError(error: Exception) {
+        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+      }
     }
 
     await runContainer(['', '', '--registry', 'npm'], [Major])

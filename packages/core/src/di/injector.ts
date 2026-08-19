@@ -1,6 +1,7 @@
 import 'reflect-metadata/lite'
 import { RUNTIME, SYSTEM } from '@func/contracts/core-errors'
 import { ErrorScope, InternalException, isException } from '../shared/errors'
+import { metadataValue } from '../shared/metadata-value'
 import { metadata } from './metadata'
 import { parameterTokens } from './decorators'
 import { hasOnDispose, hasOnInit } from './lifecycle'
@@ -8,7 +9,7 @@ import type { LifecycleFault } from './lifecycle'
 import { providerRecord } from './module-graph'
 import type { CompiledGraph, CompiledModule, ProviderRecord } from './module-graph'
 import type { FactoryProvider, ProviderToken, Type } from './types'
-import { isProviderToken, providerTokenName } from './provider-utils'
+import { providerTokenName } from './provider-utils'
 
 interface OwnedProvider {
   instance: unknown
@@ -17,7 +18,6 @@ interface OwnedProvider {
 
 export class RuntimeInjector {
   private activeOptions = new Set<ProviderRecord>()
-  private initializedOptions = new Set<ProviderRecord>()
   private instances = new Map<ProviderRecord, Promise<unknown>>()
   private ownedProviders: OwnedProvider[] = []
   private ownedInstanceSet = new Set<unknown>()
@@ -39,27 +39,16 @@ export class RuntimeInjector {
     record: ProviderRecord,
     prepare: (instance: unknown) => Promise<void> | void,
   ): Promise<unknown> {
-    this.activeOptions.add(record)
     const instance = await this.optionInstance(record)
-    if (this.initializedOptions.has(record)) return instance
     try {
       await prepare(instance)
       if (this.ownedInstanceSet.has(instance) && hasOnInit(instance)) {
         await instance.onInit()
       }
-      this.initializedOptions.add(record)
       return instance
     } catch (error) {
       throw this.providerInitError(error, record)
     }
-  }
-
-  async activateProvider(record: ProviderRecord): Promise<unknown> {
-    const cached = this.instances.get(record)
-    if (cached) return cached
-    const creation = this.create(record, [])
-    this.instances.set(record, creation)
-    return creation
   }
 
   allowOptions(records: readonly ProviderRecord[]): void {
@@ -80,7 +69,6 @@ export class RuntimeInjector {
     this.ownedProviders = []
     this.ownedInstanceSet.clear()
     this.activeOptions.clear()
-    this.initializedOptions.clear()
     this.instances.clear()
 
     for (const { instance, record } of providers) {
@@ -90,8 +78,10 @@ export class RuntimeInjector {
       } catch (error) {
         faults.push({
           error: normalizeError(error),
+          instance,
           kind: 'provider',
           name: providerTokenName(record.token),
+          owner: record.owner,
         })
       }
     }
@@ -292,10 +282,13 @@ export class RuntimeInjector {
     target: object | Type,
     propertyKey?: string,
   ): Array<ProviderToken | undefined> {
-    const value: unknown = propertyKey
-      ? Reflect.getMetadata(metadata.DESIGN_PARAM_TYPES, target, propertyKey)
-      : Reflect.getMetadata(metadata.DESIGN_PARAM_TYPES, target)
-    return isParameterTypeList(value) ? value : []
+    return (
+      metadataValue<Array<ProviderToken | undefined>>(
+        metadata.DESIGN_PARAM_TYPES,
+        target,
+        propertyKey,
+      ) ?? []
+    )
   }
 
   private declaredParamCount(target: object | Type, propertyKey?: string): number {
@@ -322,14 +315,6 @@ export class RuntimeInjector {
     throw new TypeError(`Failed to construct "${target.name}".`)
   }
 }
-
-const isParameterTypeList = (
-  value: unknown,
-): value is Array<ProviderToken | undefined> =>
-  isUnknownArray(value) &&
-  value.every(item => item === undefined || isProviderToken(item))
-
-const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
 
 const normalizeError = (error: unknown): Error =>
   error instanceof Error ? error : new Error(String(error))

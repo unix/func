@@ -1,8 +1,6 @@
 import {
-  APP_FILTER,
   Args,
   ArrayString,
-  Catch,
   Command,
   CommandMajor,
   Flag,
@@ -11,11 +9,10 @@ import {
   Required,
   Value,
   ValueValidate,
-  UseFilters,
   createApp,
   createValueDecorator,
 } from '../src'
-import type { Args as ArgsValue, Exception, ExceptionFilter } from '../src'
+import type { Args as ArgsValue, Exception, OnError } from '../src'
 import {
   RUNTIME,
   SYSTEM,
@@ -96,13 +93,6 @@ test.sequential('should select a handler by flag', async ({ runContainer }) => {
 test.sequential('should reject multiple selected handlers', async () => {
   expect.assertions(1)
 
-  @Catch()
-  class AppFilter implements ExceptionFilter {
-    catch(error: Exception) {
-      expect(error.code).toBe(runtimeErrorCode(RUNTIME.MULTIPLE_OPTIONS))
-    }
-  }
-
   @CommandMajor()
   class Major {
     @Handler({ flag: 'help', alias: 'h' })
@@ -112,11 +102,12 @@ test.sequential('should reject multiple selected handlers', async () => {
     version() {}
   }
 
-  @Module({
-    commands: [Major],
-    providers: [{ provide: APP_FILTER, useClass: AppFilter }],
-  })
-  class AppModule {}
+  @Module({ commands: [Major] })
+  class AppModule implements OnError {
+    onError(error: Exception) {
+      expect(error.code).toBe(runtimeErrorCode(RUNTIME.MULTIPLE_OPTIONS))
+    }
+  }
 
   await run(AppModule, { argv: ['-h', '-v'] })
 })
@@ -126,16 +117,8 @@ test.sequential(
   async ({ runContainer }) => {
     expect.assertions(1)
 
-    @Catch()
-    class ValidationFilter implements ExceptionFilter {
-      catch(error: Exception) {
-        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
-      }
-    }
-
-    @UseFilters(ValidationFilter)
     @CommandMajor()
-    class Major {
+    class Major implements OnError {
       @Required()
       @Value()
       @ValueValidate(value => Number(value) > 0 || 'port must be positive')
@@ -143,6 +126,10 @@ test.sequential(
 
       @Handler()
       run() {}
+
+      onError(error: Exception) {
+        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+      }
     }
 
     await runContainer(['', '', '--port', '-1'], [Major])
@@ -218,9 +205,17 @@ test.sequential(
       return new URL(input)
     })
 
-    @Catch()
-    class ValidationFilter implements ExceptionFilter {
-      catch(error: Exception) {
+    @CommandMajor()
+    class Major implements OnError {
+      @Url()
+      endpoint!: URL
+
+      @Handler()
+      run() {
+        invoked = true
+      }
+
+      onError(error: Exception) {
         expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
         expect(error.message).toBe('endpoint must be a valid URL')
         expect(error.details).toMatchObject({
@@ -228,18 +223,6 @@ test.sequential(
           value: 'not-a-url',
         })
         expect(error.cause).toBeInstanceOf(Error)
-      }
-    }
-
-    @UseFilters(ValidationFilter)
-    @CommandMajor()
-    class Major {
-      @Url()
-      endpoint!: URL
-
-      @Handler()
-      run() {
-        invoked = true
       }
     }
 
@@ -254,24 +237,20 @@ test.sequential(
     expect.assertions(2)
     const AsyncValue = createValueDecorator(async input => input)
 
-    @Catch()
-    class ValidationFilter implements ExceptionFilter {
-      catch(error: Exception) {
-        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
-        expect(error.message).toBe(
-          'Value transform for option "--value" must return synchronously.',
-        )
-      }
-    }
-
-    @UseFilters(ValidationFilter)
     @CommandMajor()
-    class Major {
+    class Major implements OnError {
       @AsyncValue()
       value!: string
 
       @Handler()
       run() {}
+
+      onError(error: Exception) {
+        expect(error.code).toBe(runtimeErrorCode(RUNTIME.VALIDATION))
+        expect(error.message).toBe(
+          'Value transform for option "--value" must return synchronously.',
+        )
+      }
     }
 
     await runContainer(['', '', '--value', 'input'], [Major])

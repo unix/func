@@ -120,12 +120,9 @@ const projects: ConsumerProject[] = projectCases.map(project => {
 })
 
 const runtimeApis = [
-  'APP_FILTER',
-  'APP_INTERCEPTOR',
   'Args',
   'ArrayNumber',
   'ArrayString',
-  'Catch',
   'Command',
   'CommandMajor',
   'CommandMissing',
@@ -141,8 +138,6 @@ const runtimeApis = [
   'Handler',
   'Inject',
   'Injectable',
-  'MODULE_FILTER',
-  'MODULE_INTERCEPTOR',
   'MODULE_OPTION',
   'Module',
   'Option',
@@ -153,8 +148,6 @@ const runtimeApis = [
   'Stderr',
   'Stdin',
   'Stdout',
-  'UseFilters',
-  'UseInterceptors',
   'Value',
   'ValueValidate',
   'createApp',
@@ -168,7 +161,6 @@ const callableApis = [
   'Args',
   'ArrayNumber',
   'ArrayString',
-  'Catch',
   'Command',
   'CommandMajor',
   'CommandMissing',
@@ -191,8 +183,6 @@ const callableApis = [
   'Stdout',
   'Value',
   'ValueValidate',
-  'UseFilters',
-  'UseInterceptors',
   'createApp',
   'createToken',
   'createValueDecorator',
@@ -491,6 +481,7 @@ describe.each(projects)('$label consumer', project => {
         },
         './json-output': {
           import: './dist/json-output.mjs',
+          require: './dist/json-output.mjs',
           types: './dist/types/subpath/json-output/index.d.ts',
         },
         './parser': {

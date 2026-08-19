@@ -1,5 +1,4 @@
 import type { Deprecation } from '../deprecation'
-import type { TextOutput } from '../shared/output'
 
 export type ParsedUserOptionValue =
   boolean | string | number | string[] | number[] | undefined
@@ -38,12 +37,10 @@ export interface OptionCommandDecoratorParams extends AliasDecoratorParams {
   description?: string
   name: string
   overrideAll?: boolean
-  textOutput?: TextOutput
 }
 
 export type OptionCommandParams = Omit<OptionParams, 'negatable' | 'type'> & {
   overrideAll?: boolean
-  textOutput?: TextOutput
   type: BooleanConstructor
 }
 

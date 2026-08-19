@@ -1,91 +1,58 @@
 import { RUNTIME } from '@func/contracts/core-errors'
-import { stripVTControlCharacters } from 'node:util'
-import { Inject, Injectable } from '../../di/decorators'
-import type { Context } from '../../runtime/context'
-import type { CallHandler, Interceptor } from '../../runtime/enhancers'
+import { Injectable } from '../../di/decorators'
 import { OutputHost } from '../../runtime/output'
-import { hasJsonOutputOption, JSON_OUTPUT_OPTIONS } from './options'
-import type { JsonOutputOptions } from './options'
 import { ErrorScope, InternalException } from '../../shared/errors'
 
+const outputKey = Symbol('func.json-output')
+
 @Injectable()
-export class JsonOutputInterceptor implements Interceptor {
+export class JsonOutput {
+  private outputUsed = false
+
   constructor(
-    @Inject(OutputHost) private readonly output: OutputHost,
-    @Inject(JSON_OUTPUT_OPTIONS) private readonly options: JsonOutputOptions,
+    private readonly enabled: boolean,
+    private readonly output: OutputHost,
   ) {}
 
-  async intercept(context: Context, next: CallHandler): Promise<unknown> {
-    const json = context.options.json === true || hasJsonOutputOption(context.argv)
-    const suppression =
-      json && this.options.suppressStdout ? this.output.suppress() : undefined
-    let result: unknown
+  get used(): boolean {
+    return this.outputUsed
+  }
 
-    try {
-      result = await next.handle()
-    } finally {
-      suppression?.close()
+  json(value: unknown): void {
+    if (!this.enabled) return
+    if (this.output.stage(outputKey, 'stdout', serialize(value))) {
+      this.outputUsed = true
     }
-
-    if (!json && context.resultOutput === 'stdout') return result
-    const rendered = json ? jsonOutput(result) : textOutput(result)
-    if (rendered !== undefined) this.output.defer('stdout', rendered)
-    return result
   }
 }
 
-const jsonOutput = (value: unknown): string => {
+export const hasJsonOutputOption = (argv: readonly string[]): boolean => {
+  const separator = argv.indexOf('--')
+  const options = separator < 0 ? argv : argv.slice(0, separator)
+  return options.some(value => value === '--json' || value.startsWith('--json='))
+}
+
+const serialize = (value: unknown): string => {
   if (value === undefined) {
-    throw outputError(
-      'JSON output requires the selected handler to return a value. Return null for an empty result.',
+    throw serializationError(
+      'JSON output requires a value. Pass null for an empty output.',
     )
-  }
-
-  let serialized: unknown
-  try {
-    serialized = JSON.stringify(
-      value,
-      (_key, item: unknown) =>
-        typeof item === 'string' ? stripVTControlCharacters(item) : item,
-      2,
-    )
-  } catch (error) {
-    throw outputError(
-      'The handler result could not be serialized as JSON.',
-      nativeError(error),
-    )
-  }
-  if (typeof serialized === 'string') return `${serialized}\n`
-  throw outputError('The handler result is not JSON serializable.')
-}
-
-const textOutput = (value: unknown): string | undefined => {
-  if (value === undefined) return undefined
-  if (typeof value === 'string') return withNewline(value)
-  if (
-    value === null ||
-    typeof value === 'boolean' ||
-    typeof value === 'bigint' ||
-    typeof value === 'number'
-  ) {
-    return `${String(value)}\n`
   }
 
   let serialized: unknown
   try {
     serialized = JSON.stringify(value, null, 2)
   } catch (error) {
-    throw outputError(
-      'The handler result could not be rendered as text.',
+    throw serializationError(
+      'The JSON output could not be serialized.',
       nativeError(error),
     )
   }
-  return typeof serialized === 'string'
-    ? `${serialized}\n`
-    : withNewline(String(value))
+  if (typeof serialized === 'string') return `${serialized}\n`
+  throw serializationError('The JSON output is not serializable.')
 }
 
-const outputError = (message: string, cause?: Error): InternalException =>
+const serializationError = (message: string, cause?: Error): InternalException =>
   new InternalException(RUNTIME.OUTPUT_SERIALIZATION, {
     ...(cause ? { cause } : {}),
     message,
@@ -94,6 +61,3 @@ const outputError = (message: string, cause?: Error): InternalException =>
 
 const nativeError = (error: unknown): Error | undefined =>
   error instanceof Error ? error : undefined
-
-const withNewline = (value: string): string =>
-  value.endsWith('\n') ? value : `${value}\n`

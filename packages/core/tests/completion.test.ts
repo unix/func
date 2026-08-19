@@ -164,7 +164,11 @@ test('should compile completion metadata without constructing the application', 
 test('should generate adapters for supported shells', () => {
   expect(completionEnvironmentVariable('my-cli')).toBe('_MY_CLI_COMPLETE')
   expect(completionSource('ship', 'bash')).toContain('complete -o default')
+  expect(completionSource('ship', 'elvish')).toContain(
+    "edit:completion:arg-completer['ship']",
+  )
   expect(completionSource('ship', 'fish')).toContain('complete -c')
+  expect(completionSource('ship', 'nushell')).toContain('@complete _ship_completion')
   expect(completionSource('ship', 'powershell')).toContain(
     'Register-ArgumentCompleter -Native',
   )
@@ -184,6 +188,40 @@ test.each(['bash', 'zsh'] as const)(
     expect(checked.status).toBe(0)
   },
 )
+
+test('should generate valid Elvish source when Elvish is available', () => {
+  const editStub = `module edit {
+  module completion {
+    var arg-completer = [&]
+  }
+  use completion
+  fn complex-candidate {|@arguments| }
+  fn complete-filename {|@arguments| }
+}
+use edit
+`
+  const checked = spawnSync(
+    'elvish',
+    ['-compileonly', '-c', `${editStub}${completionSource('ship', 'elvish')}`],
+    { encoding: 'utf8' },
+  )
+  if (checked.error && 'code' in checked.error && checked.error.code === 'ENOENT')
+    return
+  expect(checked.stderr).toBe('')
+  expect(checked.status).toBe(0)
+})
+
+test('should generate valid Nushell source when Nushell is available', () => {
+  const checked = spawnSync(
+    'nu',
+    ['-n', '-c', completionSource('ship', 'nushell')],
+    { encoding: 'utf8' },
+  )
+  if (checked.error && 'code' in checked.error && checked.error.code === 'ENOENT')
+    return
+  expect(checked.stderr).toBe('')
+  expect(checked.status).toBe(0)
+})
 
 test.sequential(
   'should serve source and query modes before normal execution',
@@ -218,6 +256,42 @@ test.sequential(
     }
   },
 )
+
+test.sequential('should serve Elvish and Nushell completion modes', async () => {
+  const environment = completionEnvironmentVariable('ship')
+  const previousExitCode = process.exitCode
+  try {
+    for (const [shell, marker] of [
+      ['elvish', 'edit:completion:arg-completer'],
+      ['nushell', '@complete _ship_completion'],
+    ] as const) {
+      const sourceOutput = captureOutput()
+      const sourceApp = createApp(AppModule, {
+        features: [withCompletion({ bin: 'ship' })],
+      })
+      await sourceApp.bootstrap({
+        env: { [environment]: `${shell}_source` },
+        stdout: sourceOutput.stream,
+      })
+      expect(process.exitCode).toBe(0)
+      expect(sourceOutput.text()).toContain(marker)
+      const queryOutput = captureOutput()
+      const queryApp = createApp(AppModule, {
+        features: [withCompletion({ bin: 'ship' })],
+      })
+      await queryApp.bootstrap({
+        argv: ['deploy', '--target', 'pr'],
+        env: { [environment]: `${shell}_complete` },
+        stdout: queryOutput.stream,
+      })
+      expect(process.exitCode).toBe(0)
+      expect(queryOutput.text()).toContain('preview\tdeployment target')
+      expect(queryOutput.text()).toContain('production\tdeployment target')
+    }
+  } finally {
+    process.exitCode = previousExitCode
+  }
+})
 
 test('should reject duplicate completion features', () => {
   expect(() =>

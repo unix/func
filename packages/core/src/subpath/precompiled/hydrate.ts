@@ -162,9 +162,7 @@ const hydrateHandlers = (
   plan.handlers.map(handler => ({
     ...(handler.command ? { command: handler.command } : {}),
     fieldOptions: handler.fieldOptions.slice(),
-    filters: handler.filters,
     handler: handler.handler,
-    interceptors: handler.interceptors,
     ...(handler.kind ? { kind: handler.kind } : {}),
     methodHandlers: handler.methodHandlers.slice(),
     owner: required(modules, handler.owner, 'handler owner'),

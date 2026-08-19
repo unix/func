@@ -9,6 +9,7 @@ import type {
 import { SYSTEM } from '@func/contracts/core-errors'
 import type { Deprecation } from '../deprecation'
 import { InternalException } from '../shared/errors'
+import { metadataValue } from '../shared/metadata-value'
 import { metadata } from './metadata'
 
 export interface FieldConstraints {
@@ -82,16 +83,8 @@ export const compileFieldOptions = (target: Function): CompiledFieldOption[] =>
     }))
   })
 
-const fieldMetadata = (
-  target: Function,
-): ReadonlyMap<string, FieldMetadataEntry> => {
-  const value: unknown = Reflect.getMetadata(
+const fieldMetadata = (target: Function): ReadonlyMap<string, FieldMetadataEntry> =>
+  metadataValue<ReadonlyMap<string, FieldMetadataEntry>>(
     metadata.FIELD_OPTION_IDENTIFIER,
     target,
-  )
-  return isFieldMetadataMap(value) ? value : new Map()
-}
-
-const isFieldMetadataMap = (
-  value: unknown,
-): value is ReadonlyMap<string, FieldMetadataEntry> => value instanceof Map
+  ) ?? new Map()

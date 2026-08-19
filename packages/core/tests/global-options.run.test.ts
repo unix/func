@@ -1,18 +1,15 @@
 import {
-  APP_FILTER,
   Args,
-  Catch,
   Command,
   Flag,
   Module,
   Handler,
   Injectable,
-  MODULE_FILTER,
   Option,
   Required,
   Value,
 } from '../src'
-import type { Args as ArgsValue, ExceptionFilter, OnDispose, OnInit } from '../src'
+import type { Args as ArgsValue, OnDispose, OnError, OnInit } from '../src'
 import { createTestingApp } from '../src/subpath/testing'
 import { SYSTEM, applyClassDecorator, expect, systemErrorCode, test } from './_test'
 
@@ -208,20 +205,14 @@ test.sequential(
       profile?: string
     }
 
-    @Catch()
-    class AppFilter implements ExceptionFilter {
+    @Module({ options: [AppOptions] })
+    class AppModule implements OnError {
       constructor(private readonly options: AppOptions) {}
 
-      catch() {
+      onError() {
         caught = this.options.profile === undefined
       }
     }
-
-    @Module({
-      options: [AppOptions],
-      providers: [{ provide: APP_FILTER, useClass: AppFilter }],
-    })
-    class AppModule {}
 
     const result = await createTestingApp(AppModule).invoke()
     expect(caught).toBe(true)
@@ -247,34 +238,24 @@ test.sequential(
       run() {}
     }
 
-    @Catch()
-    class DeployFilter implements ExceptionFilter {
+    @Module({
+      commands: [DeployCommand],
+      options: [DeployOptions],
+    })
+    class DeployModule implements OnError {
       constructor(private readonly options: DeployOptions) {}
 
-      catch() {
+      onError() {
         events.push(`feature:${this.options.profile ?? 'missing'}`)
       }
     }
 
-    @Catch()
-    class AppFilter implements ExceptionFilter {
-      catch() {
+    @Module({ imports: [DeployModule] })
+    class AppModule implements OnError {
+      onError() {
         events.push('app')
       }
     }
-
-    @Module({
-      commands: [DeployCommand],
-      options: [DeployOptions],
-      providers: [{ provide: MODULE_FILTER, useClass: DeployFilter }],
-    })
-    class DeployModule {}
-
-    @Module({
-      imports: [DeployModule],
-      providers: [{ provide: APP_FILTER, useClass: AppFilter }],
-    })
-    class AppModule {}
 
     const result = await createTestingApp(AppModule).invoke(['deploy'])
     expect(result).toMatchObject({ error: undefined, exitCode: 1 })

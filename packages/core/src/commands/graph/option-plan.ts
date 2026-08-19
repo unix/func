@@ -6,14 +6,13 @@ import type { CompiledModule } from '../../di/module-compiler'
 import type { OptionParams } from '../../options/types'
 import type {
   CompiledModuleOption,
-  CompiledModuleOptions,
   CompiledOptionCommand,
   CompiledOptionProvider,
 } from '../../options/compiler'
 import { isOptionProvider, optionsForModule } from '../../options/compiler'
 import type { CompiledFieldOption } from '../../options/field-metadata'
 import { InternalException } from '../../shared/errors'
-import { MODULE_OPTION } from '../../runtime/enhancers'
+import { MODULE_OPTION } from '../../options/module-option'
 import type {
   ActionEndpoint,
   CommandGraphParams,
@@ -24,15 +23,24 @@ import type {
 } from './model'
 import type { HandlerRecord } from './registry'
 
-interface FieldContribution {
+interface FieldContributionBase {
   field: CompiledFieldOption
-  kind: 'command-field' | 'provider-field'
   option: OptionParams
   override: boolean
   owner: string
-  provider?: CompiledOptionProvider
-  record?: HandlerRecord
 }
+
+interface CommandFieldContribution extends FieldContributionBase {
+  kind: 'command-field'
+  record: HandlerRecord
+}
+
+interface ProviderFieldContribution extends FieldContributionBase {
+  kind: 'provider-field'
+  provider: CompiledOptionProvider
+}
+
+type FieldContribution = CommandFieldContribution | ProviderFieldContribution
 
 interface ActionContribution {
   action: ActionEndpoint
@@ -58,10 +66,11 @@ export const compileOptionPlan = (
 ): OptionPlan => {
   const records = executionRecords(node)
   const owner = optionOwner(node, records, params)
-  const moduleOptions = scopedModuleOptions(params.options, owner, params.root)
+  const rootOptions = params.options.root
+  const ownerOptions =
+    owner === params.root ? [] : optionsForModule(params.options, owner)
+  const moduleOptions = rootOptions.concat(ownerOptions)
   const table = new Map<string, OptionContribution>()
-  const rootOptions = moduleOptions.filter(option => option.owner === params.root)
-  const ownerOptions = moduleOptions.filter(option => option.owner !== params.root)
   applyScope(table, moduleContributions(rootOptions, node.path), 'root module')
   applyScope(table, protocolContributions(params.root), 'root module')
   applyScope(table, moduleContributions(ownerOptions, node.path), owner.name)
@@ -148,16 +157,6 @@ const protocolContributions = (module: CompiledModule): ProtocolContribution[] =
       owner: record.owner.name,
     }
   })
-
-const scopedModuleOptions = (
-  compiled: CompiledModuleOptions,
-  owner: CompiledModule,
-  root: CompiledModule,
-): CompiledModuleOption[] => {
-  const options = compiled.root.slice()
-  if (owner !== root) options.push(...optionsForModule(compiled, owner))
-  return options
-}
 
 const moduleContributions = (
   options: readonly CompiledModuleOption[],
@@ -332,7 +331,7 @@ const providerBindingsFrom = (
 ): ProviderOptionBinding[] => {
   const bindings = new Map<CompiledOptionProvider, CompiledFieldOption[]>()
   for (const contribution of contributions) {
-    if (contribution.kind !== 'provider-field' || !contribution.provider) continue
+    if (contribution.kind !== 'provider-field') continue
     const fields = bindings.get(contribution.provider) ?? []
     fields.push(contribution.field)
     bindings.set(contribution.provider, fields)
@@ -348,7 +347,7 @@ const commandBindingsFrom = (
 ): ReadonlyMap<HandlerRecord, readonly CompiledFieldOption[]> => {
   const bindings = new Map<HandlerRecord, CompiledFieldOption[]>()
   for (const contribution of contributions) {
-    if (contribution.kind !== 'command-field' || !contribution.record) continue
+    if (contribution.kind !== 'command-field') continue
     const fields = bindings.get(contribution.record) ?? []
     fields.push(contribution.field)
     bindings.set(contribution.record, fields)

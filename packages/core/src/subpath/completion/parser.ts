@@ -1,4 +1,5 @@
 import type { ArgToken, ArgvPlan } from '../../argv/interfaces'
+import { isSeparatedNumber } from '../../argv/parser'
 
 export interface ParsedCompletionArgs {
   readonly endOfOptions: boolean
@@ -22,7 +23,7 @@ export const parseCompletionArgs = (
       continue
     }
     if (expected) {
-      if (!isOptionInput(input) || isSeparatedNumber(expected, input)) {
+      if (!isOptionInput(input) || isSeparatedNumber(expected.option, input)) {
         supplied.add(expected.option.name)
         expected = undefined
         continue
@@ -74,10 +75,14 @@ const parseShortOptions = (
   const definitions = Array.from(input.slice(1), alias =>
     plan.tokens.get(`-${alias}`),
   )
-  if (definitions.some(definition => !definition)) return undefined
+  if (
+    !definitions.every(
+      (definition): definition is ArgToken => definition !== undefined,
+    )
+  )
+    return undefined
 
   for (const definition of definitions) {
-    if (!definition) continue
     supplied.add(definition.option.name)
     if (definition.option.type === 'boolean') continue
     supplied.delete(definition.option.name)
@@ -89,8 +94,3 @@ const parseShortOptions = (
 
 const isOptionInput = (value: string): boolean =>
   value.length > 1 && value.startsWith('-')
-
-const isSeparatedNumber = (definition: ArgToken, value: string): boolean => {
-  if (definition.option.type !== 'number' || !value.trim().length) return false
-  return Number.isFinite(Number(value)) || /^-(?:Infinity|NaN)$/.test(value)
-}

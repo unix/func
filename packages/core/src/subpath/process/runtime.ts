@@ -19,7 +19,6 @@ import type {
 const defaultMaxOutputBytes = 10 * 1024 * 1024
 const terminationGraceMs = 3_000
 
-type ProcessMode = 'capture' | 'forward'
 type TerminationReason = 'aborted' | 'output-limit' | 'timeout'
 
 interface ProcessBinding {
@@ -60,12 +59,16 @@ interface CaptureState {
   bytes: number
 }
 
+interface CapturedProcessFailureResult extends ProcessFailureResult {
+  stderr: string
+  stdout: string
+}
+
 type AssertSuccessfulExit = (
   exit: ProcessExit,
   reason: TerminationReason | undefined,
   options: NormalizedOptions,
   result: ProcessFailureResult,
-  capture?: CaptureState,
 ) => asserts exit is ProcessExit & { exitCode: number }
 
 const processStates = new WeakMap<FuncProcess, ProcessBinding>()
@@ -132,7 +135,7 @@ const executeCapture = async (
   const capture = captureState(options)
   const startedAt = Date.now()
   assertNotAborted(normalized)
-  const child = spawnProcess(normalized, 'capture')
+  const child = spawnProcess(normalized, 'pipe')
   const managed = manageChild(child)
   binding.children.add(managed)
   const cleanup = attachControl(managed, normalized)
@@ -142,12 +145,13 @@ const executeCapture = async (
   try {
     const exit = await managed.closed
     const result = capturedResult(capture, exit, startedAt)
-    assertSuccessfulExit(exit, managed.reason, normalized, result, capture)
+    throwIfOutputLimit(managed.reason, capture, normalized, result)
+    assertSuccessfulExit(exit, managed.reason, normalized, result)
     return {
       durationMs: result.durationMs,
       exitCode: exit.exitCode,
-      stderr: result.stderr ?? '',
-      stdout: result.stdout ?? '',
+      stderr: result.stderr,
+      stdout: result.stdout,
     }
   } finally {
     cleanup()
@@ -164,7 +168,7 @@ const executeForward = async (
   const normalized = normalizeOptions(binding, executable, args, options)
   const startedAt = Date.now()
   assertNotAborted(normalized)
-  const child = spawnProcess(normalized, 'forward', binding.context)
+  const child = spawnProcess(normalized, forwardStdio(binding.context))
   const managed = manageChild(child)
   binding.children.add(managed)
   const cleanupControl = attachControl(managed, normalized)
@@ -265,7 +269,10 @@ const normalizeOptions = (
     acceptedExitCodes,
     args: normalizedArgs,
     cwd,
-    env: environment.normalize(options.env ?? binding.context.env),
+    env:
+      options.env === undefined
+        ? binding.context.env
+        : environment.normalize(options.env),
     executable,
     label: options.label ?? executable,
     sensitive: options.sensitive ?? false,
@@ -362,10 +369,8 @@ const assertNotAborted = (options: NormalizedOptions) => {
 
 const spawnProcess = (
   options: NormalizedOptions,
-  mode: ProcessMode,
-  context?: Context,
+  stdio: StdioOptions,
 ): ChildProcess => {
-  const stdio = mode === 'capture' ? 'pipe' : forwardStdio(context)
   try {
     return spawn(options.executable, options.args, {
       cwd: options.cwd,
@@ -382,14 +387,11 @@ const spawnProcess = (
   }
 }
 
-const forwardStdio = (context?: Context): StdioOptions => {
-  if (!context) return 'pipe'
-  return [
-    streamFileDescriptor(context.io.stdin) ?? 'pipe',
-    streamFileDescriptor(context.io.stdout) ?? 'pipe',
-    streamFileDescriptor(context.io.stderr) ?? 'pipe',
-  ]
-}
+const forwardStdio = (context: Context): StdioOptions => [
+  streamFileDescriptor(context.io.stdin) ?? 'pipe',
+  streamFileDescriptor(context.io.stdout) ?? 'pipe',
+  streamFileDescriptor(context.io.stderr) ?? 'pipe',
+]
 
 const streamFileDescriptor = (stream: Readable | Writable): number | undefined => {
   const value: unknown = Reflect.get(stream, 'fd')
@@ -515,7 +517,7 @@ const capturedResult = (
   capture: CaptureState,
   exit: ProcessExit,
   startedAt: number,
-): ProcessFailureResult => ({
+): CapturedProcessFailureResult => ({
   durationMs: Date.now() - startedAt,
   exitCode: exit.exitCode,
   signal: exit.signal,
@@ -523,12 +525,26 @@ const capturedResult = (
   stdout: Buffer.concat(capture.stdout).toString(capture.encoding),
 })
 
+const throwIfOutputLimit = (
+  reason: TerminationReason | undefined,
+  capture: CaptureState,
+  options: NormalizedOptions,
+  result: ProcessFailureResult,
+) => {
+  if (reason !== 'output-limit') return
+  throw processError(
+    RUNTIME.OUTPUT_LIMIT,
+    options,
+    `exceeded the ${capture.maxOutputBytes} byte output limit`,
+    { result },
+  )
+}
+
 const assertSuccessfulExit: AssertSuccessfulExit = (
   exit: ProcessExit,
   reason: TerminationReason | undefined,
   options: NormalizedOptions,
   result: ProcessFailureResult,
-  capture?: CaptureState,
 ): asserts exit is ProcessExit & { exitCode: number } => {
   if (reason === 'aborted') {
     throw processError(RUNTIME.ABORTED, options, 'was aborted', { result })
@@ -538,14 +554,6 @@ const assertSuccessfulExit: AssertSuccessfulExit = (
       RUNTIME.TIMEOUT,
       options,
       `timed out after ${options.timeoutMs}ms`,
-      { result },
-    )
-  }
-  if (reason === 'output-limit') {
-    throw processError(
-      RUNTIME.OUTPUT_LIMIT,
-      options,
-      `exceeded the ${capture?.maxOutputBytes ?? 0} byte output limit`,
       { result },
     )
   }

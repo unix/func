@@ -1,6 +1,7 @@
 import 'reflect-metadata/lite'
 import type { Provider, ProviderToken, Type } from '../di/types'
 import { metadata as metadataKeys } from './metadata'
+import { ownMetadataValue } from '../shared/metadata-value'
 
 export interface ModuleMetadata {
   commands?: Type[]
@@ -32,12 +33,7 @@ export const hasModuleMetadata = (target: Function): boolean =>
 
 export const moduleMetadata = (input: ModuleInput): ModuleMetadata => {
   if (typeof input !== 'function') return input
-  const value: unknown = Reflect.getOwnMetadata(
-    metadataKeys.MODULE_IDENTIFIER,
-    input,
+  return (
+    ownMetadataValue<ModuleMetadata>(metadataKeys.MODULE_IDENTIFIER, input) ?? {}
   )
-  return isModuleMetadata(value) ? value : {}
 }
-
-const isModuleMetadata = (value: unknown): value is ModuleMetadata =>
-  typeof value === 'object' && value !== null

@@ -13,8 +13,12 @@ export const completionSource = (bin: string, shell: CompletionShell): string =>
   switch (shell) {
     case 'bash':
       return bashSource(bin, environment, functionName)
+    case 'elvish':
+      return elvishSource(bin, environment)
     case 'fish':
       return fishSource(bin, environment, functionName)
+    case 'nushell':
+      return nushellSource(bin, environment, functionName)
     case 'powershell':
       return powershellSource(bin, environment)
     case 'zsh':
@@ -85,6 +89,44 @@ ${functionName}() {
 complete -o default -F ${functionName} -- ${quotePosix(bin)}
 `
 
+const elvishSource = (bin: string, environment: string): string =>
+  `# Elvish completion for ${bin}
+use str
+
+set edit:completion:arg-completer[${quoteElvish(bin)}] = {|@words|
+  var response = [(env ${environment}=elvish_complete ${quoteElvish(bin)} (all $words[1..-1]) $words[-1] 2>/dev/null)]
+  if (== (count $response) 0) {
+    return
+  }
+
+  var header = [(str:split "\t" $response[0])]
+  var fallback = $header[0]
+  var suffix = ''
+  if (== $header[1] 1) {
+    set suffix = ' '
+  }
+  if (> (count $response) 1) {
+    each {|line|
+      var fields = [(str:split "\t" $line)]
+      var value = $fields[0]
+      var description = ''
+      if (> (count $fields) 1) {
+        set description = $fields[1]
+      }
+      var display = $value
+      if (not-eq $description '') {
+        set display = $value'  '$description
+      }
+      edit:complex-candidate $value &display=$display &code-suffix=$suffix
+    } $response[1..]
+    return
+  }
+  if (== $fallback file) {
+    edit:complete-filename $words[-1]
+  }
+}
+`
+
 const fishSource = (
   bin: string,
   environment: string,
@@ -112,6 +154,48 @@ function ${functionName}
 end
 
 complete -c ${quotePosix(bin)} -f -a '(${functionName})'
+`
+
+const nushellSource = (
+  bin: string,
+  environment: string,
+  functionName: string,
+): string => `# Nushell completion for ${bin}
+def ${functionName} [spans: list<string>] {
+  let arguments = ($spans | skip 1)
+  let current = ($arguments | last | default '')
+  let committed = ($arguments | drop 1)
+  let response = (
+    with-env { ${environment}: 'nushell_complete' } {
+      ^${quoteNushell(bin)} ...$committed $current | ignore --stderr
+    }
+    | lines
+  )
+  if ($response | is-empty) {
+    return []
+  }
+
+  let header = ($response | first | split row (char tab))
+  let fallback = ($header | first)
+  let candidates = (
+    $response
+    | skip 1
+    | each {|line|
+        let fields = ($line | split row (char tab))
+        {
+          value: ($fields | first)
+          description: ($fields | get -o 1 | default '')
+        }
+      }
+  )
+  if (($candidates | is-empty) and $fallback == 'file') {
+    return null
+  }
+  $candidates
+}
+
+@complete ${functionName}
+extern ${quoteNushell(bin)} []
 `
 
 const powershellSource = (bin: string, environment: string): string =>
@@ -203,6 +287,10 @@ const escapeZsh = (value: string): string =>
   value.replace(/\\/g, '\\\\').replace(/:/g, '\\:')
 
 const quotePosix = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`
+
+const quoteElvish = (value: string): string => `'${value.replace(/'/g, "''")}'`
+
+const quoteNushell = (value: string): string => `'${value.replace(/'/g, "''")}'`
 
 const quotePowerShell = (value: string): string => `'${value.replace(/'/g, "''")}'`
 

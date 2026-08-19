@@ -58,7 +58,8 @@ export class CommandGraph {
   }
 
   match(argv: readonly string[]): CommandMatch | undefined {
-    return this.matchFrom(this.root, argv, false)
+    const match = matchCommandFrom(this.root, argv)
+    return match.consumed ? match : undefined
   }
 
   matchSpecial(
@@ -67,31 +68,29 @@ export class CommandGraph {
   ): CommandMatch | undefined {
     const root = this.specialRoots.get(kind)
     if (!root) return undefined
-    return this.matchFrom(root, argv, true)
+    return matchCommandFrom(root, argv)
+  }
+}
+
+export const matchCommandFrom = (
+  root: CommandNode,
+  argv: readonly string[],
+): CommandMatch => {
+  let node = root
+  let consumed = 0
+
+  while (consumed < argv.length) {
+    const token = argv[consumed]
+    if (!token || token.startsWith('-')) break
+    const child = node.transitions.get(token)
+    if (!child) break
+    node = child
+    consumed += 1
   }
 
-  private matchFrom(
-    root: CommandNode,
-    argv: readonly string[],
-    allowRoot: boolean,
-  ): CommandMatch | undefined {
-    let node = root
-    let consumed = 0
-
-    while (consumed < argv.length) {
-      const token = argv[consumed]
-      if (!token || token.startsWith('-')) break
-      const child = node.transitions.get(token)
-      if (!child) break
-      node = child
-      consumed += 1
-    }
-
-    if (!allowRoot && !consumed) return undefined
-    return {
-      consumed,
-      invokedPath: argv.slice(0, consumed),
-      node,
-    }
+  return {
+    consumed,
+    invokedPath: argv.slice(0, consumed),
+    node,
   }
 }

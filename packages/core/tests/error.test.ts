@@ -9,9 +9,12 @@ import { ErrorScope, Exception, formatExceptionCode } from '../src'
 import { InternalException } from '../src/shared/errors'
 import { SYSTEM, expect, systemErrorCode, test } from './_test'
 
-test('should expose filter decorators without legacy error context', () => {
-  expect(func.Catch).toBeTypeOf('function')
+test('should expose exceptions without legacy filter APIs', () => {
+  expect(func).not.toHaveProperty('Catch')
   expect(func).not.toHaveProperty('CatchAll')
+  expect(func).not.toHaveProperty('UseFilters')
+  expect(func).not.toHaveProperty('APP_FILTER')
+  expect(func).not.toHaveProperty('MODULE_FILTER')
   expect(func.Exception).toBe(Exception)
   expect(func).not.toHaveProperty('ExceptionContext')
 })

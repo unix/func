@@ -9,9 +9,8 @@ import type { OptionCommandParams, OptionParams } from '../../options/types'
 import type { Type } from '../../di/types'
 import type { ExplicitProvider, ProviderToken } from '../../di/types'
 import type { ModuleInput } from '../../application/definition'
-import type { ExceptionFilter, Interceptor } from '../../runtime/enhancers'
 
-export const PRECOMPILED_APPLICATION_ABI = 1 as const
+export const PRECOMPILED_APPLICATION_ABI = 2 as const
 
 export interface PrecompiledApplicationPlan {
   readonly abi: typeof PRECOMPILED_APPLICATION_ABI
@@ -58,9 +57,7 @@ export interface PrecompiledMultiProviderPlan {
 export interface PrecompiledHandlerPlan {
   readonly command?: CommandParams
   readonly fieldOptions: readonly CompiledFieldOption[]
-  readonly filters: readonly Type<ExceptionFilter>[]
   readonly handler: Type
-  readonly interceptors: readonly Type<Interceptor>[]
   readonly kind?: handlers
   readonly methodHandlers: readonly HandlerParams[]
   readonly owner: number

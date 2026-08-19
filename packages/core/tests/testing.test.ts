@@ -305,11 +305,6 @@ test.sequential(
 test.sequential(
   'should return handled failures without an escaped error',
   async () => {
-    @func.Catch()
-    class SilentFilter implements func.ExceptionFilter {
-      catch() {}
-    }
-
     @CommandMajor()
     class Major {
       @Handler()
@@ -318,11 +313,10 @@ test.sequential(
       }
     }
 
-    @Module({
-      commands: [Major],
-      providers: [{ provide: func.APP_FILTER, useClass: SilentFilter }],
-    })
-    class AppModule {}
+    @Module({ commands: [Major] })
+    class AppModule implements func.OnError {
+      onError() {}
+    }
 
     const result = await createTestingApp(AppModule).invoke()
     expect(result.exitCode).toBe(1)
@@ -370,3 +364,78 @@ test.sequential(
     expect(result.stderr).toBe('')
   },
 )
+
+test('should isolate concurrent invocations on the same testing app', async () => {
+  let activeInvocations = 0
+  let peakInvocations = 0
+
+  @Injectable()
+  class InvocationState {}
+
+  const contexts = new Map<string, Context>()
+  const states = new Map<string, InvocationState>()
+
+  @CommandMajor()
+  class Major {
+    constructor(
+      private context: Context,
+      private state: InvocationState,
+    ) {}
+
+    @Handler()
+    async run() {
+      const name = this.context.env.INVOCATION
+      if (!name) throw new Error('Missing invocation name.')
+      contexts.set(name, this.context)
+      states.set(name, this.state)
+      activeInvocations += 1
+      peakInvocations = Math.max(peakInvocations, activeInvocations)
+      await new Promise<void>(resolve => setImmediate(resolve))
+      activeInvocations -= 1
+      const chunks: Buffer[] = []
+      for await (const chunk of this.context.io.stdin) {
+        const value: unknown = chunk
+        if (typeof value !== 'string' && !(value instanceof Uint8Array)) {
+          throw new TypeError('stdin emitted an unsupported chunk type')
+        }
+        chunks.push(Buffer.from(value))
+      }
+      this.context.exitCode = name === 'first' ? 1 : 2
+      this.context.io.stdout.write(
+        `${name}:${this.context.cwd}:${Buffer.concat(chunks).toString('utf8')}`,
+      )
+    }
+  }
+
+  const app = createTestingApp(
+    testModule({ commands: [Major], providers: [InvocationState] }),
+  )
+  const [first, second] = await Promise.all([
+    app.invoke([], {
+      cwd: '/first',
+      env: { INVOCATION: 'first' },
+      stdin: 'alpha',
+    }),
+    app.invoke([], {
+      cwd: '/second',
+      env: { INVOCATION: 'second' },
+      stdin: 'beta',
+    }),
+  ])
+
+  expect(peakInvocations).toBe(2)
+  expect(first).toMatchObject({
+    error: undefined,
+    exitCode: 1,
+    stderr: '',
+    stdout: 'first:/first:alpha',
+  })
+  expect(second).toMatchObject({
+    error: undefined,
+    exitCode: 2,
+    stderr: '',
+    stdout: 'second:/second:beta',
+  })
+  expect(contexts.get('first')).not.toBe(contexts.get('second'))
+  expect(states.get('first')).not.toBe(states.get('second'))
+})

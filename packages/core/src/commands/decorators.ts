@@ -3,6 +3,7 @@ import { SYSTEM } from '@func/contracts/core-errors'
 import { normalizeDeprecation } from '../deprecation'
 import * as validator from '../definition-validation'
 import { InternalException } from '../shared/errors'
+import { metadataValue } from '../shared/metadata-value'
 import { handlers, metadata } from './metadata'
 import type {
   CommandDecoratorInput,
@@ -39,11 +40,11 @@ export const Handler: HandlerDecorator = (input: HandlerDecoratorInput = {}) => 
       })
     }
 
-    const storedHandlers: unknown = Reflect.getMetadata(
-      metadata.METHOD_HANDLER_IDENTIFIER,
-      target.constructor,
-    )
-    const methodHandlers = isHandlerParamsList(storedHandlers) ? storedHandlers : []
+    const methodHandlers =
+      metadataValue<HandlerParams[]>(
+        metadata.METHOD_HANDLER_IDENTIFIER,
+        target.constructor,
+      ) ?? []
     Reflect.defineMetadata(
       metadata.METHOD_HANDLER_IDENTIFIER,
       methodHandlers.concat([
@@ -133,20 +134,3 @@ const normalizeHandlerPath = (input?: HandlerPath): string[] => {
   path.forEach(segment => validator.commandName(segment, 'path'))
   return path
 }
-
-const isHandlerParamsList = (value: unknown): value is HandlerParams[] =>
-  isUnknownArray(value) && value.every(isHandlerMetadata)
-
-const isHandlerMetadata = (value: unknown): value is HandlerParams =>
-  isUnknownRecord(value) &&
-  isStringList(value.aliases) &&
-  isStringList(value.path) &&
-  typeof value.methodName === 'string'
-
-const isStringList = (value: unknown): value is string[] =>
-  isUnknownArray(value) && value.every(item => typeof item === 'string')
-
-const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value)
-
-const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null

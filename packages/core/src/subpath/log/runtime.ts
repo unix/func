@@ -143,7 +143,7 @@ const cleanup = (state: LogState) => {
       .map(file => file.name)
       .filter(file => file !== currentName)
       .sort((a, b) => a.localeCompare(b, 'en'))
-    const allowedPreviousFiles = Math.max(0, state.maxFiles - 1)
+    const allowedPreviousFiles = state.maxFiles - 1
     const removeCount = previousFiles.length - allowedPreviousFiles
     if (removeCount <= 0) return
 

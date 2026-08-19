@@ -1,13 +1,23 @@
 import { Module } from '../../application/definition'
-import type { ModuleMetadata } from '../../application/definition'
-import { jsonOutputModuleMetadata } from './definition'
-import type { JsonOutputModuleOptions } from './interfaces'
+import { MODULE_OPTION } from '../../options/module-option'
+import { JsonOutput } from './runtime'
 
-@Module(jsonOutputModuleMetadata({}))
-export class JsonOutputModule {
-  // Configurable module APIs conventionally use register().
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  static register(options: JsonOutputModuleOptions = {}): ModuleMetadata {
-    return jsonOutputModuleMetadata(options)
-  }
-}
+const jsonOption = Object.freeze({
+  aliases: [],
+  description: 'output JSON',
+  name: 'json',
+  type: Boolean,
+})
+
+@Module({
+  exports: [JsonOutput, MODULE_OPTION],
+  name: 'JsonOutputModule',
+  providers: [
+    JsonOutput,
+    {
+      provide: MODULE_OPTION,
+      useValue: jsonOption,
+    },
+  ],
+})
+export class JsonOutputModule {}

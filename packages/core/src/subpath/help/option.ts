@@ -16,7 +16,6 @@ export interface HelpTransform {
   alias: 'h',
   description: 'show help',
   name: 'help',
-  textOutput: 'stdout',
 })
 export class HelpOption implements HelpTransform {
   transform(meta: HelpMeta, context: HelpContext): HelpMeta | Promise<HelpMeta> {

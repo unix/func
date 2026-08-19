@@ -11,8 +11,11 @@ export const initializeApplicationResource = (
   context: Context,
   resource: ApplicationResource,
 ) => {
-  const registered = applicationResources.get(context) ?? new Set<string>()
+  let registered = applicationResources.get(context)
+  if (!registered) {
+    registered = new Set<string>()
+    applicationResources.set(context, registered)
+  }
   if (registered.has(resource.key)) throw resource.duplicateError()
   registered.add(resource.key)
-  applicationResources.set(context, registered)
 }

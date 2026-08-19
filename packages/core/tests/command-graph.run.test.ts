@@ -1,7 +1,5 @@
 import {
-  APP_FILTER,
   Args,
-  Catch,
   Command,
   Flag,
   Module,
@@ -10,7 +8,7 @@ import {
   Value,
   createApp,
 } from '../src'
-import type { Args as ArgsValue, Exception, ExceptionFilter } from '../src'
+import type { Args as ArgsValue, Exception, OnError } from '../src'
 import { Writable } from 'node:stream'
 import { compileApplication } from '../src/application/compiler'
 import {
@@ -175,13 +173,6 @@ test.sequential(
     expect.assertions(2)
     let invoked = false
 
-    @Catch()
-    class AppFilter implements ExceptionFilter {
-      catch(exception: Exception) {
-        expect(exception.details).toEqual({ options: ['--verbose'] })
-      }
-    }
-
     @Command('users')
     class UsersCommand {
       @Handler()
@@ -199,11 +190,12 @@ test.sequential(
       help() {}
     }
 
-    @Module({
-      commands: [UsersCommand, UsersHelpCommand],
-      providers: [{ provide: APP_FILTER, useClass: AppFilter }],
-    })
-    class AppModule {}
+    @Module({ commands: [UsersCommand, UsersHelpCommand] })
+    class AppModule implements OnError {
+      onError(exception: Exception) {
+        expect(exception.details).toEqual({ options: ['--verbose'] })
+      }
+    }
 
     await run(AppModule, { argv: ['users', '--verbose'] })
     expect(invoked).toBe(false)

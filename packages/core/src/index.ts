@@ -5,24 +5,9 @@ export { Command, CommandMajor, CommandMissing, Handler } from './commands'
 export { Deprecated } from './deprecation'
 
 export { Args, Ctx, Inject, Stderr, Stdin, Stdout } from './runtime/injection'
-export {
-  APP_FILTER,
-  APP_INTERCEPTOR,
-  Catch,
-  MODULE_FILTER,
-  MODULE_INTERCEPTOR,
-  MODULE_OPTION,
-  UseFilters,
-  UseInterceptors,
-} from './runtime/enhancers'
-export type {
-  CallHandler,
-  ExceptionFilter,
-  ExceptionMatcher,
-  Interceptor,
-} from './runtime/enhancers'
+export { MODULE_OPTION } from './options/module-option'
 export { OutputHost } from './runtime/output'
-export type { OutputChannel, OutputScope } from './runtime/output'
+export type { OutputChannel } from './runtime/output'
 
 export {
   ArrayNumber,
@@ -77,6 +62,7 @@ export type {
   ModuleMetadata,
   InjectionToken,
   OnDispose,
+  OnError,
   OnInit,
   Provider,
   ProviderToken,
@@ -97,4 +83,8 @@ export type {
 } from './shared/errors'
 export { Context } from './runtime/context'
 export type { CommandInfo } from './commands/command-info'
-export type { ContextIO } from './runtime/context'
+export type {
+  ContextIO,
+  ContextInvocation,
+  ResolvedContextInvocation,
+} from './runtime/context'

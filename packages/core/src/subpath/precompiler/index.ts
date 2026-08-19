@@ -1,14 +1,7 @@
 import { ARGS, STDERR, STDIN, STDOUT } from '../../runtime/injection'
 import { Context } from '../../runtime/context'
 import { OutputHost } from '../../runtime/output'
-import {
-  APP_FILTER,
-  APP_INTERCEPTOR,
-  MODULE_FILTER,
-  MODULE_INTERCEPTOR,
-  MODULE_OPTION,
-  isMultiProviderToken,
-} from '../../runtime/enhancers'
+import { MODULE_OPTION, isMultiProviderToken } from '../../options/module-option'
 import type { CompiledApplication } from '../../application/model'
 import type { handlers } from '../../commands/metadata'
 import { compileCommandGraph } from '../../commands/graph/compiler'
@@ -29,23 +22,12 @@ import type {
 import type { CompiledFieldOption } from '../../options/field-metadata'
 import type { OptionCommandParams } from '../../options/types'
 import type { ValueTransform, ValueValidator } from '../../options/types'
-import type { ExceptionFilter, Interceptor } from '../../runtime/enhancers'
 import { applicationPlan } from './serialize'
 
-export const APPLICATION_DEFINITION_ABI = 1 as const
+export const APPLICATION_DEFINITION_ABI = 2 as const
 
 export type PrecompilerBuiltinReference =
-  | 'APP_FILTER'
-  | 'APP_INTERCEPTOR'
-  | 'ARGS'
-  | 'Context'
-  | 'MODULE_FILTER'
-  | 'MODULE_INTERCEPTOR'
-  | 'MODULE_OPTION'
-  | 'OutputHost'
-  | 'STDERR'
-  | 'STDIN'
-  | 'STDOUT'
+  'ARGS' | 'Context' | 'MODULE_OPTION' | 'OutputHost' | 'STDERR' | 'STDIN' | 'STDOUT'
 
 export interface StaticReferenceDefinition {
   readonly builtin?: PrecompilerBuiltinReference
@@ -96,9 +78,7 @@ export interface StaticFieldOptionDefinition {
 export interface StaticHandlerDefinition {
   readonly command?: CommandParams
   readonly fieldOptions: readonly StaticFieldOptionDefinition[]
-  readonly filters: readonly number[]
   readonly handler: number
-  readonly interceptors: readonly number[]
   readonly kind?: handlers
   readonly methodHandlers: readonly HandlerParams[]
 }
@@ -154,12 +134,8 @@ interface ReferenceTable {
 }
 
 const BUILTINS: Readonly<Record<PrecompilerBuiltinReference, unknown>> = {
-  APP_FILTER,
-  APP_INTERCEPTOR,
   ARGS,
   Context,
-  MODULE_FILTER,
-  MODULE_INTERCEPTOR,
   MODULE_OPTION,
   OutputHost,
   STDERR,
@@ -322,13 +298,7 @@ const compileStaticHandlers = (
       handlerRecords.push({
         ...(handler.command ? { command: handler.command } : {}),
         fieldOptions: fieldOptions(handler.fieldOptions, references),
-        filters: handler.filters.map(target =>
-          reference<Type<ExceptionFilter>>(references, target),
-        ),
         handler: reference<Type>(references, handler.handler),
-        interceptors: handler.interceptors.map(target =>
-          reference<Type<Interceptor>>(references, target),
-        ),
         ...(handler.kind ? { kind: handler.kind } : {}),
         methodHandlers: handler.methodHandlers.slice(),
         owner,

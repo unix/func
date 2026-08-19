@@ -1,14 +1,5 @@
-import {
-  Catch,
-  Command,
-  Context,
-  Handler,
-  Injectable,
-  Module,
-  OutputHost,
-  UseFilters,
-} from '../src'
-import type { ExceptionFilter, OnDispose, OnInit } from '../src'
+import { Command, Context, Handler, Injectable, Module, OutputHost } from '../src'
+import type { OnDispose, OnError, OnInit } from '../src'
 import { createTestingApp } from '../src/subpath/testing'
 import { expect, run, test } from './_test'
 
@@ -95,16 +86,8 @@ test.sequential('should keep disposal independent from handled errors', async ()
   expect.assertions(1)
   const events: string[] = []
 
-  @Catch()
-  class CommandFilter implements ExceptionFilter {
-    catch() {
-      events.push('command:error')
-    }
-  }
-
-  @UseFilters(CommandFilter)
   @Command('deploy')
-  class DeployCommand implements OnDispose {
+  class DeployCommand implements OnDispose, OnError {
     @Handler()
     run() {
       throw new Error('boom')
@@ -112,6 +95,10 @@ test.sequential('should keep disposal independent from handled errors', async ()
 
     onDispose() {
       events.push('command:dispose')
+    }
+
+    onError() {
+      events.push('command:error')
     }
   }
 
@@ -127,7 +114,7 @@ test.sequential('should keep disposal independent from handled errors', async ()
 })
 
 test.sequential(
-  'should settle context and deferred output before disposal',
+  'should settle context and deferred output after disposal',
   async () => {
     @Command('deploy')
     class DeployCommand {
@@ -153,11 +140,10 @@ test.sequential(
     const result = await createTestingApp(AppModule).invoke(['deploy'])
     expect(result).toMatchObject({
       error: undefined,
-      exitCode: 0,
+      exitCode: 9,
       result: 'ready',
-      stderr:
-        'Lifecycle hook module "AppModule".onDispose() failed: Context.exitCode cannot change after invocation settlement.\n',
-      stdout: '',
+      stderr: '',
+      stdout: 'late output\n',
     })
   },
 )
@@ -189,10 +175,9 @@ test.sequential('should continue disposing scopes after a fault', async () => {
   expect(events).toEqual(['command:dispose', 'app:dispose'])
   expect(result).toMatchObject({
     error: undefined,
-    exitCode: 0,
+    exitCode: 1,
     result: 'ready',
-    stderr:
-      'Lifecycle hook command "DeployCommand".onDispose() failed: command cleanup failed\n',
+    stderr: 'command cleanup failed\n',
   })
 })
 

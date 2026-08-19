@@ -1,5 +1,2 @@
 export { JsonOutputModule } from './module'
-export { JsonOutputInterceptor } from './runtime'
-export type { JsonOutputModuleOptions } from './interfaces'
-export { JSON_OUTPUT_OPTIONS } from './options'
-export type { JsonOutputOptions } from './options'
+export { JsonOutput } from './runtime'

@@ -1,68 +1,43 @@
 import {
-  APP_FILTER,
-  APP_INTERCEPTOR,
-  Catch,
   Command,
   CommandMajor,
   Context,
   Handler,
   Injectable,
-  MODULE_FILTER,
-  MODULE_INTERCEPTOR,
   Module,
-  UseFilters,
-  UseInterceptors,
+  OptionCommand,
 } from '../src'
-import type { CallHandler, Exception, ExceptionFilter, Interceptor } from '../src'
-import { RUNTIME, expect, run, test } from './_test'
+import type { Exception, OnDispose, OnError, OnInit } from '../src'
+import { expect, run, test } from './_test'
 
-test.sequential('should stop error propagation at a command filter', async () => {
+test.sequential('should stop error propagation at the command hook', async () => {
   const events: string[] = []
 
-  @Catch()
-  class LocalFilter implements ExceptionFilter {
-    catch() {
+  @CommandMajor()
+  class Major implements OnError {
+    onError() {
       events.push('command')
     }
-  }
 
-  @Catch()
-  class AppFilter implements ExceptionFilter {
-    catch() {
-      events.push('app')
-    }
-  }
-
-  @UseFilters(LocalFilter)
-  @CommandMajor()
-  class Major {
     @Handler()
     run() {
       throw new Error('boom')
     }
   }
 
-  @Module({
-    commands: [Major],
-    providers: [{ provide: APP_FILTER, useClass: AppFilter }],
-  })
-  class AppModule {}
+  @Module({ commands: [Major] })
+  class AppModule implements OnError {
+    onError() {
+      events.push('app')
+    }
+  }
 
   await run(AppModule)
   expect(events).toEqual(['command'])
 })
 
-test.sequential('should expose the selected command to app filters', async () => {
-  expect.assertions(1)
-
-  @Catch()
-  class AppFilter implements ExceptionFilter {
-    constructor(private readonly context: Context) {}
-
-    catch() {
-      expect(this.context.command?.path).toEqual(['publish'])
-    }
-  }
+test.sequential('should expose the resolved context to onError', async () => {
+  expect.assertions(3)
 
   @Command('publish')
   class PublishCommand {
@@ -72,62 +47,46 @@ test.sequential('should expose the selected command to app filters', async () =>
     }
   }
 
-  @Module({
-    commands: [PublishCommand],
-    providers: [{ provide: APP_FILTER, useClass: AppFilter }],
-  })
-  class AppModule {}
+  @Module({ commands: [PublishCommand] })
+  class AppModule implements OnError {
+    onError(_exception: Exception, context: Context) {
+      expect(context.invocation.resolved).toBe(true)
+      expect(context.command?.path).toEqual(['publish'])
+      expect(context.options).toEqual({})
+    }
+  }
 
   await run(AppModule, { argv: ['publish'] })
 })
 
-test.sequential('should match error codes and original error classes', async () => {
-  const events: string[] = []
-  class DomainError extends Error {}
+test.sequential('should expose an unresolved context for parse errors', async () => {
+  expect.assertions(2)
 
-  @Catch(RUNTIME.HANDLER_ERROR)
-  class CodeFilter implements ExceptionFilter {
-    catch() {
-      events.push('code')
-      throw new DomainError('next')
-    }
-  }
-
-  @Catch(DomainError)
-  class ClassFilter implements ExceptionFilter {
-    catch() {
-      events.push('class')
-    }
-  }
-
-  @UseFilters(CodeFilter, ClassFilter)
   @CommandMajor()
   class Major {
     @Handler()
-    run() {
-      throw new Error('boom')
-    }
+    run() {}
   }
 
   @Module({ commands: [Major] })
-  class AppModule {}
-
-  await run(AppModule)
-  expect(events).toEqual(['code', 'class'])
-})
-
-test.sequential('should inherit command filter metadata', async () => {
-  expect.assertions(1)
-
-  @Catch()
-  class LocalFilter implements ExceptionFilter {
-    catch(exception: Exception) {
-      expect(exception.message).toBe('boom')
+  class AppModule implements OnError {
+    onError(_exception: Exception, context: Context) {
+      expect(context.invocation).toEqual({ resolved: false })
+      expect(context.command).toBeUndefined()
     }
   }
 
-  @UseFilters(LocalFilter)
-  class BaseCommand {
+  await run(AppModule, { argv: ['--unknown'] })
+})
+
+test.sequential('should inherit the command onError hook', async () => {
+  expect.assertions(1)
+
+  class BaseCommand implements OnError {
+    onError(exception: Exception) {
+      expect(exception.message).toBe('boom')
+    }
+
     @Handler()
     run() {
       throw new Error('boom')
@@ -144,210 +103,186 @@ test.sequential('should inherit command filter metadata', async () => {
 })
 
 test.sequential(
-  'should propagate errors through command, module, and app filters',
+  'should route service method errors through the calling command',
   async () => {
     const events: string[] = []
 
-    @Catch()
-    class CommandFilter implements ExceptionFilter {
-      catch() {
+    @Injectable()
+    class ProjectService implements OnError {
+      fail() {
+        throw new Error('service failed')
+      }
+
+      onError() {
+        events.push('service')
+      }
+    }
+
+    @CommandMajor()
+    class Major implements OnError {
+      constructor(private readonly service: ProjectService) {}
+
+      @Handler()
+      run() {
+        this.service.fail()
+      }
+
+      onError() {
+        events.push('command')
+      }
+    }
+
+    @Module({ commands: [Major], providers: [ProjectService] })
+    class AppModule {}
+
+    await run(AppModule)
+    expect(events).toEqual(['command'])
+  },
+)
+
+test.sequential(
+  'should route option command initialization errors locally',
+  async () => {
+    const events: string[] = []
+
+    @OptionCommand({ name: 'version' })
+    class VersionOption implements OnError, OnInit {
+      @Handler()
+      run() {}
+
+      onInit() {
+        throw new Error('version init failed')
+      }
+
+      onError() {
+        events.push('option:error')
+      }
+    }
+
+    @Module({ options: [VersionOption] })
+    class AppModule implements OnError {
+      onError() {
+        events.push('app:error')
+      }
+    }
+
+    await run(AppModule, { argv: ['--version'] })
+    expect(events).toEqual(['option:error'])
+  },
+)
+
+test.sequential(
+  'should propagate errors through command, module, and app hooks',
+  async () => {
+    const events: string[] = []
+
+    @Command('deploy')
+    class DeployCommand implements OnError {
+      onError() {
         events.push('command')
         throw new Error('command failed')
       }
-    }
 
-    @Catch()
-    class ModuleFilter implements ExceptionFilter {
-      catch() {
-        events.push('module')
-        throw new Error('module failed')
-      }
-    }
-
-    @Catch()
-    class AppFilter implements ExceptionFilter {
-      catch() {
-        events.push('app')
-      }
-    }
-
-    @UseFilters(CommandFilter)
-    @Command('deploy')
-    class DeployCommand {
       @Handler()
       run() {
         throw new Error('boom')
       }
     }
 
-    @Module({
-      commands: [DeployCommand],
-      providers: [{ provide: MODULE_FILTER, useClass: ModuleFilter }],
-    })
-    class DeployModule {}
+    @Module({ commands: [DeployCommand] })
+    class DeployModule implements OnError {
+      onError() {
+        events.push('module')
+        throw new Error('module failed')
+      }
+    }
 
-    @Module({
-      imports: [DeployModule],
-      providers: [{ provide: APP_FILTER, useClass: AppFilter }],
-    })
-    class AppModule {}
+    @Module({ imports: [DeployModule] })
+    class AppModule implements OnError {
+      onError() {
+        events.push('app')
+      }
+    }
 
     await run(AppModule, { argv: ['deploy'] })
     expect(events).toEqual(['command', 'module', 'app'])
   },
 )
 
-test.sequential(
-  'should apply app enhancers declared by an imported module globally',
-  async () => {
-    const events: string[] = []
-
-    @Catch()
-    class AppFilter implements ExceptionFilter {
-      catch() {
-        events.push('filter')
-      }
-    }
-
-    @Injectable()
-    class AppInterceptor implements Interceptor {
-      async intercept(_context: Context, next: CallHandler) {
-        events.push('before')
-        const result = await next.handle()
-        events.push('after')
-        return result
-      }
-    }
-
-    @Module({
-      providers: [
-        { provide: APP_FILTER, useClass: AppFilter },
-        { provide: APP_INTERCEPTOR, useClass: AppInterceptor },
-      ],
-    })
-    class EnhancerModule {}
-
-    @Command('fail')
-    class FailCommand {
-      @Handler()
-      run() {
-        throw new Error('boom')
-      }
-    }
-
-    @Module({ commands: [FailCommand] })
-    class FeatureModule {}
-
-    @Module({ imports: [EnhancerModule, FeatureModule] })
-    class AppModule {}
-
-    await run(AppModule, { argv: ['fail'] })
-    expect(events).toEqual(['before', 'filter', 'after'])
-  },
-)
-
-test.sequential('should run scoped interceptors around the handler', async () => {
+test.sequential('should route module initialization errors outward', async () => {
   const events: string[] = []
 
-  @Injectable()
-  class AppInterceptor implements Interceptor {
-    async intercept(_context: Context, next: CallHandler) {
-      events.push('app:before')
-      const result = await next.handle()
-      events.push('app:after')
-      return result
-    }
-  }
-
-  @Injectable()
-  class ModuleInterceptor implements Interceptor {
-    async intercept(_context: Context, next: CallHandler) {
-      events.push('module:before')
-      const result = await next.handle()
-      events.push('module:after')
-      return result
-    }
-  }
-
-  @Injectable()
-  class CommandInterceptor implements Interceptor {
-    async intercept(_context: Context, next: CallHandler) {
-      events.push('command:before')
-      const result = await next.handle()
-      events.push('command:after')
-      return result
-    }
-  }
-
-  @UseInterceptors(CommandInterceptor)
-  @Command('deploy')
-  class DeployCommand {
+  @Command('feature')
+  class FeatureCommand {
     @Handler()
-    run() {
-      events.push('handler')
+    run() {}
+  }
+
+  @Module({ commands: [FeatureCommand] })
+  class FeatureModule implements OnError, OnInit {
+    onError() {
+      events.push('feature:error')
+      throw new Error('feature onError failed')
+    }
+
+    onInit() {
+      events.push('feature:init')
+      throw new Error('feature init failed')
     }
   }
 
-  @Module({
-    commands: [DeployCommand],
-    providers: [{ provide: MODULE_INTERCEPTOR, useClass: ModuleInterceptor }],
-  })
-  class DeployModule {}
+  @Module({ imports: [FeatureModule] })
+  class AppModule implements OnError {
+    onError() {
+      events.push('app:error')
+    }
+  }
 
-  @Module({
-    imports: [DeployModule],
-    providers: [{ provide: APP_INTERCEPTOR, useClass: AppInterceptor }],
-  })
-  class AppModule {}
-
-  await run(AppModule, { argv: ['deploy'] })
-  expect(events).toEqual([
-    'app:before',
-    'module:before',
-    'command:before',
-    'handler',
-    'command:after',
-    'module:after',
-    'app:after',
-  ])
+  await run(AppModule, { argv: ['feature'] })
+  expect(events).toEqual(['feature:init', 'feature:error', 'app:error'])
 })
 
 test.sequential(
-  'should run application interceptors around invocation errors',
+  'should route disposal errors after completing remaining cleanup',
   async () => {
     const events: string[] = []
 
-    @Injectable()
-    class AppInterceptor implements Interceptor {
-      async intercept(_context: Context, next: CallHandler) {
-        events.push('before')
-        const result = await next.handle()
-        events.push('after')
-        return result
+    @CommandMajor()
+    class Major implements OnDispose, OnError {
+      onDispose() {
+        events.push('command:dispose')
+        throw new Error('dispose failed')
+      }
+
+      onError() {
+        events.push('command:error')
+        throw new Error('command onError failed')
+      }
+
+      @Handler()
+      run() {
+        events.push('handler')
       }
     }
 
-    @Catch(RUNTIME.UNKNOWN_COMMAND)
-    class AppFilter implements ExceptionFilter {
-      catch() {
-        events.push('filter')
-        return { error: 'unknown command' }
+    @Module({ commands: [Major] })
+    class AppModule implements OnDispose, OnError {
+      onDispose() {
+        events.push('app:dispose')
+      }
+
+      onError() {
+        events.push('app:error')
       }
     }
 
-    @Module({
-      providers: [
-        { provide: APP_FILTER, useClass: AppFilter },
-        { provide: APP_INTERCEPTOR, useClass: AppInterceptor },
-      ],
-    })
-    class AppModule {}
-
-    const result = await run(AppModule, { argv: ['missing'] })
-    expect(events).toEqual(['before', 'filter', 'after'])
-    expect(result).toMatchObject({
-      exitCode: 1,
-      result: { error: 'unknown command' },
-    })
+    await run(AppModule)
+    expect(events).toEqual([
+      'handler',
+      'command:dispose',
+      'app:dispose',
+      'command:error',
+      'app:error',
+    ])
   },
 )

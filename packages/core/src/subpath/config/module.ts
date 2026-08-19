@@ -30,19 +30,17 @@ export class ConfigModule {
     const files = options.configs.map(resolveConfigFile)
 
     return {
-      providers: files.flatMap(file => providers(file)),
+      providers: files.map(configProvider),
       exports: options.configs,
     }
   }
 }
 
-const providers = (file: ResolvedConfigFile): Provider[] => [
-  {
-    inject: [Context],
-    provide: file.config,
-    useFactory: (context: Context) => initializeConfig(context, file),
-  },
-]
+const configProvider = (file: ResolvedConfigFile): Provider => ({
+  inject: [Context],
+  provide: file.config,
+  useFactory: (context: Context) => initializeConfig(context, file),
+})
 
 const initializeConfig = (
   context: Context,

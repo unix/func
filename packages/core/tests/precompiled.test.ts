@@ -69,8 +69,8 @@ test('hydrates a runtime-equivalent application from a precompiled plan', async 
 })
 
 test('rejects an incompatible precompiled ABI before bootstrap', () => {
-  expect(() => hydrateApplicationPlan({ abi: 2 })).toThrow(
-    'Unsupported func precompiled application ABI: 2.',
+  expect(() => hydrateApplicationPlan({ abi: 3 })).toThrow(
+    'Unsupported func precompiled application ABI: 3.',
   )
 })
 

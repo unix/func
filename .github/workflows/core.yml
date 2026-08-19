@@ -28,6 +28,9 @@ jobs:
           node-version: 24
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Run core end-to-end tests
+      - name: Run tests
         working-directory: packages/core
-        run: pnpm test:e2e
+        run: pnpm test
+      - name: Build
+        working-directory: packages/core
+        run: pnpm build

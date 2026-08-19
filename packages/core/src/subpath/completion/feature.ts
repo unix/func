@@ -18,8 +18,12 @@ interface CompletionMode {
 const completionModes = new Map<string, CompletionMode>([
   ['bash_complete', { operation: 'complete', shell: 'bash' }],
   ['bash_source', { operation: 'source', shell: 'bash' }],
+  ['elvish_complete', { operation: 'complete', shell: 'elvish' }],
+  ['elvish_source', { operation: 'source', shell: 'elvish' }],
   ['fish_complete', { operation: 'complete', shell: 'fish' }],
   ['fish_source', { operation: 'source', shell: 'fish' }],
+  ['nushell_complete', { operation: 'complete', shell: 'nushell' }],
+  ['nushell_source', { operation: 'source', shell: 'nushell' }],
   ['powershell_complete', { operation: 'complete', shell: 'powershell' }],
   ['powershell_source', { operation: 'source', shell: 'powershell' }],
   ['zsh_complete', { operation: 'complete', shell: 'zsh' }],

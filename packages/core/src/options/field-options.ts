@@ -3,7 +3,6 @@ import { SYSTEM } from '@func/contracts/core-errors'
 import type {
   ArrayNumberDecoratorInput,
   ArrayStringDecoratorInput,
-  FieldOptionKind,
   FieldOptionParams,
   FlagDecoratorInput,
   ValueDecorator,
@@ -23,11 +22,10 @@ interface FieldOptionBaseParams {
   description?: string
 }
 
-interface FieldOptionCreation {
-  arrayType?: ValueOptionType
-  negatable: boolean
-  transformed: boolean
-}
+type FieldOptionCreation =
+  | { kind: 'array'; type: ValueOptionType }
+  | { kind: 'flag' }
+  | { kind: 'value'; transform?: ValueTransform }
 
 type FieldOptionDecoratorInput =
   | ArrayNumberDecoratorInput
@@ -37,12 +35,12 @@ type FieldOptionDecoratorInput =
 
 const fieldOptionFactory =
   (
-    kind: FieldOptionKind,
+    creation: FieldOptionCreation,
     input: FieldOptionDecoratorInput,
-    arrayType?: ValueOptionType,
-    transform?: ValueTransform,
   ): PropertyDecorator =>
   (target, propertyKey) => {
+    const { kind } = creation
+    const transform = creation.kind === 'value' ? creation.transform : undefined
     const params = typeof input === 'string' ? { name: input } : input
     if (typeof target === 'function') throwInvalidFieldTarget(propertyKey)
     const key =
@@ -64,11 +62,7 @@ const fieldOptionFactory =
     }
     const negatable =
       kind === 'flag' && 'negatable' in params && params.negatable === true
-    const nextOption = createFieldOption(kind, base, target, {
-      ...(arrayType ? { arrayType } : {}),
-      negatable,
-      transformed: Boolean(transform),
-    })
+    const nextOption = createFieldOption(creation, base, target, negatable)
     updateFieldMetadata(target, key, field => ({
       ...field,
       options: field.options.concat([
@@ -81,34 +75,31 @@ const fieldOptionFactory =
   }
 
 const createFieldOption = (
-  kind: FieldOptionKind,
+  creation: FieldOptionCreation,
   params: FieldOptionBaseParams,
   target: Object,
-  creation: FieldOptionCreation,
+  negatable: boolean,
 ): FieldOptionParams => {
-  const { arrayType, negatable, transformed } = creation
-  if (kind === 'flag') {
+  if (creation.kind === 'flag') {
     return {
       ...params,
       ...(negatable ? { negatable: true } : {}),
-      kind,
+      kind: creation.kind,
       type: Boolean,
     }
   }
-  if (kind === 'array') {
-    const type = arrayType ?? throwMissingArrayType(params.propertyKey)
-
+  if (creation.kind === 'array') {
     return {
       ...params,
-      kind,
-      type: [resolveArrayValueType(type, target, params.propertyKey)],
+      kind: creation.kind,
+      type: [resolveArrayValueType(creation.type, target, params.propertyKey)],
     }
   }
 
   return {
     ...params,
-    kind,
-    type: transformed ? String : resolveValueType(target, params.propertyKey),
+    kind: creation.kind,
+    type: creation.transform ? String : resolveValueType(target, params.propertyKey),
   }
 }
 
@@ -194,12 +185,6 @@ const throwInvalidArrayFieldType = (
   })
 }
 
-const throwMissingArrayType = (propertyKey: string): never => {
-  throw new InternalException(SYSTEM.INTERNAL_INVARIANT, {
-    details: { property: propertyKey },
-  })
-}
-
 const arrayTypeName = (type: ValueOptionType): string =>
   type === String ? 'string[]' : 'number[]'
 
@@ -216,20 +201,20 @@ const throwInvalidFieldTarget = (propertyKey: string | symbol): never => {
 }
 
 export const Flag = (input: FlagDecoratorInput = {}): PropertyDecorator =>
-  fieldOptionFactory('flag', input)
+  fieldOptionFactory({ kind: 'flag' }, input)
 
 export const Value = (input: ValueDecoratorInput = {}): PropertyDecorator =>
-  fieldOptionFactory('value', input)
+  fieldOptionFactory({ kind: 'value' }, input)
 
 export const createValueDecorator =
   <Output>(transform: ValueTransform<Output>): ValueDecorator =>
   (input: ValueDecoratorInput = {}) =>
-    fieldOptionFactory('value', input, undefined, transform)
+    fieldOptionFactory({ kind: 'value', transform }, input)
 
 export const ArrayString = (
   input: ArrayStringDecoratorInput = {},
-): PropertyDecorator => fieldOptionFactory('array', input, String)
+): PropertyDecorator => fieldOptionFactory({ kind: 'array', type: String }, input)
 
 export const ArrayNumber = (
   input: ArrayNumberDecoratorInput = {},
-): PropertyDecorator => fieldOptionFactory('array', input, Number)
+): PropertyDecorator => fieldOptionFactory({ kind: 'array', type: Number }, input)

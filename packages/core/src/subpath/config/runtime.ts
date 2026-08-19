@@ -26,7 +26,7 @@ abstract class ConfigRuntime<T extends ConfigDefaults> implements ConfigInstance
   private readonly defaults: T
 
   constructor(defaults: T) {
-    this.defaults = cloneConfig(defaults)
+    this.defaults = defaults
   }
 
   get<K extends Extract<keyof T, string>>(key: K): T[K] {
@@ -99,7 +99,7 @@ abstract class ConfigRuntime<T extends ConfigDefaults> implements ConfigInstance
   private save(data: T) {
     const binding = this.bindingOrThrow()
     writeConfigFile(binding, data)
-    this.data = cloneConfig(data)
+    this.data = data
   }
 }
 
