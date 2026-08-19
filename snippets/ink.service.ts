@@ -18,14 +18,14 @@ export class InkService {
   constructor(private readonly context: Context) {}
 
   async render(node: ReactNode): Promise<void> {
-    const { stdin, stderr } = this.context.io
-    if (!InkService.IsTTY(stdin) || !InkService.IsTTY(stderr)) {
-      throw new TypeError('Interactive rendering requires TTY stdin and stderr.')
+    const { stdin, stdout, stderr } = this.context.io
+    if (!InkService.IsTTY(stdin) || !InkService.IsTTY(stdout)) {
+      throw new TypeError('Interactive rendering requires TTY stdin and stdout.')
     }
 
     const application = render(node, {
       stdin,
-      stdout: stderr,
+      stdout,
       stderr,
       exitOnCtrlC: false,
       patchConsole: false,

@@ -6,7 +6,7 @@ interface Props {
 }
 
 const { locale = defaultLocale } = Astro.props
-const seriesLabel = locale === 'zh-cn' ? '系列' : 'series'
+const legacyTitle = locale === 'zh-cn' ? 'v1 版本' : 'v1'
 const legacySummary =
   locale === 'zh-cn'
     ? 'func 1.0.0 发布于 2019-06-13，奠定了框架的基础能力：使用装饰器定义命令，并提供选项解析、命令分发、元数据注册和服务注入。'
@@ -14,18 +14,10 @@ const legacySummary =
 ---
 
 <div class="changelog">
-  <section class="changelog-section" aria-labelledby="series-2">
-    <h2 class="changelog-series-title" id="series-2">
-      2.x {seriesLabel}
-    </h2>
+  <slot />
 
-    <div class="changelog-list" data-minimap-ignore><slot /></div>
-  </section>
-
-  <section class="changelog-section" aria-labelledby="series-1">
-    <h2 class="changelog-series-title" id="series-1">
-      1.x {seriesLabel}
-    </h2>
+  <section class="changelog-section" aria-labelledby="version-1">
+    <h2 class="changelog-series-title" id="version-1">{legacyTitle}</h2>
     <div class="changelog-legacy">
       <span class="changelog-marker" aria-hidden="true"></span>
       <p>{legacySummary}</p>

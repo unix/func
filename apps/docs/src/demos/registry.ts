@@ -1,39 +1,55 @@
 import type { Type } from '../../../../packages/core/src'
 import { createInvoker } from '../../../../packages/core/src/subpath/invoke'
-import { ErrorsLocalCatchModule } from './fixtures/errors-local-catch.demo'
-import { GuideHelpModule } from './fixtures/guide-help.demo'
-import { GuideStatusModule } from './fixtures/guide-status.demo'
-import { SaasStatusModule } from './fixtures/saas-status.demo'
-import { UseCasesModule } from './fixtures/use-cases.demo'
 import type { TerminalDemoId } from './protocol'
+import { Readable, Writable } from './runtime/terminal-stream'
 
 interface TerminalDemoDefinition {
   executable: string
-  input: Type
+  input: () => Promise<Type>
 }
 
 const terminalDemos: Record<TerminalDemoId, TerminalDemoDefinition> = {
   'errors-local-catch': {
     executable: 'ship',
-    input: ErrorsLocalCatchModule,
+    input: async () =>
+      (await import('./fixtures/errors-local-catch.demo')).ErrorsLocalCatchModule,
   },
   'guide-help': {
     executable: 'ship',
-    input: GuideHelpModule,
+    input: async () => (await import('./fixtures/guide-help.demo')).GuideHelpModule,
   },
   'guide-status': {
     executable: 'ship',
-    input: GuideStatusModule,
+    input: async () =>
+      (await import('./fixtures/guide-status.demo')).GuideStatusModule,
+  },
+  'json-output': {
+    executable: 'ship',
+    input: async () =>
+      (await import('./fixtures/json-output.demo')).JsonOutputDemoModule,
   },
   'saas-status': {
     executable: 'saas',
-    input: SaasStatusModule,
+    input: async () =>
+      (await import('./fixtures/saas-status.demo')).SaasStatusModule,
   },
   'use-cases': {
     executable: 'ship',
-    input: UseCasesModule,
+    input: async () => (await import('./fixtures/use-cases.demo')).UseCasesModule,
   },
 }
+
+const terminalDemoInput = new Readable()
+
+const terminalDemoOutput = (stream: 'stderr' | 'stdout') =>
+  new Writable({
+    write(chunk: string | Uint8Array, _encoding, callback) {
+      const text =
+        typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
+      console[stream === 'stderr' ? 'error' : 'log'](text.replace(/\n$/, ''))
+      callback()
+    },
+  })
 
 const terminalDemoArgv = (command: string, executable: string) => {
   const argv = command.trim().split(/\s+/).filter(Boolean)
@@ -56,5 +72,11 @@ const terminalDemoArgv = (command: string, executable: string) => {
 export const runTerminalDemo = async (demoId: TerminalDemoId, command: string) => {
   const demo = terminalDemos[demoId]
   const argv = terminalDemoArgv(command, demo.executable)
-  await createInvoker(demo.input).invoke(argv)
+  await createInvoker(await demo.input()).invoke(argv, {
+    cwd: '/',
+    env: {},
+    stderr: terminalDemoOutput('stderr'),
+    stdin: terminalDemoInput,
+    stdout: terminalDemoOutput('stdout'),
+  })
 }

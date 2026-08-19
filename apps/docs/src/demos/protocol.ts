@@ -2,6 +2,7 @@ export const terminalDemoIds = [
   'errors-local-catch',
   'guide-help',
   'guide-status',
+  'json-output',
   'saas-status',
   'use-cases',
 ] as const

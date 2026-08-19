@@ -1,25 +1,15 @@
-import type { Exception, ExceptionFilter } from '../../../../../packages/core/src'
-import {
-  Catch,
-  Command,
-  Handler,
-  Module,
-  UseFilters,
-} from '../../../../../packages/core/src'
+import type { Exception, OnError } from '../../../../../packages/core/src'
+import { Command, Handler, Module } from '../../../../../packages/core/src'
 
-@Catch()
-class PublishFilter implements ExceptionFilter {
-  catch(exception: Exception) {
-    console.error(`Publish failed: ${exception.message}`)
-  }
-}
-
-@UseFilters(PublishFilter)
 @Command('publish')
-class PublishCommand {
+class PublishCommand implements OnError {
   @Handler()
   async run() {
     throw new Error('Registry is unavailable')
+  }
+
+  onError(exception: Exception) {
+    console.error(`Publish failed: ${exception.message}`)
   }
 }
 

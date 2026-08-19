@@ -370,6 +370,11 @@
     @apply border-b px-4 py-3 align-top text-muted-foreground;
   }
 
+  .prose-static[data-doc-page='glossary'] :where(th, td):first-child {
+    @apply min-w-40 whitespace-nowrap;
+    overflow-wrap: normal;
+  }
+
   .prose-static tbody tr:last-child td {
     @apply border-b-0;
   }
@@ -421,7 +426,7 @@
   .docs-step:not(:last-child) .docs-step-rail::after {
     position: absolute;
     top: 2.25rem;
-    bottom: -0.25rem;
+    bottom: calc(-2rem + 0.25rem);
     width: 1px;
     background: color-mix(in oklch, var(--muted-foreground) 20%, transparent);
     content: '';

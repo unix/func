@@ -32,7 +32,7 @@ const editUrl = getEditUrl(page, locale)
   description={description}
   lastModified={lastModified}
   locale={locale}>
-  <div class="mx-auto min-h-screen w-full max-w-7xl bg-background">
+  <div class="mx-auto min-h-screen w-full max-w-[90rem] bg-background">
     <DocsHeader locale={locale} page={page} />
 
     <main
@@ -54,7 +54,10 @@ const editUrl = getEditUrl(page, locale)
             </div>
           </div>
 
-          <article class="prose-static min-w-0" data-doc-content>
+          <article
+            class="prose-static min-w-0"
+            data-doc-content
+            data-doc-page={page}>
             <slot />
           </article>
 

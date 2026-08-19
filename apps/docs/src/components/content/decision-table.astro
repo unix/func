@@ -4,7 +4,7 @@ import { defaultLocale, type Locale } from '@/lib/docs'
 interface DecisionItem {
   choice: string
   example: string
-  when?: string
+  when: string
 }
 
 interface Props {
@@ -35,7 +35,7 @@ const labels =
             <td class="whitespace-nowrap">
               <code>{item.choice}</code>
             </td>
-            <td>{item.when ?? <slot />}</td>
+            <td>{item.when}</td>
             <td>
               {item.example === '✅' ? item.example : <code>{item.example}</code>}
             </td>

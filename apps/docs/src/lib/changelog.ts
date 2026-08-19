@@ -6,15 +6,15 @@ export interface ChangelogRelease {
 }
 
 export const changelogReleases = {
-  '3.0.0-canary.0': {
+  '3.0.0': {
     commit: '2231151',
     date: '2026-08-15',
-    version: '3.0.0-canary.0',
+    latest: true,
+    version: '3.0.0',
   },
   '2.3.1': {
     commit: '25cd25b',
     date: '2026-08-08',
-    latest: true,
     version: '2.3.1',
   },
   '2.3.0': {

@@ -1,0 +1,17 @@
+---
+import { defaultLocale, type Locale } from '@/lib/docs'
+
+interface Props {
+  locale?: Locale
+  version: number
+}
+
+const { locale = defaultLocale, version } = Astro.props
+const title = locale === 'zh-cn' ? `v${version} 版本` : `v${version}`
+const versionId = `version-${version}`
+---
+
+<section class="changelog-section" aria-labelledby={versionId}>
+  <h2 class="changelog-series-title" id={versionId}>{title}</h2>
+  <div class="changelog-list" data-minimap-ignore><slot /></div>
+</section>

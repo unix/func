@@ -9,6 +9,7 @@ import joinLine from 'astro-join-line'
 import remarkJoinLine from 'astro-join-line/remark'
 import { noImageEndpoint } from 'astro-no-image-endpoint/cloudflare'
 import viteCacheIsolation from 'astro-vite-cache-isolation'
+import { fileURLToPath } from 'node:url'
 
 // https://astro.build/config
 export default defineConfig({
@@ -47,11 +48,27 @@ export default defineConfig({
     noImageEndpoint(),
   ],
   vite: {
+    oxc: {
+      decorator: {
+        emitDecoratorMetadata: true,
+        legacy: true,
+      },
+    },
     optimizeDeps: {
       // The passthrough image service is resolved through a virtual module, so
       // Vite's source scan cannot discover it before Cloudflare imports the worker.
       include: ['astro/assets/services/noop'],
     },
     plugins: [tailwindcss()],
+    resolve: {
+      alias: {
+        'node:stream': fileURLToPath(
+          new URL('./src/demos/runtime/terminal-stream.ts', import.meta.url),
+        ),
+        'node:util': fileURLToPath(
+          new URL('./src/demos/runtime/terminal-util.ts', import.meta.url),
+        ),
+      },
+    },
   },
 })

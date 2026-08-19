@@ -13,14 +13,14 @@ export class InquirerService {
   constructor(private readonly context: Context) {}
 
   input(options: InputOptions) {
-    const { stdin, stderr } = this.context.io
-    if (!InquirerService.IsTTY(stdin) || !InquirerService.IsTTY(stderr)) {
-      throw new TypeError('Interactive prompts require TTY stdin and stderr.')
+    const { stdin, stdout } = this.context.io
+    if (!InquirerService.IsTTY(stdin) || !InquirerService.IsTTY(stdout)) {
+      throw new TypeError('Interactive prompts require TTY stdin and stdout.')
     }
 
     return input(options, {
       input: stdin,
-      output: stderr,
+      output: stdout,
       signal: this.context.signal,
     })
   }

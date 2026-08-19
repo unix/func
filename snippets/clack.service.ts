@@ -24,7 +24,7 @@ export class ClackService {
   get interactive(): boolean {
     return (
       ClackService.IsTTY(this.context.io.stdin) &&
-      ClackService.IsTTY(this.context.io.stderr)
+      ClackService.IsTTY(this.context.io.stdout)
     )
   }
 
@@ -39,21 +39,21 @@ export class ClackService {
   spinner(options: BoundOptions<SpinnerOptions> = {}) {
     return spinner({
       ...options,
-      output: this.context.io.stderr,
+      output: this.context.io.stdout,
       signal: this.context.signal,
     })
   }
 
   intro(message: string) {
-    intro(message, { output: this.context.io.stderr })
+    intro(message, { output: this.context.io.stdout })
   }
 
   outro(message: string) {
-    outro(message, { output: this.context.io.stderr })
+    outro(message, { output: this.context.io.stdout })
   }
 
   cancel(message = 'Operation cancelled.') {
-    renderCancel(message, { output: this.context.io.stderr })
+    renderCancel(message, { output: this.context.io.stdout })
   }
 
   isCancelled(value: unknown): value is symbol {
@@ -76,12 +76,12 @@ export class ClackService {
 
   private promptIO() {
     if (!this.interactive) {
-      throw new TypeError('Interactive prompts require TTY stdin and stderr.')
+      throw new TypeError('Interactive prompts require TTY stdin and stdout.')
     }
 
     return {
       input: this.context.io.stdin,
-      output: this.context.io.stderr,
+      output: this.context.io.stdout,
       signal: this.context.signal,
     }
   }

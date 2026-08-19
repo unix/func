@@ -162,7 +162,14 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
     },
     {
       label: '快速入门',
-      pages: ['commands', 'options', 'parameters', 'error-handler', 'use-cases'],
+      pages: [
+        'commands',
+        'options',
+        'parameters',
+        'error-handler',
+        'capabilities/testing',
+        'use-cases',
+      ],
     },
     {
       label: '深入学习',
@@ -182,7 +189,6 @@ const navGroups: Record<Locale, { label?: string; pages: DocPage[] }[]> = {
         'capabilities/json-output',
         'capabilities/help',
         'capabilities/invoke',
-        'capabilities/testing',
         'capabilities/config',
         'capabilities/log',
         'capabilities/network',

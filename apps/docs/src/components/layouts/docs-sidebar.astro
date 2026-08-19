@@ -198,10 +198,37 @@ const persistKey = `docs-sidebar-${locale}`
     })
   }
 
+  let hasRevealedCurrentPage = false
+
+  const revealCurrentPage = () => {
+    if (hasRevealedCurrentPage) return
+    hasRevealedCurrentPage = true
+
+    const sidebar = document.querySelector<HTMLElement>('.docs-sidebar')
+    const currentPage = sidebar?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!sidebar || !currentPage) return
+
+    const sidebarRect = sidebar.getBoundingClientRect()
+    const currentPageRect = currentPage.getBoundingClientRect()
+    const isVisible =
+      currentPageRect.top >= sidebarRect.top &&
+      currentPageRect.bottom <= sidebarRect.bottom
+    if (isVisible) return
+
+    const currentPageCenter =
+      currentPageRect.top -
+      sidebarRect.top +
+      sidebar.scrollTop +
+      currentPageRect.height / 2
+
+    sidebar.scrollTop = currentPageCenter - sidebar.clientHeight / 2
+  }
+
   document.addEventListener('astro:before-swap', saveSidebarScroll)
   document.addEventListener('astro:after-swap', () => {
     restoreSidebarScroll()
     syncCurrentPage()
   })
   syncCurrentPage()
+  requestAnimationFrame(revealCurrentPage)
 </script>

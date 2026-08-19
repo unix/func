@@ -3,7 +3,6 @@ import type {
   TerminalDemoStream,
   TerminalDemoWorkerMessage,
 } from './protocol'
-import { runTerminalDemo } from './registry'
 
 interface TerminalDemoWorkerScope {
   addEventListener(
@@ -70,6 +69,7 @@ workerScope.addEventListener(
     }
 
     try {
+      const { runTerminalDemo } = await import('./registry')
       await runTerminalDemo(event.data.demoId, event.data.command)
       workerScope.postMessage({
         status: state.hasErrorOutput ? 'error' : 'success',
