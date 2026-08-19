@@ -8,7 +8,7 @@ interface Props {
 
 const { locale = defaultLocale } = Astro.props
 const pages = getSystemErrorPages(locale)
-const currentPages = pages.filter(
+const frameworkPages = pages.filter(
   page => page.family === 'system' && !page.frontmatter.legacy,
 )
 const scaffoldPages = pages.filter(page => page.family === 'scaffold')
@@ -17,27 +17,27 @@ const labels =
   locale === 'zh-cn'
     ? {
         count: (count: number) => `${count} 个错误码`,
-        current: '2.x 当前版本',
-        currentDescription: '当前版本可能输出的系统错误',
-        scaffold: '生态与脚手架',
-        scaffoldDescription: 'funcgo 与 create-func 输出的工具错误',
+        framework: '框架错误',
+        frameworkDescription: '由 func 框架自身抛出的错误',
+        scaffold: '脚手架错误',
+        scaffoldDescription: 'funcgo 与 create-func 输出的脚手架错误',
         legacy: '1.x 版本',
         legacyDescription: '为旧版本和已有链接保留的错误码',
       }
     : {
         count: (count: number) => `${count} codes`,
-        current: '2.x Current',
-        currentDescription: 'System errors emitted by current func versions',
-        scaffold: 'Ecosystem and scaffolding',
-        scaffoldDescription: 'Tooling errors emitted by funcgo and create-func',
+        framework: 'Framework errors',
+        frameworkDescription: 'Errors emitted by the func framework itself',
+        scaffold: 'Scaffolding errors',
+        scaffoldDescription: 'Scaffolding errors emitted by funcgo and create-func',
         legacy: '1.x',
         legacyDescription: 'Codes retained for older versions and existing links',
       }
 const groups = [
   {
-    description: labels.currentDescription,
-    label: labels.current,
-    pages: currentPages,
+    description: labels.frameworkDescription,
+    label: labels.framework,
+    pages: frameworkPages,
   },
   {
     description: labels.scaffoldDescription,
