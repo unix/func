@@ -10,7 +10,7 @@ packages:
   - packages/init
 
 allowBuilds:
-  '@parcel/watcher': true
+  '@parcel/watcher': false
   '@swc/core': true
   esbuild: true
   msw: true
@@ -19,13 +19,17 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@unix/prettier@0.1.0'
-  - astro-join-line@0.1.0
-  - astro@7.2.0
-  - '@astrojs/cloudflare@14.2.0'
+  - astro-join-line@0.1.1
+  - astro@7.2.3
+  - '@astrojs/cloudflare@14.2.2'
+  - '@astrojs/markdown-remark@7.2.3'
+  - '@astrojs/mdx@7.0.6'
   - '@cloudflare/workers-types@5.20260808.1'
-  - miniflare@5.20260801.1-alpha
-  - wrangler@4.120.0
+  - miniflare@5.20260801.1-alpha || 5.20260815.0-alpha
+  - wrangler@4.124.0
   - eslint@10.8.1
   - astro-vite-cache-isolation@0.1.0
-  - func@3.0.0-canary.2
-  - funcgo@1.2.0-canary.3
+  - func@3.0.0-canary.6
+  - funcgo@1.2.0-canary.6
+  - '@astrojs/internal-helpers@0.10.3'
+  - '@astrojs/markdown-satteri@0.3.6'
